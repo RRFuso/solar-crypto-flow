@@ -1,5 +1,5 @@
 import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const CryptoChart = ({ crypto }) => {
   // Simulated chart data - replace with actual TradingView API data
@@ -16,13 +16,13 @@ const CryptoChart = ({ crypto }) => {
     <div className="bg-gray-900 p-6 rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-4">{crypto.name} vs BTC</h2>
       <ResponsiveContainer width="100%" height={400}>
-        <LineChart data={data}>
+        <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#444" />
           <XAxis dataKey="date" stroke="#888" />
           <YAxis stroke="#888" />
           <Tooltip contentStyle={{ backgroundColor: '#333', border: 'none' }} />
-          <Line type="monotone" dataKey="value" stroke="#8884d8" strokeWidth={2} />
-        </LineChart>
+          <Bar dataKey="value" fill="#8884d8" />
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );

@@ -12,6 +12,11 @@ const fetchCryptoData = async () => {
     { id: 'DOT', name: 'Polkadot', performance: 2.1 },
     { id: 'XRP', name: 'Ripple', performance: 1.8 },
     { id: 'SOL', name: 'Solana', performance: 4.5 },
+    { id: 'PENDLE', name: 'Pendle', performance: 6.3 },
+    { id: 'SUI', name: 'Sui', performance: 7.1 },
+    { id: 'SEI', name: 'Sei', performance: 5.9 },
+    { id: 'AVAX', name: 'Avalanche', performance: 4.2 },
+    { id: 'MATIC', name: 'Polygon', performance: 3.9 },
   ];
 };
 

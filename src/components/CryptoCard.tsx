@@ -1,5 +1,16 @@
 import React from 'react';
-import { Coins, TrendingUp } from 'lucide-react';
+import { Coins, TrendingUp, Bitcoin, Currency } from 'lucide-react';
+
+const getCryptoIcon = (id) => {
+  switch (id.toLowerCase()) {
+    case 'btc':
+      return <Bitcoin className="w-10 h-10 text-yellow-400" />;
+    case 'eth':
+      return <Currency className="w-10 h-10 text-blue-400" />;
+    default:
+      return <Coins className="w-10 h-10 text-yellow-400" />;
+  }
+};
 
 const CryptoCard = ({ crypto, onClick }) => {
   return (
@@ -8,7 +19,7 @@ const CryptoCard = ({ crypto, onClick }) => {
       onClick={onClick}
     >
       <div className="flex items-center justify-between mb-4">
-        <Coins className="w-10 h-10 text-yellow-400" />
+        {getCryptoIcon(crypto.id)}
         <span className="text-2xl font-bold">{crypto.id}</span>
       </div>
       <h3 className="text-xl mb-2">{crypto.name}</h3>
