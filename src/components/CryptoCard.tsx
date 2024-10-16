@@ -1,16 +1,5 @@
 import React from 'react';
-import { Coins, TrendingUp, Bitcoin, Currency } from 'lucide-react';
-
-const getCryptoIcon = (id) => {
-  switch (id.toLowerCase()) {
-    case 'btc':
-      return <Bitcoin className="w-10 h-10 text-yellow-400" />;
-    case 'eth':
-      return <Currency className="w-10 h-10 text-blue-400" />;
-    default:
-      return <Coins className="w-10 h-10 text-yellow-400" />;
-  }
-};
+import { TrendingUp } from 'lucide-react';
 
 const CryptoCard = ({ crypto, onClick }) => {
   return (
@@ -19,7 +8,14 @@ const CryptoCard = ({ crypto, onClick }) => {
       onClick={onClick}
     >
       <div className="flex items-center justify-between mb-4">
-        {getCryptoIcon(crypto.id)}
+        <img
+          src={`https://s3-symbol-logo.tradingview.com/crypto/XTVC${crypto.id}.svg`}
+          alt={`${crypto.name} logo`}
+          className="w-10 h-10"
+          onError={(e) => {
+            e.currentTarget.src = 'https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg';
+          }}
+        />
         <span className="text-2xl font-bold">{crypto.id}</span>
       </div>
       <h3 className="text-xl mb-2">{crypto.name}</h3>
