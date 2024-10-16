@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Bitcoin, Coins, TrendingUp } from 'lucide-react';
 import CryptoCard from './CryptoCard';
 import CryptoChart from './CryptoChart';
 
 const fetchCryptoData = async () => {
-  // Simulated API call - replace with actual TradingView API call
+  // Simulated API call - replace with actual API call in production
   return [
     { id: 'ETH', name: 'Ethereum', performance: 5.2 },
     { id: 'ADA', name: 'Cardano', performance: 3.7 },
@@ -17,6 +16,11 @@ const fetchCryptoData = async () => {
     { id: 'SEI', name: 'Sei', performance: 5.9 },
     { id: 'AVAX', name: 'Avalanche', performance: 4.2 },
     { id: 'MATIC', name: 'Polygon', performance: 3.9 },
+    { id: 'LINK', name: 'Chainlink', performance: 3.5 },
+    { id: 'UNI', name: 'Uniswap', performance: 2.8 },
+    { id: 'ATOM', name: 'Cosmos', performance: 3.2 },
+    { id: 'ALGO', name: 'Algorand', performance: 1.9 },
+    { id: 'VET', name: 'VeChain', performance: 1.5 },
   ];
 };
 
