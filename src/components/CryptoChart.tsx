@@ -1,5 +1,5 @@
 import React from 'react';
-import { TradingViewWidget } from 'react-tradingview-widget';
+import TradingViewWidget from 'react-tradingview-widget';
 
 const CryptoChart = ({ crypto }) => {
   return (
