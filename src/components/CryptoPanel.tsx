@@ -30,10 +30,12 @@ const CryptoPanel = () => {
   if (isLoading) return <div className="text-center">Carregando...</div>;
   if (error) return <div className="text-center text-red-500">Erro ao carregar dados</div>;
 
+  const sortedCryptos = [...cryptos].sort((a, b) => b.performance - a.performance);
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {cryptos.map((crypto) => (
+        {sortedCryptos.map((crypto) => (
           <CryptoCard
             key={crypto.id}
             crypto={crypto}

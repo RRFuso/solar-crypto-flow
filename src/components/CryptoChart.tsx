@@ -21,7 +21,7 @@ const CryptoChart = ({ crypto }) => {
           <XAxis dataKey="date" stroke="#888" />
           <YAxis stroke="#888" />
           <Tooltip contentStyle={{ backgroundColor: '#333', border: 'none' }} />
-          <Bar dataKey="value" fill="#8884d8" />
+          <Bar dataKey="value" fill={(entry) => entry.value >= 0 ? '#4CAF50' : '#F44336'} />
         </BarChart>
       </ResponsiveContainer>
     </div>
