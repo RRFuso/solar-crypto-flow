@@ -13,9 +13,10 @@ interface CryptoCardProps {
   crypto: CryptoData;
   onClick: () => void;
   isSelected: boolean;
+  showRsi?: boolean;
 }
 
-const CryptoCard = ({ crypto, onClick, isSelected }: CryptoCardProps) => {
+const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false }: CryptoCardProps) => {
   const isPositive = crypto.performance > 0;
   const logoMap = {
     'PENDLE': 'https://s2.coinmarketcap.com/static/img/coins/64x64/8409.png',
@@ -44,13 +45,18 @@ const CryptoCard = ({ crypto, onClick, isSelected }: CryptoCardProps) => {
             <span className="font-bold">{crypto.name}</span>
             <span className="text-sm text-gray-400">{crypto.id}</span>
           </div>
-          {crypto.id !== 'BTC' && (
+          {crypto.id !== 'BTC' && !showRsi && (
             <div className={cn(
               "flex items-center gap-1 text-sm",
               isPositive ? "text-green-400" : "text-red-400"
             )}>
               {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
               <span>{Math.abs(crypto.performance).toFixed(2)}% vs BTC</span>
+            </div>
+          )}
+          {showRsi && crypto.rsi && (
+            <div className="text-sm text-gray-400">
+              RSI: {crypto.rsi.toFixed(2)}
             </div>
           )}
         </div>

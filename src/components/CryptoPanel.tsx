@@ -14,7 +14,6 @@ interface CryptoData {
 }
 
 const fetchCryptoData = async (): Promise<CryptoData[]> => {
-  // Simulated API call - replace with actual API call in production
   return [
     { id: 'BTC', name: 'Bitcoin', performance: 0, rsi: 55 },
     { id: 'ETH', name: 'Ethereum', performance: -12.5, rsi: 48 },
@@ -35,7 +34,17 @@ const fetchCryptoData = async (): Promise<CryptoData[]> => {
     { id: 'XRP', name: 'Ripple', performance: 12.8, rsi: 58 },
     { id: 'ATOM', name: 'Cosmos', performance: 34.5, rsi: 59 },
     { id: 'NEAR', name: 'Near Protocol', performance: 56.7, rsi: 64 },
-    { id: 'FTM', name: 'Fantom', performance: 89.2, rsi: 69 }
+    { id: 'FTM', name: 'Fantom', performance: 89.2, rsi: 69 },
+    { id: 'DOGE', name: 'Dogecoin', performance: -5.3, rsi: 47 },
+    { id: 'SHIB', name: 'Shiba Inu', performance: -8.7, rsi: 44 },
+    { id: 'UNI', name: 'Uniswap', performance: 23.1, rsi: 57 },
+    { id: 'AAVE', name: 'Aave', performance: 34.2, rsi: 62 },
+    { id: 'MKR', name: 'Maker', performance: 45.6, rsi: 65 },
+    { id: 'SNX', name: 'Synthetix', performance: 67.8, rsi: 71 },
+    { id: 'CRV', name: 'Curve', performance: -12.4, rsi: 43 },
+    { id: 'LDO', name: 'Lido', performance: 89.3, rsi: 73 },
+    { id: 'ARB', name: 'Arbitrum', performance: 45.6, rsi: 64 },
+    { id: 'OP', name: 'Optimism', performance: 56.7, rsi: 68 }
   ];
 };
 
@@ -99,6 +108,7 @@ const CryptoPanel = () => {
                     crypto={crypto}
                     onClick={() => setSelectedCrypto(crypto)}
                     isSelected={selectedCrypto.id === crypto.id}
+                    showRsi={true}
                   />
                 ))}
               </div>
