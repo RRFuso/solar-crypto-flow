@@ -99,7 +99,7 @@ const CryptoPanel = () => {
         </Tabs>
       </div>
       <div className="flex-1">
-        <CryptoChart crypto={selectedCrypto} />
+        <CryptoChart crypto={selectedCrypto} activeTab={activeTab} />
       </div>
     </div>
   );
