@@ -2,22 +2,28 @@ import React from 'react';
 import TradingViewWidget from 'react-tradingview-widget';
 
 const CryptoChart = ({ crypto }) => {
+  const symbol = crypto.id === 'BTC' ? 'BTCUSDT' : `${crypto.id}BTC`;
+  
   return (
-    <div className="bg-gray-900 p-6 rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-4 text-white">{crypto.name} vs BTC</h2>
-      <div style={{ height: '400px' }}>
+    <div className="h-full bg-gray-900 rounded-lg overflow-hidden">
+      <div className="p-4 border-b border-gray-800">
+        <h2 className="text-xl font-bold">
+          {crypto.id === 'BTC' ? 'Bitcoin (BTC/USDT)' : `${crypto.name} vs Bitcoin (${crypto.id}/BTC)`}
+        </h2>
+      </div>
+      <div className="h-[calc(100%-4rem)]">
         <TradingViewWidget
-          symbol={`BINANCE:${crypto.id}BTC`}
+          symbol={`BINANCE:${symbol}`}
           theme="Dark"
           autosize
           interval="D"
           timezone="Etc/UTC"
           style="1"
-          locale="en"
-          toolbar_bg="#f1f3f6"
+          locale="pt"
+          toolbar_bg="#1a1b1e"
           enable_publishing={false}
           hide_top_toolbar={false}
-          allow_symbol_change={true}
+          allow_symbol_change={false}
           container_id="tradingview_chart"
         />
       </div>
