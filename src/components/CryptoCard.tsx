@@ -2,7 +2,20 @@ import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
-const CryptoCard = ({ crypto, onClick, isSelected }) => {
+interface CryptoData {
+  id: string;
+  name: string;
+  performance: number;
+  rsi?: number;
+}
+
+interface CryptoCardProps {
+  crypto: CryptoData;
+  onClick: () => void;
+  isSelected: boolean;
+}
+
+const CryptoCard = ({ crypto, onClick, isSelected }: CryptoCardProps) => {
   const isPositive = crypto.performance > 0;
   const logoMap = {
     'PENDLE': 'https://s2.coinmarketcap.com/static/img/coins/64x64/8409.png',
