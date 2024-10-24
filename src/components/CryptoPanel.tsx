@@ -51,8 +51,16 @@ const CryptoPanel = () => {
   if (isLoading) return <div className="text-center">Carregando...</div>;
   if (error) return <div className="text-center text-red-500">Erro ao carregar dados</div>;
 
-  const sortedCryptos = [...cryptos].sort((a, b) => b.performance - a.performance);
-  const upTrendCryptos = sortedCryptos.filter(crypto => (crypto.rsi || 0) > 62);
+  const sortedCryptos = [...cryptos].sort((a, b) => {
+    if (activeTab === 'uptrend') {
+      return (b.rsi || 0) - (a.rsi || 0);
+    }
+    return b.performance - a.performance;
+  });
+  
+  const filteredCryptos = activeTab === 'uptrend' 
+    ? sortedCryptos.filter(crypto => (crypto.rsi || 0) > 62)
+    : sortedCryptos;
 
   return (
     <div className="flex gap-6 h-[calc(100vh-8rem)]">
@@ -72,7 +80,7 @@ const CryptoPanel = () => {
           <ScrollArea className="flex-1">
             <TabsContent value="all" className="m-0">
               <div className="p-4 space-y-4">
-                {sortedCryptos.map((crypto) => (
+                {filteredCryptos.map((crypto) => (
                   <CryptoCard
                     key={crypto.id}
                     crypto={crypto}
@@ -85,7 +93,7 @@ const CryptoPanel = () => {
             
             <TabsContent value="uptrend" className="m-0">
               <div className="p-4 space-y-4">
-                {upTrendCryptos.map((crypto) => (
+                {filteredCryptos.map((crypto) => (
                   <CryptoCard
                     key={crypto.id}
                     crypto={crypto}
