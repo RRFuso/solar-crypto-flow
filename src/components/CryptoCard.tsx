@@ -4,6 +4,10 @@ import { cn } from "@/lib/utils";
 
 const CryptoCard = ({ crypto, onClick, isSelected }) => {
   const isPositive = crypto.performance > 0;
+  const logoMap = {
+    'PENDLE': 'https://s2.coinmarketcap.com/static/img/coins/64x64/8409.png',
+    'JUP': 'https://s2.coinmarketcap.com/static/img/coins/64x64/25147.png'
+  };
   
   return (
     <div
@@ -15,7 +19,7 @@ const CryptoCard = ({ crypto, onClick, isSelected }) => {
     >
       <div className="flex items-center gap-4">
         <img
-          src={`https://s3-symbol-logo.tradingview.com/crypto/XTVC${crypto.id}.svg`}
+          src={logoMap[crypto.id] || `https://s3-symbol-logo.tradingview.com/crypto/XTVC${crypto.id}.svg`}
           alt={`${crypto.name} logo`}
           className="w-8 h-8"
           onError={(e) => {

@@ -24,6 +24,7 @@ const CryptoChart = ({ crypto }) => {
           enable_publishing={false}
           hide_top_toolbar={false}
           allow_symbol_change={false}
+          studies={["RSI@tv-basicstudies", "StochRSI@tv-basicstudies"]}
           container_id="tradingview_chart"
         />
       </div>

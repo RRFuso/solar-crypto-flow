@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import CryptoCard from './CryptoCard';
 import CryptoChart from './CryptoChart';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { LineChart, TrendingUp } from 'lucide-react';
 
 const fetchCryptoData = async () => {
   // Simulated API call - replace with actual API call in production
@@ -32,6 +34,8 @@ const fetchCryptoData = async () => {
 
 const CryptoPanel = () => {
   const [selectedCrypto, setSelectedCrypto] = useState({ id: 'BTC', name: 'Bitcoin' });
+  const [activeTab, setActiveTab] = useState('all');
+  
   const { data: cryptos, isLoading, error } = useQuery({
     queryKey: ['cryptos'],
     queryFn: fetchCryptoData,
@@ -41,21 +45,52 @@ const CryptoPanel = () => {
   if (error) return <div className="text-center text-red-500">Erro ao carregar dados</div>;
 
   const sortedCryptos = [...cryptos].sort((a, b) => b.performance - a.performance);
+  const upTrendCryptos = sortedCryptos.filter(crypto => crypto.rsi > 62);
 
   return (
     <div className="flex gap-6 h-[calc(100vh-8rem)]">
-      <ScrollArea className="w-96 border rounded-lg bg-gray-900/50">
-        <div className="p-4 space-y-4">
-          {sortedCryptos.map((crypto) => (
-            <CryptoCard
-              key={crypto.id}
-              crypto={crypto}
-              onClick={() => setSelectedCrypto(crypto)}
-              isSelected={selectedCrypto.id === crypto.id}
-            />
-          ))}
-        </div>
-      </ScrollArea>
+      <div className="w-96 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
+        <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="all" className="flex items-center gap-2">
+              <LineChart className="w-4 h-4" />
+              <span>BTC vs BTC</span>
+            </TabsTrigger>
+            <TabsTrigger value="uptrend" className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              <span>Tendência de Alta</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <ScrollArea className="flex-1">
+            <TabsContent value="all" className="m-0">
+              <div className="p-4 space-y-4">
+                {sortedCryptos.map((crypto) => (
+                  <CryptoCard
+                    key={crypto.id}
+                    crypto={crypto}
+                    onClick={() => setSelectedCrypto(crypto)}
+                    isSelected={selectedCrypto.id === crypto.id}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="uptrend" className="m-0">
+              <div className="p-4 space-y-4">
+                {upTrendCryptos.map((crypto) => (
+                  <CryptoCard
+                    key={crypto.id}
+                    crypto={crypto}
+                    onClick={() => setSelectedCrypto(crypto)}
+                    isSelected={selectedCrypto.id === crypto.id}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+          </ScrollArea>
+        </Tabs>
+      </div>
       <div className="flex-1">
         <CryptoChart crypto={selectedCrypto} />
       </div>
