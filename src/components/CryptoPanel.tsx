@@ -59,11 +59,12 @@ const CryptoPanel = () => {
     queryFn: fetchCryptoData,
     refetchInterval: 10000,
     retry: 3,
-    onSuccess: (data) => {
+    select: (data) => {
       const updatedSelectedCrypto = data.find(crypto => crypto.id === selectedCrypto.id);
       if (updatedSelectedCrypto) {
         setSelectedCrypto(updatedSelectedCrypto);
       }
+      return data;
     },
     onError: () => {
       toast({
