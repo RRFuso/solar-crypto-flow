@@ -59,18 +59,17 @@ const CryptoPanel = () => {
     queryFn: fetchCryptoData,
     refetchInterval: 10000,
     retry: 3,
-    onSettled: (data, error) => {
-      if (error) {
-        toast({
-          title: "Erro ao atualizar dados",
-          description: "Não foi possível obter as atualizações em tempo real",
-          variant: "destructive",
-        });
-      } else if (data) {
-        const updatedSelectedCrypto = data.find(crypto => crypto.id === selectedCrypto.id);
-        if (updatedSelectedCrypto) {
-          setSelectedCrypto(updatedSelectedCrypto);
-        }
+    onError: () => {
+      toast({
+        title: "Erro ao atualizar dados",
+        description: "Não foi possível obter as atualizações em tempo real",
+        variant: "destructive",
+      });
+    },
+    onSuccess: (data) => {
+      const updatedSelectedCrypto = data.find(crypto => crypto.id === selectedCrypto.id);
+      if (updatedSelectedCrypto) {
+        setSelectedCrypto(updatedSelectedCrypto);
       }
     }
   });
