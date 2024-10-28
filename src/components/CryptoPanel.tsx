@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import CryptoCard from './CryptoCard';
 import CryptoChart from './CryptoChart';
@@ -54,26 +54,31 @@ const CryptoPanel = () => {
   const [activeTab, setActiveTab] = useState('all');
   const { toast } = useToast();
   
-  const { data: cryptos, isLoading, error } = useQuery({
+  const { data: cryptos = [], isLoading, error } = useQuery({
     queryKey: ['cryptos'],
     queryFn: fetchCryptoData,
     refetchInterval: 10000,
     retry: 3,
-    select: (data) => {
-      const updatedSelectedCrypto = data.find(crypto => crypto.id === selectedCrypto.id);
-      if (updatedSelectedCrypto) {
-        setSelectedCrypto(updatedSelectedCrypto);
-      }
-      return data;
-    },
-    onError: () => {
+  });
+
+  // Update selected crypto when data changes
+  React.useEffect(() => {
+    const updatedSelectedCrypto = cryptos.find(crypto => crypto.id === selectedCrypto.id);
+    if (updatedSelectedCrypto) {
+      setSelectedCrypto(updatedSelectedCrypto);
+    }
+  }, [cryptos, selectedCrypto.id]);
+
+  // Show error toast when query fails
+  React.useEffect(() => {
+    if (error) {
       toast({
         title: "Erro ao atualizar dados",
         description: "Não foi possível obter as atualizações em tempo real",
         variant: "destructive",
       });
     }
-  });
+  }, [error, toast]);
 
   if (isLoading) return <div className="text-center">Carregando...</div>;
   if (error) return <div className="text-center text-red-500">Erro ao carregar dados</div>;
