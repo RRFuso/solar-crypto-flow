@@ -5,6 +5,7 @@ import CryptoChart from './CryptoChart';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LineChart, TrendingUp } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 interface CryptoData {
   id: string;
@@ -51,10 +52,26 @@ const fetchCryptoData = async (): Promise<CryptoData[]> => {
 const CryptoPanel = () => {
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoData>({ id: 'BTC', name: 'Bitcoin', performance: 0 });
   const [activeTab, setActiveTab] = useState('all');
+  const { toast } = useToast();
   
   const { data: cryptos, isLoading, error } = useQuery({
     queryKey: ['cryptos'],
     queryFn: fetchCryptoData,
+    refetchInterval: 10000, // Atualiza a cada 10 segundos
+    onError: () => {
+      toast({
+        title: "Erro ao atualizar dados",
+        description: "Não foi possível obter as atualizações em tempo real",
+        variant: "destructive",
+      });
+    },
+    onSuccess: (data) => {
+      // Se o crypto selecionado existir nos novos dados, atualize-o
+      const updatedSelectedCrypto = data.find(crypto => crypto.id === selectedCrypto.id);
+      if (updatedSelectedCrypto) {
+        setSelectedCrypto(updatedSelectedCrypto);
+      }
+    }
   });
 
   if (isLoading) return <div className="text-center">Carregando...</div>;
