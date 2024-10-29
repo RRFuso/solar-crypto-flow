@@ -30,22 +30,19 @@ const fetchCryptoData = async (): Promise<CryptoData[]> => {
     { id: 'AVAX', name: 'Avalanche', performance: 67.2, rsi: 63 },
     { id: 'MATIC', name: 'Polygon', performance: 23.4, rsi: 52 },
     { id: 'LINK', name: 'Chainlink', performance: 45.6, rsi: 61 },
-    { id: 'DOT', name: 'Polkadot', performance: -8.9, rsi: 45 },
-    { id: 'ADA', name: 'Cardano', performance: -15.3, rsi: 42 },
-    { id: 'XRP', name: 'Ripple', performance: 12.8, rsi: 58 },
-    { id: 'ATOM', name: 'Cosmos', performance: 34.5, rsi: 59 },
     { id: 'NEAR', name: 'Near Protocol', performance: 56.7, rsi: 64 },
-    { id: 'FTM', name: 'Fantom', performance: 89.2, rsi: 69 },
-    { id: 'DOGE', name: 'Dogecoin', performance: -5.3, rsi: 47 },
-    { id: 'SHIB', name: 'Shiba Inu', performance: -8.7, rsi: 44 },
-    { id: 'UNI', name: 'Uniswap', performance: 23.1, rsi: 57 },
-    { id: 'AAVE', name: 'Aave', performance: 34.2, rsi: 62 },
-    { id: 'MKR', name: 'Maker', performance: 45.6, rsi: 65 },
-    { id: 'SNX', name: 'Synthetix', performance: 67.8, rsi: 71 },
-    { id: 'CRV', name: 'Curve', performance: -12.4, rsi: 43 },
-    { id: 'LDO', name: 'Lido', performance: 89.3, rsi: 73 },
-    { id: 'ARB', name: 'Arbitrum', performance: 45.6, rsi: 64 },
-    { id: 'OP', name: 'Optimism', performance: 56.7, rsi: 68 }
+    { id: 'RENDER', name: 'Render', performance: 89.2, rsi: 69 },
+    { id: 'FLOKI', name: 'Floki Inu', performance: 234.5, rsi: 82 },
+    { id: 'PEPE', name: 'Pepe', performance: 345.6, rsi: 88 },
+    { id: 'WIF', name: 'Wif', performance: 456.7, rsi: 86 },
+    { id: 'DOGE', name: 'Dogecoin', performance: 123.4, rsi: 75 },
+    { id: 'BONK', name: 'Bonk', performance: 567.8, rsi: 89 },
+    { id: 'SHIB', name: 'Shiba Inu', performance: 234.5, rsi: 80 },
+    { id: 'MEME', name: 'Memecoin', performance: 345.6, rsi: 85 },
+    { id: 'DOGWIFHAT', name: 'Dog Wif Hat', performance: 456.7, rsi: 87 },
+    { id: 'WOJAK', name: 'Wojak', performance: 234.5, rsi: 79 },
+    { id: 'MYRO', name: 'Myro', performance: 345.6, rsi: 83 },
+    { id: 'TOSHI', name: 'Toshi', performance: 456.7, rsi: 84 },
   ];
 };
 
@@ -57,8 +54,8 @@ const CryptoPanel = () => {
   const { data: cryptos = [], isLoading, error } = useQuery({
     queryKey: ['cryptos'],
     queryFn: fetchCryptoData,
-    refetchInterval: 10000,
-    retry: 3,
+    staleTime: Infinity,
+    cacheTime: Infinity,
   });
 
   // Update selected crypto when data changes
@@ -109,7 +106,7 @@ const CryptoPanel = () => {
             </TabsTrigger>
           </TabsList>
           
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 h-[calc(100vh-12rem)]">
             <TabsContent value="all" className="m-0">
               <div className="p-4 space-y-4">
                 {filteredCryptos.map((crypto) => (
