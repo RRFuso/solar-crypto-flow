@@ -55,7 +55,8 @@ const CryptoPanel = () => {
   const { data: cryptos = [], isLoading, error } = useQuery({
     queryKey: ['cryptos'],
     queryFn: fetchCryptoData,
-    staleTime: 0,
+    refetchInterval: 15000, // Refetch every 15 seconds for real-time updates
+    staleTime: 5000, // Consider data stale after 5 seconds
   });
 
   // Update selected crypto when data changes
@@ -99,7 +100,7 @@ const CryptoPanel = () => {
     <div className="flex gap-6 h-[calc(100vh-8rem)]">
       <div className="w-96 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
         <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-3">
+          <TabsList className="w-full grid grid-cols-3 h-20 bg-gray-800">
             <TabsTrigger value="all" className="flex flex-col items-center gap-1 h-auto py-2">
               <LineChart className="w-4 h-4" />
               <span className="text-xs">BTC vs BTC</span>
