@@ -7,6 +7,7 @@ interface CryptoData {
   name: string;
   performance: number;
   rsi?: number;
+  rsi4h?: number;
 }
 
 interface CryptoCardProps {
@@ -14,9 +15,10 @@ interface CryptoCardProps {
   onClick: () => void;
   isSelected: boolean;
   showRsi?: boolean;
+  showRsi4h?: boolean;
 }
 
-const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false }: CryptoCardProps) => {
+const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = false }: CryptoCardProps) => {
   const isPositive = crypto.performance > 0;
   const logoMap = {
     'PENDLE': 'https://s2.coinmarketcap.com/static/img/coins/64x64/8409.png',
@@ -45,7 +47,7 @@ const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false }: CryptoCard
             <span className="font-bold">{crypto.name}</span>
             <span className="text-sm text-gray-400">{crypto.id}</span>
           </div>
-          {crypto.id !== 'BTC' && !showRsi && (
+          {crypto.id !== 'BTC' && !showRsi && !showRsi4h && (
             <div className={cn(
               "flex items-center gap-1 text-sm",
               isPositive ? "text-green-400" : "text-red-400"
@@ -56,7 +58,12 @@ const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false }: CryptoCard
           )}
           {showRsi && crypto.rsi && (
             <div className="text-sm text-gray-400">
-              RSI: {crypto.rsi.toFixed(2)}
+              RSI Semanal: {crypto.rsi.toFixed(2)}
+            </div>
+          )}
+          {showRsi4h && crypto.rsi4h && (
+            <div className="text-sm text-gray-400">
+              RSI 4h: {crypto.rsi4h.toFixed(2)}
             </div>
           )}
         </div>
