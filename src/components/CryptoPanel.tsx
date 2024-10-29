@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import CryptoCard from './CryptoCard';
 import CryptoChart from './CryptoChart';
+import CryptoOcean from './CryptoOcean';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LineChart, TrendingUp, ArrowDownCircle } from 'lucide-react';
@@ -97,8 +98,9 @@ const CryptoPanel = () => {
     : sortedCryptos;
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-8rem)]">
-      <div className="w-96 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
+    <div className="flex flex-col gap-6">
+      <div className="flex gap-6 h-[calc(100vh-8rem)]">
+        <div className="w-96 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
         <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
           <TabsList className="w-full grid grid-cols-3 h-20 bg-gray-800">
             <TabsTrigger value="all" className="flex flex-col items-center gap-1 h-auto py-2">
@@ -158,10 +160,12 @@ const CryptoPanel = () => {
             </TabsContent>
           </ScrollArea>
         </Tabs>
+        </div>
+        <div className="flex-1">
+          <CryptoChart crypto={selectedCrypto} activeTab={activeTab} />
+        </div>
       </div>
-      <div className="flex-1">
-        <CryptoChart crypto={selectedCrypto} activeTab={activeTab} />
-      </div>
+      <CryptoOcean cryptos={sortedCryptos} />
     </div>
   );
 };
