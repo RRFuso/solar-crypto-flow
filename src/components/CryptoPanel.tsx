@@ -100,17 +100,17 @@ const CryptoPanel = () => {
       <div className="w-96 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
         <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
           <TabsList className="w-full grid grid-cols-3">
-            <TabsTrigger value="all" className="flex items-center gap-2">
+            <TabsTrigger value="all" className="flex flex-col items-center gap-1 h-auto py-2">
               <LineChart className="w-4 h-4" />
-              <span>BTC vs BTC</span>
+              <span className="text-xs">BTC vs BTC</span>
             </TabsTrigger>
-            <TabsTrigger value="uptrend" className="flex items-center gap-2">
+            <TabsTrigger value="uptrend" className="flex flex-col items-center gap-1 h-auto py-2">
               <TrendingUp className="w-4 h-4" />
-              <span>Tendência de Alta Semanal</span>
+              <span className="text-xs whitespace-normal text-center">Tendência de Alta Semanal</span>
             </TabsTrigger>
-            <TabsTrigger value="oversold" className="flex items-center gap-2">
+            <TabsTrigger value="oversold" className="flex flex-col items-center gap-1 h-auto py-2">
               <ArrowDownCircle className="w-4 h-4" />
-              <span>Sobrevenda 4hs</span>
+              <span className="text-xs whitespace-normal text-center">Sobrevenda 4hs</span>
             </TabsTrigger>
           </TabsList>
           
