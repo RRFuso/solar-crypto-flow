@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shark } from 'lucide-react';
+import { Fish } from 'lucide-react';
 
 interface CryptoOceanProps {
   cryptos: Array<{
@@ -47,7 +47,7 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
       <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-blue-300/5 to-transparent transform -skew-y-6" />
       
       <div className="relative z-10">
-        {cryptos.map((crypto, index) => {
+        {cryptos.map((crypto) => {
           const randomPos = getRandomPosition();
           const size = getSize(crypto.performance);
           const duration = Math.random() * 20 + 20;
@@ -63,7 +63,7 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
                 animationDelay: `${delay}s`,
               }}
             >
-              <Shark
+              <Fish
                 className={`transform transition-all duration-300 ${
                   crypto.performance < 0 ? 'rotate-180' : ''
                 } text-white/80 group-hover:text-white`}
