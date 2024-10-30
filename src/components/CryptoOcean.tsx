@@ -1,5 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Fish } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface CryptoOceanProps {
   cryptos: Array<{
@@ -10,6 +16,9 @@ interface CryptoOceanProps {
 }
 
 const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
+  const [selectedCrypto, setSelectedCrypto] = useState<(typeof cryptos)[0] | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   const getSize = (performance: number) => {
     const minSize = 24;
     const maxSize = 96;
@@ -17,11 +26,22 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
     return Math.abs(normalizedSize);
   };
 
-  const getRandomPosition = () => {
+  // Distribuir peixes em uma grade virtual para evitar sobreposição
+  const getGridPosition = (index: number) => {
+    const gridSize = Math.ceil(Math.sqrt(cryptos.length));
+    const cellWidth = 100 / gridSize;
+    const row = Math.floor(index / gridSize);
+    const col = index % gridSize;
+    
     return {
-      left: `${Math.random() * 80 + 10}%`,
-      top: `${Math.random() * 80 + 10}%`,
+      left: `${col * cellWidth + Math.random() * (cellWidth/2)}%`,
+      top: `${row * cellWidth + Math.random() * (cellWidth/2)}%`,
     };
+  };
+
+  const logoMap = {
+    'PENDLE': 'https://s2.coinmarketcap.com/static/img/coins/64x64/8409.png',
+    'JUP': 'https://s2.coinmarketcap.com/static/img/coins/64x64/25147.png'
   };
 
   return (
@@ -47,41 +67,67 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
       <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-blue-300/5 to-transparent transform -skew-y-6" />
       
       <div className="relative z-10">
-        {cryptos.map((crypto) => {
-          const randomPos = getRandomPosition();
+        {cryptos.map((crypto, index) => {
           const size = getSize(crypto.performance);
           const duration = Math.random() * 20 + 20;
           const delay = -Math.random() * 20;
+          const gridPos = getGridPosition(index);
           
           return (
             <div
               key={crypto.id}
-              className="absolute group"
+              className="absolute group cursor-pointer"
               style={{
-                ...randomPos,
+                ...gridPos,
                 animation: `swim-complex ${duration}s infinite ease-in-out`,
                 animationDelay: `${delay}s`,
               }}
+              onClick={() => {
+                setSelectedCrypto(crypto);
+                setDialogOpen(true);
+              }}
             >
-              <Fish
-                className={`transform transition-all duration-300 ${
-                  crypto.performance < 0 ? 'rotate-180' : ''
-                } text-white/80 group-hover:text-white`}
-                style={{
-                  width: size,
-                  height: size,
-                }}
-              />
-              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/90 text-white px-3 py-1.5 rounded-lg text-sm opacity-0 group-hover:opacity-100 whitespace-nowrap transition-all duration-300 transform group-hover:-translate-y-1">
-                <div className="font-bold">{crypto.name}</div>
-                <div className={crypto.performance >= 0 ? 'text-green-400' : 'text-red-400'}>
-                  {crypto.performance.toFixed(2)}%
-                </div>
+              <div className="relative">
+                <Fish
+                  className={`transform transition-all duration-300 ${
+                    crypto.performance < 0 ? 'rotate-180' : ''
+                  } text-white/80 group-hover:text-white`}
+                  style={{
+                    width: size,
+                    height: size,
+                  }}
+                />
+                <img
+                  src={logoMap[crypto.id] || `https://s3-symbol-logo.tradingview.com/crypto/XTVC${crypto.id}.svg`}
+                  alt={`${crypto.name} logo`}
+                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1/2 h-1/2 rounded-full bg-white/10 p-1"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg';
+                  }}
+                />
               </div>
             </div>
           );
         })}
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="bg-gray-900 text-white border-gray-800">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              {selectedCrypto?.name} ({selectedCrypto?.id})
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span>Performance vs BTC:</span>
+              <span className={selectedCrypto?.performance >= 0 ? 'text-green-400' : 'text-red-400'}>
+                {selectedCrypto?.performance.toFixed(2)}%
+              </span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <style>
         {`
