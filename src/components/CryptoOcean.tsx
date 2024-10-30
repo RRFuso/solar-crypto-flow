@@ -26,16 +26,24 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
     return Math.abs(normalizedSize);
   };
 
-  // Distribuir peixes em uma grade virtual para evitar sobreposição
+  // Distribuição melhorada dos peixes em uma grade
   const getGridPosition = (index: number) => {
-    const gridSize = Math.ceil(Math.sqrt(cryptos.length));
-    const cellWidth = 100 / gridSize;
-    const row = Math.floor(index / gridSize);
-    const col = index % gridSize;
+    const columns = Math.ceil(Math.sqrt(cryptos.length));
+    const rows = Math.ceil(cryptos.length / columns);
+    
+    const cellWidth = 90 / columns; // Usando 90% da largura para margem
+    const cellHeight = 90 / rows; // Usando 90% da altura para margem
+    
+    const row = Math.floor(index / columns);
+    const col = index % columns;
+    
+    // Adiciona uma variação aleatória menor dentro da célula
+    const randomX = (Math.random() - 0.5) * (cellWidth * 0.3);
+    const randomY = (Math.random() - 0.5) * (cellHeight * 0.3);
     
     return {
-      left: `${col * cellWidth + Math.random() * (cellWidth/2)}%`,
-      top: `${row * cellWidth + Math.random() * (cellWidth/2)}%`,
+      left: `${5 + col * cellWidth + cellWidth/2 + randomX}%`,
+      top: `${5 + row * cellHeight + cellHeight/2 + randomY}%`,
     };
   };
 
