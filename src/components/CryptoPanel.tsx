@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import CryptoCard from './CryptoCard';
 import CryptoChart from './CryptoChart';
-import { TankScene } from './Tank';
+import CryptoOcean from './CryptoOcean';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LineChart, TrendingUp, ArrowDownCircle } from 'lucide-react';
@@ -101,70 +101,71 @@ const CryptoPanel = () => {
     <div className="flex flex-col gap-6">
       <div className="flex gap-6 h-[calc(100vh-8rem)]">
         <div className="w-96 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
-          <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-3 h-20 bg-gray-800">
-              <TabsTrigger value="all" className="flex flex-col items-center gap-1 h-auto py-2">
-                <LineChart className="w-4 h-4" />
-                <span className="text-xs">BTC vs BTC</span>
-              </TabsTrigger>
-              <TabsTrigger value="uptrend" className="flex flex-col items-center gap-1 h-auto py-2">
-                <TrendingUp className="w-4 h-4" />
-                <span className="text-xs whitespace-normal text-center">Tendência de Alta Semanal</span>
-              </TabsTrigger>
-              <TabsTrigger value="oversold" className="flex flex-col items-center gap-1 h-auto py-2">
-                <ArrowDownCircle className="w-4 h-4" />
-                <span className="text-xs whitespace-normal text-center">Sobrevenda 4hs</span>
-              </TabsTrigger>
-            </TabsList>
+        <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
+          <TabsList className="w-full grid grid-cols-3 h-20 bg-gray-800">
+            <TabsTrigger value="all" className="flex flex-col items-center gap-1 h-auto py-2">
+              <LineChart className="w-4 h-4" />
+              <span className="text-xs">BTC vs BTC</span>
+            </TabsTrigger>
+            <TabsTrigger value="uptrend" className="flex flex-col items-center gap-1 h-auto py-2">
+              <TrendingUp className="w-4 h-4" />
+              <span className="text-xs whitespace-normal text-center">Tendência de Alta Semanal</span>
+            </TabsTrigger>
+            <TabsTrigger value="oversold" className="flex flex-col items-center gap-1 h-auto py-2">
+              <ArrowDownCircle className="w-4 h-4" />
+              <span className="text-xs whitespace-normal text-center">Sobrevenda 4hs</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <ScrollArea className="flex-1 h-[calc(100vh-12rem)]">
+            <TabsContent value="all" className="m-0">
+              <div className="p-4 space-y-4">
+                {filteredCryptos.map((crypto) => (
+                  <CryptoCard
+                    key={crypto.id}
+                    crypto={crypto}
+                    onClick={() => setSelectedCrypto(crypto)}
+                    isSelected={selectedCrypto.id === crypto.id}
+                  />
+                ))}
+              </div>
+            </TabsContent>
             
-            <ScrollArea className="flex-1 h-[calc(100vh-12rem)]">
-              <TabsContent value="all" className="m-0">
-                <div className="p-4 space-y-4">
-                  {filteredCryptos.map((crypto) => (
-                    <CryptoCard
-                      key={crypto.id}
-                      crypto={crypto}
-                      onClick={() => setSelectedCrypto(crypto)}
-                      isSelected={selectedCrypto.id === crypto.id}
-                    />
-                  ))}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="uptrend" className="m-0">
-                <div className="p-4 space-y-4">
-                  {filteredCryptos.map((crypto) => (
-                    <CryptoCard
-                      key={crypto.id}
-                      crypto={crypto}
-                      onClick={() => setSelectedCrypto(crypto)}
-                      isSelected={selectedCrypto.id === crypto.id}
-                      showRsi={true}
-                    />
-                  ))}
-                </div>
-              </TabsContent>
+            <TabsContent value="uptrend" className="m-0">
+              <div className="p-4 space-y-4">
+                {filteredCryptos.map((crypto) => (
+                  <CryptoCard
+                    key={crypto.id}
+                    crypto={crypto}
+                    onClick={() => setSelectedCrypto(crypto)}
+                    isSelected={selectedCrypto.id === crypto.id}
+                    showRsi={true}
+                  />
+                ))}
+              </div>
+            </TabsContent>
 
-              <TabsContent value="oversold" className="m-0">
-                <div className="p-4 space-y-4">
-                  {filteredCryptos.map((crypto) => (
-                    <CryptoCard
-                      key={crypto.id}
-                      crypto={crypto}
-                      onClick={() => setSelectedCrypto(crypto)}
-                      isSelected={selectedCrypto.id === crypto.id}
-                      showRsi4h={true}
-                    />
-                  ))}
-                </div>
-              </TabsContent>
-            </ScrollArea>
-          </Tabs>
+            <TabsContent value="oversold" className="m-0">
+              <div className="p-4 space-y-4">
+                {filteredCryptos.map((crypto) => (
+                  <CryptoCard
+                    key={crypto.id}
+                    crypto={crypto}
+                    onClick={() => setSelectedCrypto(crypto)}
+                    isSelected={selectedCrypto.id === crypto.id}
+                    showRsi4h={true}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+          </ScrollArea>
+        </Tabs>
         </div>
         <div className="flex-1">
-          <TankScene />
+          <CryptoChart crypto={selectedCrypto} activeTab={activeTab} />
         </div>
       </div>
+      <CryptoOcean cryptos={sortedCryptos} />
     </div>
   );
 };
