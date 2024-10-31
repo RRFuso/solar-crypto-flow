@@ -30,20 +30,24 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
     const totalItems = cryptos.length;
     const columns = Math.ceil(Math.sqrt(totalItems));
     const rows = Math.ceil(totalItems / columns);
-    const cellWidth = 90 / columns;
-    const cellHeight = 90 / rows;
+    const cellWidth = 80 / columns; // Reduzido para 80% para aumentar espaçamento horizontal
+    const cellHeight = 75 / rows;   // Reduzido para 75% para aumentar espaçamento vertical
 
     const row = Math.floor(index / columns);
     const col = index % columns;
-    const baseX = col * cellWidth + cellWidth / 2;
-    const baseY = row * cellHeight + cellHeight / 2;
+    
+    // Distribuição em três faixas verticais
+    const verticalZone = Math.floor((row * 3) / rows); // 0, 1, ou 2 para superior, meio e inferior
+    const baseY = (verticalZone * 30) + (row * cellHeight / 3); // 30% para cada zona vertical
+    const baseX = col * cellWidth;
 
-    const randomX = (Math.random() - 0.5) * cellWidth * 0.1;
-    const randomY = (Math.random() - 0.5) * cellHeight * 0.1;
+    // Aumentando a variação aleatória para maior dispersão
+    const randomX = (Math.random() - 0.5) * cellWidth * 0.2;
+    const randomY = (Math.random() - 0.5) * cellHeight * 0.2;
 
     return {
-      left: `${5 + baseX + randomX}%`,
-      top: `${5 + baseY + randomY}%`,
+      left: `${10 + baseX + randomX}%`, // Margem inicial de 10%
+      top: `${10 + baseY + randomY}%`,  // Margem inicial de 10%
     };
   };
 
