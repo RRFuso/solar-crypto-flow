@@ -28,20 +28,19 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
 
   const getGridPosition = (index: number) => {
     const totalItems = cryptos.length;
-    const gridSize = Math.ceil(Math.sqrt(totalItems));
-    
-    // Calculando a posição na grade
-    const row = Math.floor(index / gridSize);
-    const col = index % gridSize;
-    
-    // Usando toda a área disponível (90% para deixar margem)
-    const baseX = (col / (gridSize - 1)) * 90;
-    const baseY = (row / (gridSize - 1)) * 90;
-    
-    // Adicionando uma pequena variação aleatória (máximo 5% em cada direção)
-    const randomX = (Math.random() - 0.5) * 5;
-    const randomY = (Math.random() - 0.5) * 5;
-    
+    const columns = Math.ceil(Math.sqrt(totalItems));
+    const rows = Math.ceil(totalItems / columns);
+    const cellWidth = 90 / columns;
+    const cellHeight = 90 / rows;
+
+    const row = Math.floor(index / columns);
+    const col = index % columns;
+    const baseX = col * cellWidth + cellWidth / 2;
+    const baseY = row * cellHeight + cellHeight / 2;
+
+    const randomX = (Math.random() - 0.5) * cellWidth * 0.1;
+    const randomY = (Math.random() - 0.5) * cellHeight * 0.1;
+
     return {
       left: `${5 + baseX + randomX}%`,
       top: `${5 + baseY + randomY}%`,
