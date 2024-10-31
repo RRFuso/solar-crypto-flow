@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Fish } from 'lucide-react';
 import {
   Dialog,
@@ -15,14 +15,9 @@ interface CryptoOceanProps {
   }>;
 }
 
-interface FishPosition {
-  [key: string]: { left: string; top: string };
-}
-
 const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
   const [selectedCrypto, setSelectedCrypto] = useState<(typeof cryptos)[0] | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [positions, setPositions] = useState<FishPosition>({});
 
   const getSize = (performance: number) => {
     const minSize = 24;
@@ -31,59 +26,29 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
     return Math.abs(normalizedSize);
   };
 
-  const getRandomPosition = (index: number) => {
+  const getGridPosition = (index: number) => {
     const totalItems = cryptos.length;
     const columns = Math.ceil(Math.sqrt(totalItems));
     const rows = Math.ceil(totalItems / columns);
-    const cellWidth = 80 / columns;
-    const cellHeight = 75 / rows;
-    
+    const cellWidth = 80 / columns; // Reduzido para 80% para aumentar espaçamento horizontal
+    const cellHeight = 75 / rows;   // Reduzido para 75% para aumentar espaçamento vertical
+
     const row = Math.floor(index / columns);
-    const verticalZone = Math.floor((row * 3) / rows);
-    const baseY = (verticalZone * 30) + (row * cellHeight / 3);
+    const col = index % columns;
     
-    // Increased random variation for more natural movement
-    const randomX = Math.random() * 70 + 10; // Between 10% and 80%
-    const randomY = baseY + (Math.random() - 0.5) * 20; // Variation within vertical zone
-    
+    // Distribuição em três faixas verticais
+    const verticalZone = Math.floor((row * 3) / rows); // 0, 1, ou 2 para superior, meio e inferior
+    const baseY = (verticalZone * 30) + (row * cellHeight / 3); // 30% para cada zona vertical
+    const baseX = col * cellWidth;
+
+    // Aumentando a variação aleatória para maior dispersão
+    const randomX = (Math.random() - 0.5) * cellWidth * 0.2;
+    const randomY = (Math.random() - 0.5) * cellHeight * 0.2;
+
     return {
-      left: `${randomX}%`,
-      top: `${randomY}%`,
+      left: `${10 + baseX + randomX}%`, // Margem inicial de 10%
+      top: `${10 + baseY + randomY}%`,  // Margem inicial de 10%
     };
-  };
-
-  // Initialize positions
-  useEffect(() => {
-    const initialPositions: FishPosition = {};
-    cryptos.forEach((crypto, index) => {
-      initialPositions[crypto.id] = getRandomPosition(index);
-    });
-    setPositions(initialPositions);
-  }, [cryptos.length]);
-
-  // Update positions periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPositions(prevPositions => {
-        const newPositions: FishPosition = {};
-        cryptos.forEach((crypto, index) => {
-          newPositions[crypto.id] = getRandomPosition(index);
-        });
-        return newPositions;
-      });
-    }, 5000); // Move every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [cryptos.length]);
-
-  const handleFishClick = (crypto: (typeof cryptos)[0]) => {
-    setSelectedCrypto(crypto);
-    setDialogOpen(true);
-    // Update position on click
-    setPositions(prev => ({
-      ...prev,
-      [crypto.id]: getRandomPosition(cryptos.findIndex(c => c.id === crypto.id))
-    }));
   };
 
   const logoMap = {
@@ -93,7 +58,7 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
 
   return (
     <div className="mt-8 relative bg-gradient-to-b from-blue-900/90 via-blue-950 to-blue-900/90 rounded-lg p-8 min-h-[500px] overflow-hidden shadow-2xl border border-blue-800/30">
-      {/* Background bubbles */}
+      {/* Bolhas de fundo */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(20)].map((_, i) => (
           <div
@@ -110,23 +75,29 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
         ))}
       </div>
 
-      {/* Light reflection */}
+      {/* Reflexo de luz */}
       <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-blue-300/5 to-transparent transform -skew-y-6" />
       
       <div className="relative z-10">
-        {cryptos.map((crypto) => {
+        {cryptos.map((crypto, index) => {
           const size = getSize(crypto.performance);
-          const position = positions[crypto.id] || { left: '50%', top: '50%' };
+          const duration = Math.random() * 20 + 20;
+          const delay = -Math.random() * 20;
+          const gridPos = getGridPosition(index);
           
           return (
             <div
               key={crypto.id}
               className="absolute group cursor-pointer"
               style={{
-                ...position,
-                transition: 'all 3s ease-in-out',
+                ...gridPos,
+                animation: `swim-complex ${duration}s infinite ease-in-out`,
+                animationDelay: `${delay}s`,
               }}
-              onClick={() => handleFishClick(crypto)}
+              onClick={() => {
+                setSelectedCrypto(crypto);
+                setDialogOpen(true);
+              }}
             >
               <div className="relative">
                 <Fish
@@ -180,6 +151,24 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
             100% {
               transform: translateY(-100px) scale(1.5);
               opacity: 0;
+            }
+          }
+
+          @keyframes swim-complex {
+            0% {
+              transform: translate(0, 0) rotate(5deg);
+            }
+            25% {
+              transform: translate(30px, 30px) rotate(-5deg);
+            }
+            50% {
+              transform: translate(0, 60px) rotate(5deg);
+            }
+            75% {
+              transform: translate(-30px, 30px) rotate(-5deg);
+            }
+            100% {
+              transform: translate(0, 0) rotate(5deg);
             }
           }
         `}
