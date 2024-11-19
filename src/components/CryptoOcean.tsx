@@ -19,8 +19,8 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
   const fishPositions = useOceanAnimation(containerRef, cryptos.length);
 
   const getSize = (performance: number) => {
-    const minSize = 24;
-    const maxSize = 96;
+    const minSize = 48; // Increased from 24
+    const maxSize = 144; // Increased from 96
     const normalizedSize = Math.max(minSize, Math.min(maxSize, (performance / 100) * maxSize));
     return Math.abs(normalizedSize);
   };
