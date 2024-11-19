@@ -5,8 +5,10 @@ import CryptoChart from './CryptoChart';
 import CryptoOcean from './CryptoOcean';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { LineChart, TrendingUp, ArrowDownCircle } from 'lucide-react';
+import { LineChart, TrendingUp, ArrowDownCircle, Search, Bitcoin } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface CryptoData {
   id: string;
@@ -14,6 +16,7 @@ interface CryptoData {
   performance: number;
   rsi?: number;
   rsi4h?: number;
+  btcPrice?: string;
 }
 
 const fetchCryptoData = async (): Promise<CryptoData[]> => {
@@ -51,16 +54,17 @@ const fetchCryptoData = async (): Promise<CryptoData[]> => {
 const CryptoPanel = () => {
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoData>({ id: 'BTC', name: 'Bitcoin', performance: 0 });
   const [activeTab, setActiveTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showBtcPairs, setShowBtcPairs] = useState(false);
   const { toast } = useToast();
   
   const { data: cryptos = [], isLoading, error } = useQuery({
     queryKey: ['cryptos'],
     queryFn: fetchCryptoData,
-    refetchInterval: 15000, // Refetch every 15 seconds for real-time updates
-    staleTime: 5000, // Consider data stale after 5 seconds
+    refetchInterval: 15000,
+    staleTime: 5000,
   });
 
-  // Update selected crypto when data changes
   React.useEffect(() => {
     const updatedSelectedCrypto = cryptos.find(crypto => crypto.id === selectedCrypto.id);
     if (updatedSelectedCrypto) {
@@ -68,7 +72,6 @@ const CryptoPanel = () => {
     }
   }, [cryptos, selectedCrypto.id]);
 
-  // Show error toast when query fails
   React.useEffect(() => {
     if (error) {
       toast({
@@ -79,90 +82,122 @@ const CryptoPanel = () => {
     }
   }, [error, toast]);
 
-  if (isLoading) return <div className="text-center">Carregando...</div>;
-  if (error) return <div className="text-center text-red-500">Erro ao carregar dados</div>;
-
   const sortedCryptos = [...cryptos].sort((a, b) => {
     if (activeTab === 'uptrend') {
-      return (b.rsi || 0) - (a.rsi || 0); // Ordem decrescente por RSI semanal
+      return (b.rsi || 0) - (a.rsi || 0);
     } else if (activeTab === 'oversold') {
-      return (a.rsi4h || 0) - (b.rsi4h || 0); // Ordem crescente por RSI 4h (mais sobrevendidos primeiro)
+      return (a.rsi4h || 0) - (b.rsi4h || 0);
     }
-    return b.performance - a.performance; // Ordem decrescente por performance
+    return b.performance - a.performance;
   });
   
-  const filteredCryptos = activeTab === 'uptrend' 
-    ? sortedCryptos.filter(crypto => (crypto.rsi || 0) > 62)
-    : activeTab === 'oversold'
-    ? sortedCryptos.filter(crypto => (crypto.rsi4h || 0) < 25)
-    : sortedCryptos;
+  const filteredCryptos = sortedCryptos
+    .filter(crypto => 
+      crypto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      crypto.id.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .filter(crypto => {
+      if (activeTab === 'uptrend') return (crypto.rsi || 0) > 62;
+      if (activeTab === 'oversold') return (crypto.rsi4h || 0) < 25;
+      return true;
+    });
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex gap-6 h-[calc(100vh-8rem)]">
         <div className="w-96 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
-        <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-3 h-20 bg-gray-800">
-            <TabsTrigger value="all" className="flex flex-col items-center gap-1 h-auto py-2">
-              <LineChart className="w-4 h-4" />
-              <span className="text-xs">BTC vs BTC</span>
-            </TabsTrigger>
-            <TabsTrigger value="uptrend" className="flex flex-col items-center gap-1 h-auto py-2">
-              <TrendingUp className="w-4 h-4" />
-              <span className="text-xs whitespace-normal text-center">Tendência de Alta Semanal</span>
-            </TabsTrigger>
-            <TabsTrigger value="oversold" className="flex flex-col items-center gap-1 h-auto py-2">
-              <ArrowDownCircle className="w-4 h-4" />
-              <span className="text-xs whitespace-normal text-center">Sobrevenda 4hs</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          <ScrollArea className="flex-1 h-[calc(100vh-12rem)]">
-            <TabsContent value="all" className="m-0">
-              <div className="p-4 space-y-4">
-                {filteredCryptos.map((crypto) => (
-                  <CryptoCard
-                    key={crypto.id}
-                    crypto={crypto}
-                    onClick={() => setSelectedCrypto(crypto)}
-                    isSelected={selectedCrypto.id === crypto.id}
-                  />
-                ))}
-              </div>
-            </TabsContent>
+          <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
+            <TabsList className="w-full grid grid-cols-3 h-20 bg-gray-800">
+              <TabsTrigger value="all" className="flex flex-col items-center gap-1 h-auto py-2">
+                <LineChart className="w-4 h-4" />
+                <span className="text-xs">BTC vs BTC</span>
+              </TabsTrigger>
+              <TabsTrigger value="uptrend" className="flex flex-col items-center gap-1 h-auto py-2">
+                <TrendingUp className="w-4 h-4" />
+                <span className="text-xs whitespace-normal text-center">Tendência de Alta Semanal</span>
+              </TabsTrigger>
+              <TabsTrigger value="oversold" className="flex flex-col items-center gap-1 h-auto py-2">
+                <ArrowDownCircle className="w-4 h-4" />
+                <span className="text-xs whitespace-normal text-center">Sobrevenda 4hs</span>
+              </TabsTrigger>
+            </TabsList>
             
-            <TabsContent value="uptrend" className="m-0">
-              <div className="p-4 space-y-4">
-                {filteredCryptos.map((crypto) => (
-                  <CryptoCard
-                    key={crypto.id}
-                    crypto={crypto}
-                    onClick={() => setSelectedCrypto(crypto)}
-                    isSelected={selectedCrypto.id === crypto.id}
-                    showRsi={true}
-                  />
-                ))}
+            <div className="p-4 border-b border-gray-800">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar criptomoeda..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 bg-gray-800 border-gray-700"
+                />
               </div>
-            </TabsContent>
+            </div>
+            
+            <ScrollArea className="flex-1 h-[calc(100vh-16rem)]">
+              <TabsContent value="all" className="m-0">
+                <div className="p-4 space-y-4">
+                  {filteredCryptos.map((crypto) => (
+                    <CryptoCard
+                      key={crypto.id}
+                      crypto={crypto}
+                      onClick={() => {
+                        setSelectedCrypto(crypto);
+                        setShowBtcPairs(false);
+                      }}
+                      isSelected={selectedCrypto.id === crypto.id}
+                    />
+                  ))}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="uptrend" className="m-0">
+                <div className="p-4 space-y-4">
+                  {filteredCryptos.map((crypto) => (
+                    <CryptoCard
+                      key={crypto.id}
+                      crypto={crypto}
+                      onClick={() => {
+                        setSelectedCrypto(crypto);
+                        setShowBtcPairs(false);
+                      }}
+                      isSelected={selectedCrypto.id === crypto.id}
+                      showRsi={true}
+                    />
+                  ))}
+                </div>
+              </TabsContent>
 
-            <TabsContent value="oversold" className="m-0">
-              <div className="p-4 space-y-4">
-                {filteredCryptos.map((crypto) => (
-                  <CryptoCard
-                    key={crypto.id}
-                    crypto={crypto}
-                    onClick={() => setSelectedCrypto(crypto)}
-                    isSelected={selectedCrypto.id === crypto.id}
-                    showRsi4h={true}
-                  />
-                ))}
-              </div>
-            </TabsContent>
-          </ScrollArea>
-        </Tabs>
+              <TabsContent value="oversold" className="m-0">
+                <div className="p-4 space-y-4">
+                  {filteredCryptos.map((crypto) => (
+                    <CryptoCard
+                      key={crypto.id}
+                      crypto={crypto}
+                      onClick={() => {
+                        setSelectedCrypto(crypto);
+                        setShowBtcPairs(false);
+                      }}
+                      isSelected={selectedCrypto.id === crypto.id}
+                      showRsi4h={true}
+                    />
+                  ))}
+                </div>
+              </TabsContent>
+            </ScrollArea>
+          </Tabs>
         </div>
-        <div className="flex-1">
-          <CryptoChart crypto={selectedCrypto} activeTab={activeTab} />
+        <div className="flex-1 relative">
+          <CryptoChart crypto={selectedCrypto} activeTab={activeTab} showBtcPairs={showBtcPairs} />
+          <Button
+            variant="outline"
+            size="sm"
+            className="absolute top-4 right-4 bg-gray-800 hover:bg-gray-700"
+            onClick={() => setShowBtcPairs(!showBtcPairs)}
+          >
+            <Bitcoin className="w-4 h-4 mr-2" />
+            {showBtcPairs ? "Voltar para USDT" : "Ver par BTC"}
+          </Button>
         </div>
       </div>
       <CryptoOcean cryptos={sortedCryptos} />

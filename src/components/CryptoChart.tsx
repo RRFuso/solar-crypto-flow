@@ -7,20 +7,29 @@ interface CryptoChartProps {
     name: string;
   };
   activeTab: string;
+  showBtcPairs?: boolean;
 }
 
-const CryptoChart = ({ crypto, activeTab }: CryptoChartProps) => {
-  const symbol = activeTab === 'uptrend' ? `${crypto.id}USDT` : crypto.id === 'BTC' ? 'BTCUSDT' : `${crypto.id}BTC`;
+const CryptoChart = ({ crypto, activeTab, showBtcPairs = false }: CryptoChartProps) => {
+  const symbol = showBtcPairs 
+    ? `${crypto.id}BTC`
+    : activeTab === 'uptrend' 
+      ? `${crypto.id}USDT` 
+      : crypto.id === 'BTC' 
+        ? 'BTCUSDT' 
+        : `${crypto.id}BTC`;
   
   return (
     <div className="h-full bg-gray-900 rounded-lg overflow-hidden">
       <div className="p-4 border-b border-gray-800">
         <h2 className="text-xl font-bold">
-          {activeTab === 'uptrend' 
-            ? `${crypto.name} (${crypto.id}/USDT)`
-            : crypto.id === 'BTC' 
-              ? 'Bitcoin (BTC/USDT)' 
-              : `${crypto.name} vs Bitcoin (${crypto.id}/BTC)`}
+          {showBtcPairs
+            ? `${crypto.name} vs Bitcoin (${crypto.id}/BTC)`
+            : activeTab === 'uptrend' 
+              ? `${crypto.name} (${crypto.id}/USDT)`
+              : crypto.id === 'BTC' 
+                ? 'Bitcoin (BTC/USDT)' 
+                : `${crypto.name} vs Bitcoin (${crypto.id}/BTC)`}
         </h2>
       </div>
       <div className="h-[calc(100%-4rem)]">
