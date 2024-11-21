@@ -1,7 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Spot } from '@binance/connector';
-
-const client = new Spot();
 
 interface CryptoData {
   altBtcPairs: Array<{
@@ -45,14 +42,9 @@ export const useCryptoData = () => {
       setIsLoading(true);
       setError(null);
 
-      // Fetch 24h ticker price change statistics
-      const [tickerResponse, btcResponse] = await Promise.all([
-        client.ticker24hr(),
-        client.ticker24hr('BTCUSDT'),
-      ]);
-
-      const tickers = tickerResponse.data;
-      const btcTicker = btcResponse.data;
+      // Fetch 24h ticker data from Binance REST API
+      const response = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+      const tickers = await response.json();
 
       // Process BTC pairs
       const altBtcPairs = tickers
@@ -66,18 +58,20 @@ export const useCryptoData = () => {
         }));
 
       // Process BTC/USDT data
-      const btcUsdt = {
-        price: btcTicker.lastPrice,
-        priceChange: parseFloat(btcTicker.priceChangePercent),
-        volume: btcTicker.volume,
-        high24h: btcTicker.highPrice,
-        low24h: btcTicker.lowPrice,
-      };
+      const btcUsdtData = tickers.find((ticker: any) => ticker.symbol === 'BTCUSDT');
+      const btcUsdt = btcUsdtData ? {
+        price: btcUsdtData.lastPrice,
+        priceChange: parseFloat(btcUsdtData.priceChangePercent),
+        volume: btcUsdtData.volume,
+        high24h: btcUsdtData.highPrice,
+        low24h: btcUsdtData.lowPrice,
+      } : data.btcUsdt;
 
       // Process top gainers
       const topGainers = [...tickers]
         .filter((ticker: any) => ticker.symbol.endsWith('BTC'))
         .sort((a: any, b: any) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
+        .slice(0, 5)
         .map((ticker: any) => ({
           symbol: ticker.symbol,
           priceChange: parseFloat(ticker.priceChangePercent),
