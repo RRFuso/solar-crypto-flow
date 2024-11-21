@@ -7,21 +7,28 @@ interface FishSpriteProps {
   performance: number;
   rotation: number;
   logoUrl: string;
+  isEating?: boolean;
   onError: (e: React.SyntheticEvent<HTMLImageElement, Event>) => void;
 }
 
-export const FishSprite = ({ size, performance, rotation, logoUrl, onError }: FishSpriteProps) => {
+export const FishSprite = ({ size, performance, rotation, logoUrl, isEating, onError }: FishSpriteProps) => {
   const isPositive = performance >= 0;
   
   return (
     <div
-      className="relative group transition-transform duration-300"
+      className={cn(
+        "relative group transition-transform duration-300",
+        isEating && "animate-pulse"
+      )}
       style={{
         transform: `rotate(${rotation}deg)`,
       }}
     >
       <Fish
-        className="text-white/80 group-hover:text-white transition-colors"
+        className={cn(
+          "text-white/80 group-hover:text-white transition-colors",
+          isEating && "text-red-400/80 group-hover:text-red-400"
+        )}
         style={{
           width: size,
           height: size,

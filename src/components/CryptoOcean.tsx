@@ -1,7 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FishSprite } from './ocean/FishSprite';
 import { CryptoDialog } from './ocean/CryptoDialog';
 import { useOceanAnimation } from './ocean/useOceanAnimation';
+import { usePredatorLogic } from './ocean/usePredatorLogic';
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from 'lucide-react';
 
 interface CryptoOceanProps {
   cryptos: Array<{
@@ -17,10 +20,19 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   
   const fishPositions = useOceanAnimation(containerRef, cryptos.length);
+  const { predatorStates, removedCryptos, checkPredation, resetTank } = usePredatorLogic(cryptos);
+
+  useEffect(() => {
+    const predationInterval = setInterval(() => {
+      checkPredation();
+    }, 2000);
+
+    return () => clearInterval(predationInterval);
+  }, [checkPredation]);
 
   const getSize = (performance: number) => {
-    const minSize = 48; // Increased from 24
-    const maxSize = 144; // Increased from 96
+    const minSize = 48;
+    const maxSize = 144;
     const normalizedSize = Math.max(minSize, Math.min(maxSize, (performance / 100) * maxSize));
     return Math.abs(normalizedSize);
   };
@@ -57,19 +69,24 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
       
       <div className="relative z-10">
         {cryptos.map((crypto, index) => {
+          if (removedCryptos.includes(crypto.id)) return null;
+          
           const size = getSize(crypto.performance);
           const position = fishPositions[index];
+          const predatorState = predatorStates[crypto.id];
           
           if (!position) return null;
 
           return (
             <div
               key={crypto.id}
-              className="absolute cursor-pointer"
+              className={`absolute cursor-pointer transition-all duration-1000 ${
+                predatorState?.isEating ? 'scale-110' : ''
+              }`}
               style={{
                 left: `${position.x}px`,
                 top: `${position.y}px`,
-                transition: 'transform 0.3s ease-out',
+                transition: 'transform 0.3s ease-out, left 2s ease-in-out, top 2s ease-in-out',
               }}
               onClick={() => {
                 setSelectedCrypto(crypto);
@@ -77,18 +94,28 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
               }}
             >
               <FishSprite
-                size={size}
+                size={predatorState?.size || size}
                 performance={crypto.performance}
                 rotation={Math.atan2(position.velocityY, position.velocityX) * (180 / Math.PI)}
                 logoUrl={logoMap[crypto.id] || `https://s3-symbol-logo.tradingview.com/crypto/XTVC${crypto.id}.svg`}
                 onError={(e) => {
                   e.currentTarget.src = 'https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg';
                 }}
+                isEating={predatorState?.isEating}
               />
             </div>
           );
         })}
       </div>
+
+      <Button
+        variant="outline"
+        size="icon"
+        className="absolute top-4 right-4 bg-gray-800/50 hover:bg-gray-700/50"
+        onClick={resetTank}
+      >
+        <RefreshCw className="h-4 w-4" />
+      </Button>
 
       <CryptoDialog
         open={dialogOpen}
