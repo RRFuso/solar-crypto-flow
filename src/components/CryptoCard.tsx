@@ -18,6 +18,43 @@ interface CryptoCardProps {
   showRsi4h?: boolean;
 }
 
+// Trading pairs mapping for correct TradingView symbols
+const tradingViewSymbolMap = {
+  'BTC': 'BTCUSDT',
+  'ETH': 'ETHBTC',
+  'SOL': 'SOLBTC',
+  'AVAX': 'AVAXBTC',
+  'MATIC': 'MATICBTC',
+  'LINK': 'LINKBTC',
+  'DOT': 'DOTBTC',
+  'ADA': 'ADABTC',
+  'DOGE': 'DOGEBTC',
+  'XRP': 'XRPBTC',
+  'SHIB': 'SHIBBTC',
+  'LTC': 'LTCBTC',
+  'UNI': 'UNIBTC',
+  'ATOM': 'ATOMBTC',
+  'ETC': 'ETCBTC',
+  'NEAR': 'NEARBTC',
+  'ALGO': 'ALGOBTC',
+  'FTM': 'FTMBTC',
+  'SAND': 'SANDBTC',
+  'MANA': 'MANABTC',
+  'PENDLE': 'PENDLEBTC',
+  'JUP': 'JUPBTC',
+  'INJ': 'INJBTC',
+  'SUI': 'SUIBTC',
+  'SEI': 'SEIBTC',
+  'RENDER': 'RNDRBTC',
+  'FLOKI': 'FLOKIBTC',
+  'PEPE': 'PEPEBTC',
+  'WIF': 'WIFBTC',
+  'BONK': 'BONKBTC',
+  'MEME': 'MEMEBTC',
+  'MYRO': 'MYROBTC',
+  'TOSHI': 'TOSHIBTC',
+};
+
 const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = false }: CryptoCardProps) => {
   const isPositive = crypto.performance > 0;
   const logoMap = {
@@ -32,6 +69,7 @@ const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = 
         isSelected ? "bg-gray-800" : "bg-gray-900",
       )}
       onClick={onClick}
+      data-trading-symbol={tradingViewSymbolMap[crypto.id] || `${crypto.id}BTC`}
     >
       <div className="flex items-center gap-4">
         <img
