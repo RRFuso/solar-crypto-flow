@@ -1,76 +1,30 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useCryptoData } from '@/hooks/useCryptoData';
 import CryptoCard from './CryptoCard';
 import CryptoChart from './CryptoChart';
-import CryptoOcean from './CryptoOcean';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { LineChart, TrendingUp, ArrowDownCircle, Search, Bitcoin } from 'lucide-react';
+import { LineChart, TrendingUp, ArrowDownCircle, Bitcoin, Activity } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
-interface CryptoData {
-  id: string;
-  name: string;
-  performance: number;
-  rsi?: number;
-  rsi4h?: number;
-  btcPrice?: string;
-}
-
-const fetchCryptoData = async (): Promise<CryptoData[]> => {
-  return [
-    { id: 'BTC', name: 'Bitcoin', performance: 0, rsi: 45.2, rsi4h: 42.5 },
-    { id: 'ETH', name: 'Ethereum', performance: -12.5, rsi: 42.8, rsi4h: 38.6 },
-    { id: 'SOL', name: 'Solana', performance: 45.2, rsi: 72.4, rsi4h: 22.4 },
-    { id: 'JUP', name: 'Jupiter', performance: 156.7, rsi: 82.6, rsi4h: 18.9 },
-    { id: 'ICP', name: 'Internet Computer', performance: 89.3, rsi: 65.8, rsi4h: 24.3 },
-    { id: 'KAS', name: 'Kaspa', performance: 234.1, rsi: 78.2, rsi4h: 21.8 },
-    { id: 'PENDLE', name: 'Pendle', performance: 167.3, rsi: 68.9, rsi4h: 19.5 },
-    { id: 'OM', name: 'Mantra', performance: 78.4, rsi: 58.3, rsi4h: 23.7 },
-    { id: 'INJ', name: 'Injective', performance: 321.5, rsi: 85.7, rsi4h: 17.2 },
-    { id: 'SUI', name: 'Sui', performance: 145.8, rsi: 75.4, rsi4h: 20.1 },
-    { id: 'SEI', name: 'Sei', performance: 178.9, rsi: 70.2, rsi4h: 22.8 },
-    { id: 'AVAX', name: 'Avalanche', performance: 67.2, rsi: 63.5, rsi4h: 25.6 },
-    { id: 'MATIC', name: 'Polygon', performance: 23.4, rsi: 52.8, rsi4h: 28.4 },
-    { id: 'LINK', name: 'Chainlink', performance: 45.6, rsi: 61.3, rsi4h: 26.7 },
-    { id: 'NEAR', name: 'Near Protocol', performance: 56.7, rsi: 64.2, rsi4h: 23.9 },
-    { id: 'RENDER', name: 'Render', performance: 89.2, rsi: 69.7, rsi4h: 21.3 },
-    { id: 'FLOKI', name: 'Floki Inu', performance: 234.5, rsi: 82.1, rsi4h: 19.8 },
-    { id: 'PEPE', name: 'Pepe', performance: 345.6, rsi: 88.4, rsi4h: 16.5 },
-    { id: 'WIF', name: 'Wif', performance: 456.7, rsi: 86.9, rsi4h: 15.8 },
-    { id: 'DOGE', name: 'Dogecoin', performance: 123.4, rsi: 75.6, rsi4h: 24.2 },
-    { id: 'BONK', name: 'Bonk', performance: 567.8, rsi: 89.3, rsi4h: 14.7 },
-    { id: 'SHIB', name: 'Shiba Inu', performance: 234.5, rsi: 80.2, rsi4h: 20.4 },
-    { id: 'MEME', name: 'Memecoin', performance: 345.6, rsi: 85.8, rsi4h: 17.9 },
-    { id: 'DOGWIFHAT', name: 'Dog Wif Hat', performance: 456.7, rsi: 87.5, rsi4h: 16.2 },
-    { id: 'WOJAK', name: 'Wojak', performance: 234.5, rsi: 79.4, rsi4h: 21.6 },
-    { id: 'MYRO', name: 'Myro', performance: 345.6, rsi: 83.7, rsi4h: 18.3 },
-    { id: 'TOSHI', name: 'Toshi', performance: 456.7, rsi: 84.9, rsi4h: 17.5 },
-  ];
-};
+import { ColumnHeader } from './crypto/ColumnHeader';
 
 const CryptoPanel = () => {
-  const [selectedCrypto, setSelectedCrypto] = useState<CryptoData>({ id: 'BTC', name: 'Bitcoin', performance: 0 });
-  const [activeTab, setActiveTab] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showBtcPairs, setShowBtcPairs] = useState(false);
+  const [selectedCrypto, setSelectedCrypto] = useState({ id: 'BTC', name: 'Bitcoin', performance: 0 });
+  const [showBtcDominance, setShowBtcDominance] = useState(false);
   const { toast } = useToast();
   
-  const { data: cryptos = [], isLoading, error } = useQuery({
-    queryKey: ['cryptos'],
-    queryFn: fetchCryptoData,
-    refetchInterval: 15000,
-    staleTime: 5000,
-  });
+  const { data: cryptos = [], isLoading, error } = useCryptoData();
 
-  React.useEffect(() => {
-    const updatedSelectedCrypto = cryptos.find(crypto => crypto.id === selectedCrypto.id);
-    if (updatedSelectedCrypto) {
-      setSelectedCrypto(updatedSelectedCrypto);
-    }
-  }, [cryptos, selectedCrypto.id]);
+  // Filter cryptos based on criteria
+  const outperformingBtc = cryptos.filter(c => c.performance > 0).sort((a, b) => b.performance - a.performance);
+  const bullishTrend = cryptos.filter(c => (c.rsi || 0) > 62).sort((a, b) => (b.rsi || 0) - (a.rsi || 0));
+  const oversold = cryptos.filter(c => (c.rsi4h || 0) < 20).sort((a, b) => (a.rsi4h || 0) - (b.rsi4h || 0));
+  const matchingCryptos = cryptos.filter(c => 
+    c.performance > 0 && 
+    (c.rsi || 0) > 62 && 
+    (c.rsi4h || 0) < 20
+  ).sort((a, b) => b.performance - a.performance);
 
   React.useEffect(() => {
     if (error) {
@@ -82,85 +36,59 @@ const CryptoPanel = () => {
     }
   }, [error, toast]);
 
-  const sortedCryptos = [...cryptos].sort((a, b) => {
-    if (activeTab === 'uptrend') {
-      return (b.rsi || 0) - (a.rsi || 0);
-    } else if (activeTab === 'oversold') {
-      return (a.rsi4h || 0) - (b.rsi4h || 0);
-    }
-    return b.performance - a.performance;
-  });
-  
-  const filteredCryptos = sortedCryptos
-    .filter(crypto => 
-      crypto.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      crypto.id.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .filter(crypto => {
-      if (activeTab === 'uptrend') return (crypto.rsi || 0) > 62;
-      if (activeTab === 'oversold') return (crypto.rsi4h || 0) < 25;
-      return true;
-    });
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex gap-6 h-[calc(100vh-8rem)]">
         <div className="w-96 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
-          <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-3 h-20 bg-gray-800">
-              <TabsTrigger value="all" className="flex flex-col items-center gap-1 h-auto py-2">
+          <Tabs defaultValue="outperforming" className="w-full">
+            <TabsList className="w-full grid grid-cols-4 h-20 bg-gray-800">
+              <TabsTrigger value="outperforming" className="flex flex-col items-center gap-1 h-auto py-2">
                 <LineChart className="w-4 h-4" />
-                <span className="text-xs">BTC vs BTC</span>
+                <span className="text-xs">Alt x BTC</span>
               </TabsTrigger>
-              <TabsTrigger value="uptrend" className="flex flex-col items-center gap-1 h-auto py-2">
+              <TabsTrigger value="bullish" className="flex flex-col items-center gap-1 h-auto py-2">
                 <TrendingUp className="w-4 h-4" />
-                <span className="text-xs whitespace-normal text-center">Tendência de Alta Semanal</span>
+                <span className="text-xs">Tendência Alta</span>
               </TabsTrigger>
               <TabsTrigger value="oversold" className="flex flex-col items-center gap-1 h-auto py-2">
                 <ArrowDownCircle className="w-4 h-4" />
-                <span className="text-xs whitespace-normal text-center">Sobrevenda 4hs</span>
+                <span className="text-xs">Sobrevenda 4h</span>
+              </TabsTrigger>
+              <TabsTrigger value="matching" className="flex flex-col items-center gap-1 h-auto py-2">
+                <Activity className="w-4 h-4" />
+                <span className="text-xs">Match Entrada</span>
               </TabsTrigger>
             </TabsList>
             
-            <div className="p-4 border-b border-gray-800">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar criptomoeda..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 bg-gray-800 border-gray-700"
+            <ScrollArea className="flex-1">
+              <TabsContent value="outperforming" className="m-0">
+                <ColumnHeader 
+                  title="Alt x BTC" 
+                  subtitle="Altcoins superando BTC (semanal)" 
                 />
-              </div>
-            </div>
-            
-            <ScrollArea className="flex-1 h-[calc(100vh-16rem)]">
-              <TabsContent value="all" className="m-0">
                 <div className="p-4 space-y-4">
-                  {filteredCryptos.map((crypto) => (
+                  {outperformingBtc.map((crypto) => (
                     <CryptoCard
                       key={crypto.id}
                       crypto={crypto}
-                      onClick={() => {
-                        setSelectedCrypto(crypto);
-                        setShowBtcPairs(false);
-                      }}
+                      onClick={() => setSelectedCrypto(crypto)}
                       isSelected={selectedCrypto.id === crypto.id}
                     />
                   ))}
                 </div>
               </TabsContent>
               
-              <TabsContent value="uptrend" className="m-0">
+              <TabsContent value="bullish" className="m-0">
+                <ColumnHeader 
+                  title="Tendência de Alta" 
+                  subtitle="RSI Semanal > 62" 
+                />
                 <div className="p-4 space-y-4">
-                  {filteredCryptos.map((crypto) => (
+                  {bullishTrend.map((crypto) => (
                     <CryptoCard
                       key={crypto.id}
                       crypto={crypto}
-                      onClick={() => {
-                        setSelectedCrypto(crypto);
-                        setShowBtcPairs(false);
-                      }}
+                      onClick={() => setSelectedCrypto(crypto)}
                       isSelected={selectedCrypto.id === crypto.id}
                       showRsi={true}
                     />
@@ -169,16 +97,36 @@ const CryptoPanel = () => {
               </TabsContent>
 
               <TabsContent value="oversold" className="m-0">
+                <ColumnHeader 
+                  title="Sobrevenda 4h" 
+                  subtitle="RSI 4h < 20" 
+                />
                 <div className="p-4 space-y-4">
-                  {filteredCryptos.map((crypto) => (
+                  {oversold.map((crypto) => (
                     <CryptoCard
                       key={crypto.id}
                       crypto={crypto}
-                      onClick={() => {
-                        setSelectedCrypto(crypto);
-                        setShowBtcPairs(false);
-                      }}
+                      onClick={() => setSelectedCrypto(crypto)}
                       isSelected={selectedCrypto.id === crypto.id}
+                      showRsi4h={true}
+                    />
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="matching" className="m-0">
+                <ColumnHeader 
+                  title="Match de Entrada" 
+                  subtitle="Atende todos os critérios" 
+                />
+                <div className="p-4 space-y-4">
+                  {matchingCryptos.map((crypto) => (
+                    <CryptoCard
+                      key={crypto.id}
+                      crypto={crypto}
+                      onClick={() => setSelectedCrypto(crypto)}
+                      isSelected={selectedCrypto.id === crypto.id}
+                      showRsi={true}
                       showRsi4h={true}
                     />
                   ))}
@@ -187,20 +135,37 @@ const CryptoPanel = () => {
             </ScrollArea>
           </Tabs>
         </div>
+
         <div className="flex-1 relative">
-          <CryptoChart crypto={selectedCrypto} activeTab={activeTab} showBtcPairs={showBtcPairs} />
-          <Button
-            variant="outline"
-            size="sm"
-            className="absolute top-4 right-4 bg-gray-800 hover:bg-gray-700"
-            onClick={() => setShowBtcPairs(!showBtcPairs)}
-          >
-            <Bitcoin className="w-4 h-4 mr-2" />
-            {showBtcPairs ? "Voltar para USDT" : "Ver par BTC"}
-          </Button>
+          <CryptoChart 
+            crypto={selectedCrypto} 
+            showBtcDominance={showBtcDominance} 
+          />
+          <div className="absolute top-4 right-4 flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-gray-800/50 hover:bg-gray-700/50"
+              onClick={() => {
+                setSelectedCrypto({ id: 'BTC', name: 'Bitcoin', performance: 0 });
+                setShowBtcDominance(false);
+              }}
+            >
+              <Bitcoin className="w-4 h-4 mr-2" />
+              BTC/USDT
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-gray-800/50 hover:bg-gray-700/50"
+              onClick={() => setShowBtcDominance(true)}
+            >
+              <Activity className="w-4 h-4 mr-2" />
+              Dominância BTC
+            </Button>
+          </div>
         </div>
       </div>
-      <CryptoOcean cryptos={sortedCryptos} />
     </div>
   );
 };
