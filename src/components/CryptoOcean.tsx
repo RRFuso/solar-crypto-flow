@@ -4,7 +4,7 @@ import { CryptoDialog } from './ocean/CryptoDialog';
 import { useOceanAnimation } from './ocean/useOceanAnimation';
 import { usePredatorLogic } from './ocean/usePredatorLogic';
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from 'lucide-react';
+import { Refresh } from 'lucide-react';
 
 interface CryptoOceanProps {
   cryptos: Array<{
@@ -114,7 +114,7 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
         className="absolute top-4 right-4 bg-gray-800/50 hover:bg-gray-700/50"
         onClick={resetTank}
       >
-        <RefreshCw className="h-4 w-4" />
+        <Refresh className="h-4 w-4" />
       </Button>
 
       <CryptoDialog
