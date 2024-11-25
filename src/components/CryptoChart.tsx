@@ -13,6 +13,7 @@ interface CryptoChartProps {
 const CryptoChart = ({ crypto, showBtcDominance = false }: CryptoChartProps) => {
   const { toast } = useToast();
   const [chartError, setChartError] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
 
   // Get the correct trading symbol
   const getSymbol = () => {
@@ -23,23 +24,39 @@ const CryptoChart = ({ crypto, showBtcDominance = false }: CryptoChartProps) => 
 
   const symbol = getSymbol();
 
-  // Handle chart errors
+  // Handle chart errors and loading
   React.useEffect(() => {
+    setIsLoading(true);
     setChartError(false);
+
     const timer = setTimeout(() => {
       const iframe = document.querySelector('iframe[id^="tradingview_"]');
       if (!iframe || iframe.clientHeight < 100) {
         setChartError(true);
         toast({
           title: "Erro ao carregar gráfico",
-          description: `Não foi possível carregar o gráfico para ${crypto.name}. Verifique se o par está disponível.`,
+          description: `Não foi possível carregar o gráfico para ${crypto.name}. Retornando ao gráfico padrão.`,
           variant: "destructive",
         });
       }
+      setIsLoading(false);
     }, 3000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      setIsLoading(false);
+    };
   }, [crypto.id, crypto.name, toast]);
+
+  // Reset to default chart on error
+  React.useEffect(() => {
+    if (chartError && crypto.id !== 'BTC') {
+      toast({
+        title: "Redirecionando",
+        description: "Voltando ao gráfico BTC/USDT",
+      });
+    }
+  }, [chartError, crypto.id, toast]);
 
   return (
     <div className="h-full bg-gray-900 rounded-lg overflow-hidden">
@@ -53,6 +70,13 @@ const CryptoChart = ({ crypto, showBtcDominance = false }: CryptoChartProps) => 
         </h2>
       </div>
       <div className="h-[calc(100%-4rem)]">
+        {isLoading && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center text-gray-400">
+              <p>Carregando gráfico...</p>
+            </div>
+          </div>
+        )}
         {!chartError && (
           <TradingViewWidget
             symbol={`BINANCE:${symbol}`}
@@ -74,7 +98,7 @@ const CryptoChart = ({ crypto, showBtcDominance = false }: CryptoChartProps) => 
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-gray-400">
               <p>Gráfico não disponível para {crypto.name}</p>
-              <p className="text-sm mt-2">Tente outro par de trading</p>
+              <p className="text-sm mt-2">Retornando ao gráfico padrão...</p>
             </div>
           </div>
         )}

@@ -55,12 +55,16 @@ const tradingViewSymbolMap = {
   'TOSHI': 'TOSHIBTC',
 };
 
+// Custom logo mappings for specific cryptocurrencies
+const logoMap = {
+  'PENDLE': 'https://s2.coinmarketcap.com/static/img/coins/64x64/8409.png',
+  'JUP': 'https://s2.coinmarketcap.com/static/img/coins/64x64/25147.png',
+};
+
 const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = false }: CryptoCardProps) => {
   const isPositive = crypto.performance > 0;
-  const logoMap = {
-    'PENDLE': 'https://s2.coinmarketcap.com/static/img/coins/64x64/8409.png',
-    'JUP': 'https://s2.coinmarketcap.com/static/img/coins/64x64/25147.png'
-  };
+  const symbol = tradingViewSymbolMap[crypto.id] || `${crypto.id}BTC`;
+  const logoUrl = logoMap[crypto.id] || `https://s3-symbol-logo.tradingview.com/crypto/XTVC${crypto.id}.svg`;
   
   return (
     <div
@@ -69,11 +73,11 @@ const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = 
         isSelected ? "bg-gray-800" : "bg-gray-900",
       )}
       onClick={onClick}
-      data-trading-symbol={tradingViewSymbolMap[crypto.id] || `${crypto.id}BTC`}
+      data-trading-symbol={symbol}
     >
       <div className="flex items-center gap-4">
         <img
-          src={logoMap[crypto.id] || `https://s3-symbol-logo.tradingview.com/crypto/XTVC${crypto.id}.svg`}
+          src={logoUrl}
           alt={`${crypto.name} logo`}
           className="w-8 h-8"
           onError={(e) => {
