@@ -1,6 +1,7 @@
 import React from 'react';
 import TradingViewWidget from 'react-tradingview-widget';
 import { useToast } from "@/hooks/use-toast";
+import BattleCanvas from './btc-dominance/BattleCanvas';
 
 interface CryptoChartProps {
   crypto: {
@@ -14,6 +15,7 @@ const CryptoChart = ({ crypto, showBtcDominance = false }: CryptoChartProps) => 
   const { toast } = useToast();
   const [chartError, setChartError] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [btcDominance, setBtcDominance] = React.useState(60); // Default value
 
   // Get the correct trading symbol
   const getSymbol = () => {
@@ -23,6 +25,26 @@ const CryptoChart = ({ crypto, showBtcDominance = false }: CryptoChartProps) => 
   };
 
   const symbol = getSymbol();
+
+  // Fetch BTC dominance data
+  React.useEffect(() => {
+    if (showBtcDominance) {
+      const fetchDominance = async () => {
+        try {
+          // In a real implementation, this would fetch from an actual API
+          // For now, we'll simulate with a random value between 55-65
+          const randomDominance = 55 + Math.random() * 10;
+          setBtcDominance(randomDominance);
+        } catch (error) {
+          console.error('Error fetching BTC dominance:', error);
+        }
+      };
+
+      fetchDominance();
+      const interval = setInterval(fetchDominance, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [showBtcDominance]);
 
   // Handle chart errors and loading
   React.useEffect(() => {
@@ -70,6 +92,11 @@ const CryptoChart = ({ crypto, showBtcDominance = false }: CryptoChartProps) => 
         </h2>
       </div>
       <div className="h-[calc(100%-4rem)]">
+        {showBtcDominance && (
+          <div className="p-4">
+            <BattleCanvas btcDominance={btcDominance} />
+          </div>
+        )}
         {isLoading && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-gray-400">
