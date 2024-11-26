@@ -40,7 +40,7 @@ const CryptoPanel = () => {
     <div className="flex flex-col gap-6">
       <div className="flex gap-6 h-[calc(100vh-8rem)]">
         <div className="w-96 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
-          <Tabs defaultValue="outperforming" className="w-full h-full flex flex-col">
+          <Tabs defaultValue="outperforming" className="w-full">
             <TabsList className="w-full grid grid-cols-4 h-20 bg-gray-800">
               <TabsTrigger value="outperforming" className="flex flex-col items-center gap-1 h-auto py-2">
                 <LineChart className="w-4 h-4" />
@@ -60,95 +60,79 @@ const CryptoPanel = () => {
               </TabsTrigger>
             </TabsList>
             
-            <div className="flex-1 min-h-0">
-              <TabsContent value="outperforming" className="m-0 h-full">
-                <div className="h-full flex flex-col">
-                  <ColumnHeader 
-                    title="Alt x BTC" 
-                    subtitle="Altcoins superando BTC (semanal)" 
-                  />
-                  <ScrollArea className="flex-1">
-                    <div className="p-4 space-y-4">
-                      {outperformingBtc.map((crypto) => (
-                        <CryptoCard
-                          key={crypto.id}
-                          crypto={crypto}
-                          onClick={() => setSelectedCrypto(crypto)}
-                          isSelected={selectedCrypto.id === crypto.id}
-                        />
-                      ))}
-                    </div>
-                  </ScrollArea>
+            <ScrollArea className="flex-1">
+              <TabsContent value="outperforming" className="m-0">
+                <ColumnHeader 
+                  title="Alt x BTC" 
+                  subtitle="Altcoins superando BTC (semanal)" 
+                />
+                <div className="p-4 space-y-4">
+                  {outperformingBtc.map((crypto) => (
+                    <CryptoCard
+                      key={crypto.id}
+                      crypto={crypto}
+                      onClick={() => setSelectedCrypto(crypto)}
+                      isSelected={selectedCrypto.id === crypto.id}
+                    />
+                  ))}
                 </div>
               </TabsContent>
               
-              <TabsContent value="bullish" className="m-0 h-full">
-                <div className="h-full flex flex-col">
-                  <ColumnHeader 
-                    title="Tendência de Alta" 
-                    subtitle="RSI Semanal > 62" 
-                  />
-                  <ScrollArea className="flex-1">
-                    <div className="p-4 space-y-4">
-                      {bullishTrend.map((crypto) => (
-                        <CryptoCard
-                          key={crypto.id}
-                          crypto={crypto}
-                          onClick={() => setSelectedCrypto(crypto)}
-                          isSelected={selectedCrypto.id === crypto.id}
-                          showRsi={true}
-                        />
-                      ))}
-                    </div>
-                  </ScrollArea>
+              <TabsContent value="bullish" className="m-0">
+                <ColumnHeader 
+                  title="Tendência de Alta" 
+                  subtitle="RSI Semanal > 62" 
+                />
+                <div className="p-4 space-y-4">
+                  {bullishTrend.map((crypto) => (
+                    <CryptoCard
+                      key={crypto.id}
+                      crypto={crypto}
+                      onClick={() => setSelectedCrypto(crypto)}
+                      isSelected={selectedCrypto.id === crypto.id}
+                      showRsi={true}
+                    />
+                  ))}
                 </div>
               </TabsContent>
 
-              <TabsContent value="oversold" className="m-0 h-full">
-                <div className="h-full flex flex-col">
-                  <ColumnHeader 
-                    title="Sobrevenda 4h" 
-                    subtitle="RSI 4h < 20" 
-                  />
-                  <ScrollArea className="flex-1">
-                    <div className="p-4 space-y-4">
-                      {oversold.map((crypto) => (
-                        <CryptoCard
-                          key={crypto.id}
-                          crypto={crypto}
-                          onClick={() => setSelectedCrypto(crypto)}
-                          isSelected={selectedCrypto.id === crypto.id}
-                          showRsi4h={true}
-                        />
-                      ))}
-                    </div>
-                  </ScrollArea>
+              <TabsContent value="oversold" className="m-0">
+                <ColumnHeader 
+                  title="Sobrevenda 4h" 
+                  subtitle="RSI 4h < 20" 
+                />
+                <div className="p-4 space-y-4">
+                  {oversold.map((crypto) => (
+                    <CryptoCard
+                      key={crypto.id}
+                      crypto={crypto}
+                      onClick={() => setSelectedCrypto(crypto)}
+                      isSelected={selectedCrypto.id === crypto.id}
+                      showRsi4h={true}
+                    />
+                  ))}
                 </div>
               </TabsContent>
 
-              <TabsContent value="matching" className="m-0 h-full">
-                <div className="h-full flex flex-col">
-                  <ColumnHeader 
-                    title="Match de Entrada" 
-                    subtitle="Atende todos os critérios" 
-                  />
-                  <ScrollArea className="flex-1">
-                    <div className="p-4 space-y-4">
-                      {matchingCryptos.map((crypto) => (
-                        <CryptoCard
-                          key={crypto.id}
-                          crypto={crypto}
-                          onClick={() => setSelectedCrypto(crypto)}
-                          isSelected={selectedCrypto.id === crypto.id}
-                          showRsi={true}
-                          showRsi4h={true}
-                        />
-                      ))}
-                    </div>
-                  </ScrollArea>
+              <TabsContent value="matching" className="m-0">
+                <ColumnHeader 
+                  title="Match de Entrada" 
+                  subtitle="Atende todos os critérios" 
+                />
+                <div className="p-4 space-y-4">
+                  {matchingCryptos.map((crypto) => (
+                    <CryptoCard
+                      key={crypto.id}
+                      crypto={crypto}
+                      onClick={() => setSelectedCrypto(crypto)}
+                      isSelected={selectedCrypto.id === crypto.id}
+                      showRsi={true}
+                      showRsi4h={true}
+                    />
+                  ))}
                 </div>
               </TabsContent>
-            </div>
+            </ScrollArea>
           </Tabs>
         </div>
 
