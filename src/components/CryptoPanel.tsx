@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import CryptoCard from './CryptoCard';
 import CryptoChart from './CryptoChart';
-import BtcDominanceBattle from './BtcDominanceBattle';
+import FearGreedIndicator from './FearGreedIndicator';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LineChart, TrendingUp, ArrowDownCircle, Bitcoin, Activity } from 'lucide-react';
@@ -56,7 +56,7 @@ const CryptoPanel = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      <BtcDominanceBattle />
+      <FearGreedIndicator />
       <div className="flex gap-6 h-[calc(100vh-8rem)]">
         <div className="w-96 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
           <Tabs 
