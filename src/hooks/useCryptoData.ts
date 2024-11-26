@@ -42,27 +42,6 @@ async function fetchRSIData(symbols: string[]) {
       'TOSHI': { rsi4h: 17.5, rsi1w: 84.9 },
     };
 
-    // In production, this would be replaced with actual API calls:
-    /*
-    const results = await Promise.all(
-      symbols.map(async (symbol) => {
-        const [response4h, response1w] = await Promise.all([
-          fetch(`https://api.example.com/rsi?symbol=${symbol}&interval=4h`),
-          fetch(`https://api.example.com/rsi?symbol=${symbol}&interval=1w`)
-        ]);
-        
-        const data4h = await response4h.json();
-        const data1w = await response1w.json();
-        
-        return {
-          symbol,
-          rsi4h: data4h.rsi,
-          rsi1w: data1w.rsi
-        };
-      })
-    );
-    */
-
     return mockData;
   } catch (error) {
     console.error('Error fetching RSI data:', error);
@@ -119,15 +98,17 @@ export const useCryptoData = () => {
   return useQuery({
     queryKey: ['cryptos'],
     queryFn: fetchCryptoData,
-    refetchInterval: 5000, // Refresh every 5 seconds
+    refetchInterval: 5000,
     staleTime: 2000,
     retry: 3,
-    onError: () => {
-      toast({
-        title: "Erro ao atualizar dados",
-        description: "Não foi possível obter as atualizações em tempo real",
-        variant: "destructive",
-      });
+    meta: {
+      onError: () => {
+        toast({
+          title: "Erro ao atualizar dados",
+          description: "Não foi possível obter as atualizações em tempo real",
+          variant: "destructive",
+        });
+      }
     }
   });
 };
