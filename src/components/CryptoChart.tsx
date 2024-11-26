@@ -7,14 +7,13 @@ interface CryptoChartProps {
     name: string;
   };
   showBtcDominance?: boolean;
+  timeframe?: "D" | "W" | "240"; // Added timeframe prop
 }
 
-const CryptoChart = ({ crypto, showBtcDominance = false }: CryptoChartProps) => {
+const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: CryptoChartProps) => {
   const symbol = showBtcDominance 
     ? 'BTC.D'
-    : crypto.id === 'BTC' 
-      ? 'BTCUSDT' 
-      : `${crypto.id}BTC`;
+    : 'USDT' // Now always using USDT pair except for BTC.D
   
   return (
     <div className="h-full bg-gray-900 rounded-lg overflow-hidden">
@@ -22,17 +21,15 @@ const CryptoChart = ({ crypto, showBtcDominance = false }: CryptoChartProps) => 
         <h2 className="text-xl font-bold">
           {showBtcDominance
             ? 'Dominância do Bitcoin (BTC.D)'
-            : crypto.id === 'BTC' 
-              ? 'Bitcoin (BTC/USDT)' 
-              : `${crypto.name} vs Bitcoin (${crypto.id}/BTC)`}
+            : `${crypto.name} (${crypto.id}/USDT)`}
         </h2>
       </div>
       <div className="h-[calc(100%-4rem)]">
         <TradingViewWidget
-          symbol={`BINANCE:${symbol}`}
+          symbol={`BINANCE:${crypto.id}${symbol}`}
           theme="Dark"
           autosize
-          interval="D"
+          interval={timeframe}
           timezone="Etc/UTC"
           style="1"
           locale="pt"

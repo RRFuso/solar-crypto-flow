@@ -13,6 +13,7 @@ import { ColumnHeader } from './crypto/ColumnHeader';
 const CryptoPanel = () => {
   const [selectedCrypto, setSelectedCrypto] = useState({ id: 'BTC', name: 'Bitcoin', performance: 0 });
   const [showBtcDominance, setShowBtcDominance] = useState(false);
+  const [activeTab, setActiveTab] = useState('outperforming');
   const { toast } = useToast();
   
   const { data: cryptos = [], isLoading, error } = useCryptoData();
@@ -26,6 +27,22 @@ const CryptoPanel = () => {
     (c.rsi || 0) > 62 && 
     (c.rsi4h || 0) < 20
   ).sort((a, b) => b.performance - a.performance);
+
+  // Helper function to determine timeframe based on active tab
+  const getTimeframe = () => {
+    switch (activeTab) {
+      case 'outperforming':
+        return 'W';
+      case 'bullish':
+        return 'W';
+      case 'oversold':
+        return '240';
+      case 'matching':
+        return 'D';
+      default:
+        return 'D';
+    }
+  };
 
   React.useEffect(() => {
     if (error) {
@@ -42,7 +59,11 @@ const CryptoPanel = () => {
       <BtcDominanceBattle />
       <div className="flex gap-6 h-[calc(100vh-8rem)]">
         <div className="w-96 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
-          <Tabs defaultValue="outperforming" className="w-full h-full flex flex-col">
+          <Tabs 
+            defaultValue="outperforming" 
+            className="w-full h-full flex flex-col"
+            onValueChange={setActiveTab}
+          >
             <TabsList className="w-full grid grid-cols-4 h-20 bg-gray-800">
               <TabsTrigger value="outperforming" className="flex flex-col items-center gap-1 h-auto py-2">
                 <LineChart className="w-4 h-4" />
@@ -157,7 +178,8 @@ const CryptoPanel = () => {
         <div className="flex-1 relative">
           <CryptoChart 
             crypto={selectedCrypto} 
-            showBtcDominance={showBtcDominance} 
+            showBtcDominance={showBtcDominance}
+            timeframe={getTimeframe()}
           />
           <div className="absolute top-4 right-4 flex gap-2">
             <Button
