@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import GaugeChart from 'react-gauge-chart';
-import { Scale, Skull, PartyPopper } from 'lucide-react';
+import { Scale, Skull, PartyPopper, Bitcoin } from 'lucide-react';
 
 interface FearGreedData {
   value: number;
@@ -43,7 +43,7 @@ const getMessageColor = (value: number): string => {
 };
 
 const FearGreedIndicator = () => {
-  const { data } = useQuery({
+  const { data: fearGreedData } = useQuery({
     queryKey: ['fear-greed'],
     queryFn: async (): Promise<FearGreedData> => {
       try {
@@ -68,7 +68,29 @@ const FearGreedIndicator = () => {
     }
   });
 
-  const value = data?.value ?? 75;
+  const { data: btcDominanceData } = useQuery({
+    queryKey: ['btc-dominance'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('https://api.coingecko.com/api/v3/global');
+        const data = await response.json();
+        return {
+          value: parseFloat(data.data.bitcoin_dominance).toFixed(2),
+        };
+      } catch (error) {
+        console.error('Error fetching BTC dominance:', error);
+        return {
+          value: "45.5"
+        };
+      }
+    },
+    refetchInterval: 5 * 60 * 1000, // 5 minutes
+    initialData: {
+      value: "45.5"
+    }
+  });
+
+  const value = fearGreedData?.value ?? 75;
   const classification = getClassification(value);
   const colors = getColors(value);
   const message = getMessage(value);
@@ -77,7 +99,7 @@ const FearGreedIndicator = () => {
   return (
     <div className="flex flex-col gap-4 w-full">
       <div className="flex gap-4">
-        <div className="w-full max-w-xs space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+        <div className="w-96 space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium">Medo & Ganância</span>
@@ -105,6 +127,27 @@ const FearGreedIndicator = () => {
               {message}
             </div>
           )}
+        </div>
+
+        <div className="w-96 space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bitcoin className="w-4 h-4 text-orange-500" />
+              <span className="text-xs font-medium">Dominância do Bitcoin</span>
+            </div>
+            <span className="text-xs font-medium">{btcDominanceData.value}%</span>
+          </div>
+          <div className="h-20 flex items-center justify-center">
+            <div className="relative w-full h-4 bg-gray-700 rounded-full overflow-hidden">
+              <div 
+                className="absolute h-full bg-orange-500 rounded-full transition-all duration-500"
+                style={{ width: `${btcDominanceData.value}%` }}
+              />
+            </div>
+          </div>
+          <div className="text-center text-xs font-medium text-gray-400">
+            {parseFloat(btcDominanceData.value) > 50 ? "Alta Dominância" : "Baixa Dominância"}
+          </div>
         </div>
       </div>
       <div className="text-center text-[10px] text-gray-500">
