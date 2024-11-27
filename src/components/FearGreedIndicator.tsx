@@ -30,6 +30,18 @@ const getIcon = (value: number) => {
   return <PartyPopper className="w-4 h-4 text-green-500" />;
 };
 
+const getMessage = (value: number): string => {
+  if (value <= 20) return "Considere uma compra ou DCA (Dollar Cost Averaging).";
+  if (value >= 80) return "Considere uma realização de ganhos!";
+  return "";
+};
+
+const getMessageColor = (value: number): string => {
+  if (value <= 20) return "text-red-500";
+  if (value >= 80) return "text-green-500";
+  return "text-gray-400";
+};
+
 const FearGreedIndicator = () => {
   const { data } = useQuery({
     queryKey: ['fear-greed'],
@@ -59,30 +71,44 @@ const FearGreedIndicator = () => {
   const value = data?.value ?? 75;
   const classification = getClassification(value);
   const colors = getColors(value);
+  const message = getMessage(value);
+  const messageColor = getMessageColor(value);
 
   return (
-    <div className="w-full max-w-xs space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium">Medo & Ganância</span>
-          {getIcon(value)}
+    <div className="flex flex-col gap-4 w-full">
+      <div className="flex gap-4">
+        <div className="w-full max-w-xs space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium">Medo & Ganância</span>
+              {getIcon(value)}
+            </div>
+            <span className="text-xs font-medium">{value}</span>
+          </div>
+          <div className="h-20">
+            <GaugeChart
+              id="fear-greed-gauge"
+              nrOfLevels={5}
+              colors={colors}
+              percent={value / 100}
+              textColor="#ffffff"
+              formatTextValue={() => `${value}`}
+              needleColor="#ffffff"
+              needleBaseColor="#ffffff"
+            />
+          </div>
+          <div className="text-center text-xs font-medium text-gray-400">
+            {classification}
+          </div>
+          {message && (
+            <div className={`text-center text-xs font-medium mt-2 ${messageColor}`}>
+              {message}
+            </div>
+          )}
         </div>
-        <span className="text-xs font-medium">{value}</span>
       </div>
-      <div className="h-20">
-        <GaugeChart
-          id="fear-greed-gauge"
-          nrOfLevels={5}
-          colors={colors}
-          percent={value / 100}
-          textColor="#ffffff"
-          formatTextValue={() => `${value}`}
-          needleColor="#ffffff"
-          needleBaseColor="#ffffff"
-        />
-      </div>
-      <div className="text-center text-xs font-medium text-gray-400">
-        {classification}
+      <div className="text-center text-[10px] text-gray-500">
+        Este painel é uma ferramenta para auxiliar sua análise. Todas as decisões de investimento são de sua responsabilidade.
       </div>
     </div>
   );
