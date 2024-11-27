@@ -25,38 +25,51 @@ const getColors = (value: number): string[] => {
 };
 
 const getIcon = (value: number) => {
-  if (value <= 40) return <Skull className="w-6 h-6 text-red-500" />;
-  if (value <= 60) return <Scale className="w-6 h-6 text-yellow-500" />;
-  return <PartyPopper className="w-6 h-6 text-green-500" />;
+  if (value <= 40) return <Skull className="w-4 h-4 text-red-500" />;
+  if (value <= 60) return <Scale className="w-4 h-4 text-yellow-500" />;
+  return <PartyPopper className="w-4 h-4 text-green-500" />;
 };
 
 const FearGreedIndicator = () => {
   const { data } = useQuery({
     queryKey: ['fear-greed'],
     queryFn: async (): Promise<FearGreedData> => {
-      // Mock data - replace with actual API call
-      return {
-        value: Math.floor(Math.random() * 100),
-        classification: "Medo"
-      };
+      try {
+        const response = await fetch('https://api.alternative.me/fng/');
+        const data = await response.json();
+        return {
+          value: parseInt(data.data[0].value),
+          classification: data.data[0].value_classification
+        };
+      } catch (error) {
+        console.error('Error fetching Fear & Greed index:', error);
+        return {
+          value: 75,
+          classification: "Ganância"
+        };
+      }
     },
-    refetchInterval: 15000,
+    refetchInterval: 24 * 60 * 60 * 1000, // 24 hours
+    initialData: {
+      value: 75,
+      classification: "Ganância"
+    }
   });
 
-  const value = data?.value ?? 50;
+  const value = data?.value ?? 75;
   const classification = getClassification(value);
   const colors = getColors(value);
 
   return (
-    <div className="w-full space-y-4 p-4 bg-gray-900/50 rounded-lg border border-gray-800">
+    <div className="w-full max-w-xs space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Índice Medo & Ganância</span>
+          <span className="text-xs font-medium">Medo & Ganância</span>
           {getIcon(value)}
         </div>
-        <span className="text-sm font-medium">{value}</span>
+        <span className="text-xs font-medium">{value}</span>
       </div>
-      <div className="h-32">
+      <div className="h-20">
         <GaugeChart
           id="fear-greed-gauge"
           nrOfLevels={5}
@@ -68,7 +81,7 @@ const FearGreedIndicator = () => {
           needleBaseColor="#ffffff"
         />
       </div>
-      <div className="text-center text-sm font-medium text-gray-400">
+      <div className="text-center text-xs font-medium text-gray-400">
         {classification}
       </div>
     </div>

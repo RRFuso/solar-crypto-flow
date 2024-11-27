@@ -12,7 +12,6 @@ import { ColumnHeader } from './crypto/ColumnHeader';
 
 const CryptoPanel = () => {
   const [selectedCrypto, setSelectedCrypto] = useState({ id: 'BTC', name: 'Bitcoin', performance: 0 });
-  const [showBtcDominance, setShowBtcDominance] = useState(false);
   const [activeTab, setActiveTab] = useState('outperforming');
   const { toast } = useToast();
   
@@ -44,20 +43,9 @@ const CryptoPanel = () => {
     }
   };
 
-  React.useEffect(() => {
-    if (error) {
-      toast({
-        title: "Erro ao atualizar dados",
-        description: "Não foi possível obter as atualizações em tempo real",
-        variant: "destructive",
-      });
-    }
-  }, [error, toast]);
-
   return (
-    <div className="flex flex-col gap-6">
-      <FearGreedIndicator />
-      <div className="flex gap-6 h-[calc(100vh-8rem)]">
+    <div className="flex flex-col gap-4">
+      <div className="flex gap-6 h-[calc(100vh-12rem)]">
         <div className="w-96 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
           <Tabs 
             defaultValue="outperforming" 
@@ -178,7 +166,6 @@ const CryptoPanel = () => {
         <div className="flex-1 relative">
           <CryptoChart 
             crypto={selectedCrypto} 
-            showBtcDominance={showBtcDominance}
             timeframe={getTimeframe()}
           />
           <div className="absolute top-4 right-4 flex gap-2">
@@ -188,23 +175,16 @@ const CryptoPanel = () => {
               className="bg-gray-800/50 hover:bg-gray-700/50"
               onClick={() => {
                 setSelectedCrypto({ id: 'BTC', name: 'Bitcoin', performance: 0 });
-                setShowBtcDominance(false);
               }}
             >
               <Bitcoin className="w-4 h-4 mr-2" />
               BTC/USDT
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-gray-800/50 hover:bg-gray-700/50"
-              onClick={() => setShowBtcDominance(true)}
-            >
-              <Activity className="w-4 h-4 mr-2" />
-              Dominância BTC
-            </Button>
           </div>
         </div>
+      </div>
+      <div className="flex justify-center">
+        <FearGreedIndicator />
       </div>
     </div>
   );
