@@ -20,11 +20,11 @@ const CryptoPanel = () => {
 
   // Filter cryptos based on criteria
   const outperformingBtc = cryptos.filter(c => c.performance > 0).sort((a, b) => b.performance - a.performance);
-  const bullishTrend = cryptos.filter(c => (c.rsi || 0) > 62).sort((a, b) => (b.rsi || 0) - (a.rsi || 0));
+  const bullishTrend = cryptos.filter(c => c.aboveMA14).sort((a, b) => (b.rsi || 0) - (a.rsi || 0));
   const oversold = cryptos.filter(c => (c.rsi4h || 0) < 20).sort((a, b) => (a.rsi4h || 0) - (b.rsi4h || 0));
   const matchingCryptos = cryptos.filter(c => 
     c.performance > 0 && 
-    (c.rsi || 0) > 62 && 
+    c.aboveMA14 && 
     (c.rsi4h || 0) < 20
   ).sort((a, b) => b.performance - a.performance);
 

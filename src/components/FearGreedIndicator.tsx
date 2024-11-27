@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Progress } from "@/components/ui/progress";
+import GaugeChart from 'react-gauge-chart';
 import { Scale, Skull, PartyPopper } from 'lucide-react';
 
 interface FearGreedData {
@@ -16,12 +16,12 @@ const getClassification = (value: number): string => {
   return "Ganância Extrema";
 };
 
-const getColor = (value: number): string => {
-  if (value <= 20) return "bg-red-600";
-  if (value <= 40) return "bg-orange-500";
-  if (value <= 60) return "bg-yellow-500";
-  if (value <= 80) return "bg-green-500";
-  return "bg-green-600";
+const getColors = (value: number): string[] => {
+  if (value <= 20) return ["#ff0000", "#ff3333"];
+  if (value <= 40) return ["#ff6600", "#ff8533"];
+  if (value <= 60) return ["#ffcc00", "#ffd633"];
+  if (value <= 80) return ["#00cc00", "#00e600"];
+  return ["#009900", "#00b300"];
 };
 
 const getIcon = (value: number) => {
@@ -40,11 +40,12 @@ const FearGreedIndicator = () => {
         classification: "Medo"
       };
     },
-    refetchInterval: 5000,
+    refetchInterval: 15000,
   });
 
   const value = data?.value ?? 50;
   const classification = getClassification(value);
+  const colors = getColors(value);
 
   return (
     <div className="w-full space-y-4 p-4 bg-gray-900/50 rounded-lg border border-gray-800">
@@ -55,10 +56,18 @@ const FearGreedIndicator = () => {
         </div>
         <span className="text-sm font-medium">{value}</span>
       </div>
-      <Progress 
-        value={value} 
-        className={`h-2 ${getColor(value)}`}
-      />
+      <div className="h-32">
+        <GaugeChart
+          id="fear-greed-gauge"
+          nrOfLevels={5}
+          colors={colors}
+          percent={value / 100}
+          textColor="#ffffff"
+          formatTextValue={() => `${value}`}
+          needleColor="#ffffff"
+          needleBaseColor="#ffffff"
+        />
+      </div>
       <div className="text-center text-sm font-medium text-gray-400">
         {classification}
       </div>
