@@ -5,7 +5,7 @@ import CryptoChart from './CryptoChart';
 import FearGreedIndicator from './FearGreedIndicator';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { LineChart, TrendingUp, ArrowDownCircle, Bitcoin, Activity } from 'lucide-react';
+import { LineChart, TrendingUp, ArrowDownCircle, ArrowUpCircle, Bitcoin, Activity } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { ColumnHeader } from './crypto/ColumnHeader';
@@ -21,6 +21,7 @@ const CryptoPanel = () => {
   const outperformingBtc = cryptos.filter(c => c.performance > 0).sort((a, b) => b.performance - a.performance);
   const bullishTrend = cryptos.filter(c => c.aboveMA14).sort((a, b) => (b.rsi || 0) - (a.rsi || 0));
   const oversold = cryptos.filter(c => (c.rsi4h || 0) < 20).sort((a, b) => (a.rsi4h || 0) - (b.rsi4h || 0));
+  const overbought = cryptos.filter(c => (c.rsi4h || 0) > 80).sort((a, b) => (b.rsi4h || 0) - (a.rsi4h || 0));
   const matchingCryptos = cryptos.filter(c => 
     c.performance > 0 && 
     c.aboveMA14 && 
@@ -35,6 +36,8 @@ const CryptoPanel = () => {
       case 'bullish':
         return 'W';
       case 'oversold':
+        return '240';
+      case 'overbought':
         return '240';
       case 'matching':
         return 'D';
@@ -52,7 +55,7 @@ const CryptoPanel = () => {
             className="w-full h-full flex flex-col"
             onValueChange={setActiveTab}
           >
-            <TabsList className="w-full grid grid-cols-4 h-20 bg-gray-800">
+            <TabsList className="w-full grid grid-cols-5 h-20 bg-gray-800">
               <TabsTrigger value="outperforming" className="flex flex-col items-center gap-1 h-auto py-2">
                 <LineChart className="w-4 h-4" />
                 <span className="text-xs">Alt x BTC</span>
@@ -64,6 +67,10 @@ const CryptoPanel = () => {
               <TabsTrigger value="oversold" className="flex flex-col items-center gap-1 h-auto py-2">
                 <ArrowDownCircle className="w-4 h-4" />
                 <span className="text-xs">Sobrevenda 4h</span>
+              </TabsTrigger>
+              <TabsTrigger value="overbought" className="flex flex-col items-center gap-1 h-auto py-2">
+                <ArrowUpCircle className="w-4 h-4" />
+                <span className="text-xs">Sobrecompra 4h</span>
               </TabsTrigger>
               <TabsTrigger value="matching" className="flex flex-col items-center gap-1 h-auto py-2">
                 <Activity className="w-4 h-4" />
@@ -124,6 +131,28 @@ const CryptoPanel = () => {
                   <ScrollArea className="flex-1">
                     <div className="p-4 space-y-4">
                       {oversold.map((crypto) => (
+                        <CryptoCard
+                          key={crypto.id}
+                          crypto={crypto}
+                          onClick={() => setSelectedCrypto(crypto)}
+                          isSelected={selectedCrypto.id === crypto.id}
+                          showRsi4h={true}
+                        />
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="overbought" className="m-0 h-full">
+                <div className="h-full flex flex-col">
+                  <ColumnHeader 
+                    title="Sobrecompra 4h" 
+                    subtitle="RSI 4h > 80" 
+                  />
+                  <ScrollArea className="flex-1">
+                    <div className="p-4 space-y-4">
+                      {overbought.map((crypto) => (
                         <CryptoCard
                           key={crypto.id}
                           crypto={crypto}
