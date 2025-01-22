@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import GaugeChart from 'react-gauge-chart';
-import { Scale, Skull, PartyPopper, Bitcoin } from 'lucide-react';
+import { Scale, Skull, PartyPopper, Bitcoin, TrendingUp, DollarSign, LineChart } from 'lucide-react';
 
 interface FearGreedData {
   value: number;
@@ -58,8 +58,8 @@ const FearGreedIndicator = () => {
         throw error;
       }
     },
-    refetchInterval: 24 * 60 * 60 * 1000, // 24 hours
-    staleTime: 12 * 60 * 60 * 1000, // 12 hours
+    refetchInterval: 24 * 60 * 60 * 1000,
+    staleTime: 12 * 60 * 60 * 1000,
     retry: 3,
     retryDelay: 5000
   });
@@ -78,13 +78,35 @@ const FearGreedIndicator = () => {
         throw error;
       }
     },
-    refetchInterval: 5 * 60 * 1000, // 5 minutes
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchInterval: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
     retry: 3,
     retryDelay: 5000
   });
 
-  if (fearGreedLoading || btcDominanceLoading) {
+  const { data: economicData, isLoading: economicLoading } = useQuery({
+    queryKey: ['economic-indicators'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('https://api.twelvedata.com/price?symbol=DXY,SPX,IXIC&apikey=demo');
+        const data = await response.json();
+        return {
+          dxy: parseFloat(data.DXY?.price || '0').toFixed(2),
+          spx: parseFloat(data.SPX?.price || '0').toFixed(2),
+          nasdaq: parseFloat(data.IXIC?.price || '0').toFixed(2),
+        };
+      } catch (error) {
+        console.error('Error fetching economic indicators:', error);
+        throw error;
+      }
+    },
+    refetchInterval: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    retry: 3,
+    retryDelay: 5000
+  });
+
+  if (fearGreedLoading || btcDominanceLoading || economicLoading) {
     return (
       <div className="flex justify-center items-center h-32">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -149,6 +171,38 @@ const FearGreedIndicator = () => {
           </div>
           <div className="text-center text-xs font-medium text-gray-400">
             {parseFloat(btcDominanceData?.value ?? "0") > 50 ? "Alta Dominância" : "Baixa Dominância"}
+          </div>
+        </div>
+
+        <div className="w-96 space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-blue-500" />
+              <span className="text-xs font-medium">Indicadores Econômicos</span>
+            </div>
+          </div>
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-3 h-3 text-green-500" />
+                <span className="text-xs">DXY</span>
+              </div>
+              <span className="text-xs font-medium">{economicData?.dxy ?? "0"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <LineChart className="w-3 h-3 text-blue-500" />
+                <span className="text-xs">S&P 500</span>
+              </div>
+              <span className="text-xs font-medium">{economicData?.spx ?? "0"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <LineChart className="w-3 h-3 text-purple-500" />
+                <span className="text-xs">NASDAQ</span>
+              </div>
+              <span className="text-xs font-medium">{economicData?.nasdaq ?? "0"}</span>
+            </div>
           </div>
         </div>
       </div>
