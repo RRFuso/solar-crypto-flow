@@ -43,7 +43,7 @@ const getMessageColor = (value: number): string => {
 };
 
 const FearGreedIndicator = () => {
-  const { data: fearGreedData } = useQuery({
+  const { data: fearGreedData, isLoading: fearGreedLoading } = useQuery({
     queryKey: ['fear-greed'],
     queryFn: async (): Promise<FearGreedData> => {
       try {
@@ -55,20 +55,16 @@ const FearGreedIndicator = () => {
         };
       } catch (error) {
         console.error('Error fetching Fear & Greed index:', error);
-        return {
-          value: 75,
-          classification: "Ganância"
-        };
+        throw error;
       }
     },
     refetchInterval: 24 * 60 * 60 * 1000, // 24 hours
-    initialData: {
-      value: 75,
-      classification: "Ganância"
-    }
+    staleTime: 12 * 60 * 60 * 1000, // 12 hours
+    retry: 3,
+    retryDelay: 5000
   });
 
-  const { data: btcDominanceData } = useQuery({
+  const { data: btcDominanceData, isLoading: btcDominanceLoading } = useQuery({
     queryKey: ['btc-dominance'],
     queryFn: async () => {
       try {
@@ -79,18 +75,24 @@ const FearGreedIndicator = () => {
         };
       } catch (error) {
         console.error('Error fetching BTC dominance:', error);
-        return {
-          value: "45.5"
-        };
+        throw error;
       }
     },
     refetchInterval: 5 * 60 * 1000, // 5 minutes
-    initialData: {
-      value: "45.5"
-    }
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 3,
+    retryDelay: 5000
   });
 
-  const value = fearGreedData?.value ?? 75;
+  if (fearGreedLoading || btcDominanceLoading) {
+    return (
+      <div className="flex justify-center items-center h-32">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+      </div>
+    );
+  }
+
+  const value = fearGreedData?.value ?? 50;
   const classification = getClassification(value);
   const colors = getColors(value);
   const message = getMessage(value);
@@ -135,18 +137,18 @@ const FearGreedIndicator = () => {
               <Bitcoin className="w-4 h-4 text-orange-500" />
               <span className="text-xs font-medium">Dominância do Bitcoin</span>
             </div>
-            <span className="text-xs font-medium">{btcDominanceData.value}%</span>
+            <span className="text-xs font-medium">{btcDominanceData?.value ?? "0"}%</span>
           </div>
           <div className="h-20 flex items-center justify-center">
             <div className="relative w-full h-4 bg-gray-700 rounded-full overflow-hidden">
               <div 
                 className="absolute h-full bg-orange-500 rounded-full transition-all duration-500"
-                style={{ width: `${btcDominanceData.value}%` }}
+                style={{ width: `${btcDominanceData?.value ?? 0}%` }}
               />
             </div>
           </div>
           <div className="text-center text-xs font-medium text-gray-400">
-            {parseFloat(btcDominanceData.value) > 50 ? "Alta Dominância" : "Baixa Dominância"}
+            {parseFloat(btcDominanceData?.value ?? "0") > 50 ? "Alta Dominância" : "Baixa Dominância"}
           </div>
         </div>
       </div>
