@@ -15,8 +15,7 @@ const MatchingTab = ({ cryptos, selectedCrypto, onSelectCrypto }: MatchingTabPro
   const matchingCryptos = cryptos
     .filter(c => 
       c.performance > 0 && 
-      c.aboveMA14 && 
-      (c.rsi4h || 0) < 20
+      c.aboveMA14
     )
     .sort((a, b) => b.performance - a.performance);
 
