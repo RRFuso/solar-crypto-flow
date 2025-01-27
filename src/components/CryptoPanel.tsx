@@ -11,12 +11,25 @@ import BullishTab from './crypto/tabs/BullishTab';
 import OversoldTab from './crypto/tabs/OversoldTab';
 import OverboughtTab from './crypto/tabs/OverboughtTab';
 import MatchingTab from './crypto/tabs/MatchingTab';
+import CryptoSettings from './crypto/CryptoSettings';
 import { CryptoData } from '@/types/crypto';
 
 const CryptoPanel = () => {
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoData>({ id: 'BTC', name: 'Bitcoin', performance: 0 });
   const [activeTab, setActiveTab] = useState('outperforming');
-  const { data: cryptos = [], isLoading, error } = useCryptoData();
+  const [settings, setSettings] = useState({
+    rsiOverbought: 70,
+    rsiOversold: 30,
+    rsiNeutralMin: 50,
+    rsiNeutralMax: 60,
+    timeframe: '4h'
+  });
+
+  const { data: cryptos = [], isLoading, error } = useCryptoData({
+    timeframe: settings.timeframe,
+    rsiOverbought: settings.rsiOverbought,
+    rsiOversold: settings.rsiOversold
+  });
 
   const getTimeframe = () => {
     switch (activeTab) {
@@ -81,6 +94,10 @@ const CryptoPanel = () => {
             timeframe={getTimeframe()}
           />
           <div className="absolute top-4 right-4 flex gap-2">
+            <CryptoSettings 
+              settings={settings}
+              onSettingsChange={setSettings}
+            />
             <Button
               variant="outline"
               size="sm"
