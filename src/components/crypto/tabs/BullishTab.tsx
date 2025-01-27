@@ -12,8 +12,13 @@ interface BullishTabProps {
 }
 
 const BullishTab = ({ cryptos, selectedCrypto, onSelectCrypto }: BullishTabProps) => {
+  // Filtra ativos em tendência de alta
   const bullishTrend = cryptos
-    .filter(c => c.aboveMA14)
+    .filter(c => 
+      c.aboveMA14 && // Preço acima da média móvel
+      (c.rsi || 0) >= 50 && (c.rsi || 0) <= 70 && // RSI entre 50 e 70
+      c.ema12 && c.ema26 && c.ema12 > c.ema26 // EMA 12 > EMA 26
+    )
     .sort((a, b) => (b.rsi || 0) - (a.rsi || 0));
 
   return (
@@ -21,7 +26,7 @@ const BullishTab = ({ cryptos, selectedCrypto, onSelectCrypto }: BullishTabProps
       <div className="h-full flex flex-col">
         <ColumnHeader 
           title="Tendência de Alta" 
-          subtitle="RSI Semanal > 62" 
+          subtitle="RSI 50-70 + EMAs" 
         />
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-4">

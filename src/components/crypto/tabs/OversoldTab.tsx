@@ -12,8 +12,9 @@ interface OversoldTabProps {
 }
 
 const OversoldTab = ({ cryptos, selectedCrypto, onSelectCrypto }: OversoldTabProps) => {
+  // Filtra ativos em sobrevenda (RSI 4h < 30)
   const oversold = cryptos
-    .filter(c => (c.rsi4h || 0) < 20)
+    .filter(c => (c.rsi4h || 0) < 30)
     .sort((a, b) => (a.rsi4h || 0) - (b.rsi4h || 0));
 
   return (
@@ -21,7 +22,7 @@ const OversoldTab = ({ cryptos, selectedCrypto, onSelectCrypto }: OversoldTabPro
       <div className="h-full flex flex-col">
         <ColumnHeader 
           title="Sobrevenda 4h" 
-          subtitle="RSI 4h < 20" 
+          subtitle="RSI 4h < 30" 
         />
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-4">

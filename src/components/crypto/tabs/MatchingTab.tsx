@@ -12,10 +12,13 @@ interface MatchingTabProps {
 }
 
 const MatchingTab = ({ cryptos, selectedCrypto, onSelectCrypto }: MatchingTabProps) => {
+  // Filtra ativos que atendem a todos os critérios de entrada
   const matchingCryptos = cryptos
     .filter(c => 
-      c.performance > 0 && 
-      c.aboveMA14
+      c.performance > 0 && // Performance positiva vs BTC
+      (c.rsi || 0) >= 50 && (c.rsi || 0) <= 60 && // RSI entre 50-60
+      c.ema12 && c.ema26 && c.ema12 > c.ema26 && // EMA 12 cruzando EMA 26 para cima
+      c.aboveMA14 // Preço acima da média móvel
     )
     .sort((a, b) => b.performance - a.performance);
 

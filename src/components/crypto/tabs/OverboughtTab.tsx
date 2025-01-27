@@ -12,19 +12,17 @@ interface OverboughtTabProps {
 }
 
 const OverboughtTab = ({ cryptos, selectedCrypto, onSelectCrypto }: OverboughtTabProps) => {
+  // Filtra ativos em sobrecompra (RSI 4h > 70)
   const overbought = cryptos
-    .filter(c => (c.rsi4h || 0) > 80)
+    .filter(c => (c.rsi4h || 0) > 70)
     .sort((a, b) => (b.rsi4h || 0) - (a.rsi4h || 0));
-
-  console.log('Cryptos:', cryptos);
-  console.log('Overbought:', overbought);
 
   return (
     <TabsContent value="overbought" className="m-0 h-full">
       <div className="h-full flex flex-col">
         <ColumnHeader 
           title="Sobrecompra 4h" 
-          subtitle={`RSI 4h > 80 (${overbought.length} ativos)`}
+          subtitle="RSI 4h > 70" 
         />
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-4">
@@ -37,11 +35,6 @@ const OverboughtTab = ({ cryptos, selectedCrypto, onSelectCrypto }: OverboughtTa
                 showRsi4h={true}
               />
             ))}
-            {overbought.length === 0 && (
-              <div className="text-center text-gray-500 py-4">
-                Nenhum ativo em sobrecompra no momento
-              </div>
-            )}
           </div>
         </ScrollArea>
       </div>

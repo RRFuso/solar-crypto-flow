@@ -12,6 +12,7 @@ interface OutperformingTabProps {
 }
 
 const OutperformingTab = ({ cryptos, selectedCrypto, onSelectCrypto }: OutperformingTabProps) => {
+  // Filtra apenas altcoins que estão superando o BTC
   const outperformingBtc = cryptos
     .filter(c => c.performance > 0)
     .sort((a, b) => b.performance - a.performance);
