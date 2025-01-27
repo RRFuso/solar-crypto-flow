@@ -4,6 +4,8 @@ export interface CryptoData {
   performance: number;
   rsi?: number;
   rsi4h?: number;
+  ema12?: number;
+  ema26?: number;
   aboveMA14?: boolean;
   price?: string;
   volume?: string;
