@@ -5,7 +5,7 @@ const BINANCE_API_URL = 'https://api.binance.com/api/v3';
 export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => {
   try {
     const response = await fetch(`${BINANCE_API_URL}/ticker/24hr`, {
-      mode: 'cors',
+      method: 'GET',
       headers: {
         'Accept': 'application/json',
       }
@@ -15,7 +15,7 @@ export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => 
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const data = await response.json();
+    const data: BinanceTicker[] = await response.json();
     return data.reduce((acc: Record<string, BinanceTicker>, ticker: BinanceTicker) => {
       acc[ticker.symbol] = ticker;
       return acc;
@@ -31,7 +31,7 @@ export const fetchKlines = async (symbol: string, interval: string): Promise<Bin
     const response = await fetch(
       `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}&limit=100`,
       {
-        mode: 'cors',
+        method: 'GET',
         headers: {
           'Accept': 'application/json',
         }
@@ -43,7 +43,7 @@ export const fetchKlines = async (symbol: string, interval: string): Promise<Bin
     }
 
     const data = await response.json();
-    return data.map((kline: any[]) => ({
+    return data.map((kline: any[]): BinanceKline => ({
       openTime: kline[0],
       open: kline[1],
       high: kline[2],
