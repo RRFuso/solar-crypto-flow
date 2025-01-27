@@ -20,14 +20,14 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
     queryKey: ['cryptos', timeframe, rsiOverbought, rsiOversold],
     queryFn: async () => {
       const tickers = await fetchTickers();
-      const btcPrice = parseFloat(tickers['BTCUSDT'].lastPrice);
-      const btcChange = parseFloat(tickers['BTCUSDT'].priceChangePercent);
+      const btcTicker = tickers['BTCUSDT'];
+      const btcChange = parseFloat(btcTicker.priceChangePercent);
 
       const usdtPairs = Object.entries(tickers)
         .filter(([symbol]) => symbol.endsWith('USDT'))
         .map(async ([symbol, ticker]) => {
           const klines = await fetchKlines(symbol, timeframe);
-          const prices = klines.map(k => parseFloat(k[4])); // Close prices
+          const prices = klines.map(k => parseFloat(k.close));
           
           const rsi = calculateRSI(prices);
           const ema12 = calculateEMA(prices, 12);
@@ -55,6 +55,6 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
 
       return Promise.all(usdtPairs);
     },
-    refetchInterval: 15000 // Atualiza a cada 15 segundos
+    refetchInterval: 15000
   });
 };

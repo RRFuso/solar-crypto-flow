@@ -11,10 +11,22 @@ export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => 
   }, {});
 };
 
-export const fetchKlines = async (symbol: string, interval: string): Promise<number[][]> => {
+export const fetchKlines = async (symbol: string, interval: string): Promise<BinanceKline[]> => {
   const response = await fetch(
     `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}&limit=100`
   );
   const data = await response.json();
-  return data;
+  return data.map((kline: any[]) => ({
+    openTime: kline[0],
+    open: kline[1],
+    high: kline[2],
+    low: kline[3],
+    close: kline[4],
+    volume: kline[5],
+    closeTime: kline[6],
+    quoteAssetVolume: kline[7],
+    trades: kline[8],
+    takerBuyBaseAssetVolume: kline[9],
+    takerBuyQuoteAssetVolume: kline[10]
+  }));
 };
