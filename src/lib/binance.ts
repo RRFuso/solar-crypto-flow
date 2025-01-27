@@ -1,4 +1,13 @@
-import { MainClient } from '@binance/connector';
+const BINANCE_API_URL = 'https://api.binance.com/api/v3';
 
-// Usando cliente público sem autenticação para dados de mercado
-export const binanceClient = new MainClient();
+export const binanceApi = {
+  async getTickerPrice() {
+    const response = await fetch(`${BINANCE_API_URL}/ticker/price`);
+    return response.json();
+  },
+
+  async get24hrTickerPrice() {
+    const response = await fetch(`${BINANCE_API_URL}/ticker/24hr`);
+    return response.json();
+  }
+};

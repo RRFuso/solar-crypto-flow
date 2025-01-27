@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from "@/hooks/use-toast";
-import { binanceClient } from '@/lib/binance';
+import { binanceApi } from '@/lib/binance';
 import { CryptoData } from '@/types/crypto';
 
 async function fetchBinanceData(): Promise<CryptoData[]> {
   try {
     // Buscar tickers de 24h
-    const { data: tickers } = await binanceClient.getTickerPrice();
-    const { data: dayStats } = await binanceClient.get24hrTickerPrice();
+    const tickers = await binanceApi.getTickerPrice();
+    const dayStats = await binanceApi.get24hrTickerPrice();
 
     // Filtrar apenas pares USDT
     const usdtPairs = dayStats.filter((pair: any) => 
