@@ -1,4 +1,8 @@
 export const calculateRSI = (prices: number[], period: number = 14): number[] => {
+  if (prices.length < period + 1) {
+    return [50]; // Return neutral RSI if not enough data
+  }
+
   const rsiValues: number[] = [];
   const gains: number[] = [];
   const losses: number[] = [];
@@ -10,7 +14,7 @@ export const calculateRSI = (prices: number[], period: number = 14): number[] =>
     losses.push(change < 0 ? -change : 0);
   }
 
-  // Calculate initial averages
+  // Calculate initial averages with safety check
   let avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
   let avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
 
@@ -28,9 +32,16 @@ export const calculateRSI = (prices: number[], period: number = 14): number[] =>
 };
 
 export const calculateEMA = (prices: number[], period: number): number[] => {
+  if (prices.length < period) {
+    return [prices[prices.length - 1] || 0]; // Return last price or 0 if empty
+  }
+
   const emaValues: number[] = [];
   const multiplier = 2 / (period + 1);
+  
+  // Calculate SMA for initial EMA with safety check
   let prevEMA = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  emaValues.push(prevEMA);
 
   for (let i = period; i < prices.length; i++) {
     const currentEMA = (prices[i] - prevEMA) * multiplier + prevEMA;
@@ -42,9 +53,19 @@ export const calculateEMA = (prices: number[], period: number): number[] => {
 };
 
 export const calculateBollingerBands = (prices: number[], period: number = 20, stdDev: number = 2) => {
-  const sma = prices.slice(-period).reduce((a, b) => a + b) / period;
+  if (prices.length < period) {
+    const lastPrice = prices[prices.length - 1] || 0;
+    return {
+      middle: lastPrice,
+      upper: lastPrice,
+      lower: lastPrice,
+      width: 0
+    };
+  }
+
+  const sma = prices.slice(-period).reduce((a, b) => a + b, 0) / period;
   const squaredDiffs = prices.slice(-period).map(price => Math.pow(price - sma, 2));
-  const variance = squaredDiffs.reduce((a, b) => a + b) / period;
+  const variance = squaredDiffs.reduce((a, b) => a + b, 0) / period;
   const standardDeviation = Math.sqrt(variance);
 
   return {
@@ -56,6 +77,10 @@ export const calculateBollingerBands = (prices: number[], period: number = 20, s
 };
 
 export const calculateADX = (high: number[], low: number[], close: number[], period: number = 14): number => {
+  if (high.length < period + 1 || low.length < period + 1 || close.length < period + 1) {
+    return 0; // Return 0 if not enough data
+  }
+
   const trueRanges: number[] = [];
   const plusDM: number[] = [];
   const minusDM: number[] = [];
@@ -84,25 +109,33 @@ export const calculateADX = (high: number[], low: number[], close: number[], per
     }
   }
 
-  // Calculate ADX
-  const smoothedTR = trueRanges.slice(0, period).reduce((a, b) => a + b) / period;
-  const smoothedPlusDM = plusDM.slice(0, period).reduce((a, b) => a + b) / period;
-  const smoothedMinusDM = minusDM.slice(0, period).reduce((a, b) => a + b) / period;
+  // Calculate ADX with safety checks
+  const smoothedTR = trueRanges.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  const smoothedPlusDM = plusDM.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  const smoothedMinusDM = minusDM.slice(0, period).reduce((a, b) => a + b, 0) / period;
+
+  if (smoothedTR === 0) return 0; // Avoid division by zero
 
   const plusDI = (smoothedPlusDM / smoothedTR) * 100;
   const minusDI = (smoothedMinusDM / smoothedTR) * 100;
+
+  if (plusDI + minusDI === 0) return 0; // Avoid division by zero
 
   const dx = Math.abs((plusDI - minusDI) / (plusDI + minusDI)) * 100;
   return dx;
 };
 
 export const checkVolumeSpike = (volumes: number[]): boolean => {
+  if (volumes.length < 20) return false;
+  
   const avgVolume = volumes.slice(0, 20).reduce((a, b) => a + b, 0) / 20;
   const currentVolume = volumes[volumes.length - 1];
   return currentVolume > avgVolume * 1.2 && currentVolume < avgVolume * 2;
 };
 
 export const checkGoldenCross = (prices: number[], shortPeriod: number = 9, longPeriod: number = 21): boolean => {
+  if (prices.length < longPeriod) return false;
+  
   const shortEMA = calculateEMA(prices, shortPeriod);
   const longEMA = calculateEMA(prices, longPeriod);
   return shortEMA[shortEMA.length - 1] > longEMA[longEMA.length - 1];
