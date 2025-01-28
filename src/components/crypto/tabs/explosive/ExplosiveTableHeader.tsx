@@ -9,6 +9,7 @@ const ExplosiveTableHeader = () => {
         <TableHead>Performance</TableHead>
         <TableHead>Volume 24h</TableHead>
         <TableHead>RSI 4h</TableHead>
+        <TableHead>Score</TableHead>
       </TableRow>
     </TableHeader>
   );

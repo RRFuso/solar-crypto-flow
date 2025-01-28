@@ -4,7 +4,7 @@ import { TrendingUp } from 'lucide-react';
 import { CryptoData } from '@/types/crypto';
 
 interface ExplosiveTableRowProps {
-  crypto: CryptoData;
+  crypto: CryptoData & { score: number };
   isSelected: boolean;
   onSelect: (crypto: CryptoData) => void;
 }
@@ -29,6 +29,9 @@ const ExplosiveTableRow = ({ crypto, isSelected, onSelect }: ExplosiveTableRowPr
       </TableCell>
       <TableCell>
         {crypto.rsi4h ? crypto.rsi4h.toFixed(2) : 'N/A'}
+      </TableCell>
+      <TableCell className="text-purple-500 font-semibold">
+        {crypto.score}
       </TableCell>
     </TableRow>
   );
