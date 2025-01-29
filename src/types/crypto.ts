@@ -11,4 +11,12 @@ export interface CryptoData {
   volume?: string;
   high24h?: string;
   low24h?: string;
+  macd?: {
+    value: number;
+    signal: number;
+    histogram: number;
+  };
+  obv?: number;
+  score?: number;
+  isExplosive?: boolean;
 }

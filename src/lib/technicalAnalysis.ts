@@ -33,13 +33,12 @@ export const calculateRSI = (prices: number[], period: number = 14): number[] =>
 
 export const calculateEMA = (prices: number[], period: number): number[] => {
   if (prices.length < period) {
-    return [prices[prices.length - 1] || 0]; // Return last price or 0 if empty
+    return [prices[prices.length - 1] || 0];
   }
 
   const emaValues: number[] = [];
   const multiplier = 2 / (period + 1);
   
-  // Calculate SMA for initial EMA with safety check
   let prevEMA = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
   emaValues.push(prevEMA);
 
@@ -50,6 +49,53 @@ export const calculateEMA = (prices: number[], period: number): number[] => {
   }
 
   return emaValues;
+};
+
+export const calculateMACD = (prices: number[]): { macd: number[], signal: number[], histogram: number[] } => {
+  if (prices.length < 26) {
+    return { macd: [0], signal: [0], histogram: [0] };
+  }
+
+  const ema12 = calculateEMA(prices, 12);
+  const ema26 = calculateEMA(prices, 26);
+  
+  const macdLine = ema12.map((value, index) => value - ema26[index]);
+  const signalLine = calculateEMA(macdLine, 9);
+  const histogram = macdLine.map((value, index) => value - signalLine[index]);
+
+  return {
+    macd: macdLine,
+    signal: signalLine,
+    histogram
+  };
+};
+
+export const calculateOBV = (prices: number[], volumes: number[]): number[] => {
+  if (prices.length < 2 || volumes.length < 2) {
+    return [0];
+  }
+
+  const obv: number[] = [0];
+  
+  for (let i = 1; i < prices.length; i++) {
+    const currentOBV = obv[i - 1] + (
+      prices[i] > prices[i - 1] ? volumes[i] :
+      prices[i] < prices[i - 1] ? -volumes[i] : 0
+    );
+    obv.push(currentOBV);
+  }
+
+  return obv;
+};
+
+export const calculateFibonacciLevels = (high: number, low: number): { level: number, price: number }[] => {
+  const levels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+  const range = high - low;
+  
+  return levels.map(level => ({
+    level,
+    price: high - (range * level)
+  }));
 };
 
 export const calculateBollingerBands = (prices: number[], period: number = 20, stdDev: number = 2) => {

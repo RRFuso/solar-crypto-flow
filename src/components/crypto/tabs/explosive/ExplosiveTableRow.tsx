@@ -1,7 +1,8 @@
 import React from 'react';
 import { TableCell, TableRow } from "@/components/ui/table";
-import { TrendingUp } from 'lucide-react';
+import { Rocket, TrendingUp } from 'lucide-react';
 import { CryptoData } from '@/types/crypto';
+import { cn } from '@/lib/utils';
 
 interface ExplosiveTableRowProps {
   crypto: CryptoData & { score: number };
@@ -10,13 +11,20 @@ interface ExplosiveTableRowProps {
 }
 
 const ExplosiveTableRow = ({ crypto, isSelected, onSelect }: ExplosiveTableRowProps) => {
+  const isReadyForEntry = crypto.score >= 90;
+
   return (
     <TableRow 
-      className={`cursor-pointer ${isSelected ? 'bg-purple-500/20' : ''}`}
+      className={cn(
+        "cursor-pointer",
+        isSelected ? "bg-purple-500/20" : "",
+        isReadyForEntry ? "bg-green-500/10" : ""
+      )}
       onClick={() => onSelect(crypto)}
     >
       <TableCell className="font-medium">
         <div className="flex items-center gap-2">
+          {isReadyForEntry && <Rocket className="w-4 h-4 text-green-500" />}
           {crypto.performance > 0 && <TrendingUp className="w-4 h-4 text-green-500" />}
           {crypto.id}/USDT
         </div>
