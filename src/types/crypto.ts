@@ -19,4 +19,5 @@ export interface CryptoData {
   obv?: number;
   score?: number;
   isExplosive?: boolean;
+  criteriaHit?: string[];
 }
