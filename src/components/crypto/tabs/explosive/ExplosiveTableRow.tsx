@@ -1,17 +1,21 @@
 import React from 'react';
 import { TableCell, TableRow } from "@/components/ui/table";
-import { Rocket, TrendingUp } from 'lucide-react';
+import { Rocket, TrendingUp, Check } from 'lucide-react';
 import { CryptoData } from '@/types/crypto';
 import { cn } from '@/lib/utils';
+import { Badge } from "@/components/ui/badge";
 
 interface ExplosiveTableRowProps {
-  crypto: CryptoData & { score: number };
+  crypto: CryptoData & { 
+    score: number;
+    criteriaHit: string[];
+  };
   isSelected: boolean;
   onSelect: (crypto: CryptoData) => void;
 }
 
 const ExplosiveTableRow = ({ crypto, isSelected, onSelect }: ExplosiveTableRowProps) => {
-  const isReadyForEntry = crypto.score >= 90;
+  const isReadyForEntry = crypto.score >= 10;
 
   return (
     <TableRow 
@@ -37,6 +41,20 @@ const ExplosiveTableRow = ({ crypto, isSelected, onSelect }: ExplosiveTableRowPr
       </TableCell>
       <TableCell>
         {crypto.rsi4h ? crypto.rsi4h.toFixed(2) : 'N/A'}
+      </TableCell>
+      <TableCell>
+        <div className="flex flex-wrap gap-1">
+          {crypto.criteriaHit.map((criteria, index) => (
+            <Badge 
+              key={index}
+              variant="outline" 
+              className="bg-purple-500/10 text-purple-300 text-xs"
+            >
+              <Check className="w-3 h-3 mr-1" />
+              {criteria}
+            </Badge>
+          ))}
+        </div>
       </TableCell>
       <TableCell className="text-purple-500 font-semibold">
         {crypto.score}

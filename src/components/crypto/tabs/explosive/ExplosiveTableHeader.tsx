@@ -6,9 +6,10 @@ const ExplosiveTableHeader = () => {
     <TableHeader>
       <TableRow>
         <TableHead>Par</TableHead>
-        <TableHead>Performance</TableHead>
-        <TableHead>Volume 24h</TableHead>
+        <TableHead>Variação</TableHead>
+        <TableHead>Volume</TableHead>
         <TableHead>RSI 4h</TableHead>
+        <TableHead>Critérios</TableHead>
         <TableHead>Score</TableHead>
       </TableRow>
     </TableHeader>
