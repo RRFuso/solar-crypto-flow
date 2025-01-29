@@ -5,7 +5,6 @@ import {
   calculateADX,
   calculateMACD,
   calculateEMA,
-  checkVolumeSpike,
   calculateFibonacciLevels
 } from '@/lib/technicalAnalysis';
 
