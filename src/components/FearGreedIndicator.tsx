@@ -25,9 +25,9 @@ const getColors = (value: number): string[] => {
 };
 
 const getIcon = (value: number) => {
-  if (value <= 40) return <Skull className="w-4 h-4 text-red-500" />;
-  if (value <= 60) return <Scale className="w-4 h-4 text-yellow-500" />;
-  return <PartyPopper className="w-4 h-4 text-green-500" />;
+  if (value <= 40) return <Skull className="w-6 h-6 text-red-500" />;
+  if (value <= 60) return <Scale className="w-6 h-6 text-yellow-500" />;
+  return <PartyPopper className="w-6 h-6 text-green-500" />;
 };
 
 const getMessage = (value: number): string => {
@@ -71,7 +71,7 @@ const FearGreedIndicator = () => {
         const response = await fetch('https://api.coingecko.com/api/v3/global');
         const data = await response.json();
         return {
-          value: parseFloat(data.data.bitcoin_dominance).toFixed(2),
+          value: data.data.bitcoin_dominance ? parseFloat(data.data.bitcoin_dominance).toFixed(2) : '0.00',
         };
       } catch (error) {
         console.error('Error fetching BTC dominance:', error);
@@ -91,9 +91,9 @@ const FearGreedIndicator = () => {
         const response = await fetch('https://api.twelvedata.com/price?symbol=DXY,SPX,IXIC&apikey=demo');
         const data = await response.json();
         return {
-          dxy: parseFloat(data.DXY?.price || '0').toFixed(2),
-          spx: parseFloat(data.SPX?.price || '0').toFixed(2),
-          nasdaq: parseFloat(data.IXIC?.price || '0').toFixed(2),
+          dxy: data.DXY?.price ? parseFloat(data.DXY.price).toFixed(2) : '0.00',
+          spx: data.SPX?.price ? parseFloat(data.SPX.price).toFixed(2) : '0.00',
+          nasdaq: data.IXIC?.price ? parseFloat(data.IXIC.price).toFixed(2) : '0.00',
         };
       } catch (error) {
         console.error('Error fetching economic indicators:', error);
@@ -108,7 +108,7 @@ const FearGreedIndicator = () => {
 
   if (fearGreedLoading || btcDominanceLoading || economicLoading) {
     return (
-      <div className="flex justify-center items-center h-32">
+      <div className="flex justify-center items-center h-40">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
       </div>
     );
@@ -121,17 +121,17 @@ const FearGreedIndicator = () => {
   const messageColor = getMessageColor(value);
 
   return (
-    <div className="flex flex-col gap-4 w-full">
-      <div className="flex gap-4">
-        <div className="w-96 space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+    <div className="flex flex-col gap-6 w-full">
+      <div className="flex gap-6">
+        <div className="w-96 space-y-3 p-4 bg-gray-900/50 rounded-lg border border-gray-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium">Medo & Ganância</span>
+              <span className="text-sm font-medium">Medo & Ganância</span>
               {getIcon(value)}
             </div>
-            <span className="text-xs font-medium">{value}</span>
+            <span className="text-sm font-medium">{value}</span>
           </div>
-          <div className="h-20">
+          <div className="h-28">
             <GaugeChart
               id="fear-greed-gauge"
               nrOfLevels={5}
@@ -141,72 +141,73 @@ const FearGreedIndicator = () => {
               formatTextValue={() => `${value}`}
               needleColor="#ffffff"
               needleBaseColor="#ffffff"
+              animate={false}
             />
           </div>
-          <div className="text-center text-xs font-medium text-gray-400">
+          <div className="text-center text-sm font-medium text-gray-400">
             {classification}
           </div>
           {message && (
-            <div className={`text-center text-xs font-medium mt-2 ${messageColor}`}>
+            <div className={`text-center text-sm font-medium mt-2 ${messageColor}`}>
               {message}
             </div>
           )}
         </div>
 
-        <div className="w-96 space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+        <div className="w-96 space-y-3 p-4 bg-gray-900/50 rounded-lg border border-gray-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Bitcoin className="w-4 h-4 text-orange-500" />
-              <span className="text-xs font-medium">Dominância do Bitcoin</span>
+              <Bitcoin className="w-6 h-6 text-orange-500" />
+              <span className="text-sm font-medium">Dominância do Bitcoin</span>
             </div>
-            <span className="text-xs font-medium">{btcDominanceData?.value ?? "0"}%</span>
+            <span className="text-sm font-medium">{btcDominanceData?.value ?? "0.00"}%</span>
           </div>
-          <div className="h-20 flex items-center justify-center">
-            <div className="relative w-full h-4 bg-gray-700 rounded-full overflow-hidden">
+          <div className="h-28 flex items-center justify-center">
+            <div className="relative w-full h-6 bg-gray-700 rounded-full overflow-hidden">
               <div 
                 className="absolute h-full bg-orange-500 rounded-full transition-all duration-500"
                 style={{ width: `${btcDominanceData?.value ?? 0}%` }}
               />
             </div>
           </div>
-          <div className="text-center text-xs font-medium text-gray-400">
+          <div className="text-center text-sm font-medium text-gray-400">
             {parseFloat(btcDominanceData?.value ?? "0") > 50 ? "Alta Dominância" : "Baixa Dominância"}
           </div>
         </div>
 
-        <div className="w-96 space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+        <div className="w-96 space-y-3 p-4 bg-gray-900/50 rounded-lg border border-gray-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-blue-500" />
-              <span className="text-xs font-medium">Indicadores Econômicos</span>
+              <TrendingUp className="w-6 h-6 text-blue-500" />
+              <span className="text-sm font-medium">Indicadores Econômicos</span>
             </div>
           </div>
-          <div className="space-y-3 pt-2">
+          <div className="space-y-4 pt-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <DollarSign className="w-3 h-3 text-green-500" />
-                <span className="text-xs">DXY</span>
+                <DollarSign className="w-4 h-4 text-green-500" />
+                <span className="text-sm">DXY</span>
               </div>
-              <span className="text-xs font-medium">{economicData?.dxy ?? "0"}</span>
+              <span className="text-sm font-medium">{economicData?.dxy ?? "0.00"}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <LineChart className="w-3 h-3 text-blue-500" />
-                <span className="text-xs">S&P 500</span>
+                <LineChart className="w-4 h-4 text-blue-500" />
+                <span className="text-sm">S&P 500</span>
               </div>
-              <span className="text-xs font-medium">{economicData?.spx ?? "0"}</span>
+              <span className="text-sm font-medium">{economicData?.spx ?? "0.00"}</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <LineChart className="w-3 h-3 text-purple-500" />
-                <span className="text-xs">NASDAQ</span>
+                <LineChart className="w-4 h-4 text-purple-500" />
+                <span className="text-sm">NASDAQ</span>
               </div>
-              <span className="text-xs font-medium">{economicData?.nasdaq ?? "0"}</span>
+              <span className="text-sm font-medium">{economicData?.nasdaq ?? "0.00"}</span>
             </div>
           </div>
         </div>
       </div>
-      <div className="text-center text-[10px] text-gray-500">
+      <div className="text-center text-xs text-gray-500">
         Este painel é uma ferramenta para auxiliar sua análise. Todas as decisões de investimento são de sua responsabilidade.
       </div>
     </div>
