@@ -1,4 +1,5 @@
 import { BinanceTicker, BinanceKline } from '@/types/binance';
+import { filterValidTickers } from './tickerValidation';
 
 const BINANCE_API_URL = 'https://api.binance.com/api/v3';
 
@@ -21,7 +22,7 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): P
       return response;
     } catch (error) {
       if (i === retries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
     }
   }
   throw new Error('Max retries reached');
@@ -35,12 +36,13 @@ export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => 
     });
     
     const data: BinanceTicker[] = await response.json();
-    console.log('Successfully fetched tickers');
-    
-    return data.reduce((acc: Record<string, BinanceTicker>, ticker: BinanceTicker) => {
+    const allTickers = data.reduce((acc: Record<string, BinanceTicker>, ticker: BinanceTicker) => {
       acc[ticker.symbol] = ticker;
       return acc;
     }, {});
+
+    // Filter out invalid tickers
+    return filterValidTickers(allTickers);
   } catch (error) {
     console.error('Error fetching tickers:', error);
     throw error;
