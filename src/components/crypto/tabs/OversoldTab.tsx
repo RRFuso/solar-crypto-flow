@@ -12,9 +12,12 @@ interface OversoldTabProps {
 }
 
 const OversoldTab = ({ cryptos, selectedCrypto, onSelectCrypto }: OversoldTabProps) => {
-  // Filtra ativos em sobrevenda (RSI 4h < 30)
+  // Filter assets in oversold condition (RSI 4h < 30) and sort by RSI value
   const oversold = cryptos
-    .filter(c => (c.rsi4h || 0) < 30)
+    .filter(c => {
+      const rsi = c.rsi4h || 0;
+      return rsi > 0 && rsi < 30; // Ensure we have valid RSI values
+    })
     .sort((a, b) => (a.rsi4h || 0) - (b.rsi4h || 0));
 
   return (
@@ -22,19 +25,25 @@ const OversoldTab = ({ cryptos, selectedCrypto, onSelectCrypto }: OversoldTabPro
       <div className="h-full flex flex-col">
         <ColumnHeader 
           title="Sobrevenda 4h" 
-          subtitle="RSI 4h < 30" 
+          subtitle={`${oversold.length} ativos em sobrevenda (RSI 4h < 30)`}
         />
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-4">
-            {oversold.map((crypto) => (
-              <CryptoCard
-                key={crypto.id}
-                crypto={crypto}
-                onClick={() => onSelectCrypto(crypto)}
-                isSelected={selectedCrypto.id === crypto.id}
-                showRsi4h={true}
-              />
-            ))}
+            {oversold.length > 0 ? (
+              oversold.map((crypto) => (
+                <CryptoCard
+                  key={crypto.id}
+                  crypto={crypto}
+                  onClick={() => onSelectCrypto(crypto)}
+                  isSelected={selectedCrypto.id === crypto.id}
+                  showRsi4h={true}
+                />
+              ))
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                Nenhum ativo em sobrevenda no momento
+              </div>
+            )}
           </div>
         </ScrollArea>
       </div>

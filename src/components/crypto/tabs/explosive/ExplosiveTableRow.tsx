@@ -16,11 +16,12 @@ interface ExplosiveTableRowProps {
 
 const ExplosiveTableRow = ({ crypto, isSelected, onSelect }: ExplosiveTableRowProps) => {
   const isReadyForEntry = crypto.score >= 10;
+  const volume = crypto.volume ? parseFloat(crypto.volume) : 0;
 
   return (
     <TableRow 
       className={cn(
-        "cursor-pointer",
+        "cursor-pointer hover:bg-purple-500/10 transition-colors",
         isSelected ? "bg-purple-500/20" : "",
         isReadyForEntry ? "bg-green-500/10" : ""
       )}
@@ -37,10 +38,15 @@ const ExplosiveTableRow = ({ crypto, isSelected, onSelect }: ExplosiveTableRowPr
         {crypto.performance.toFixed(2)}%
       </TableCell>
       <TableCell>
-        {crypto.volume ? parseInt(crypto.volume).toLocaleString() : 'N/A'}
+        {volume > 1000000 
+          ? `${(volume / 1000000).toFixed(1)}M`
+          : volume > 1000 
+            ? `${(volume / 1000).toFixed(1)}K`
+            : volume.toFixed(0)
+        }
       </TableCell>
       <TableCell>
-        {crypto.rsi4h ? crypto.rsi4h.toFixed(2) : 'N/A'}
+        {crypto.rsi4h ? crypto.rsi4h.toFixed(1) : 'N/A'}
       </TableCell>
       <TableCell>
         <div className="flex flex-wrap gap-1">
@@ -56,7 +62,10 @@ const ExplosiveTableRow = ({ crypto, isSelected, onSelect }: ExplosiveTableRowPr
           ))}
         </div>
       </TableCell>
-      <TableCell className="text-purple-500 font-semibold">
+      <TableCell className={cn(
+        "font-semibold",
+        crypto.score >= 12 ? "text-green-500" : "text-purple-500"
+      )}>
         {crypto.score}
       </TableCell>
     </TableRow>
