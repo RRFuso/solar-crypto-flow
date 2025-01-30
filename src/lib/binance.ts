@@ -1,5 +1,4 @@
 import { BinanceTicker, BinanceKline } from '@/types/binance';
-import { filterValidTickers } from './tickerValidation';
 
 const BINANCE_API_URL = 'https://api.binance.com/api/v3';
 
@@ -38,13 +37,10 @@ export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => 
     const data: BinanceTicker[] = await response.json();
     console.log('Successfully fetched tickers');
     
-    const allTickers = data.reduce((acc: Record<string, BinanceTicker>, ticker: BinanceTicker) => {
+    return data.reduce((acc: Record<string, BinanceTicker>, ticker: BinanceTicker) => {
       acc[ticker.symbol] = ticker;
       return acc;
     }, {});
-
-    // Filter only valid tickers that work with TradingView
-    return filterValidTickers(allTickers);
   } catch (error) {
     console.error('Error fetching tickers:', error);
     throw error;

@@ -172,13 +172,13 @@ export const calculateADX = (high: number[], low: number[], close: number[], per
 };
 
 export const EXPLOSIVE_CRITERIA = {
-  volumeExplosivo: 3,
-  macdCruzamentoAlta: 2,
-  rsiZonaCompra: 2,
-  adxForcaTendencia: 1,
-  ema9CruzandoEma21: 3,
-  rompimentoResistencia: 2,
-  bollingerAbertura: 1
+  volumeExplosive: 3,
+  macdCrossoverHigh: 2,
+  rsiBuyZone: 2,
+  adxStrength: 1,
+  emaCrossover: 3,
+  bollingerBreakout: 1,
+  fibonacciSupport: 2
 } as const;
 
 export type ExplosiveCriteria = keyof typeof EXPLOSIVE_CRITERIA;
@@ -207,43 +207,61 @@ export const calculateExplosiveScore = (
   const currentVolume = parseFloat(crypto.volume || '0');
   const volumeEMA = technicalData.volumeEMA[technicalData.volumeEMA.length - 1];
   if (currentVolume > volumeEMA * 1.5) {
-    score += EXPLOSIVE_CRITERIA.volumeExplosivo;
-    criteriaHit.push('volumeExplosivo');
+    score += EXPLOSIVE_CRITERIA.volumeExplosive;
+    criteriaHit.push('volumeExplosive');
   }
 
   // MACD Analysis
   const lastMACD = technicalData.macd.macd[technicalData.macd.macd.length - 1];
   const lastSignal = technicalData.macd.signal[technicalData.macd.signal.length - 1];
   if (lastMACD > lastSignal) {
-    score += EXPLOSIVE_CRITERIA.macdCruzamentoAlta;
-    criteriaHit.push('macdCruzamentoAlta');
+    score += EXPLOSIVE_CRITERIA.macdCrossoverHigh;
+    criteriaHit.push('macdCrossoverHigh');
   }
 
   // RSI Analysis
   if (crypto.rsi4h && crypto.rsi4h >= 30 && crypto.rsi4h <= 50) {
-    score += EXPLOSIVE_CRITERIA.rsiZonaCompra;
-    criteriaHit.push('rsiZonaCompra');
+    score += EXPLOSIVE_CRITERIA.rsiBuyZone;
+    criteriaHit.push('rsiBuyZone');
   }
 
   // ADX Analysis
   if (technicalData.adx > 20) {
-    score += EXPLOSIVE_CRITERIA.adxForcaTendencia;
-    criteriaHit.push('adxForcaTendencia');
+    score += EXPLOSIVE_CRITERIA.adxStrength;
+    criteriaHit.push('adxStrength');
   }
 
   // EMA Crossover
   const lastEMA9 = technicalData.ema9[technicalData.ema9.length - 1];
   const lastEMA21 = technicalData.ema21[technicalData.ema21.length - 1];
   if (lastEMA9 > lastEMA21) {
-    score += EXPLOSIVE_CRITERIA.ema9CruzandoEma21;
-    criteriaHit.push('ema9CruzandoEma21');
+    score += EXPLOSIVE_CRITERIA.emaCrossover;
+    criteriaHit.push('emaCrossover');
   }
 
-  // Bollinger Breakout
+  // Bollinger Bands Breakout
   const currentPrice = parseFloat(crypto.price || '0');
   if (currentPrice > technicalData.bollingerBands.upper) {
-    score += EXPLOSIVE_CRITERIA.bollingerAbertura;
-    criteriaHit.push('bollingerAbertura');
+    score += EXPLOSIVE_CRITERIA.bollingerBreakout;
+    criteriaHit.push('bollingerBreakout');
+  }
+
+  // Fibonacci Support
+  if (crypto.high24h && crypto.low24h && crypto.price) {
+    const fibs = calculateFibonacciLevels(
+      parseFloat(crypto.high24h),
+      parseFloat(crypto.low24h)
+    );
+    const price = parseFloat(crypto.price);
+    const isNearFib = fibs.some(fib => 
+      Math.abs(price - fib.price) / price < 0.01 && 
+      (fib.level === 0.382 || fib.level === 0.618)
+    );
+    
+    if (isNearFib) {
+      score += EXPLOSIVE_CRITERIA.fibonacciSupport;
+      criteriaHit.push('fibonacciSupport');
+    }
   }
 
   return { score, criteriaHit };
