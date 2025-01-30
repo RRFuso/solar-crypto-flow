@@ -1,5 +1,4 @@
 import { BinanceTicker, BinanceKline } from '@/types/binance';
-import { filterValidTickers } from './tickerValidation';
 
 const BINANCE_API_URL = 'https://api.binance.com/api/v3';
 
@@ -36,21 +35,12 @@ export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => 
     });
     
     const data: BinanceTicker[] = await response.json();
-    const allTickers = data.reduce((acc: Record<string, BinanceTicker>, ticker: BinanceTicker) => {
+    console.log('Successfully fetched tickers');
+    
+    return data.reduce((acc: Record<string, BinanceTicker>, ticker: BinanceTicker) => {
       acc[ticker.symbol] = ticker;
       return acc;
     }, {});
-
-    // Filter out invalid tickers
-    const { validTickers } = filterValidTickers(allTickers);
-    const validTickersMap: Record<string, BinanceTicker> = {};
-    
-    validTickers.forEach(symbol => {
-      validTickersMap[symbol] = allTickers[symbol];
-    });
-    
-    console.log('Successfully fetched and validated tickers');
-    return validTickersMap;
   } catch (error) {
     console.error('Error fetching tickers:', error);
     throw error;

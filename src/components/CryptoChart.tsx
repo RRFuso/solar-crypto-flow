@@ -7,13 +7,13 @@ interface CryptoChartProps {
     name: string;
   };
   showBtcDominance?: boolean;
-  timeframe?: "D" | "W" | "240";
+  timeframe?: "D" | "W" | "240"; // Added timeframe prop
 }
 
 const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: CryptoChartProps) => {
   const symbol = showBtcDominance 
     ? 'BTC.D'
-    : 'USDT'
+    : 'USDT' // Now always using USDT pair except for BTC.D
   
   return (
     <div className="h-full bg-gray-900 rounded-lg overflow-hidden">

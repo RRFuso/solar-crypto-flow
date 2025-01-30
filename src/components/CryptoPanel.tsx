@@ -52,16 +52,16 @@ const CryptoPanel = () => {
   };
 
   return (
-    <div className="flex flex-col gap-8 min-h-screen">
-      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-16rem)]">
-        <div className="w-full lg:w-1/2 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
+    <div className="flex flex-col gap-8">
+      <div className="flex gap-6 h-[calc(100vh-16rem)]">
+        <div className="w-1/2 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
           <Tabs 
             defaultValue="outperforming" 
             className="w-full h-full flex flex-col"
             onValueChange={setActiveTab}
           >
             <TabsList />
-            <div className="flex-1 min-h-0 overflow-auto">
+            <div className="flex-1 min-h-0">
               <OutperformingTab 
                 cryptos={cryptos} 
                 selectedCrypto={selectedCrypto} 
@@ -96,7 +96,7 @@ const CryptoPanel = () => {
           </Tabs>
         </div>
 
-        <div className="w-full lg:w-1/2 relative">
+        <div className="w-1/2 relative">
           <CryptoChart 
             crypto={selectedCrypto} 
             timeframe={getTimeframe()}
@@ -120,7 +120,7 @@ const CryptoPanel = () => {
           </div>
         </div>
       </div>
-      <div className="flex justify-center w-full">
+      <div className="flex justify-center">
         <FearGreedIndicator />
       </div>
     </div>
