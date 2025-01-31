@@ -17,11 +17,10 @@ const getClassification = (value: number): string => {
 };
 
 const getColors = (value: number): string[] => {
-  if (value <= 20) return ["#ff0000", "#ff3333"];
-  if (value <= 40) return ["#ff6600", "#ff8533"];
-  if (value <= 60) return ["#ffcc00", "#ffd633"];
-  if (value <= 80) return ["#00cc00", "#00e600"];
-  return ["#009900", "#00b300"];
+  if (value <= 10) return ["#8B0000", "#a31515"]; // Blood Red for extreme fear
+  if (value <= 30) return ["#ea384c", "#ff4d4d"]; // Red for fear
+  if (value <= 69) return ["#22c55e", "#4ade80"]; // Green for normal greed
+  return ["#F97316", "#fb923c"]; // Orange for extreme greed
 };
 
 const getIcon = (value: number) => {
@@ -123,15 +122,15 @@ const FearGreedIndicator = () => {
   return (
     <div className="flex flex-col gap-4 w-full">
       <div className="flex gap-4">
-        <div className="w-96 space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+        <div className="w-96 space-y-2 p-4 bg-gray-900/50 rounded-lg border border-gray-800 transition-all duration-300">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium">Medo & Ganância</span>
+              <span className="text-sm font-medium">Medo & Ganância</span>
               {getIcon(value)}
             </div>
-            <span className="text-xs font-medium">{value}</span>
+            <span className="text-sm font-medium">{value}</span>
           </div>
-          <div className="h-20">
+          <div className="h-24">
             <GaugeChart
               id="fear-greed-gauge"
               nrOfLevels={5}
@@ -141,13 +140,16 @@ const FearGreedIndicator = () => {
               formatTextValue={() => `${value}`}
               needleColor="#ffffff"
               needleBaseColor="#ffffff"
+              animate={true}
+              animDelay={0}
+              animateDuration={1000}
             />
           </div>
-          <div className="text-center text-xs font-medium text-gray-400">
+          <div className="text-center text-sm font-medium text-gray-400">
             {classification}
           </div>
           {message && (
-            <div className={`text-center text-xs font-medium mt-2 ${messageColor}`}>
+            <div className={`text-center text-sm font-medium mt-2 ${messageColor}`}>
               {message}
             </div>
           )}
