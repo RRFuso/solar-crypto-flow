@@ -19,8 +19,15 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
   return useQuery({
     queryKey: ['cryptos', timeframe, rsiOverbought, rsiOversold],
     queryFn: async () => {
+      console.log('Fetching crypto data...');
       const tickers = await fetchTickers();
       const btcTicker = tickers['BTCUSDT'];
+      
+      if (!btcTicker) {
+        console.error('BTC ticker not found');
+        return [];
+      }
+
       const btcChange = parseFloat(btcTicker.priceChangePercent);
 
       const usdtPairs = await Promise.all(
@@ -28,7 +35,14 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
           .filter(([symbol]) => symbol.endsWith('USDT'))
           .map(async ([symbol, ticker]) => {
             try {
+              console.log(`Fetching klines for ${symbol}...`);
               const klines = await fetchKlines(symbol, timeframe);
+              
+              if (!klines || klines.length === 0) {
+                console.log(`No klines data for ${symbol}`);
+                return null;
+              }
+
               const prices = klines.map(k => parseFloat(k.close));
               
               const rsiValues = calculateRSI(prices);
@@ -39,6 +53,11 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
               const currentPrice = parseFloat(ticker.lastPrice);
               const priceChange = parseFloat(ticker.priceChangePercent);
               
+              if (isNaN(currentPrice) || isNaN(priceChange)) {
+                console.log(`Invalid price data for ${symbol}`);
+                return null;
+              }
+
               return {
                 id: symbol.replace('USDT', ''),
                 name: symbol.replace('USDT', ''),
@@ -60,8 +79,17 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
           })
       );
 
-      return usdtPairs.filter((pair): pair is CryptoData => pair !== null);
+      const validPairs = usdtPairs.filter((pair): pair is CryptoData => 
+        pair !== null && 
+        !isNaN(pair.rsi4h || 0) && 
+        !isNaN(parseFloat(pair.price || '0'))
+      );
+
+      console.log(`Found ${validPairs.length} valid pairs out of ${usdtPairs.length} total`);
+      return validPairs;
     },
-    refetchInterval: 15000
+    refetchInterval: 15000,
+    retry: 3,
+    staleTime: 10000
   });
 };

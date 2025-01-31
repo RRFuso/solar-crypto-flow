@@ -16,9 +16,12 @@ const OversoldTab = ({ cryptos, selectedCrypto, onSelectCrypto }: OversoldTabPro
   const oversold = cryptos
     .filter(c => {
       const rsi = c.rsi4h || 0;
-      return rsi > 0 && rsi < 30; // Ensure we have valid RSI values
+      // Ensure we have valid RSI values and price data
+      return rsi > 0 && rsi < 30 && c.price && parseFloat(c.price) > 0;
     })
     .sort((a, b) => (a.rsi4h || 0) - (b.rsi4h || 0));
+
+  console.log('Oversold cryptos:', oversold.length);
 
   return (
     <TabsContent value="oversold" className="m-0 h-full">
