@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import GaugeChart from 'react-gauge-chart';
 import { Scale, Skull, PartyPopper, Bitcoin, TrendingUp, DollarSign, LineChart } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface FearGreedData {
   value: number;
@@ -42,6 +43,18 @@ const getMessageColor = (value: number): string => {
   return "text-gray-400";
 };
 
+const getDominanceColor = (value: number): string => {
+  if (value < 40) return "bg-red-500";
+  if (value < 50) return "bg-orange-500";
+  return "bg-green-500";
+};
+
+const getDominanceText = (value: number): string => {
+  if (value < 40) return "Baixa Dominância";
+  if (value < 50) return "Dominância Equilibrada";
+  return "Alta Dominância";
+};
+
 const FearGreedIndicator = () => {
   const { data: fearGreedData, isLoading: fearGreedLoading } = useQuery({
     queryKey: ['fear-greed'],
@@ -55,6 +68,7 @@ const FearGreedIndicator = () => {
         };
       } catch (error) {
         console.error('Error fetching Fear & Greed index:', error);
+        toast.error('Erro ao carregar índice Medo & Ganância');
         throw error;
       }
     },
@@ -70,12 +84,24 @@ const FearGreedIndicator = () => {
       try {
         const response = await fetch('https://api.coingecko.com/api/v3/global');
         const data = await response.json();
+        const dominanceValue = parseFloat(data.data.bitcoin_dominance);
+        
+        console.log('BTC Dominance fetched:', dominanceValue);
+        
+        if (isNaN(dominanceValue)) {
+          throw new Error('Invalid BTC dominance value');
+        }
+        
         return {
-          value: parseFloat(data.data.bitcoin_dominance).toFixed(2),
+          value: dominanceValue.toFixed(2),
         };
       } catch (error) {
         console.error('Error fetching BTC dominance:', error);
-        throw error;
+        toast.error('Erro ao carregar dominância do Bitcoin');
+        // Fallback value
+        return {
+          value: "45.00"
+        };
       }
     },
     refetchInterval: 5 * 60 * 1000,
@@ -119,6 +145,9 @@ const FearGreedIndicator = () => {
   const colors = getColors(value);
   const message = getMessage(value);
   const messageColor = getMessageColor(value);
+  const btcDominance = parseFloat(btcDominanceData?.value ?? "45.00");
+  const dominanceColor = getDominanceColor(btcDominance);
+  const dominanceText = getDominanceText(btcDominance);
 
   return (
     <div className="flex flex-col gap-4 w-full">
@@ -159,18 +188,18 @@ const FearGreedIndicator = () => {
               <Bitcoin className="w-4 h-4 text-orange-500" />
               <span className="text-xs font-medium">Dominância do Bitcoin</span>
             </div>
-            <span className="text-xs font-medium">{btcDominanceData?.value ?? "0"}%</span>
+            <span className="text-xs font-medium">{btcDominance}%</span>
           </div>
           <div className="h-20 flex items-center justify-center">
             <div className="relative w-full h-4 bg-gray-700 rounded-full overflow-hidden">
               <div 
-                className="absolute h-full bg-orange-500 rounded-full transition-all duration-500"
-                style={{ width: `${btcDominanceData?.value ?? 0}%` }}
+                className={`absolute h-full ${dominanceColor} rounded-full transition-all duration-500`}
+                style={{ width: `${btcDominance}%` }}
               />
             </div>
           </div>
           <div className="text-center text-xs font-medium text-gray-400">
-            {parseFloat(btcDominanceData?.value ?? "0") > 50 ? "Alta Dominância" : "Baixa Dominância"}
+            {dominanceText}
           </div>
         </div>
 
