@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import CryptoChart from './CryptoChart';
 import FearGreedIndicator from './FearGreedIndicator';
+import MarketDominance from './MarketDominance';
 import { Tabs } from "@/components/ui/tabs";
 import { Bitcoin } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -120,8 +121,9 @@ const CryptoPanel = () => {
           </div>
         </div>
       </div>
-      <div className="flex justify-center">
+      <div className="grid grid-cols-2 gap-6">
         <FearGreedIndicator />
+        <MarketDominance />
       </div>
     </div>
   );
