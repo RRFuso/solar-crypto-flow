@@ -3,6 +3,7 @@ export const calculateRSI = (prices: number[], period: number = 14): number[] =>
     return [50];
   }
 
+  const rsiValues: number[] = [];
   const gains: number[] = [];
   const losses: number[] = [];
 
@@ -14,8 +15,6 @@ export const calculateRSI = (prices: number[], period: number = 14): number[] =>
 
   let avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
   let avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
-
-  const rsiValues: number[] = [];
 
   for (let i = period; i <= prices.length; i++) {
     avgGain = ((avgGain * (period - 1)) + (gains[i - 1] || 0)) / period;

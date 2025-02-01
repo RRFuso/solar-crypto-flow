@@ -1,8 +1,4 @@
-export const calculateBollingerBands = (
-  prices: number[], 
-  period: number = 20, 
-  stdDev: number = 2
-) => {
+export const calculateBollingerBands = (prices: number[], period: number = 20, stdDev: number = 2) => {
   if (prices.length < period) {
     const lastPrice = prices[prices.length - 1] || 0;
     return {

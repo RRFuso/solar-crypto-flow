@@ -1,59 +1,22 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import GaugeChart from 'react-gauge-chart';
-import { Scale, Skull, PartyPopper, Bitcoin, TrendingUp, DollarSign, LineChart } from 'lucide-react';
 import { toast } from 'sonner';
+import FearGreedGauge from './fear-greed/FearGreedGauge';
+import BTCDominance from './fear-greed/BTCDominance';
+import EconomicIndicators from './fear-greed/EconomicIndicators';
+import { 
+  getClassification, 
+  getColors, 
+  getMessage, 
+  getMessageColor,
+  getDominanceColor,
+  getDominanceText
+} from './fear-greed/utils';
 
 interface FearGreedData {
   value: number;
   classification: string;
 }
-
-const getClassification = (value: number): string => {
-  if (value <= 20) return "Medo Extremo";
-  if (value <= 40) return "Medo";
-  if (value <= 60) return "Neutro";
-  if (value <= 80) return "Ganância";
-  return "Ganância Extrema";
-};
-
-const getColors = (value: number): string[] => {
-  if (value <= 20) return ["#ff0000", "#ff3333"];
-  if (value <= 40) return ["#ff6600", "#ff8533"];
-  if (value <= 60) return ["#ffcc00", "#ffd633"];
-  if (value <= 80) return ["#00cc00", "#00e600"];
-  return ["#009900", "#00b300"];
-};
-
-const getIcon = (value: number) => {
-  if (value <= 40) return <Skull className="w-4 h-4 text-red-500" />;
-  if (value <= 60) return <Scale className="w-4 h-4 text-yellow-500" />;
-  return <PartyPopper className="w-4 h-4 text-green-500" />;
-};
-
-const getMessage = (value: number): string => {
-  if (value <= 20) return "Considere uma compra ou DCA (Dollar Cost Averaging).";
-  if (value >= 80) return "Considere uma realização de ganhos!";
-  return "";
-};
-
-const getMessageColor = (value: number): string => {
-  if (value <= 20) return "text-red-500";
-  if (value >= 80) return "text-green-500";
-  return "text-gray-400";
-};
-
-const getDominanceColor = (value: number): string => {
-  if (value < 40) return "bg-red-500";
-  if (value < 50) return "bg-orange-500";
-  return "bg-green-500";
-};
-
-const getDominanceText = (value: number): string => {
-  if (value < 40) return "Baixa Dominância";
-  if (value < 50) return "Dominância Equilibrada";
-  return "Alta Dominância";
-};
 
 const FearGreedIndicator = () => {
   const { data: fearGreedData, isLoading: fearGreedLoading } = useQuery({
@@ -98,7 +61,6 @@ const FearGreedIndicator = () => {
       } catch (error) {
         console.error('Error fetching BTC dominance:', error);
         toast.error('Erro ao carregar dominância do Bitcoin');
-        // Fallback value
         return {
           value: "45.00"
         };
@@ -152,88 +114,23 @@ const FearGreedIndicator = () => {
   return (
     <div className="flex flex-col gap-4 w-full">
       <div className="flex gap-4">
-        <div className="w-96 space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium">Medo & Ganância</span>
-              {getIcon(value)}
-            </div>
-            <span className="text-xs font-medium">{value}</span>
-          </div>
-          <div className="h-20">
-            <GaugeChart
-              id="fear-greed-gauge"
-              nrOfLevels={5}
-              colors={colors}
-              percent={value / 100}
-              textColor="#ffffff"
-              formatTextValue={() => `${value}`}
-              needleColor="#ffffff"
-              needleBaseColor="#ffffff"
-            />
-          </div>
-          <div className="text-center text-xs font-medium text-gray-400">
-            {classification}
-          </div>
-          {message && (
-            <div className={`text-center text-xs font-medium mt-2 ${messageColor}`}>
-              {message}
-            </div>
-          )}
-        </div>
-
-        <div className="w-96 space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Bitcoin className="w-4 h-4 text-orange-500" />
-              <span className="text-xs font-medium">Dominância do Bitcoin</span>
-            </div>
-            <span className="text-xs font-medium">{btcDominance}%</span>
-          </div>
-          <div className="h-20 flex items-center justify-center">
-            <div className="relative w-full h-4 bg-gray-700 rounded-full overflow-hidden">
-              <div 
-                className={`absolute h-full ${dominanceColor} rounded-full transition-all duration-500`}
-                style={{ width: `${btcDominance}%` }}
-              />
-            </div>
-          </div>
-          <div className="text-center text-xs font-medium text-gray-400">
-            {dominanceText}
-          </div>
-        </div>
-
-        <div className="w-96 space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-blue-500" />
-              <span className="text-xs font-medium">Indicadores Econômicos</span>
-            </div>
-          </div>
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-3 h-3 text-green-500" />
-                <span className="text-xs">DXY</span>
-              </div>
-              <span className="text-xs font-medium">{economicData?.dxy ?? "0"}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <LineChart className="w-3 h-3 text-blue-500" />
-                <span className="text-xs">S&P 500</span>
-              </div>
-              <span className="text-xs font-medium">{economicData?.spx ?? "0"}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <LineChart className="w-3 h-3 text-purple-500" />
-                <span className="text-xs">NASDAQ</span>
-              </div>
-              <span className="text-xs font-medium">{economicData?.nasdaq ?? "0"}</span>
-            </div>
-          </div>
-        </div>
+        <FearGreedGauge
+          value={value}
+          classification={classification}
+          colors={colors}
+          message={message}
+          messageColor={messageColor}
+        />
+        <BTCDominance
+          dominance={btcDominance}
+          dominanceColor={dominanceColor}
+          dominanceText={dominanceText}
+        />
+        <EconomicIndicators
+          dxy={economicData?.dxy ?? "0"}
+          spx={economicData?.spx ?? "0"}
+          nasdaq={economicData?.nasdaq ?? "0"}
+        />
       </div>
       <div className="text-center text-[10px] text-gray-500">
         Este painel é uma ferramenta para auxiliar sua análise. Todas as decisões de investimento são de sua responsabilidade.

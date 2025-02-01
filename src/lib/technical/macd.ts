@@ -1,10 +1,6 @@
 import { calculateEMA } from './ema';
 
-export const calculateMACD = (prices: number[]): { 
-  macd: number[]; 
-  signal: number[]; 
-  histogram: number[]; 
-} => {
+export const calculateMACD = (prices: number[]): { macd: number[], signal: number[], histogram: number[] } => {
   if (prices.length < 26) {
     return { macd: [0], signal: [0], histogram: [0] };
   }
