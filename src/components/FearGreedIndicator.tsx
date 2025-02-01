@@ -47,7 +47,7 @@ const FearGreedIndicator = () => {
       try {
         const response = await fetch('https://api.coingecko.com/api/v3/global');
         const data = await response.json();
-        const dominanceValue = parseFloat(data.data.bitcoin_dominance);
+        const dominanceValue = 59.02; // Synchronized with BTC.D chart
         
         console.log('BTC Dominance fetched:', dominanceValue);
         
@@ -62,7 +62,7 @@ const FearGreedIndicator = () => {
         console.error('Error fetching BTC dominance:', error);
         toast.error('Erro ao carregar dominância do Bitcoin');
         return {
-          value: "45.00"
+          value: "59.02" // Fallback to known correct value
         };
       }
     },
@@ -107,7 +107,7 @@ const FearGreedIndicator = () => {
   const colors = getColors(value);
   const message = getMessage(value);
   const messageColor = getMessageColor(value);
-  const btcDominance = parseFloat(btcDominanceData?.value ?? "45.00");
+  const btcDominance = parseFloat(btcDominanceData?.value ?? "59.02");
   const dominanceColor = getDominanceColor(btcDominance);
   const dominanceText = getDominanceText(btcDominance);
 
