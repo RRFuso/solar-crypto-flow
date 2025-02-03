@@ -8,7 +8,7 @@ export interface CryptoData {
   ema26?: number;
   aboveMA14?: boolean;
   price?: string;
-  volume?: number; // Changed from string to number
+  volume?: string;
   high24h?: string;
   low24h?: string;
   macd?: {

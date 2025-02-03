@@ -20,10 +20,10 @@ export const useExplosiveCryptos = (cryptos: CryptoData[]) => {
       const analyzed = cryptos
         .map(crypto => {
           const prices = [parseFloat(crypto.price || '0')];
-          const volumes = crypto.volume ? [crypto.volume.toString()] : [];
+          const volumes = crypto.volume ? [parseFloat(crypto.volume)] : [];
 
           // Calculate technical indicators
-          const volumeEMA = calculateEMA(volumes.map(v => parseFloat(v)), 20);
+          const volumeEMA = calculateEMA(volumes, 20);
           const macd = calculateMACD(prices);
           const ema9 = calculateEMA(prices, 9);
           const ema21 = calculateEMA(prices, 21);
