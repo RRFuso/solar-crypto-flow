@@ -1,6 +1,6 @@
 import React from 'react';
 import { TabsList as BaseTabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LineChart, TrendingUp, ArrowDownCircle, ArrowUpCircle, Activity, Zap } from 'lucide-react';
+import { LineChart, TrendingUp, ArrowDownCircle, ArrowUpCircle, MessageSquare, Zap } from 'lucide-react';
 
 const TabsList = () => {
   return (
@@ -21,9 +21,9 @@ const TabsList = () => {
         <ArrowUpCircle className="w-4 h-4" />
         <span className="text-xs">Sobrecompra 4h</span>
       </TabsTrigger>
-      <TabsTrigger value="matching" className="flex flex-col items-center gap-1 h-auto py-2">
-        <Activity className="w-4 h-4" />
-        <span className="text-xs">Match Entrada</span>
+      <TabsTrigger value="social" className="flex flex-col items-center gap-1 h-auto py-2">
+        <MessageSquare className="w-4 h-4" />
+        <span className="text-xs">Social Hype</span>
       </TabsTrigger>
       <TabsTrigger value="explosive" className="flex flex-col items-center gap-1 h-auto py-2">
         <Zap className="w-4 h-4" />
