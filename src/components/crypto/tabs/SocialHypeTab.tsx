@@ -62,6 +62,7 @@ const SocialHypeTab = ({ cryptos, selectedCrypto, onSelectCrypto }: SocialHypeTa
                   className={`
                     ${isExplosive ? 'bg-amber-500/10 border-amber-500/50' : ''}
                     ${isHyperExplosive ? 'animate-pulse' : ''}
+                    rounded-lg
                   `}
                 >
                   <CryptoCard

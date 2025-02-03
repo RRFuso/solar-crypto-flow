@@ -16,9 +16,10 @@ interface CryptoCardProps {
   isSelected: boolean;
   showRsi?: boolean;
   showRsi4h?: boolean;
+  extraContent?: React.ReactNode;
 }
 
-const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = false }: CryptoCardProps) => {
+const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = false, extraContent }: CryptoCardProps) => {
   const isPositive = crypto.performance > 0;
   const logoMap = {
     'PENDLE': 'https://s2.coinmarketcap.com/static/img/coins/64x64/8409.png',
@@ -66,6 +67,7 @@ const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = 
               RSI 4h: {crypto.rsi4h.toFixed(2)}
             </div>
           )}
+          {extraContent}
         </div>
       </div>
     </div>
