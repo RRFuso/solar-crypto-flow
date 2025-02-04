@@ -54,6 +54,8 @@ const CryptoPanel = () => {
     }
   };
 
+  const showMainChart = activeTab !== 'customize';
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex gap-6 h-[calc(100vh-16rem)]">
@@ -104,10 +106,12 @@ const CryptoPanel = () => {
         </div>
 
         <div className="w-1/2 relative">
-          <CryptoChart 
-            crypto={selectedCrypto} 
-            timeframe={getTimeframe()}
-          />
+          {showMainChart && (
+            <CryptoChart 
+              crypto={selectedCrypto} 
+              timeframe={getTimeframe()}
+            />
+          )}
           <div className="absolute top-4 right-4 flex gap-2">
             <CryptoSettings 
               settings={settings}

@@ -1,8 +1,6 @@
 import React from 'react';
 import { TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { Settings2 } from 'lucide-react';
-import { Button } from "@/components/ui/button";
 import CryptoChart from '@/components/CryptoChart';
 import { CryptoData } from '@/types/crypto';
 import CustomizeSettings from './customize/CustomizeSettings';
@@ -37,10 +35,11 @@ const CustomizeTab = ({ selectedCrypto }: CustomizeTabProps) => {
               onSettingsChange={setSettings}
             />
           </div>
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 relative">
             <CryptoChart 
               crypto={selectedCrypto}
               timeframe={settings.timeframe as "D" | "W" | "240"}
+              indicators={settings.indicators}
             />
           </div>
         </div>
