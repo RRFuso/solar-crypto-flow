@@ -59,13 +59,12 @@ const CryptoPanel = () => {
       <div className="flex gap-6 h-[calc(100vh-16rem)]">
         <div className="w-1/2 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
           <Tabs 
-            value={activeTab}
             defaultValue="outperforming" 
             className="w-full h-full flex flex-col"
             onValueChange={setActiveTab}
           >
             <TabsList />
-            <div className="flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0">
               <OutperformingTab 
                 cryptos={cryptos} 
                 selectedCrypto={selectedCrypto} 
@@ -105,12 +104,10 @@ const CryptoPanel = () => {
         </div>
 
         <div className="w-1/2 relative">
-          {activeTab !== 'customize' && (
-            <CryptoChart 
-              crypto={selectedCrypto} 
-              timeframe={getTimeframe()}
-            />
-          )}
+          <CryptoChart 
+            crypto={selectedCrypto} 
+            timeframe={getTimeframe()}
+          />
           <div className="absolute top-4 right-4 flex gap-2">
             <CryptoSettings 
               settings={settings}
