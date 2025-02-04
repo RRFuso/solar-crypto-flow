@@ -12,6 +12,7 @@ import OversoldTab from './crypto/tabs/OversoldTab';
 import OverboughtTab from './crypto/tabs/OverboughtTab';
 import MatchingTab from './crypto/tabs/MatchingTab';
 import ExplosiveTab from './crypto/tabs/ExplosiveTab';
+import CustomizeTab from './crypto/tabs/CustomizeTab';
 import CryptoSettings from './crypto/CryptoSettings';
 import { CryptoData } from '@/types/crypto';
 
@@ -45,6 +46,8 @@ const CryptoPanel = () => {
       case 'matching':
         return 'D';
       case 'explosive':
+        return '240';
+      case 'customize':
         return '240';
       default:
         return 'D';
@@ -91,6 +94,10 @@ const CryptoPanel = () => {
                 cryptos={cryptos} 
                 selectedCrypto={selectedCrypto} 
                 onSelectCrypto={setSelectedCrypto} 
+              />
+              <CustomizeTab
+                selectedCrypto={selectedCrypto}
+                onSelectCrypto={setSelectedCrypto}
               />
             </div>
           </Tabs>
