@@ -12,6 +12,7 @@ import OversoldTab from './crypto/tabs/OversoldTab';
 import OverboughtTab from './crypto/tabs/OverboughtTab';
 import MatchingTab from './crypto/tabs/MatchingTab';
 import ExplosiveTab from './crypto/tabs/ExplosiveTab';
+import CustomizeTab from './crypto/tabs/CustomizeTab';
 import CryptoSettings from './crypto/CryptoSettings';
 import { CryptoData } from '@/types/crypto';
 
@@ -46,10 +47,14 @@ const CryptoPanel = () => {
         return 'D';
       case 'explosive':
         return '240';
+      case 'customize':
+        return settings.timeframe === '4h' ? '240' : 'D';
       default:
         return 'D';
     }
   };
+
+  const showMainChart = activeTab !== 'customize';
 
   return (
     <div className="flex flex-col gap-8">
@@ -92,15 +97,21 @@ const CryptoPanel = () => {
                 selectedCrypto={selectedCrypto} 
                 onSelectCrypto={setSelectedCrypto} 
               />
+              <CustomizeTab 
+                selectedCrypto={selectedCrypto}
+                settings={settings}
+              />
             </div>
           </Tabs>
         </div>
 
         <div className="w-1/2 relative">
-          <CryptoChart 
-            crypto={selectedCrypto} 
-            timeframe={getTimeframe()}
-          />
+          {showMainChart && (
+            <CryptoChart 
+              crypto={selectedCrypto} 
+              timeframe={getTimeframe()}
+            />
+          )}
           <div className="absolute top-4 right-4 flex gap-2">
             <CryptoSettings 
               settings={settings}
