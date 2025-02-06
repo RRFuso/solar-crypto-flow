@@ -2,59 +2,30 @@ import { BinanceTicker, BinanceKline } from '@/types/binance';
 import { filterValidTickers } from './tickerValidation';
 
 const BINANCE_API_URL = 'https://api.binance.com/api/v3';
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
-
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): Promise<Response> => {
-  let lastError: Error | null = null;
-  
-  // First try direct fetch
   for (let i = 0; i < retries; i++) {
     try {
       const response = await fetch(url, {
         ...options,
         headers: {
           'Accept': 'application/json',
+          'Origin': window.location.origin,
           ...options.headers,
         },
       });
 
-      if (response.ok) {
-        return response;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      throw new Error(`HTTP error! status: ${response.status}`);
+
+      return response;
     } catch (error) {
-      console.warn(`Attempt ${i + 1} failed:`, error);
-      lastError = error as Error;
-      if (i < retries - 1) {
-        await sleep(Math.min(1000 * Math.pow(2, i), 10000)); // Exponential backoff, max 10s
-      }
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
     }
   }
-
-  // If direct fetch fails, try with CORS proxy
-  try {
-    console.log('Trying CORS proxy...');
-    const proxyUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
-    const response = await fetch(proxyUrl, {
-      ...options,
-      headers: {
-        'Accept': 'application/json',
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Proxy HTTP error! status: ${response.status}`);
-    }
-
-    return response;
-  } catch (proxyError) {
-    console.error('Both direct and proxy requests failed:', proxyError);
-    throw lastError || proxyError;
-  }
+  throw new Error('Max retries reached');
 };
 
 export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => {
@@ -70,6 +41,7 @@ export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => 
       return acc;
     }, {});
 
+    // Filter out invalid tickers
     return filterValidTickers(allTickers);
   } catch (error) {
     console.error('Error fetching tickers:', error);
