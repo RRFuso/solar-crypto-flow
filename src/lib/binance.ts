@@ -1,12 +1,10 @@
-import { BinanceKline, BinanceTicker } from '@/types/binance';
-
 const BINANCE_API_URL = 'https://api.binance.com/api/v3';
-const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+const CORS_PROXY = 'https://corsproxy.io/?';
 
 // Utility functions
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const createProxyUrl = (url: string) => `${PROXY_URL}${encodeURIComponent(url)}`;
+const createProxyUrl = (url: string) => `${CORS_PROXY}${encodeURIComponent(url)}`;
 
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
@@ -19,28 +17,30 @@ const handleResponse = async (response: Response) => {
 const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 3): Promise<Response> => {
   for (let i = 0; i < retries; i++) {
     try {
-      // Try proxy first
       console.log(`Attempt ${i + 1} using CORS proxy...`);
       const proxyResponse = await fetch(createProxyUrl(url), {
         ...options,
         headers: {
           'Accept': 'application/json',
+          'Origin': window.location.origin,
           ...options.headers,
         },
+        mode: 'cors',
       });
 
       if (proxyResponse.ok) {
         return proxyResponse;
       }
 
-      // If proxy fails, try direct
-      console.log('Proxy failed, trying direct fetch...');
+      // If proxy fails, try direct with no-cors mode
+      console.log('Proxy failed, trying direct fetch with no-cors...');
       const directResponse = await fetch(url, {
         ...options,
         headers: {
           'Accept': 'application/json',
           ...options.headers,
         },
+        mode: 'no-cors',
       });
 
       if (directResponse.ok) {
