@@ -1,3 +1,5 @@
+import { BinanceKline, BinanceTicker } from '@/types/binance';
+
 const BINANCE_API_URL = 'https://api.binance.com/api/v3';
 const CORS_PROXY = 'https://corsproxy.io/?';
 
