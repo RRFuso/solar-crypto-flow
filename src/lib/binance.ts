@@ -28,19 +28,13 @@ const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 
         return response;
       }
 
-      // If proxy fails, try direct request with no-cors as last resort
-      if (i === retries - 1) {
-        console.log('Proxy failed, using fallback data...');
-        // Return mock data for development
-        return new Response(JSON.stringify(getFallbackData(url)), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
+      // If proxy fails, return fallback data immediately
+      console.log('Proxy failed, using fallback data...');
+      return new Response(JSON.stringify(getFallbackData(url)), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
 
-      const delay = Math.min(1000 * Math.pow(2, i), 10000);
-      console.log(`Waiting ${delay}ms before retry...`);
-      await sleep(delay);
     } catch (error) {
       console.error(`Attempt ${i + 1} failed:`, error);
       lastError = error as Error;
@@ -52,6 +46,10 @@ const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 
           headers: { 'Content-Type': 'application/json' }
         });
       }
+
+      const delay = Math.min(1000 * Math.pow(2, i), 10000);
+      console.log(`Waiting ${delay}ms before retry...`);
+      await sleep(delay);
     }
   }
 
