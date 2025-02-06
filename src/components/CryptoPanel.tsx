@@ -53,8 +53,8 @@ const CryptoPanel = () => {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex gap-6 h-[calc(100vh-16rem)]">
-        <div className="w-1/2 flex flex-col border rounded-lg bg-gray-900/50 overflow-hidden">
+      <div className="flex gap-6 h-[calc(100vh-12rem)]">
+        <div className="w-1/2 flex flex-col border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden">
           <Tabs 
             defaultValue="outperforming" 
             className="w-full h-full flex flex-col"
@@ -97,10 +97,12 @@ const CryptoPanel = () => {
         </div>
 
         <div className="w-1/2 relative">
-          <CryptoChart 
-            crypto={selectedCrypto} 
-            timeframe={getTimeframe()}
-          />
+          <div className="h-full border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden">
+            <CryptoChart 
+              crypto={selectedCrypto} 
+              timeframe={getTimeframe()}
+            />
+          </div>
           <div className="absolute top-4 right-4 flex gap-2">
             <CryptoSettings 
               settings={settings}

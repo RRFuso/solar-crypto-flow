@@ -1,20 +1,28 @@
-import React from 'react';
-import CryptoPanel from '../components/CryptoPanel';
+import { useState } from "react";
+import CryptoPanel from "@/components/CryptoPanel";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState("performance");
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "performance":
+        return <CryptoPanel />;
+      default:
+        return (
+          <div className="text-center text-gray-400 mt-20">
+            <h2 className="text-2xl font-bold mb-4">Coming Soon</h2>
+            <p>This section is under development.</p>
+          </div>
+        );
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="container mx-auto py-8">
-        <div className="flex justify-center mb-8">
-          <img 
-            src="/lovable-uploads/75a6a36b-8f61-4896-aa4e-6025303baf1e.png" 
-            alt="Synerdata Logo" 
-            className="w-48 h-48 object-contain"
-          />
-        </div>
-        <CryptoPanel />
-      </div>
-    </div>
+    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+      {renderContent()}
+    </DashboardLayout>
   );
 };
 
