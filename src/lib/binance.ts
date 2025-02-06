@@ -6,25 +6,13 @@ const PROXY_URL = 'https://api.allorigins.win/raw?url=';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): Promise<Response> => {
+const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 3): Promise<Response> => {
   let lastError: Error | null = null;
   
   for (let i = 0; i < retries; i++) {
     try {
-      // First try direct fetch
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          'Accept': 'application/json',
-          ...options.headers,
-        },
-      });
-
-      if (response.ok) {
-        return response;
-      }
-
-      // If direct fetch fails, try proxy
+      // First try with CORS proxy
+      console.log(`Attempt ${i + 1} using CORS proxy...`);
       const proxyResponse = await fetch(`${PROXY_URL}${encodeURIComponent(url)}`, {
         ...options,
         headers: {
@@ -33,18 +21,33 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): P
         },
       });
 
-      if (!proxyResponse.ok) {
-        throw new Error(`HTTP error! status: ${proxyResponse.status}`);
+      if (proxyResponse.ok) {
+        return proxyResponse;
       }
 
-      return proxyResponse;
+      // If proxy fails, try direct fetch
+      console.log(`Proxy failed, trying direct fetch...`);
+      const directResponse = await fetch(url, {
+        ...options,
+        headers: {
+          'Accept': 'application/json',
+          ...options.headers,
+        },
+      });
+
+      if (directResponse.ok) {
+        return directResponse;
+      }
+
+      throw new Error(`HTTP error! status: ${directResponse.status}`);
     } catch (error) {
       console.error(`Attempt ${i + 1} failed:`, error);
       lastError = error as Error;
       
       if (i < retries - 1) {
-        // Wait before retrying, with exponential backoff
-        await sleep(1000 * Math.pow(2, i));
+        const delay = Math.min(1000 * Math.pow(2, i), 10000); // Cap at 10 seconds
+        console.log(`Waiting ${delay}ms before retry...`);
+        await sleep(delay);
       }
     }
   }
@@ -55,11 +58,15 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): P
 export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => {
   try {
     console.log('Fetching tickers from Binance...');
-    const response = await fetchWithRetry(`${BINANCE_API_URL}/ticker/24hr`, {
-      method: 'GET',
-    });
+    const response = await fetchWithRetry(`${BINANCE_API_URL}/ticker/24hr`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     
     const data: BinanceTicker[] = await response.json();
+    console.log(`Successfully fetched ${data.length} tickers`);
+    
     const allTickers = data.reduce((acc: Record<string, BinanceTicker>, ticker: BinanceTicker) => {
       acc[ticker.symbol] = ticker;
       return acc;
@@ -76,11 +83,12 @@ export const fetchKlines = async (symbol: string, interval: string): Promise<Bin
   try {
     console.log(`Fetching klines for ${symbol}...`);
     const response = await fetchWithRetry(
-      `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}&limit=100`,
-      {
-        method: 'GET',
-      }
+      `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}&limit=100`
     );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
     const data = await response.json();
     console.log(`Successfully fetched klines for ${symbol}`);
@@ -99,7 +107,7 @@ export const fetchKlines = async (symbol: string, interval: string): Promise<Bin
       takerBuyQuoteAssetVolume: kline[10]
     }));
   } catch (error) {
-    console.error('Error fetching klines:', error);
+    console.error(`Error fetching klines for ${symbol}:`, error);
     throw error;
   }
 };
