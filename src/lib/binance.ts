@@ -1,69 +1,80 @@
 import { BinanceKline, BinanceTicker } from '@/types/binance';
 
 const BINANCE_API_URL = 'https://api.binance.com/api/v3';
-const CORS_PROXY = 'https://corsproxy.io/?';
+const CORS_PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+  'https://cors-proxy.htmldriven.com/?url=',
+  'https://cors-anywhere.herokuapp.com/'
+];
 
 // Utility functions
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const createProxyUrl = (url: string) => `${CORS_PROXY}${encodeURIComponent(url)}`;
-
-const handleResponse = async (response: Response) => {
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+const createProxyUrl = (url: string, proxyIndex: number = 0) => {
+  if (proxyIndex >= CORS_PROXIES.length) {
+    return url; // Fallback to direct URL if all proxies fail
   }
-  return response.json();
+  return `${CORS_PROXIES[proxyIndex]}${encodeURIComponent(url)}`;
 };
 
-// Fetch functions with retries
 const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 3): Promise<Response> => {
+  let lastError: Error | null = null;
+
   for (let i = 0; i < retries; i++) {
-    try {
-      console.log(`Attempt ${i + 1} using CORS proxy...`);
-      const proxyResponse = await fetch(createProxyUrl(url), {
-        ...options,
-        headers: {
-          'Accept': 'application/json',
-          'Origin': window.location.origin,
-          ...options.headers,
-        },
-        mode: 'cors',
-      });
+    for (let proxyIndex = 0; proxyIndex < CORS_PROXIES.length; proxyIndex++) {
+      try {
+        console.log(`Attempt ${i + 1} using proxy ${proxyIndex + 1}...`);
+        const proxyUrl = createProxyUrl(url, proxyIndex);
+        
+        const response = await fetch(proxyUrl, {
+          ...options,
+          headers: {
+            'Accept': 'application/json',
+            'Origin': window.location.origin,
+            ...options.headers,
+          },
+        });
 
-      if (proxyResponse.ok) {
-        return proxyResponse;
-      }
+        if (response.ok) {
+          return response;
+        }
 
-      // If proxy fails, try direct with no-cors mode
-      console.log('Proxy failed, trying direct fetch with no-cors...');
-      const directResponse = await fetch(url, {
-        ...options,
-        headers: {
-          'Accept': 'application/json',
-          ...options.headers,
-        },
-        mode: 'no-cors',
-      });
-
-      if (directResponse.ok) {
-        return directResponse;
-      }
-
-      throw new Error(`HTTP error! status: ${directResponse.status}`);
-    } catch (error) {
-      console.error(`Attempt ${i + 1} failed:`, error);
-      
-      if (i < retries - 1) {
-        const delay = Math.min(1000 * Math.pow(2, i), 10000);
-        console.log(`Waiting ${delay}ms before retry...`);
-        await sleep(delay);
-      } else {
-        throw error;
+        console.log(`Proxy ${proxyIndex + 1} failed with status ${response.status}`);
+      } catch (error) {
+        console.error(`Error with proxy ${proxyIndex + 1}:`, error);
+        lastError = error as Error;
       }
     }
+
+    // If all proxies failed, try direct request with no-cors
+    if (i === retries - 1) {
+      try {
+        console.log('All proxies failed, trying direct request with no-cors...');
+        const response = await fetch(url, {
+          ...options,
+          mode: 'no-cors',
+          headers: {
+            'Accept': 'application/json',
+            ...options.headers,
+          },
+        });
+
+        if (response.ok) {
+          return response;
+        }
+      } catch (error) {
+        console.error('Direct request failed:', error);
+        lastError = error as Error;
+      }
+    }
+
+    const delay = Math.min(1000 * Math.pow(2, i), 10000);
+    console.log(`Waiting ${delay}ms before retry...`);
+    await sleep(delay);
   }
 
-  throw new Error('Max retries reached');
+  throw lastError || new Error('All fetch attempts failed');
 };
 
 // API functions
@@ -71,7 +82,7 @@ export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => 
   try {
     console.log('Fetching tickers from Binance...');
     const response = await fetchWithRetry(`${BINANCE_API_URL}/ticker/24hr`);
-    const data: BinanceTicker[] = await handleResponse(response);
+    const data: BinanceTicker[] = await response.json();
     
     console.log(`Successfully fetched ${data.length} tickers`);
     
@@ -93,7 +104,7 @@ export const fetchKlines = async (
     console.log(`Fetching klines for ${symbol}...`);
     const url = `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}&limit=100`;
     const response = await fetchWithRetry(url);
-    const data = await handleResponse(response);
+    const data = await response.json();
     
     console.log(`Successfully fetched klines for ${symbol}`);
     
