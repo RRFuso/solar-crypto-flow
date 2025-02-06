@@ -12,6 +12,7 @@ import OversoldTab from './crypto/tabs/OversoldTab';
 import OverboughtTab from './crypto/tabs/OverboughtTab';
 import MatchingTab from './crypto/tabs/MatchingTab';
 import ExplosiveTab from './crypto/tabs/ExplosiveTab';
+import SocialHypeTab from './crypto/tabs/SocialHypeTab';
 import CryptoSettings from './crypto/CryptoSettings';
 import { CryptoData } from '@/types/crypto';
 
@@ -46,6 +47,8 @@ const CryptoPanel = () => {
         return 'D';
       case 'explosive':
         return '240';
+      case 'social':
+        return 'D';
       default:
         return 'D';
     }
@@ -92,6 +95,7 @@ const CryptoPanel = () => {
                 selectedCrypto={selectedCrypto} 
                 onSelectCrypto={setSelectedCrypto} 
               />
+              <SocialHypeTab />
             </div>
           </Tabs>
         </div>
