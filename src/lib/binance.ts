@@ -1,19 +1,27 @@
-import { BinanceTicker, BinanceKline } from '@/types/binance';
-import { filterValidTickers } from './tickerValidation';
+import { BinanceKline, BinanceTicker } from '@/types/binance';
 
 const BINANCE_API_URL = 'https://api.binance.com/api/v3';
 const PROXY_URL = 'https://api.allorigins.win/raw?url=';
 
+// Utility functions
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+const createProxyUrl = (url: string) => `${PROXY_URL}${encodeURIComponent(url)}`;
+
+const handleResponse = async (response: Response) => {
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return response.json();
+};
+
+// Fetch functions with retries
 const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 3): Promise<Response> => {
-  let lastError: Error | null = null;
-  
   for (let i = 0; i < retries; i++) {
     try {
-      // First try with CORS proxy
+      // Try proxy first
       console.log(`Attempt ${i + 1} using CORS proxy...`);
-      const proxyResponse = await fetch(`${PROXY_URL}${encodeURIComponent(url)}`, {
+      const proxyResponse = await fetch(createProxyUrl(url), {
         ...options,
         headers: {
           'Accept': 'application/json',
@@ -25,8 +33,8 @@ const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 
         return proxyResponse;
       }
 
-      // If proxy fails, try direct fetch
-      console.log(`Proxy failed, trying direct fetch...`);
+      // If proxy fails, try direct
+      console.log('Proxy failed, trying direct fetch...');
       const directResponse = await fetch(url, {
         ...options,
         headers: {
@@ -42,58 +50,52 @@ const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 
       throw new Error(`HTTP error! status: ${directResponse.status}`);
     } catch (error) {
       console.error(`Attempt ${i + 1} failed:`, error);
-      lastError = error as Error;
       
       if (i < retries - 1) {
-        const delay = Math.min(1000 * Math.pow(2, i), 10000); // Cap at 10 seconds
+        const delay = Math.min(1000 * Math.pow(2, i), 10000);
         console.log(`Waiting ${delay}ms before retry...`);
         await sleep(delay);
+      } else {
+        throw error;
       }
     }
   }
-  
-  throw lastError || new Error('Failed to fetch after retries');
+
+  throw new Error('Max retries reached');
 };
 
+// API functions
 export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => {
   try {
     console.log('Fetching tickers from Binance...');
     const response = await fetchWithRetry(`${BINANCE_API_URL}/ticker/24hr`);
+    const data: BinanceTicker[] = await handleResponse(response);
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data: BinanceTicker[] = await response.json();
     console.log(`Successfully fetched ${data.length} tickers`);
     
-    const allTickers = data.reduce((acc: Record<string, BinanceTicker>, ticker: BinanceTicker) => {
+    return data.reduce((acc: Record<string, BinanceTicker>, ticker: BinanceTicker) => {
       acc[ticker.symbol] = ticker;
       return acc;
     }, {});
-
-    return filterValidTickers(allTickers);
   } catch (error) {
     console.error('Error fetching tickers:', error);
     throw error;
   }
 };
 
-export const fetchKlines = async (symbol: string, interval: string): Promise<BinanceKline[]> => {
+export const fetchKlines = async (
+  symbol: string,
+  interval: string
+): Promise<BinanceKline[]> => {
   try {
     console.log(`Fetching klines for ${symbol}...`);
-    const response = await fetchWithRetry(
-      `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}&limit=100`
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const url = `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}&limit=100`;
+    const response = await fetchWithRetry(url);
+    const data = await handleResponse(response);
+    
     console.log(`Successfully fetched klines for ${symbol}`);
     
-    return data.map((kline: any[]): BinanceKline => ({
+    return data.map((kline: any[]) => ({
       openTime: kline[0],
       open: kline[1],
       high: kline[2],
@@ -102,7 +104,7 @@ export const fetchKlines = async (symbol: string, interval: string): Promise<Bin
       volume: kline[5],
       closeTime: kline[6],
       quoteAssetVolume: kline[7],
-      trades: kline[8],
+      numberOfTrades: kline[8],
       takerBuyBaseAssetVolume: kline[9],
       takerBuyQuoteAssetVolume: kline[10]
     }));
