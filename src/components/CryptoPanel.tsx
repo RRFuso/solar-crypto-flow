@@ -55,7 +55,7 @@ const CryptoPanel = () => {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex gap-6 h-[calc(100vh-16rem)]">
-        <div className="w-1/2 flex flex-col border border-gray-800 rounded-lg bg-gray-900/30 backdrop-blur-sm overflow-hidden">
+        <div className="w-1/2 flex flex-col rounded-lg bg-gray-900/30 backdrop-blur-sm overflow-hidden border border-gray-800">
           <Tabs 
             defaultValue="outperforming" 
             className="w-full h-full flex flex-col"
