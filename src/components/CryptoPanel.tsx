@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import CryptoChart from './CryptoChart';
 import FearGreedIndicator from './FearGreedIndicator';
-import { Tabs } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Bitcoin } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import TabsList from './crypto/TabsList';
@@ -58,40 +59,53 @@ const CryptoPanel = () => {
           <Tabs 
             defaultValue="outperforming" 
             className="w-full h-full flex flex-col"
+            value={activeTab}
             onValueChange={setActiveTab}
           >
             <TabsList />
-            <div className="flex-1 min-h-0">
-              <OutperformingTab 
-                cryptos={cryptos} 
-                selectedCrypto={selectedCrypto} 
-                onSelectCrypto={setSelectedCrypto} 
-              />
-              <BullishTab 
-                cryptos={cryptos} 
-                selectedCrypto={selectedCrypto} 
-                onSelectCrypto={setSelectedCrypto} 
-              />
-              <OversoldTab 
-                cryptos={cryptos} 
-                selectedCrypto={selectedCrypto} 
-                onSelectCrypto={setSelectedCrypto} 
-              />
-              <OverboughtTab 
-                cryptos={cryptos} 
-                selectedCrypto={selectedCrypto} 
-                onSelectCrypto={setSelectedCrypto} 
-              />
-              <MatchingTab 
-                cryptos={cryptos} 
-                selectedCrypto={selectedCrypto} 
-                onSelectCrypto={setSelectedCrypto} 
-              />
-              <ExplosiveTab 
-                cryptos={cryptos} 
-                selectedCrypto={selectedCrypto} 
-                onSelectCrypto={setSelectedCrypto} 
-              />
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <TabsContent value="outperforming" className="h-full m-0">
+                <OutperformingTab 
+                  cryptos={cryptos} 
+                  selectedCrypto={selectedCrypto} 
+                  onSelectCrypto={setSelectedCrypto} 
+                />
+              </TabsContent>
+              <TabsContent value="bullish" className="h-full m-0">
+                <BullishTab 
+                  cryptos={cryptos} 
+                  selectedCrypto={selectedCrypto} 
+                  onSelectCrypto={setSelectedCrypto} 
+                />
+              </TabsContent>
+              <TabsContent value="oversold" className="h-full m-0">
+                <OversoldTab 
+                  cryptos={cryptos} 
+                  selectedCrypto={selectedCrypto} 
+                  onSelectCrypto={setSelectedCrypto} 
+                />
+              </TabsContent>
+              <TabsContent value="overbought" className="h-full m-0">
+                <OverboughtTab 
+                  cryptos={cryptos} 
+                  selectedCrypto={selectedCrypto} 
+                  onSelectCrypto={setSelectedCrypto} 
+                />
+              </TabsContent>
+              <TabsContent value="matching" className="h-full m-0">
+                <MatchingTab 
+                  cryptos={cryptos} 
+                  selectedCrypto={selectedCrypto} 
+                  onSelectCrypto={setSelectedCrypto} 
+                />
+              </TabsContent>
+              <TabsContent value="explosive" className="h-full m-0">
+                <ExplosiveTab 
+                  cryptos={cryptos} 
+                  selectedCrypto={selectedCrypto} 
+                  onSelectCrypto={setSelectedCrypto} 
+                />
+              </TabsContent>
             </div>
           </Tabs>
         </div>
