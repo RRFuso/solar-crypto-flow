@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from "@/lib/utils";
@@ -28,8 +29,8 @@ const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = 
   return (
     <div
       className={cn(
-        "p-4 rounded-lg cursor-pointer hover:bg-gray-800 transition-colors",
-        isSelected ? "bg-gray-800" : "bg-gray-900",
+        "p-4 rounded-lg cursor-pointer transition-all duration-200 hover:scale-[1.02]",
+        isSelected ? "bg-gray-800/80 shadow-lg ring-1 ring-gray-700" : "bg-gray-900/50 hover:bg-gray-800/50",
       )}
       onClick={onClick}
     >
@@ -37,7 +38,7 @@ const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = 
         <img
           src={logoMap[crypto.id] || `https://s3-symbol-logo.tradingview.com/crypto/XTVC${crypto.id}.svg`}
           alt={`${crypto.name} logo`}
-          className="w-8 h-8"
+          className="w-8 h-8 rounded-full"
           onError={(e) => {
             e.currentTarget.src = 'https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg';
           }}
@@ -49,7 +50,7 @@ const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = 
           </div>
           {crypto.id !== 'BTC' && !showRsi && !showRsi4h && (
             <div className={cn(
-              "flex items-center gap-1 text-sm",
+              "flex items-center gap-1 text-sm mt-1",
               isPositive ? "text-green-400" : "text-red-400"
             )}>
               {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
@@ -57,12 +58,12 @@ const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = 
             </div>
           )}
           {showRsi && crypto.rsi && (
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-gray-400 mt-1">
               RSI Semanal: {crypto.rsi.toFixed(2)}
             </div>
           )}
           {showRsi4h && crypto.rsi4h && (
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-gray-400 mt-1">
               RSI 4h: {crypto.rsi4h.toFixed(2)}
             </div>
           )}
