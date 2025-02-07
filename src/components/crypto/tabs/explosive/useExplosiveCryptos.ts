@@ -6,7 +6,7 @@ import {
   calculateMACD,
   calculateEMA,
   calculateFibonacciLevels
-} from '@/lib/technical';
+} from '@/lib/technicalAnalysis';
 
 const SCORE_CRITERIA = {
   volumeExplosive: 3,

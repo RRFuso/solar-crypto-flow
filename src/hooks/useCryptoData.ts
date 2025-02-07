@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchTickers, fetchKlines } from '@/lib/binance';
-import { calculateRSI, calculateEMA } from '@/lib/technical';
+import { calculateRSI, calculateEMA } from '@/lib/technicalAnalysis';
 import { CryptoData } from '@/types/crypto';
 
 interface CryptoDataOptions {
