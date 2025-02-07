@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from "@/lib/utils";
@@ -8,6 +9,7 @@ interface CryptoData {
   performance: number;
   rsi?: number;
   rsi4h?: number;
+  price?: string;
 }
 
 interface CryptoCardProps {
@@ -28,8 +30,8 @@ const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = 
   return (
     <div
       className={cn(
-        "p-4 rounded-lg cursor-pointer hover:bg-gray-800 transition-colors",
-        isSelected ? "bg-gray-800" : "bg-gray-900",
+        "p-4 rounded-lg cursor-pointer transition-colors",
+        isSelected ? "bg-purple-500/20 hover:bg-purple-500/30" : "hover:bg-gray-800",
       )}
       onClick={onClick}
     >
@@ -45,7 +47,7 @@ const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = 
         <div className="flex-1">
           <div className="flex items-center justify-between">
             <span className="font-bold">{crypto.name}</span>
-            <span className="text-sm text-gray-400">{crypto.id}</span>
+            <span className="text-sm text-gray-400">{crypto.price}</span>
           </div>
           {crypto.id !== 'BTC' && !showRsi && !showRsi4h && (
             <div className={cn(
