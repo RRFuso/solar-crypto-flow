@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowBigRight, Bitcoin, TrendingUp, TrendingDown, RefreshCcw, Gem, Coins, Wallet } from 'lucide-react';
+import { ArrowBigRight, TrendingUp, TrendingDown, RefreshCcw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { fetchMarketData } from '@/lib/marketData';
@@ -22,13 +22,11 @@ const CapitalFlowPanel = () => {
     queryKey: ['capital-flow', timeframe],
     queryFn: () => fetchMarketData(timeframe),
     refetchInterval: 30000, // Refresh every 30 seconds
-    retry: 3, // Retry failed requests 3 times
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     meta: {
-      onError: (error: Error) => {
+      onError: () => {
         toast({
           title: "Error fetching data",
-          description: error.message || "Failed to fetch market data. Please try again later.",
+          description: "Failed to fetch market data. Please try again later.",
           variant: "destructive"
         });
       }
@@ -36,23 +34,6 @@ const CapitalFlowPanel = () => {
   });
 
   const maxFlow = Math.max(...(flowData?.map(d => d.value) || [1]));
-
-  const getIconForCrypto = (symbol: string) => {
-    switch (symbol.toUpperCase()) {
-      case 'BTC':
-        return <Bitcoin className="h-6 w-6" />;
-      case 'ETH':
-      case 'BNB':
-      case 'SOL':
-        return <Gem className="h-6 w-6" />;
-      case 'DOT':
-      case 'AVAX':
-      case 'MATIC':
-        return <Coins className="h-6 w-6" />;
-      default:
-        return <Wallet className="h-6 w-6" />;
-    }
-  };
 
   return (
     <div className="w-full h-full flex flex-col gap-6 p-6 bg-gray-900/50 backdrop-blur-xl border border-gray-800 rounded-xl shadow-lg">
@@ -91,58 +72,43 @@ const CapitalFlowPanel = () => {
           Failed to load market data
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center gap-6">
-          {flowData?.map((flow, index) => (
-            <div 
-              key={index}
-              className="w-full max-w-md flex items-center gap-4 animate-fade-in group"
-              style={{ animationDelay: `${index * 150}ms` }}
-            >
+        <div className="flex-1 flex items-center justify-center relative">
+          <div className="w-full h-full flex flex-wrap gap-8 items-center justify-center p-4">
+            {flowData?.map((flow, index) => (
               <div 
-                className={`w-full flex items-center gap-3 px-6 py-4 rounded-full shadow-lg transition-all duration-300 hover:scale-102 ${
-                  flow.percentage > 0 ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'
-                }`}
+                key={index} 
+                className="flex items-center gap-4 animate-fade-in"
+                style={{ animationDelay: `${index * 150}ms` }}
               >
-                <div className="flex items-center gap-3 flex-1">
-                  <div className={`p-2 rounded-full ${
-                    flow.percentage > 0 ? 'bg-green-500/30' : 'bg-red-500/30'
-                  }`}>
-                    {getIconForCrypto(flow.from)}
-                  </div>
-                  <span className="font-semibold text-lg">{flow.from}</span>
+                <div className="bg-gray-800/80 px-6 py-3 rounded-xl border border-gray-700 shadow-lg hover:scale-105 transition-transform duration-200">
+                  {flow.from}
                 </div>
-
-                <div className="flex items-center gap-2">
-                  {flow.percentage > 0 ? (
-                    <TrendingUp className="w-5 h-5 text-green-400" />
-                  ) : (
-                    <TrendingDown className="w-5 h-5 text-red-400" />
-                  )}
-                  <span className={`font-medium ${flow.percentage > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {Math.abs(flow.percentage).toFixed(2)}%
-                  </span>
+                <div className="flex flex-col items-center gap-2">
                   <ArrowBigRight 
-                    className={`w-6 h-6 transition-all duration-300 ${
-                      flow.percentage > 0 ? 'text-green-400' : 'text-red-400'
-                    }`}
+                    className="w-12 h-12 transition-all duration-300" 
                     style={{
                       opacity: 0.3 + (flow.value / maxFlow) * 0.7,
+                      color: flow.percentage > 0 ? '#4ade80' : '#ef4444',
                       transform: `scale(${0.8 + (flow.value / maxFlow) * 0.4})`
                     }}
                   />
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="font-semibold text-lg">{flow.to}</span>
-                  <div className={`p-2 rounded-full ${
-                    flow.percentage > 0 ? 'bg-green-500/30' : 'bg-red-500/30'
-                  }`}>
-                    {getIconForCrypto(flow.to)}
+                  <div className="flex items-center gap-1 text-sm">
+                    {flow.percentage > 0 ? (
+                      <TrendingUp className="w-4 h-4 text-green-400" />
+                    ) : (
+                      <TrendingDown className="w-4 h-4 text-red-400" />
+                    )}
+                    <span className={`font-medium ${flow.percentage > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {flow.percentage.toFixed(2)}%
+                    </span>
                   </div>
                 </div>
+                <div className="bg-gray-800/80 px-6 py-3 rounded-xl border border-gray-700 shadow-lg hover:scale-105 transition-transform duration-200">
+                  {flow.to}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>
