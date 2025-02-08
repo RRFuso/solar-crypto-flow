@@ -1,12 +1,16 @@
+
 import { useState } from "react";
 import CryptoPanel from "@/components/CryptoPanel";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import CapitalFlowPanel from "@/components/CapitalFlowPanel";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("performance");
+  const [activeTab, setActiveTab] = useState("home");
 
   const renderContent = () => {
     switch (activeTab) {
+      case "home":
+        return <CapitalFlowPanel />;
       case "performance":
         return <CryptoPanel />;
       default:
