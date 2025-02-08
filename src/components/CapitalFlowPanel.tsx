@@ -5,7 +5,7 @@ import { ArrowBigRight, TrendingUp, TrendingDown, RefreshCcw } from 'lucide-reac
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { fetchMarketData } from '@/lib/marketData';
-import { useToast } from './ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface FlowData {
   from: string;
@@ -22,12 +22,14 @@ const CapitalFlowPanel = () => {
     queryKey: ['capital-flow', timeframe],
     queryFn: () => fetchMarketData(timeframe),
     refetchInterval: 30000, // Refresh every 30 seconds
-    onError: () => {
-      toast({
-        title: "Error fetching data",
-        description: "Failed to fetch market data. Please try again later.",
-        variant: "destructive"
-      });
+    meta: {
+      onError: () => {
+        toast({
+          title: "Error fetching data",
+          description: "Failed to fetch market data. Please try again later.",
+          variant: "destructive"
+        });
+      }
     }
   });
 
