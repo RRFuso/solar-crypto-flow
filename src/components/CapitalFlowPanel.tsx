@@ -22,11 +22,13 @@ const CapitalFlowPanel = () => {
     queryKey: ['capital-flow', timeframe],
     queryFn: () => fetchMarketData(timeframe),
     refetchInterval: 30000, // Refresh every 30 seconds
+    retry: 3, // Retry failed requests 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     meta: {
-      onError: () => {
+      onError: (error: Error) => {
         toast({
           title: "Error fetching data",
-          description: "Failed to fetch market data. Please try again later.",
+          description: error.message || "Failed to fetch market data. Please try again later.",
           variant: "destructive"
         });
       }

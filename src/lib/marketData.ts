@@ -14,11 +14,23 @@ interface MarketData {
 export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> => {
   try {
     const response = await fetch(
-      `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&sparkline=false&price_change_percentage=24h,7d,30d`
+      `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&sparkline=false&price_change_percentage=24h,7d,30d`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        // Adding cache control to respect rate limits
+        cache: 'force-cache',
+      }
     );
     
     if (!response.ok) {
-      throw new Error('Failed to fetch market data');
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again later.');
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data: MarketData[] = await response.json();
@@ -47,10 +59,10 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
       }
     });
 
-    // Sort by flow magnitude
+    // Sort by flow magnitude and limit to top 5
     return flows.sort((a, b) => b.value - a.value).slice(0, 5);
   } catch (error) {
     console.error('Error fetching market data:', error);
-    return [];
+    throw error; // Re-throw to be handled by React Query
   }
 };
