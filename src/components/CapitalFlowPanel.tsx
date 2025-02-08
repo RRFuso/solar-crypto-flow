@@ -1,9 +1,11 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowBigRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowBigRight, TrendingUp, TrendingDown, RefreshCcw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { fetchMarketData } from '@/lib/marketData';
+import { useToast } from './ui/use-toast';
 
 interface FlowData {
   from: string;
@@ -14,19 +16,19 @@ interface FlowData {
 
 const CapitalFlowPanel = () => {
   const [timeframe, setTimeframe] = useState('24h');
+  const { toast } = useToast();
 
-  const { data: flowData, isLoading } = useQuery({
+  const { data: flowData, isLoading, error, refetch } = useQuery({
     queryKey: ['capital-flow', timeframe],
-    queryFn: async () => {
-      // Temporary mock data - replace with actual API call
-      const mockData: FlowData[] = [
-        { from: 'BTC', to: 'ETH', value: 1500000, percentage: 2.5 },
-        { from: 'BTC', to: 'SOL', value: 800000, percentage: 1.8 },
-        { from: 'ETH', to: 'SOL', value: 300000, percentage: 0.5 },
-      ];
-      return mockData;
-    },
+    queryFn: () => fetchMarketData(timeframe),
     refetchInterval: 30000, // Refresh every 30 seconds
+    onError: () => {
+      toast({
+        title: "Error fetching data",
+        description: "Failed to fetch market data. Please try again later.",
+        variant: "destructive"
+      });
+    }
   });
 
   const maxFlow = Math.max(...(flowData?.map(d => d.value) || [1]));
@@ -37,21 +39,35 @@ const CapitalFlowPanel = () => {
         <h2 className="text-2xl font-bold bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent">
           Capital Flow
         </h2>
-        <Select value={timeframe} onValueChange={setTimeframe}>
-          <SelectTrigger className="w-32 bg-gray-800/50 border-gray-700">
-            <SelectValue placeholder="Timeframe" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="24h">24 Hours</SelectItem>
-            <SelectItem value="7d">7 Days</SelectItem>
-            <SelectItem value="30d">30 Days</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-4">
+          <Select value={timeframe} onValueChange={setTimeframe}>
+            <SelectTrigger className="w-32 bg-gray-800/50 border-gray-700">
+              <SelectValue placeholder="Timeframe" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="24h">24 Hours</SelectItem>
+              <SelectItem value="7d">7 Days</SelectItem>
+              <SelectItem value="30d">30 Days</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button 
+            variant="outline" 
+            size="icon"
+            className="bg-gray-800/50 border-gray-700"
+            onClick={() => refetch()}
+          >
+            <RefreshCcw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        </div>
+      ) : error ? (
+        <div className="flex-1 flex items-center justify-center text-red-400">
+          Failed to load market data
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center relative">
@@ -81,7 +97,7 @@ const CapitalFlowPanel = () => {
                       <TrendingDown className="w-4 h-4 text-red-400" />
                     )}
                     <span className={`font-medium ${flow.percentage > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {flow.percentage > 0 ? `+${flow.percentage}%` : `${flow.percentage}%`}
+                      {flow.percentage.toFixed(2)}%
                     </span>
                   </div>
                 </div>

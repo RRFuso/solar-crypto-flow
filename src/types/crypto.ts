@@ -1,3 +1,4 @@
+
 export interface CryptoData {
   id: string;
   name: string;
@@ -20,4 +21,11 @@ export interface CryptoData {
   score?: number;
   isExplosive?: boolean;
   criteriaHit?: string[];
+}
+
+export interface FlowData {
+  from: string;
+  to: string;
+  value: number;
+  percentage: number;
 }
