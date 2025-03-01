@@ -82,13 +82,13 @@ const CapitalFlowPanel = () => {
       node.radius = minRadius + (absValue / maxFlow) * (maxRadius - minRadius);
     });
     
-    // Set up force simulation with boundaries to keep nodes in view
+    // Set up force simulation with stronger repulsion and boundaries
     const simulation = d3.forceSimulation(nodes)
-      .force("charge", d3.forceManyBody().strength(-300))
+      .force("charge", d3.forceManyBody().strength(-500)) // Increased repulsion force
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(d => d.radius + 10))
-      .force("x", d3.forceX(width / 2).strength(0.1))
-      .force("y", d3.forceY(height / 2).strength(0.1));
+      .force("collision", d3.forceCollide().radius(d => d.radius + 25)) // Increased collision radius
+      .force("x", d3.forceX(width / 2).strength(0.08))
+      .force("y", d3.forceY(height / 2).strength(0.08));
     
     // Add boundary forces to keep nodes in view
     simulation.on("tick", () => {
