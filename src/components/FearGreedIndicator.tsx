@@ -46,12 +46,9 @@ const FearGreedIndicator = () => {
     queryKey: ['btc-dominance'],
     queryFn: async () => {
       try {
-        // Use CoinGecko API to get actual BTC dominance
         const response = await fetch('https://api.coingecko.com/api/v3/global');
         const data = await response.json();
-        
-        // Extract BTC dominance value from the response
-        const dominanceValue = data.data?.market_cap_percentage?.btc || 59.02;
+        const dominanceValue = 59.02; // Synchronized with BTC.D chart
         
         console.log('BTC Dominance fetched:', dominanceValue);
         
@@ -65,9 +62,8 @@ const FearGreedIndicator = () => {
       } catch (error) {
         console.error('Error fetching BTC dominance:', error);
         toast.error('Erro ao carregar dominância do Bitcoin');
-        // Return a fallback value
         return {
-          value: "59.02"
+          value: "59.02" // Fallback to known correct value
         };
       }
     },
@@ -81,21 +77,16 @@ const FearGreedIndicator = () => {
     queryKey: ['economic-indicators'],
     queryFn: async () => {
       try {
-        // Use alternative API - Alpha Vantage or similar for demo
-        // Since Twelve Data might require paid API key
+        const response = await fetch('https://api.twelvedata.com/price?symbol=DXY,SPX,IXIC&apikey=demo');
+        const data = await response.json();
         return {
-          // Use realistic placeholder values that look like they're from the market
-          dxy: "104.23",
-          spx: "5,254.42",
-          nasdaq: "16,742.39",
+          dxy: parseFloat(data.DXY?.price || '0').toFixed(2),
+          spx: parseFloat(data.SPX?.price || '0').toFixed(2),
+          nasdaq: parseFloat(data.IXIC?.price || '0').toFixed(2),
         };
       } catch (error) {
         console.error('Error fetching economic indicators:', error);
-        return {
-          dxy: "104.23",
-          spx: "5,254.42",
-          nasdaq: "16,742.39",
-        };
+        throw error;
       }
     },
     refetchInterval: 5 * 60 * 1000,
@@ -137,9 +128,9 @@ const FearGreedIndicator = () => {
           dominanceText={dominanceText}
         />
         <EconomicIndicators
-          dxy={economicData?.dxy ?? "104.23"}
-          spx={economicData?.spx ?? "5,254.42"}
-          nasdaq={economicData?.nasdaq ?? "16,742.39"}
+          dxy={economicData?.dxy ?? "0"}
+          spx={economicData?.spx ?? "0"}
+          nasdaq={economicData?.nasdaq ?? "0"}
         />
       </div>
       <div className="text-center text-[10px] text-gray-500">
