@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RefreshCcw, Bitcoin, Diamond, Coins } from 'lucide-react';
@@ -83,11 +82,23 @@ const CapitalFlowPanel = () => {
       node.radius = minRadius + (absValue / maxFlow) * (maxRadius - minRadius);
     });
     
-    // Set up force simulation
+    // Set up force simulation with boundaries to keep nodes in view
     const simulation = d3.forceSimulation(nodes)
       .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(d => d.radius + 10));
+      .force("collision", d3.forceCollide().radius(d => d.radius + 10))
+      .force("x", d3.forceX(width / 2).strength(0.1))
+      .force("y", d3.forceY(height / 2).strength(0.1));
+    
+    // Add boundary forces to keep nodes in view
+    simulation.on("tick", () => {
+      nodes.forEach(node => {
+        // Add padding equal to node radius
+        const padding = node.radius || minRadius;
+        node.x = Math.max(padding, Math.min(width - padding, node.x));
+        node.y = Math.max(padding, Math.min(height - padding, node.y));
+      });
+    });
     
     // Draw links
     const links = flowData.map(flow => ({
@@ -190,6 +201,13 @@ const CapitalFlowPanel = () => {
     
     // Update positions on each tick
     simulation.on("tick", () => {
+      // Keep nodes within bounds
+      nodes.forEach(d => {
+        const radius = d.radius || minRadius;
+        d.x = Math.max(radius, Math.min(width - radius, d.x));
+        d.y = Math.max(radius, Math.min(height - radius, d.y));
+      });
+      
       link.attr("d", d => {
         const dx = d.target.x - d.source.x;
         const dy = d.target.y - d.source.y;
