@@ -75,20 +75,20 @@ const CapitalFlowPanel = () => {
     });
     
     // Calculate node size based on value
-    const minRadius = 30;
-    const maxRadius = 60;
+    const minRadius = 35;
+    const maxRadius = 65;
     nodes.forEach(node => {
       const absValue = Math.abs(node.value);
       node.radius = minRadius + (absValue / maxFlow) * (maxRadius - minRadius);
     });
     
-    // Set up force simulation with stronger repulsion and boundaries
+    // Set up force simulation with even stronger repulsion and boundaries for better distribution
     const simulation = d3.forceSimulation(nodes)
-      .force("charge", d3.forceManyBody().strength(-500)) // Increased repulsion force
+      .force("charge", d3.forceManyBody().strength(-800)) // Increased repulsion force
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(d => d.radius + 25)) // Increased collision radius
-      .force("x", d3.forceX(width / 2).strength(0.08))
-      .force("y", d3.forceY(height / 2).strength(0.08));
+      .force("collision", d3.forceCollide().radius(d => d.radius + 40)) // Increased collision radius more
+      .force("x", d3.forceX(width / 2).strength(0.05))
+      .force("y", d3.forceY(height / 2).strength(0.05));
     
     // Add boundary forces to keep nodes in view
     simulation.on("tick", () => {
@@ -99,6 +99,43 @@ const CapitalFlowPanel = () => {
         node.y = Math.max(padding, Math.min(height - padding, node.y));
       });
     });
+    
+    // Define glow filter for fluorescent effect
+    const defs = svg.append("defs");
+    
+    // Green glow filter
+    const glowFilterGreen = defs.append("filter")
+      .attr("id", "glow-green")
+      .attr("x", "-50%")
+      .attr("y", "-50%")
+      .attr("width", "200%")
+      .attr("height", "200%");
+      
+    glowFilterGreen.append("feGaussianBlur")
+      .attr("stdDeviation", "3")
+      .attr("result", "blur");
+      
+    glowFilterGreen.append("feComposite")
+      .attr("in", "SourceGraphic")
+      .attr("in2", "blur")
+      .attr("operator", "over");
+    
+    // Red glow filter
+    const glowFilterRed = defs.append("filter")
+      .attr("id", "glow-red")
+      .attr("x", "-50%")
+      .attr("y", "-50%")
+      .attr("width", "200%")
+      .attr("height", "200%");
+      
+    glowFilterRed.append("feGaussianBlur")
+      .attr("stdDeviation", "3")
+      .attr("result", "blur");
+      
+    glowFilterRed.append("feComposite")
+      .attr("in", "SourceGraphic")
+      .attr("in2", "blur")
+      .attr("operator", "over");
     
     // Draw links
     const links = flowData.map(flow => ({
@@ -119,7 +156,8 @@ const CapitalFlowPanel = () => {
       .attr("stroke-width", d => 2 + (Math.abs(d.value) / maxFlow) * 6)
       .attr("fill", "none")
       .attr("stroke-dasharray", "10,10")
-      .attr("opacity", 0.7);
+      .attr("opacity", 0.9)
+      .attr("filter", d => d.percentage > 0 ? "url(#glow-green)" : "url(#glow-red)");
     
     // Create markers (arrows)
     svg.append("defs").selectAll("marker")
@@ -127,7 +165,7 @@ const CapitalFlowPanel = () => {
       .enter().append("marker")
       .attr("id", (d, i) => `arrow-${i}`)
       .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 25)
+      .attr("refX", 30) // Increased to account for larger circles
       .attr("refY", 0)
       .attr("markerWidth", 6)
       .attr("markerHeight", 6)
@@ -148,6 +186,7 @@ const CapitalFlowPanel = () => {
         .attr("fill", d.percentage > 0 ? "#00ffcc" : "#ff0066")
         .attr("class", "flow-particle")
         .attr("opacity", 0.8)
+        .attr("filter", d.percentage > 0 ? "url(#glow-green)" : "url(#glow-red)")
         .append("animate")
         .attr("attributeName", "opacity")
         .attr("values", "0;1;0")
@@ -168,7 +207,16 @@ const CapitalFlowPanel = () => {
         .on("drag", dragged)
         .on("end", dragended));
     
-    // Add circles
+    // Add outer glowing circles
+    node.append("circle")
+      .attr("r", d => d.radius + 2)  // Slightly larger for border effect
+      .attr("fill", "none")
+      .attr("stroke", d => getNodeBorderColor(d))
+      .attr("stroke-width", 2)
+      .attr("opacity", 0.9)
+      .attr("filter", d => d.value >= 0 ? "url(#glow-green)" : "url(#glow-red)");
+    
+    // Add main circles
     node.append("circle")
       .attr("r", d => d.radius)
       .attr("fill", d => getNodeColor(d))
@@ -176,12 +224,72 @@ const CapitalFlowPanel = () => {
       .attr("stroke-width", 2)
       .attr("opacity", 0.7);
     
-    // Add text
+    // Add cryptocurrency icons
+    node.each(function(d) {
+      const group = d3.select(this);
+      const iconSize = d.radius * 0.6; // Size relative to circle
+      
+      if (d.id === "BTC") {
+        // Bitcoin icon
+        group.append("svg:foreignObject")
+          .attr("width", iconSize * 2)
+          .attr("height", iconSize * 2)
+          .attr("x", -iconSize)
+          .attr("y", -iconSize)
+          .append("xhtml:div")
+          .html(`<svg width="${iconSize * 2}" height="${iconSize * 2}" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m3.94.694-.346 1.97" />
+            <path d="M14.62 11.222l-.347 1.97M7.48 10.527l2.758.486" />
+          </svg>`);
+      } else if (d.id === "ETH") {
+        // Ethereum icon
+        group.append("svg:foreignObject")
+          .attr("width", iconSize * 2)
+          .attr("height", iconSize * 2)
+          .attr("x", -iconSize)
+          .attr("y", -iconSize)
+          .append("xhtml:div")
+          .html(`<svg width="${iconSize * 2}" height="${iconSize * 2}" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 12 6-9 6 9M6 12l6 9 6-9M6 12l6-2 6 2M6 12l6 2 6-2" />
+          </svg>`);
+      } else if (d.id === "LARGE") {
+        // Diamond icon for large caps
+        group.append("svg:foreignObject")
+          .attr("width", iconSize * 2)
+          .attr("height", iconSize * 2)
+          .attr("x", -iconSize)
+          .attr("y", -iconSize)
+          .append("xhtml:div")
+          .html(`<svg width="${iconSize * 2}" height="${iconSize * 2}" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 2H8L2 8l10 14L22 8l-6-6Z" />
+            <path d="M12 22V8" />
+            <path d="m2 8 10 10 10-10" />
+          </svg>`);
+      } else {
+        // Generic coins icon for other cryptos
+        group.append("svg:foreignObject")
+          .attr("width", iconSize * 2)
+          .attr("height", iconSize * 2)
+          .attr("x", -iconSize)
+          .attr("y", -iconSize)
+          .append("xhtml:div")
+          .html(`<svg width="${iconSize * 2}" height="${iconSize * 2}" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="8" r="6" />
+            <path d="M18.09 10.37A6 6 0 1 1 10.34 18" />
+            <path d="M7 6h1v4" />
+            <path d="m16.71 13.88.7.71-2.82 2.82" />
+          </svg>`);
+      }
+    });
+    
+    // Add text labels
     node.append("text")
       .attr("text-anchor", "middle")
-      .attr("dy", ".3em")
+      .attr("dy", d => d.radius + 15) // Position below the circle
       .attr("fill", "white")
       .attr("font-weight", "bold")
+      .attr("font-size", "12px")
+      .attr("class", "text-shadow")
       .text(d => d.id);
     
     // Add pulsating effect
@@ -192,11 +300,23 @@ const CapitalFlowPanel = () => {
       .attr("dur", "3s")
       .attr("repeatCount", "indefinite");
     
+    // Add a subtle text shadow style
+    svg.append("style").text(`
+      .text-shadow {
+        text-shadow: 0 0 3px rgba(0,0,0,0.8), 0 0 5px rgba(0,0,0,0.6);
+      }
+    `);
+    
     function getNodeColor(node) {
       if (node.id === "BTC") return "#F7931A"; // Bitcoin color
       if (node.id === "LARGE") return "#0ea5e9"; // Large caps
       if (node.id === "ETH") return "#627EEA"; // Ethereum color
       return "#1c2030"; // Default
+    }
+    
+    function getNodeBorderColor(node) {
+      if (node.value >= 0) return "#00ffcc"; // Inflow
+      return "#ff0066"; // Outflow
     }
     
     // Update positions on each tick
@@ -316,11 +436,11 @@ const CapitalFlowPanel = () => {
           {/* Legend */}
           <div className="flex items-center justify-center gap-6 mt-4 text-sm text-white/80">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-neon-green"></div>
+              <div className="w-3 h-3 rounded-full bg-neon-green filter drop-shadow-[0_0_2px_rgba(0,255,204,0.8)]"></div>
               <span>Capital Inflow</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-neon-red"></div>
+              <div className="w-3 h-3 rounded-full bg-neon-red filter drop-shadow-[0_0_2px_rgba(255,0,102,0.8)]"></div>
               <span>Capital Outflow</span>
             </div>
             <div className="flex items-center gap-2">
