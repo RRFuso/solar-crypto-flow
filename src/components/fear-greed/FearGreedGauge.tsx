@@ -1,3 +1,4 @@
+
 import React from 'react';
 import GaugeChart from 'react-gauge-chart';
 import { Skull, Scale, PartyPopper } from 'lucide-react';
@@ -18,7 +19,7 @@ export const getIcon = (value: number) => {
 
 const FearGreedGauge = ({ value, classification, colors, message, messageColor }: FearGreedGaugeProps) => {
   return (
-    <div className="w-96 space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+    <div className="w-full max-w-md space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium">Medo & Ganância</span>

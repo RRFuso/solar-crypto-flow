@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowBigRight, TrendingUp, TrendingDown, RefreshCcw, Bitcoin, Diamond, Coins } from 'lucide-react';
+import { RefreshCcw, Bitcoin, Diamond, Coins } from 'lucide-react';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { fetchMarketData } from '@/lib/marketData';
@@ -42,7 +42,7 @@ const CapitalFlowPanel = () => {
     if (!flowData || flowData.length === 0 || !svgRef.current || !containerRef.current) return;
 
     const width = containerRef.current.clientWidth;
-    const height = 300;
+    const height = 350;
     
     // Clear previous SVG content
     d3.select(svgRef.current).selectAll("*").remove();
@@ -252,10 +252,6 @@ const CapitalFlowPanel = () => {
     }
   };
 
-  const getFlowColor = (percentage: number) => {
-    return percentage > 0 ? 'text-neon-green' : 'text-neon-red';
-  };
-
   return (
     <div className="w-full h-full flex flex-col gap-6 p-6 bg-crypto-dark backdrop-blur-xl border border-white/10 rounded-xl shadow-lg">
       <div className="flex items-center justify-between">
@@ -295,56 +291,8 @@ const CapitalFlowPanel = () => {
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center relative">
           {/* D3 Visualization */}
-          <div ref={containerRef} className="w-full h-[300px] mb-4">
+          <div ref={containerRef} className="w-full flex-1">
             <svg ref={svgRef} className="w-full h-full" />
-          </div>
-          
-          {/* Traditional flow visualization as fallback/additional info */}
-          <div className="w-full flex flex-wrap gap-8 items-center justify-center p-4">
-            {flowData?.map((flow, index) => (
-              <TooltipProvider key={index}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div 
-                      className="flex items-center gap-4 animate-fade-in"
-                      style={{ animationDelay: `${index * 150}ms` }}
-                    >
-                      <div className="bg-white/5 px-6 py-3 rounded-xl border border-white/10 shadow-lg hover:bg-white/10 transition-all duration-200 flex items-center gap-2">
-                        {getCryptoIcon(flow.from)}
-                        <span className="text-white">{flow.from}</span>
-                      </div>
-                      <div className="flex flex-col items-center gap-2">
-                        <ArrowBigRight 
-                          className={`w-12 h-12 transition-all duration-300 animate-flow-pulse ${getFlowColor(flow.percentage)}`}
-                          style={{
-                            opacity: 0.3 + (flow.value / maxFlow) * 0.7,
-                            transform: `scale(${0.8 + (flow.value / maxFlow) * 0.4})`
-                          }}
-                        />
-                        <div className="flex items-center gap-1 text-sm">
-                          {flow.percentage > 0 ? (
-                            <TrendingUp className="w-4 h-4 text-neon-green" />
-                          ) : (
-                            <TrendingDown className="w-4 h-4 text-neon-red" />
-                          )}
-                          <span className={`font-medium ${getFlowColor(flow.percentage)}`}>
-                            {flow.percentage.toFixed(2)}%
-                          </span>
-                        </div>
-                      </div>
-                      <div className="bg-white/5 px-6 py-3 rounded-xl border border-white/10 shadow-lg hover:bg-white/10 transition-all duration-200 flex items-center gap-2">
-                        {getCryptoIcon(flow.to)}
-                        <span className="text-white">{flow.to}</span>
-                      </div>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Flow Value: {flow.value.toFixed(2)}</p>
-                    <p>Change: {flow.percentage.toFixed(2)}%</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ))}
           </div>
           
           {/* Legend */}

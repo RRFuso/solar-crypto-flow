@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TrendingUp, DollarSign, LineChart } from 'lucide-react';
 
@@ -9,7 +10,7 @@ interface EconomicIndicatorsProps {
 
 const EconomicIndicators = ({ dxy, spx, nasdaq }: EconomicIndicatorsProps) => {
   return (
-    <div className="w-96 space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
+    <div className="w-full max-w-md space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-blue-500" />

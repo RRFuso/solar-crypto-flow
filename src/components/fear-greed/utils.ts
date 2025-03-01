@@ -1,3 +1,4 @@
+
 export const getClassification = (value: number): string => {
   if (value <= 20) return "Medo Extremo";
   if (value <= 40) return "Medo";

@@ -3,6 +3,7 @@ import { useState } from "react";
 import CryptoPanel from "@/components/CryptoPanel";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import CapitalFlowPanel from "@/components/CapitalFlowPanel";
+import FearGreedIndicator from "@/components/FearGreedIndicator";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
@@ -10,7 +11,12 @@ const Index = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "home":
-        return <CapitalFlowPanel />;
+        return (
+          <div className="space-y-8">
+            <CapitalFlowPanel />
+            <FearGreedIndicator />
+          </div>
+        );
       case "performance":
         return <CryptoPanel />;
       default:

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -113,7 +114,7 @@ const FearGreedIndicator = () => {
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      <div className="flex gap-4">
+      <div className="flex flex-wrap justify-center gap-4 md:flex-nowrap">
         <FearGreedGauge
           value={value}
           classification={classification}
