@@ -367,7 +367,7 @@ const NarrativeFlowPanel = () => {
               <TooltipContent>
                 <p className="max-w-xs">
                   {usePredictions 
-                    ? "AI predictions show expected capital movements between crypto narratives based on LSTM model analysis" 
+                    ? "AI predictions using TensorFlow.js LSTM model trained on narrative capital flow patterns" 
                     : "Historical capital flows between different crypto market narratives"
                   }
                 </p>
@@ -415,7 +415,7 @@ const NarrativeFlowPanel = () => {
         <div className="flex-1 flex flex-col items-center justify-center relative">
           {usePredictions && predictionData && (
             <div className="absolute top-0 right-0 bg-gradient-to-r from-purple-900/40 to-indigo-900/40 px-3 py-1 rounded-lg text-xs text-white/90 border border-white/10">
-              Confidence: {Math.round(predictionData.confidence * 100)}%
+              Modelo LSTM: {Math.round(predictionData.confidence * 100)}% confianza
             </div>
           )}
           
@@ -430,24 +430,24 @@ const NarrativeFlowPanel = () => {
               <>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-[#00ffaa]"></div>
-                  <span>Predicted Flow</span>
+                  <span>Flujo Predicho</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-purple-400" />
-                  <span>LSTM Model Prediction</span>
+                  <span>Modelo LSTM TensorFlow.js</span>
                 </div>
               </>
             ) : (
               <>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-[#ff00aa]"></div>
-                  <span>Historical Flow</span>
+                  <span>Flujo Histórico</span>
                 </div>
               </>
             )}
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-white"></div>
-              <span>Node Size = Market Cap</span>
+              <span>Tamaño Nodo = Market Cap</span>
             </div>
           </div>
         </div>

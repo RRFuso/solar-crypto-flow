@@ -1,5 +1,5 @@
-
 import { NarrativeData, NarrativeFlow, ModelPrediction } from '@/types/narratives';
+import { predictWithModel } from './narrativeModel';
 
 // Define the main crypto narratives
 const NARRATIVES: NarrativeData[] = [
@@ -84,72 +84,52 @@ const NARRATIVES: NarrativeData[] = [
 
 // Mock function to simulate LSTM model predictions
 export const predictNarrativeFlows = async (): Promise<ModelPrediction> => {
-  // In a real implementation, this would call a backend service with the trained model
-  // For now, we'll generate some realistic simulated data
-  
-  const flows: NarrativeFlow[] = [];
-  const activeNarratives = [...NARRATIVES];
-  
-  // Generate 5-8 realistic flows between narratives
-  const flowCount = 5 + Math.floor(Math.random() * 4);
-  
-  for (let i = 0; i < flowCount; i++) {
-    const sourceIndex = Math.floor(Math.random() * activeNarratives.length);
-    let targetIndex = Math.floor(Math.random() * activeNarratives.length);
+  try {
+    // Use our TensorFlow.js LSTM model for predictions
+    const predictions = await predictWithModel(NARRATIVES);
+    return predictions;
+  } catch (error) {
+    console.error("Error predicting narrative flows:", error);
     
-    // Ensure source and target are different
-    while (targetIndex === sourceIndex) {
-      targetIndex = Math.floor(Math.random() * activeNarratives.length);
+    // Fallback to simulated data if model fails
+    const flows: NarrativeFlow[] = [];
+    const activeNarratives = [...NARRATIVES];
+    
+    // Generate 5-8 realistic flows between narratives
+    const flowCount = 5 + Math.floor(Math.random() * 4);
+    
+    for (let i = 0; i < flowCount; i++) {
+      const sourceIndex = Math.floor(Math.random() * activeNarratives.length);
+      let targetIndex = Math.floor(Math.random() * activeNarratives.length);
+      
+      // Ensure source and target are different
+      while (targetIndex === sourceIndex) {
+        targetIndex = Math.floor(Math.random() * activeNarratives.length);
+      }
+      
+      const source = activeNarratives[sourceIndex];
+      const target = activeNarratives[targetIndex];
+      
+      // Calculate a realistic flow value based on market caps
+      const basePercentage = (Math.random() * 5) + 0.5; // 0.5% to 5.5%
+      const adjustedPercentage = basePercentage * (source.change24h > 0 ? 1.2 : 0.8);
+      const flowValue = (source.marketCap * adjustedPercentage) / 100;
+      
+      flows.push({
+        from: source.id,
+        to: target.id,
+        value: flowValue,
+        percentage: adjustedPercentage,
+        predicted: true
+      });
     }
     
-    const source = activeNarratives[sourceIndex];
-    const target = activeNarratives[targetIndex];
-    
-    // Calculate a realistic flow value based on market caps
-    const basePercentage = (Math.random() * 5) + 0.5; // 0.5% to 5.5%
-    const adjustedPercentage = basePercentage * (source.change24h > 0 ? 1.2 : 0.8);
-    const flowValue = (source.marketCap * adjustedPercentage) / 100;
-    
-    flows.push({
-      from: source.id,
-      to: target.id,
-      value: flowValue,
-      percentage: adjustedPercentage,
-      predicted: true
-    });
+    return {
+      narrativeFlows: flows,
+      timestamp: new Date().toISOString(),
+      confidence: 0.7 + (Math.random() * 0.2) // 70-90% confidence
+    };
   }
-  
-  // Add some flows that indicate a strong trend (from the same source)
-  // This simulates a narrative losing capital to multiple others
-  const trendSource = activeNarratives[Math.floor(Math.random() * activeNarratives.length)];
-  const trendCount = 2; 
-  
-  for (let i = 0; i < trendCount; i++) {
-    let targetIndex = Math.floor(Math.random() * activeNarratives.length);
-    
-    // Ensure target is not the same as trend source
-    while (activeNarratives[targetIndex].id === trendSource.id) {
-      targetIndex = Math.floor(Math.random() * activeNarratives.length);
-    }
-    
-    const target = activeNarratives[targetIndex];
-    const basePercentage = (Math.random() * 6) + 3; // 3% to 9% (stronger trend)
-    const flowValue = (trendSource.marketCap * basePercentage) / 100;
-    
-    flows.push({
-      from: trendSource.id,
-      to: target.id,
-      value: flowValue,
-      percentage: basePercentage,
-      predicted: true
-    });
-  }
-  
-  return {
-    narrativeFlows: flows,
-    timestamp: new Date().toISOString(),
-    confidence: 0.7 + (Math.random() * 0.2) // 70-90% confidence
-  };
 };
 
 // Get all narrative data
