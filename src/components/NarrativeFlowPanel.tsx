@@ -39,8 +39,7 @@ const NarrativeFlowPanel = () => {
     staleTime: 60000,
     meta: {
       onError: () => {
-        toast({
-          title: "Prediction Error",
+        toast("Prediction Error", {
           description: "Failed to generate narrative predictions. Please try again later.",
           variant: "destructive"
         });
@@ -62,20 +61,18 @@ const NarrativeFlowPanel = () => {
   const handleRefresh = () => {
     refetchHistorical();
     refetchPredictions();
-    toast({
-      title: "Refreshing data",
-      description: "Fetching the latest narrative flows",
+    toast("Refreshing data", {
+      description: "Fetching the latest narrative flows"
     });
   };
 
   // Toggle predictions
   const handleTogglePredictions = (checked: boolean) => {
     setUsePredictions(checked);
-    toast({
-      title: checked ? "AI Predictions Enabled" : "Historical Data Only",
+    toast(checked ? "AI Predictions Enabled" : "Historical Data Only", {
       description: checked 
         ? "Showing LSTM model predictions for future capital flows" 
-        : "Showing actual historical capital movements between narratives",
+        : "Showing actual historical capital movements between narratives"
     });
   };
 
