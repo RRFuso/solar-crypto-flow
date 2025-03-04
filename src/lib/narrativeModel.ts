@@ -92,7 +92,9 @@ export const generateFlowPredictions = async (
     const normalizedHistory = normalizeData(historyData);
     
     // Crear tensor para la predicción
-    const inputTensor = tf.tensor3d([normalizedHistory], [1, sequenceLength, 1]);
+    // Fix: Reshape the array to match the expected tensor shape [batch, timesteps, features]
+    const reshapedInput = [normalizedHistory.map(value => [value])];
+    const inputTensor = tf.tensor3d(reshapedInput);
     
     // Hacer predicción
     const prediction = model.predict(inputTensor) as tf.Tensor;
