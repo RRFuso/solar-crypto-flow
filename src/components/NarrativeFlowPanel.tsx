@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RefreshCcw, TrendingUp, BrainCircuit } from 'lucide-react';
@@ -39,9 +40,8 @@ const NarrativeFlowPanel = () => {
     staleTime: 60000,
     meta: {
       onError: () => {
-        toast("Prediction Error", {
-          description: "Failed to generate narrative predictions. Please try again later.",
-          variant: "destructive"
+        toast.error("Prediction Error", {
+          description: "Failed to generate narrative predictions. Please try again later."
         });
       }
     }
@@ -61,7 +61,7 @@ const NarrativeFlowPanel = () => {
   const handleRefresh = () => {
     refetchHistorical();
     refetchPredictions();
-    toast("Refreshing data", {
+    toast.info("Refreshing data", {
       description: "Fetching the latest narrative flows"
     });
   };
@@ -69,11 +69,15 @@ const NarrativeFlowPanel = () => {
   // Toggle predictions
   const handleTogglePredictions = (checked: boolean) => {
     setUsePredictions(checked);
-    toast(checked ? "AI Predictions Enabled" : "Historical Data Only", {
-      description: checked 
-        ? "Showing LSTM model predictions for future capital flows" 
-        : "Showing actual historical capital movements between narratives"
-    });
+    if (checked) {
+      toast.success("AI Predictions Enabled", {
+        description: "Showing LSTM model predictions for future capital flows"
+      });
+    } else {
+      toast.info("Historical Data Only", {
+        description: "Showing actual historical capital movements between narratives"
+      });
+    }
   };
 
   // Set up D3 visualization
