@@ -5,7 +5,6 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import CapitalFlowPanel from "@/components/CapitalFlowPanel";
 import FearGreedIndicator from "@/components/FearGreedIndicator";
 import NarrativeFlowPanel from "@/components/NarrativeFlowPanel";
-import PlanetaryFlowVisualization from "@/components/planetary/PlanetaryFlowVisualization";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
@@ -15,7 +14,6 @@ const Index = () => {
       case "home":
         return (
           <div className="space-y-8">
-            <PlanetaryFlowVisualization />
             <NarrativeFlowPanel />
             <CapitalFlowPanel />
             <FearGreedIndicator />
