@@ -170,7 +170,7 @@ export const useCapitalFlowVisualization = () => {
       nodes.forEach(d => {
         const radius = d.radius || minRadius;
         d.x = Math.max(radius, Math.min(width - radius, d.x || 0));
-        d.y = Math.max(padding, Math.min(height - radius, d.y || 0));
+        d.y = Math.max(radius, Math.min(height - radius, d.y || 0));
       });
       
       link.attr("d", d => {
