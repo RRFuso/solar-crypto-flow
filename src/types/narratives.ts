@@ -1,3 +1,4 @@
+
 export interface NarrativeData {
   id: string;
   name: string;

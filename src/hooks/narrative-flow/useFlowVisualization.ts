@@ -96,31 +96,52 @@ export const useFlowVisualization = () => {
 
     // Add crypto logos in circles
     node.each(function(d) {
-      const mainToken = d.tokens[0] || "";
+      const numLogos = Math.min(d.tokens.length, 5); // Display up to 5 logos
+      const logoRadius = d.radius * 0.35; // Size of each logo
       
-      // Add circular clip path for logo
-      const clipId = `clip-${d.id}`;
-      defs.append("clipPath")
-        .attr("id", clipId)
-        .append("circle")
-        .attr("r", d.radius * 0.5);
-      
-      // Add logo as image
-      d3.select(this)
-        .append("image")
-        .attr("href", `https://assets.coingecko.com/coins/images/1/large/bitcoin.png?1547033579`.replace("bitcoin", mainToken.toLowerCase()))
-        .attr("width", d.radius)
-        .attr("height", d.radius)
-        .attr("x", -d.radius * 0.5)
-        .attr("y", -d.radius * 0.5)
-        .attr("clip-path", `url(#${clipId})`)
-        .attr("preserveAspectRatio", "xMidYMid slice");
+      // Add circular clip paths for logos
+      for (let i = 0; i < numLogos; i++) {
+        const token = d.tokens[i];
+        const clipId = `clip-${d.id}-${i}`;
+        
+        defs.append("clipPath")
+          .attr("id", clipId)
+          .append("circle")
+          .attr("r", logoRadius);
+        
+        // Calculate position for each logo in a circular arrangement
+        let x = 0;
+        let y = 0;
+        
+        if (numLogos === 1) {
+          // Single logo in center
+          x = 0;
+          y = 0;
+        } else {
+          // Multiple logos in a circular arrangement
+          const angle = (2 * Math.PI * i) / numLogos;
+          const distance = numLogos > 2 ? d.radius * 0.4 : d.radius * 0.25;
+          x = Math.cos(angle) * distance;
+          y = Math.sin(angle) * distance;
+        }
+        
+        // Add logo as image
+        d3.select(this)
+          .append("image")
+          .attr("href", `https://assets.coingecko.com/coins/images/1/large/bitcoin.png?1547033579`.replace("bitcoin", token.toLowerCase()))
+          .attr("width", logoRadius * 2)
+          .attr("height", logoRadius * 2)
+          .attr("x", x - logoRadius)
+          .attr("y", y - logoRadius)
+          .attr("clip-path", `url(#${clipId})`)
+          .attr("preserveAspectRatio", "xMidYMid slice");
+      }
     });
 
     // Add node labels
     node.append("text")
       .attr("text-anchor", "middle")
-      .attr("dy", ".3em")
+      .attr("dy", d => d.radius + 15)
       .attr("fill", "white")
       .attr("font-weight", "bold")
       .attr("font-size", d => Math.min(d.radius * 0.4, 14))
@@ -129,10 +150,10 @@ export const useFlowVisualization = () => {
     // Add token names
     node.append("text")
       .attr("text-anchor", "middle")
-      .attr("dy", d => d.radius + 15)
+      .attr("dy", d => d.radius + 35)
       .attr("fill", "white")
       .attr("font-size", "10px")
-      .text(d => d.tokens.slice(0, 2).join(", "));
+      .text(d => d.tokens.slice(0, 3).join(", "));
 
     return {
       link,

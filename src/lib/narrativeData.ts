@@ -1,3 +1,4 @@
+
 import { NarrativeData, NarrativeFlow, ModelPrediction } from '@/types/narratives';
 import { predictWithModel } from './narrativeModel';
 
@@ -11,7 +12,7 @@ const NARRATIVES: NarrativeData[] = [
     dominance: 1.2,
     change24h: 5.3,
     change7d: 12.7,
-    tokens: ['FET', 'OCEAN', 'AGIX', 'RLC', 'NMR'],
+    tokens: ['FET', 'OCEAN', 'AGIX', 'RLC', 'NMR', 'GRT', 'RNDR'],
     color: '#FF5733'
   },
   {
@@ -22,7 +23,7 @@ const NARRATIVES: NarrativeData[] = [
     dominance: 3.4,
     change24h: -2.1,
     change7d: 4.5,
-    tokens: ['UNI', 'AAVE', 'MKR', 'COMP', 'SNX'],
+    tokens: ['UNI', 'AAVE', 'MKR', 'COMP', 'SNX', 'CAKE', 'CRV', 'SUSHI', 'BAL'],
     color: '#6A0DAD'
   },
   {
@@ -33,7 +34,7 @@ const NARRATIVES: NarrativeData[] = [
     dominance: 0.7,
     change24h: 7.8,
     change7d: 15.2,
-    tokens: ['INJ', 'TRB', 'RNDR', 'LPT', 'ICP'],
+    tokens: ['INJ', 'TRB', 'RNDR', 'LPT', 'ICP', 'NEAR', 'QNT'],
     color: '#3498DB'
   },
   {
@@ -44,7 +45,7 @@ const NARRATIVES: NarrativeData[] = [
     dominance: 2.4,
     change24h: 8.9,
     change7d: -5.3,
-    tokens: ['DOGE', 'SHIB', 'PEPE', 'FLOKI', 'WIF'],
+    tokens: ['DOGE', 'SHIB', 'PEPE', 'FLOKI', 'WIF', 'BONK', 'MEME'],
     color: '#F1C40F'
   },
   {
@@ -55,7 +56,7 @@ const NARRATIVES: NarrativeData[] = [
     dominance: 0.4,
     change24h: 1.2,
     change7d: 3.8,
-    tokens: ['RWA', 'RNDR', 'LDO', 'PAXG', 'MNT'],
+    tokens: ['RWA', 'RNDR', 'LDO', 'PAXG', 'MNT', 'FXS', 'XAUt'],
     color: '#27AE60'
   },
   {
@@ -66,7 +67,7 @@ const NARRATIVES: NarrativeData[] = [
     dominance: 17.6,
     change24h: -1.5,
     change7d: 2.1,
-    tokens: ['ETH', 'SOL', 'ADA', 'AVAX', 'DOT'],
+    tokens: ['ETH', 'SOL', 'ADA', 'AVAX', 'DOT', 'ATOM', 'NEAR', 'FTM', 'ONE'],
     color: '#E74C3C'
   },
   {
@@ -77,7 +78,7 @@ const NARRATIVES: NarrativeData[] = [
     dominance: 1.5,
     change24h: 3.2,
     change7d: 8.9,
-    tokens: ['SAND', 'MANA', 'AXS', 'ILV', 'ENJ'],
+    tokens: ['SAND', 'MANA', 'AXS', 'ILV', 'ENJ', 'GALA', 'IMX', 'MAGIC', 'APE'],
     color: '#16A085'
   }
 ];
