@@ -1,4 +1,3 @@
-
 import { useEffect, RefObject } from 'react';
 import * as d3 from 'd3';
 import { NarrativeFlow, NarrativeData } from '@/types/narratives';
@@ -63,6 +62,9 @@ export const useNarrativeFlowVisualization = (
       }
     });
 
+    // Sort nodes by market cap (descending)
+    nodes.sort((a, b) => b.value - a.value);
+
     // Scale node sizes
     const minRadius = 40;
     const maxRadius = 80;
@@ -76,13 +78,29 @@ export const useNarrativeFlowVisualization = (
             .range([minRadius, maxRadius])(node.value);
     });
 
-    // Set up force simulation
-    const simulation = d3.forceSimulation(nodes)
-      .force("charge", d3.forceManyBody().strength(-1200))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(d => d.radius + 40))
-      .force("x", d3.forceX(width / 2).strength(0.05))
-      .force("y", d3.forceY(height / 2).strength(0.05));
+    // Position nodes with largest on the left, others distributed on the right
+    const largestNode = nodes[0];
+    const otherNodes = nodes.slice(1);
+    
+    // Set largest node position on the left
+    largestNode.x = width * 0.25;
+    largestNode.y = height / 2;
+    largestNode.fx = largestNode.x; // Fix position
+    largestNode.fy = largestNode.y;
+    
+    // Distribute other nodes on the right side
+    const rightSideWidth = width * 0.5;
+    const rightSideStartX = width * 0.5;
+    const rows = Math.ceil(Math.sqrt(otherNodes.length));
+    const cols = Math.ceil(otherNodes.length / rows);
+    
+    otherNodes.forEach((node, i) => {
+      const row = Math.floor(i / cols);
+      const col = i % cols;
+      
+      node.x = rightSideStartX + (col * rightSideWidth / cols);
+      node.y = (row + 0.5) * (height / rows);
+    });
 
     // Create links
     const links = flowData.map(flow => ({
@@ -93,9 +111,37 @@ export const useNarrativeFlowVisualization = (
       predicted: flow.predicted
     }));
 
+    // Set up force simulation with reduced forces for more static layout
+    const simulation = d3.forceSimulation(nodes)
+      .force("charge", d3.forceManyBody().strength(-200))
+      .force("collision", d3.forceCollide().radius(d => d.radius + 20))
+      .alphaDecay(0.05) // Slower decay for more stable positioning
+      .velocityDecay(0.6); // More damping to prevent excessive movement
+
+    // Avoid center force to maintain our manual positioning
+
     // Draw visualization elements
     const drawVisualization = () => {
-      // Draw links with arrows
+      // Create defs for logos and glows
+      const defs = svg.append("defs");
+      
+      // Create glow filter
+      const filter = defs.append("filter")
+        .attr("id", "glow")
+        .attr("x", "-50%")
+        .attr("y", "-50%")
+        .attr("width", "200%")
+        .attr("height", "200%");
+
+      filter.append("feGaussianBlur")
+        .attr("stdDeviation", "3")
+        .attr("result", "coloredBlur");
+
+      const feMerge = filter.append("feMerge");
+      feMerge.append("feMergeNode").attr("in", "coloredBlur");
+      feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+      
+      // Draw links with curved paths (similar to CapitalFlowPanel)
       const linkGroup = svg.append("g").attr("class", "links");
       
       const link = linkGroup.selectAll("path")
@@ -109,8 +155,28 @@ export const useNarrativeFlowVisualization = (
           return 2 + (d.value / maxFlow) * 8;
         })
         .attr("fill", "none")
-        .attr("stroke-dasharray", d => isPredicted ? "5,5" : "none")
+        .attr("stroke-dasharray", "10,10") // Dashed lines like in CapitalFlowPanel)
         .attr("opacity", 0.7);
+
+      // Add animated particles for flow visualization
+      links.forEach((link, i) => {
+        const particles = 3;
+        for (let j = 0; j < particles; j++) {
+          const particle = svg.append("circle")
+            .attr("r", 3)
+            .attr("fill", isPredicted ? "#00ffaa" : "#ff00aa")
+            .attr("class", "flow-particle")
+            .attr("opacity", 0.8);
+            
+          // Create animated flow effect
+          particle.append("animate")
+            .attr("attributeName", "opacity")
+            .attr("values", "0;1;0")
+            .attr("dur", "4s")
+            .attr("repeatCount", "indefinite")
+            .attr("begin", `${j * 1.3}s`); // Stagger animations
+        }
+      });
 
       // Add nodes
       const nodeGroup = svg.append("g").attr("class", "nodes");
@@ -134,6 +200,29 @@ export const useNarrativeFlowVisualization = (
         .attr("opacity", 0.7)
         .attr("filter", "url(#glow)");
 
+      // Add crypto logos in circles
+      node.each(function(d) {
+        const mainToken = d.tokens[0] || "";
+        
+        // Add circular clip path for logo
+        const clipId = `clip-${d.id}`;
+        defs.append("clipPath")
+          .attr("id", clipId)
+          .append("circle")
+          .attr("r", d.radius * 0.5);
+        
+        // Add logo as image
+        d3.select(this)
+          .append("image")
+          .attr("href", `https://assets.coingecko.com/coins/images/1/large/bitcoin.png?1547033579`.replace("bitcoin", mainToken.toLowerCase()))
+          .attr("width", d.radius)
+          .attr("height", d.radius)
+          .attr("x", -d.radius * 0.5)
+          .attr("y", -d.radius * 0.5)
+          .attr("clip-path", `url(#${clipId})`)
+          .attr("preserveAspectRatio", "xMidYMid slice");
+      });
+
       // Add node labels
       node.append("text")
         .attr("text-anchor", "middle")
@@ -149,37 +238,55 @@ export const useNarrativeFlowVisualization = (
         .attr("dy", d => d.radius + 15)
         .attr("fill", "white")
         .attr("font-size", "10px")
-        .text(d => d.tokens.slice(0, 3).join(", "));
+        .text(d => d.tokens.slice(0, 2).join(", "));
 
       // Update positions on simulation tick
       simulation.on("tick", () => {
+        // Keep nodes within bounds
+        nodes.forEach(d => {
+          const padding = d.radius || 40;
+          // Only adjust y bounds to maintain left-right positioning
+          d.y = Math.max(padding, Math.min(height - padding, d.y));
+        });
+        
+        // Update link paths using curved lines
         link.attr("d", d => {
           const dx = d.target.x - d.source.x;
           const dy = d.target.y - d.source.y;
-          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
+          const dr = Math.sqrt(dx * dx + dy * dy) * 2; // Curved path
           return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+        });
+
+        // Update particle positions
+        svg.selectAll(".flow-particle").each(function(d, i) {
+          const linkIndex = i % links.length;
+          const link = links[linkIndex];
+          
+          // Calculate position along the path
+          const t = (Date.now() / 4000 + i * 0.2) % 1;
+          
+          // Linear interpolation for position
+          const sourceX = link.source.x;
+          const sourceY = link.source.y;
+          const targetX = link.target.x;
+          const targetY = link.target.y;
+          
+          // Add curve to match the path
+          const dx = targetX - sourceX;
+          const dy = targetY - sourceY;
+          
+          // Simple curved path approximation
+          const curveX = sourceX + dx * t;
+          const curveY = sourceY + dy * t - Math.sin(t * Math.PI) * 20;
+          
+          d3.select(this)
+            .attr("cx", curveX)
+            .attr("cy", curveY);
         });
 
         node.attr("transform", d => `translate(${d.x},${d.y})`);
       });
     };
-
-    // Create glow filter
-    const defs = svg.append("defs");
-    const filter = defs.append("filter")
-      .attr("id", "glow")
-      .attr("x", "-50%")
-      .attr("y", "-50%")
-      .attr("width", "200%")
-      .attr("height", "200%");
-
-    filter.append("feGaussianBlur")
-      .attr("stdDeviation", "3")
-      .attr("result", "coloredBlur");
-
-    const feMerge = filter.append("feMerge");
-    feMerge.append("feMergeNode").attr("in", "coloredBlur");
-    feMerge.append("feMergeNode").attr("in", "SourceGraphic");
 
     // Draw the visualization
     drawVisualization();
@@ -198,8 +305,12 @@ export const useNarrativeFlowVisualization = (
 
     function dragended(event: any) {
       if (!event.active) simulation.alphaTarget(0);
-      event.subject.fx = null;
-      event.subject.fy = null;
+      
+      // Don't release the largest node
+      if (event.subject !== nodes[0]) {
+        event.subject.fx = null;
+        event.subject.fy = null;
+      }
     }
 
     return () => {
