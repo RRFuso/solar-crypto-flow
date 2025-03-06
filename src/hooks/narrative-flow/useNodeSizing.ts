@@ -54,9 +54,9 @@ export const useNodeSizing = (narratives: NarrativeData[]) => {
   const scaleNodeSizes = (nodes: NarrativeNode[]) => {
     if (nodes.length === 0) return nodes;
     
-    // Increase minimum radius to accommodate multiple logos
-    const minRadius = 50;
-    const maxRadius = 90;
+    // Use smaller radius since we don't need to fit logos
+    const minRadius = 40; 
+    const maxRadius = 80;
     const marketCapExtent = d3.extent(nodes, d => d.value);
     
     nodes.forEach(node => {
