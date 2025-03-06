@@ -1,4 +1,3 @@
-
 export interface NarrativeData {
   id: string;
   name: string;
@@ -23,4 +22,17 @@ export interface ModelPrediction {
   narrativeFlows: NarrativeFlow[];
   timestamp: string;
   confidence: number;
+}
+
+export interface NarrativeNode {
+  id: string;
+  name: string;
+  value: number;
+  color: string;
+  tokens: string[];
+  x: number;
+  y: number;
+  radius: number;
+  fx: number | null;
+  fy: number | null;
 }
