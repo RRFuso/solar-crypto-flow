@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { TrendingUp, DollarSign, LineChart } from 'lucide-react';
-import { TradingViewEmbed } from 'react-tradingview-embed';
+import TradingViewWidget from 'react-tradingview-widget';
 
 interface EconomicIndicatorsProps {
   dxy: string;
@@ -22,41 +22,18 @@ const EconomicIndicators = ({ dxy, spx, nasdaq }: EconomicIndicatorsProps) => {
       </div>
       
       <div className="h-40 overflow-hidden rounded-lg border border-gray-700 mb-4">
-        <TradingViewEmbed
-          widgetType="mini-symbol-overview"
-          widgetConfig={{
-            "symbols": [
-              "FOREXCOM:DXY|1D"
-            ],
-            "chartOnly": false,
-            "width": "100%",
-            "height": 150,
-            "locale": "br",
-            "colorTheme": "dark",
-            "autosize": true,
-            "showVolume": false,
-            "showMA": true,
-            "hideDateRanges": false,
-            "hideMarketStatus": false,
-            "hideSymbolLogo": false,
-            "scalePosition": "right",
-            "scaleMode": "Normal",
-            "fontFamily": "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
-            "fontSize": "10",
-            "noTimeScale": false,
-            "valuesTracking": "1",
-            "changeMode": "price-and-percent",
-            "chartType": "area",
-            "lineWidth": 2,
-            "lineType": 0,
-            "dateRanges": [
-              "1d|1",
-              "1m|30",
-              "3m|60",
-              "12m|1D",
-              "60m|1W",
-              "all|1M"
-            ]
+        <TradingViewWidget
+          symbol="FOREXCOM:DXY"
+          theme="dark"
+          locale="br"
+          autosize
+          hide_top_toolbar
+          hide_legend
+          hide_side_toolbar
+          allow_symbol_change={false}
+          style={{
+            height: "100%",
+            width: "100%"
           }}
         />
       </div>
