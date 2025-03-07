@@ -15,7 +15,11 @@ const Index = () => {
       case "home":
         return (
           <div className="space-y-8">
-            <FearGreedIndicator />
+            <div className="grid grid-cols-1 gap-8">
+              <div className="w-full h-[550px]">
+                <FearGreedIndicator />
+              </div>
+            </div>
           </div>
         );
       case "performance":

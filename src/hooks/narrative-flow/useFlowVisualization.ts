@@ -116,8 +116,8 @@ export const useFlowVisualization = () => {
     node.each(function(d) {
       if (!d.representativeTokens || d.representativeTokens.length === 0) return;
       
-      const numLogos = Math.min(d.representativeTokens.length, 5);
-      const logoRadius = d.radius * 0.2;
+      const numLogos = Math.min(d.representativeTokens.length, 4);
+      const logoRadius = d.radius * 0.25;
       
       // Position logos in a circle around the center
       d.representativeTokens.slice(0, numLogos).forEach((token, i) => {
@@ -136,8 +136,10 @@ export const useFlowVisualization = () => {
         const x = Math.sin(angle) * distance;
         const y = Math.cos(angle) * distance;
         
-        // Use fallback images from CoinGecko based on symbol
-        const logoUrl = `https://assets.coingecko.com/coins/images/1/thumb/${token.symbol.toLowerCase()}.png?1547033579`;
+        // Use better fallback images from CoinGecko or alternative sources
+        // Try to use a more reliable logo source
+        const logoUrl = `https://s2.coinmarketcap.com/static/img/coins/64x64/${getCoinIdForSymbol(token.symbol)}.png`;
+        const fallbackUrl = `https://s3-symbol-logo.tradingview.com/crypto/XTVC${token.symbol}.svg`;
         
         // Add circular background for the logo
         d3.select(this)
@@ -148,8 +150,8 @@ export const useFlowVisualization = () => {
           .attr("fill", "white")
           .attr("opacity", 0.9);
         
-        // Add the logo image
-        d3.select(this)
+        // Add the logo image with error handling
+        const img = d3.select(this)
           .append("image")
           .attr("x", x - logoRadius)
           .attr("y", y - logoRadius)
@@ -158,6 +160,11 @@ export const useFlowVisualization = () => {
           .attr("href", logoUrl)
           .attr("clip-path", `url(#${clipId})`)
           .attr("preserveAspectRatio", "xMidYMid slice");
+        
+        // Add error handling for the image
+        img.on("error", function() {
+          d3.select(this).attr("href", fallbackUrl);
+        });
       });
     });
 
@@ -185,6 +192,49 @@ export const useFlowVisualization = () => {
       node,
       svg
     };
+  };
+
+  // Map crypto symbols to CoinMarketCap IDs for better logo retrieval
+  const getCoinIdForSymbol = (symbol: string): number => {
+    const symbolToId: Record<string, number> = {
+      'BTC': 1,
+      'ETH': 1027,
+      'SOL': 5426,
+      'BNB': 1839,
+      'XRP': 52,
+      'ADA': 2010,
+      'AVAX': 5805,
+      'DOT': 6636,
+      'DOGE': 74,
+      'MATIC': 3890,
+      'LINK': 1975,
+      'UNI': 7083,
+      'SHIB': 5994,
+      'TRX': 1958,
+      'TON': 11419,
+      'ICP': 8916,
+      'NEAR': 6535,
+      'APT': 21794,
+      'ARB': 11841,
+      'OP': 11840,
+      'FIL': 2280,
+      'SUI': 20947,
+      'ALGO': 4030,
+      'ATOM': 3794,
+      'MANA': 1966,
+      'SEI': 20947,
+      'GRT': 6719,
+      'AAVE': 7278,
+      'MKR': 1518,
+      'CRV': 6538,
+      'COMP': 5692,
+      'SNX': 2586,
+      'LDO': 8000,
+      'RUNE': 4157,
+      'FXS': 6953
+    };
+    
+    return symbolToId[symbol] || 1; // Default to BTC if symbol not found
   };
 
   // Update element positions on tick

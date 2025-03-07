@@ -32,12 +32,13 @@ const CryptoPanel = () => {
     rsiOversold: settings.rsiOversold
   });
 
-  // Use memoized handler to prevent unnecessary re-renders
+  // Memoized handler to prevent unnecessary re-renders
   const handleSelectCrypto = useCallback((crypto: CryptoData) => {
     setSelectedCrypto(crypto);
   }, []);
 
-  const getTimeframe = () => {
+  // Memoized function to get timeframe
+  const getTimeframe = useCallback(() => {
     switch (activeTab) {
       case 'outperforming':
         return 'W';
@@ -54,12 +55,12 @@ const CryptoPanel = () => {
       default:
         return 'D';
     }
-  };
+  }, [activeTab]);
 
   return (
     <div className="flex flex-col gap-8">
       <div className="flex gap-6 h-[calc(100vh-12rem)]">
-        <div className="w-1/2 flex flex-col border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden">
+        <div className="w-1/3 flex flex-col border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden">
           <Tabs 
             defaultValue="outperforming" 
             className="w-full h-full flex flex-col"
@@ -101,12 +102,12 @@ const CryptoPanel = () => {
           </Tabs>
         </div>
 
-        <div className="w-1/2 relative">
+        <div className="w-2/3 relative">
           <div className="h-full border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden">
-            {/* Key prop removed to prevent re-rendering */}
             <CryptoChart 
               crypto={selectedCrypto} 
               timeframe={getTimeframe()}
+              key={`${selectedCrypto.id}-${getTimeframe()}`}
             />
           </div>
           <div className="absolute top-4 right-4 flex gap-2">
