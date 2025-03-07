@@ -8,14 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SocialMentionsData } from '@/types/social';
 import SocialMentionCard from './SocialMentionCard';
 import SocialMentionsChart from './SocialMentionsChart';
-import { getMockSocialMentionsData } from '@/lib/socialData';
+import { getTrendingCryptoMentions } from '@/lib/socialData';
 
 const SocialFlowPanel = () => {
   const [timeframe, setTimeframe] = useState('24h');
 
   const { data, isLoading, error, refetch } = useQuery<SocialMentionsData>({
     queryKey: ['social-mentions', timeframe],
-    queryFn: () => getMockSocialMentionsData(timeframe),
+    queryFn: () => getTrendingCryptoMentions(timeframe),
     refetchInterval: 60 * 1000 * 5, // 5 minutes
     staleTime: 60 * 1000 * 2, // 2 minutes
     meta: {
