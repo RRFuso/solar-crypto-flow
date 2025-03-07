@@ -16,7 +16,7 @@ export const useFlowVisualization = () => {
   const drawVisualization = (options: DrawOptions) => {
     const { svg, nodes, links, isPredicted, dragHandlers } = options;
     
-    // Create defs for glows
+    // Create defs for glows and clip paths
     const defs = svg.append("defs");
     
     // Create glow filter
@@ -89,10 +89,77 @@ export const useFlowVisualization = () => {
     node.append("circle")
       .attr("r", d => d.radius)
       .attr("fill", d => d.color)
-      .attr("stroke", "#ffffff")
-      .attr("stroke-width", 2)
+      .attr("stroke", d => d.attentionScore && d.attentionScore > 50 ? "#ffffff" : "rgba(255,255,255,0.5)")
+      .attr("stroke-width", d => d.attentionScore && d.attentionScore > 50 ? 3 : 2)
       .attr("opacity", 0.7)
       .attr("filter", "url(#glow)");
+      
+    // Add attention indicator pulse for high attention narratives
+    node.filter(d => d.attentionScore && d.attentionScore > 70)
+      .append("circle")
+      .attr("r", d => d.radius + 5)
+      .attr("fill", "none")
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 2)
+      .attr("opacity", 0.5)
+      .attr("class", "attention-pulse");
+      
+    // Add animation to attention pulse
+    node.selectAll(".attention-pulse")
+      .append("animate")
+      .attr("attributeName", "r")
+      .attr("values", d => `${d.radius + 5};${d.radius + 15};${d.radius + 5}`)
+      .attr("dur", "2s")
+      .attr("repeatCount", "indefinite");
+      
+    // Add representative token logos
+    node.each(function(d) {
+      if (!d.representativeTokens || d.representativeTokens.length === 0) return;
+      
+      const numLogos = Math.min(d.representativeTokens.length, 5);
+      const logoRadius = d.radius * 0.2;
+      
+      // Position logos in a circle around the center
+      d.representativeTokens.slice(0, numLogos).forEach((token, i) => {
+        // Create clip path for circular logos
+        const clipId = `clip-${d.id}-${token.symbol}`;
+        
+        defs.append("clipPath")
+          .attr("id", clipId)
+          .append("circle")
+          .attr("r", logoRadius);
+        
+        // Calculate position in a circle
+        const angle = (2 * Math.PI * i) / numLogos;
+        // Place logos at 60% of the way from center to edge
+        const distance = d.radius * 0.6;
+        const x = Math.sin(angle) * distance;
+        const y = Math.cos(angle) * distance;
+        
+        // Use fallback images from CoinGecko based on symbol
+        const logoUrl = `https://assets.coingecko.com/coins/images/1/thumb/${token.symbol.toLowerCase()}.png?1547033579`;
+        
+        // Add circular background for the logo
+        d3.select(this)
+          .append("circle")
+          .attr("cx", x)
+          .attr("cy", y)
+          .attr("r", logoRadius)
+          .attr("fill", "white")
+          .attr("opacity", 0.9);
+        
+        // Add the logo image
+        d3.select(this)
+          .append("image")
+          .attr("x", x - logoRadius)
+          .attr("y", y - logoRadius)
+          .attr("width", logoRadius * 2)
+          .attr("height", logoRadius * 2)
+          .attr("href", logoUrl)
+          .attr("clip-path", `url(#${clipId})`)
+          .attr("preserveAspectRatio", "xMidYMid slice");
+      });
+    });
 
     // Add node labels
     node.append("text")
@@ -103,13 +170,15 @@ export const useFlowVisualization = () => {
       .attr("font-size", d => Math.min(d.radius * 0.4, 14))
       .text(d => d.name);
 
-    // Add token text (instead of logos)
-    node.append("text")
+    // Add attention score for nodes with high attention
+    node.filter(d => d.attentionScore && d.attentionScore > 30)
+      .append("text")
       .attr("text-anchor", "middle")
-      .attr("dy", d => d.radius + 35)
+      .attr("dy", -5)
       .attr("fill", "white")
-      .attr("font-size", "10px")
-      .text(d => d.tokens.slice(0, 3).join(", "));
+      .attr("font-weight", "bold")
+      .attr("font-size", "12px")
+      .text(d => `${d.attentionScore}%`);
 
     return {
       link,

@@ -2,8 +2,8 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { NarrativeFlow } from '@/types/narratives';
 import { useNarrativeFlowVisualization } from '@/hooks/useNarrativeFlowVisualization';
-import { getNarratives } from '@/lib/narrativeData';
-import { TrendingUp, Coins } from 'lucide-react';
+import { getNarratives, getMarketAttentionData } from '@/lib/narrativeData';
+import { TrendingUp, Coins, TrendingDown, FileBarChart } from 'lucide-react';
 
 interface NarrativeVisualizationProps {
   flowData: NarrativeFlow[];
@@ -20,6 +20,7 @@ export const NarrativeVisualization: React.FC<NarrativeVisualizationProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const narratives = getNarratives();
   const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
+  const { topNarratives } = getMarketAttentionData();
 
   // Update dimensions when container size changes
   useEffect(() => {
@@ -62,6 +63,32 @@ export const NarrativeVisualization: React.FC<NarrativeVisualizationProps> = ({
         </div>
       )}
       
+      {/* Market attention panel */}
+      <div className="absolute top-0 left-0 bg-gradient-to-r from-gray-900/80 to-black/50 px-4 py-2 rounded-lg text-xs text-white/90 border border-white/10 m-2">
+        <div className="flex items-center gap-2 mb-1">
+          <FileBarChart className="h-4 w-4 text-purple-400" />
+          <span className="font-medium">Top Narratives by Market Attention</span>
+        </div>
+        <div className="space-y-1">
+          {topNarratives.map((narrative, index) => (
+            <div key={narrative.id} className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: narrative.color }}></div>
+              <span>{narrative.name}</span>
+              <span 
+                className={narrative.change24h >= 0 ? "text-green-400" : "text-red-400"}
+              >
+                {narrative.change24h >= 0 ? (
+                  <TrendingUp className="h-3 w-3 inline" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 inline" />
+                )}
+                {narrative.change24h}%
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      
       <div ref={containerRef} className="w-full flex-1">
         <svg ref={svgRef} className="w-full h-full" />
       </div>
@@ -90,7 +117,7 @@ export const NarrativeVisualization: React.FC<NarrativeVisualizationProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
-          <span>Drag nodes to reposition</span>
+          <span>Attention Score</span>
         </div>
       </div>
     </div>

@@ -1,6 +1,14 @@
-
-import { NarrativeData, NarrativeFlow, ModelPrediction } from '@/types/narratives';
+import { NarrativeData, NarrativeFlow, ModelPrediction, RepresentativeToken } from '@/types/narratives';
 import { predictWithModel } from './narrativeModel';
+
+// Define representative tokens with their logo URLs
+const getRepresentativeTokens = (symbols: string[]): RepresentativeToken[] => {
+  return symbols.map(symbol => ({
+    symbol,
+    name: symbol,
+    logoUrl: `https://assets.coingecko.com/coins/images/1/thumb/${symbol.toLowerCase()}.png`
+  }));
+};
 
 // Define the main crypto narratives
 const NARRATIVES: NarrativeData[] = [
@@ -13,6 +21,7 @@ const NARRATIVES: NarrativeData[] = [
     change24h: 5.3,
     change7d: 12.7,
     tokens: ['FET', 'OCEAN', 'AGIX', 'RLC', 'NMR', 'GRT', 'RNDR'],
+    representativeTokens: getRepresentativeTokens(['FET', 'OCEAN', 'AGIX']),
     color: '#FF5733'
   },
   {
@@ -24,6 +33,7 @@ const NARRATIVES: NarrativeData[] = [
     change24h: -2.1,
     change7d: 4.5,
     tokens: ['UNI', 'AAVE', 'MKR', 'COMP', 'SNX', 'CAKE', 'CRV', 'SUSHI', 'BAL'],
+    representativeTokens: getRepresentativeTokens(['UNI', 'AAVE', 'MKR']),
     color: '#6A0DAD'
   },
   {
@@ -35,6 +45,7 @@ const NARRATIVES: NarrativeData[] = [
     change24h: 7.8,
     change7d: 15.2,
     tokens: ['INJ', 'TRB', 'RNDR', 'LPT', 'ICP', 'NEAR', 'QNT'],
+    representativeTokens: getRepresentativeTokens(['INJ', 'TRB', 'RNDR']),
     color: '#3498DB'
   },
   {
@@ -46,6 +57,7 @@ const NARRATIVES: NarrativeData[] = [
     change24h: 8.9,
     change7d: -5.3,
     tokens: ['DOGE', 'SHIB', 'PEPE', 'FLOKI', 'WIF', 'BONK', 'MEME'],
+    representativeTokens: getRepresentativeTokens(['DOGE', 'SHIB', 'PEPE']),
     color: '#F1C40F'
   },
   {
@@ -57,6 +69,7 @@ const NARRATIVES: NarrativeData[] = [
     change24h: 1.2,
     change7d: 3.8,
     tokens: ['RWA', 'RNDR', 'LDO', 'PAXG', 'MNT', 'FXS', 'XAUt'],
+    representativeTokens: getRepresentativeTokens(['PAXG', 'MNT', 'FXS']),
     color: '#27AE60'
   },
   {
@@ -68,6 +81,7 @@ const NARRATIVES: NarrativeData[] = [
     change24h: -1.5,
     change7d: 2.1,
     tokens: ['ETH', 'SOL', 'ADA', 'AVAX', 'DOT', 'ATOM', 'NEAR', 'FTM', 'ONE'],
+    representativeTokens: getRepresentativeTokens(['ETH', 'SOL', 'ADA']),
     color: '#E74C3C'
   },
   {
@@ -79,7 +93,20 @@ const NARRATIVES: NarrativeData[] = [
     change24h: 3.2,
     change7d: 8.9,
     tokens: ['SAND', 'MANA', 'AXS', 'ILV', 'ENJ', 'GALA', 'IMX', 'MAGIC', 'APE'],
+    representativeTokens: getRepresentativeTokens(['AXS', 'MANA', 'SAND']),
     color: '#16A085'
+  },
+  {
+    id: 'btc',
+    name: 'Bitcoin',
+    marketCap: 1700000000000,
+    volume24h: 25000000000,
+    dominance: 52.5,
+    change24h: -0.8,
+    change7d: 2.9,
+    tokens: ['BTC'],
+    representativeTokens: getRepresentativeTokens(['BTC']),
+    color: '#F7931A'
   }
 ];
 
@@ -174,4 +201,30 @@ export const calculateHistoricalFlows = (): NarrativeFlow[] => {
   
   // Sort by flow magnitude and return top flows
   return flows.sort((a, b) => b.value - a.value).slice(0, 7);
+};
+
+// Get market attention metrics for narratives
+export const getMarketAttentionData = () => {
+  // Calculate which narratives are receiving the most attention
+  const attentionScores: Record<string, number> = {};
+  
+  NARRATIVES.forEach(narrative => {
+    // Formula: (volume24h / marketCap) * (1 + Math.abs(change24h/100)) * dominance
+    const attentionScore = 
+      (narrative.volume24h / narrative.marketCap) * 
+      (1 + Math.abs(narrative.change24h / 100)) * 
+      narrative.dominance;
+    
+    attentionScores[narrative.id] = attentionScore;
+  });
+  
+  // Sort narratives by attention score
+  const sortedNarratives = [...NARRATIVES]
+    .sort((a, b) => attentionScores[b.id] - attentionScores[a.id]);
+  
+  return {
+    attentionScores,
+    topNarratives: sortedNarratives.slice(0, 3),
+    btcAttention: attentionScores['btc'] || 0
+  };
 };

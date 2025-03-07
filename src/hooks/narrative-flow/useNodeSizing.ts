@@ -1,8 +1,11 @@
 
 import * as d3 from 'd3';
 import { NarrativeData, NarrativeNode } from '@/types/narratives';
+import { useMarketAttention } from './useMarketAttention';
 
 export const useNodeSizing = (narratives: NarrativeData[]) => {
+  const { applyAttentionScoresToNodes } = useMarketAttention();
+  
   // Create nodes from narrative data
   const createNodes = (flowData: any[]): NarrativeNode[] => {
     const nodes: NarrativeNode[] = [];
@@ -22,6 +25,7 @@ export const useNodeSizing = (narratives: NarrativeData[]) => {
           value: sourceNarrative.marketCap,
           color: sourceNarrative.color,
           tokens: sourceNarrative.tokens,
+          representativeTokens: sourceNarrative.representativeTokens,
           x: 0,
           y: 0,
           radius: 0,
@@ -38,6 +42,7 @@ export const useNodeSizing = (narratives: NarrativeData[]) => {
           value: targetNarrative.marketCap,
           color: targetNarrative.color,
           tokens: targetNarrative.tokens,
+          representativeTokens: targetNarrative.representativeTokens,
           x: 0,
           y: 0,
           radius: 0,
@@ -47,24 +52,33 @@ export const useNodeSizing = (narratives: NarrativeData[]) => {
       }
     });
 
-    return nodes;
+    // Apply market attention scores to nodes
+    return applyAttentionScoresToNodes(nodes, narratives);
   };
 
-  // Scale node sizes based on market cap
+  // Scale node sizes based on market cap and attention
   const scaleNodeSizes = (nodes: NarrativeNode[]) => {
     if (nodes.length === 0) return nodes;
     
-    // Use smaller radius since we don't need to fit logos
-    const minRadius = 40; 
-    const maxRadius = 80;
+    // Adjust size for logos
+    const minRadius = 50; 
+    const maxRadius = 90;
     const marketCapExtent = d3.extent(nodes, d => d.value);
     
     nodes.forEach(node => {
-      node.radius = marketCapExtent[0] === marketCapExtent[1] 
+      // Base size on market cap
+      const baseRadius = marketCapExtent[0] === marketCapExtent[1] 
         ? minRadius 
         : d3.scaleLinear()
             .domain([marketCapExtent[0], marketCapExtent[1]])
             .range([minRadius, maxRadius])(node.value);
+      
+      // Attention boost (up to 20% larger)
+      const attentionBoost = node.attentionScore 
+        ? 1 + (node.attentionScore / 100) * 0.2 
+        : 1;
+      
+      node.radius = baseRadius * attentionBoost;
     });
 
     return nodes;
