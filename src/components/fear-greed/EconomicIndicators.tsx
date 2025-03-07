@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { TrendingUp, DollarSign, LineChart } from 'lucide-react';
+import { TradingViewEmbed } from 'react-tradingview-embed';
 
 interface EconomicIndicatorsProps {
   dxy: string;
@@ -10,34 +11,77 @@ interface EconomicIndicatorsProps {
 
 const EconomicIndicators = ({ dxy, spx, nasdaq }: EconomicIndicatorsProps) => {
   return (
-    <div className="w-full max-w-md space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
-      <div className="flex items-center justify-between">
+    <div className="w-full max-w-md space-y-2 p-6 bg-gray-900/50 rounded-lg border border-gray-800 shadow-xl">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-blue-500" />
-          <span className="text-xs font-medium">Indicadores Econômicos</span>
+          <span className="text-sm font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+            Indicadores Econômicos
+          </span>
         </div>
       </div>
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between">
+      
+      <div className="h-40 overflow-hidden rounded-lg border border-gray-700 mb-4">
+        <TradingViewEmbed
+          widgetType="mini-symbol-overview"
+          widgetConfig={{
+            "symbols": [
+              "FOREXCOM:DXY|1D"
+            ],
+            "chartOnly": false,
+            "width": "100%",
+            "height": 150,
+            "locale": "br",
+            "colorTheme": "dark",
+            "autosize": true,
+            "showVolume": false,
+            "showMA": true,
+            "hideDateRanges": false,
+            "hideMarketStatus": false,
+            "hideSymbolLogo": false,
+            "scalePosition": "right",
+            "scaleMode": "Normal",
+            "fontFamily": "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
+            "fontSize": "10",
+            "noTimeScale": false,
+            "valuesTracking": "1",
+            "changeMode": "price-and-percent",
+            "chartType": "area",
+            "lineWidth": 2,
+            "lineType": 0,
+            "dateRanges": [
+              "1d|1",
+              "1m|30",
+              "3m|60",
+              "12m|1D",
+              "60m|1W",
+              "all|1M"
+            ]
+          }}
+        />
+      </div>
+      
+      <div className="space-y-3 text-white">
+        <div className="flex items-center justify-between py-2 border-b border-gray-800">
           <div className="flex items-center gap-2">
-            <DollarSign className="w-3 h-3 text-green-500" />
-            <span className="text-xs">DXY</span>
+            <DollarSign className="w-4 h-4 text-green-500" />
+            <span className="text-sm">DXY</span>
           </div>
-          <span className="text-xs font-medium">{dxy}</span>
+          <span className="text-sm font-bold">{dxy}</span>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between py-2 border-b border-gray-800">
           <div className="flex items-center gap-2">
-            <LineChart className="w-3 h-3 text-blue-500" />
-            <span className="text-xs">S&P 500</span>
+            <LineChart className="w-4 h-4 text-blue-500" />
+            <span className="text-sm">S&P 500</span>
           </div>
-          <span className="text-xs font-medium">{spx}</span>
+          <span className="text-sm font-bold">{spx}</span>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between py-2">
           <div className="flex items-center gap-2">
-            <LineChart className="w-3 h-3 text-purple-500" />
-            <span className="text-xs">NASDAQ</span>
+            <LineChart className="w-4 h-4 text-purple-500" />
+            <span className="text-sm">NASDAQ</span>
           </div>
-          <span className="text-xs font-medium">{nasdaq}</span>
+          <span className="text-sm font-bold">{nasdaq}</span>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Home, BarChart, Wallet, Search, TrendingUp, Activity } from 'lucide-react';
+import { Home, BarChart, GitBranch, ArrowLeftRight, MessageCircle } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
@@ -11,18 +12,17 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ children, activeTab = 'home', onTabChange }: DashboardLayoutProps) => {
   const menuItems = [
     { id: 'home', icon: Home, label: 'Home' },
-    { id: 'performance', icon: TrendingUp, label: 'Performance' },
-    { id: 'portfolio', icon: Wallet, label: 'Portfolio' },
-    { id: 'market', icon: BarChart, label: 'Market' },
-    { id: 'signals', icon: Activity, label: 'Signals' },
-    { id: 'search', icon: Search, label: 'Search' },
+    { id: 'performance', icon: BarChart, label: 'Performance' },
+    { id: 'narrative-flow', icon: GitBranch, label: 'Narrative Flow' },
+    { id: 'capital-flow', icon: ArrowLeftRight, label: 'Capital Flow' },
+    { id: 'social-flow', icon: MessageCircle, label: 'Social Flow' },
   ];
 
   return (
     <div className="flex h-screen bg-gray-900 text-white overflow-hidden">
       <aside className="w-64 border-r border-gray-800 bg-gray-900/50 backdrop-blur-xl">
         <div className="p-4">
-          <h1 className="text-xl font-bold mb-8">Crypto Hub</h1>
+          <h1 className="text-xl font-bold mb-8">Folow The Crypto</h1>
           <nav className="space-y-2">
             {menuItems.map(({ id, icon: Icon, label }) => (
               <button

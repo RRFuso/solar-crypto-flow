@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -74,4 +75,22 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Custom LED-style effects */
+.shadow-glow {
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.drop-shadow-glow {
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.7));
+}
+
+@keyframes pulse-led {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+.animate-pulse-led {
+  animation: pulse-led 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

@@ -1,7 +1,7 @@
+
 import React, { useState } from 'react';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import CryptoChart from './CryptoChart';
-import FearGreedIndicator from './FearGreedIndicator';
 import { Tabs } from "@/components/ui/tabs";
 import { Bitcoin } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -121,9 +121,6 @@ const CryptoPanel = () => {
             </Button>
           </div>
         </div>
-      </div>
-      <div className="flex justify-center">
-        <FearGreedIndicator />
       </div>
     </div>
   );
