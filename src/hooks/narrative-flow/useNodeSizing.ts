@@ -25,7 +25,12 @@ export const useNodeSizing = (narratives: NarrativeData[]) => {
           value: sourceNarrative.marketCap,
           color: sourceNarrative.color,
           tokens: sourceNarrative.tokens,
-          representativeTokens: sourceNarrative.representativeTokens,
+          representativeTokens: sourceNarrative.representativeTokens || 
+            sourceNarrative.tokens.slice(0, 3).map(symbol => ({
+              symbol,
+              name: symbol,
+              logoUrl: `https://assets.coingecko.com/coins/images/1/thumb/${symbol.toLowerCase()}.png`
+            })),
           x: 0,
           y: 0,
           radius: 0,
@@ -42,7 +47,12 @@ export const useNodeSizing = (narratives: NarrativeData[]) => {
           value: targetNarrative.marketCap,
           color: targetNarrative.color,
           tokens: targetNarrative.tokens,
-          representativeTokens: targetNarrative.representativeTokens,
+          representativeTokens: targetNarrative.representativeTokens || 
+            targetNarrative.tokens.slice(0, 3).map(symbol => ({
+              symbol,
+              name: symbol,
+              logoUrl: `https://assets.coingecko.com/coins/images/1/thumb/${symbol.toLowerCase()}.png`
+            })),
           x: 0,
           y: 0,
           radius: 0,
@@ -79,6 +89,15 @@ export const useNodeSizing = (narratives: NarrativeData[]) => {
         : 1;
       
       node.radius = baseRadius * attentionBoost;
+
+      // Ensure each node has representativeTokens
+      if (!node.representativeTokens || node.representativeTokens.length === 0) {
+        node.representativeTokens = node.tokens.slice(0, 3).map(symbol => ({
+          symbol,
+          name: symbol,
+          logoUrl: `https://assets.coingecko.com/coins/images/1/thumb/${symbol.toLowerCase()}.png`
+        }));
+      }
     });
 
     return nodes;

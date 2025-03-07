@@ -24,17 +24,16 @@ const EconomicIndicators = ({ dxy, spx, nasdaq }: EconomicIndicatorsProps) => {
       <div className="h-40 overflow-hidden rounded-lg border border-gray-700 mb-4">
         <TradingViewWidget
           symbol="FOREXCOM:DXY"
-          theme="dark"
+          interval="D"
+          timezone="Etc/UTC"
+          theme="Dark"
           locale="br"
           autosize
           hide_top_toolbar
           hide_legend
           hide_side_toolbar
           allow_symbol_change={false}
-          style={{
-            height: "100%",
-            width: "100%"
-          }}
+          container_id="dxy-chart"
         />
       </div>
       

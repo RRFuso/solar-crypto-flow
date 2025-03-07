@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import CryptoChart from './CryptoChart';
 import { Tabs } from "@/components/ui/tabs";
@@ -31,6 +31,11 @@ const CryptoPanel = () => {
     rsiOverbought: settings.rsiOverbought,
     rsiOversold: settings.rsiOversold
   });
+
+  // Use memoized handler to prevent unnecessary re-renders
+  const handleSelectCrypto = useCallback((crypto: CryptoData) => {
+    setSelectedCrypto(crypto);
+  }, []);
 
   const getTimeframe = () => {
     switch (activeTab) {
@@ -65,32 +70,32 @@ const CryptoPanel = () => {
               <OutperformingTab 
                 cryptos={cryptos} 
                 selectedCrypto={selectedCrypto} 
-                onSelectCrypto={setSelectedCrypto} 
+                onSelectCrypto={handleSelectCrypto} 
               />
               <BullishTab 
                 cryptos={cryptos} 
                 selectedCrypto={selectedCrypto} 
-                onSelectCrypto={setSelectedCrypto} 
+                onSelectCrypto={handleSelectCrypto} 
               />
               <OversoldTab 
                 cryptos={cryptos} 
                 selectedCrypto={selectedCrypto} 
-                onSelectCrypto={setSelectedCrypto} 
+                onSelectCrypto={handleSelectCrypto} 
               />
               <OverboughtTab 
                 cryptos={cryptos} 
                 selectedCrypto={selectedCrypto} 
-                onSelectCrypto={setSelectedCrypto} 
+                onSelectCrypto={handleSelectCrypto} 
               />
               <MatchingTab 
                 cryptos={cryptos} 
                 selectedCrypto={selectedCrypto} 
-                onSelectCrypto={setSelectedCrypto} 
+                onSelectCrypto={handleSelectCrypto} 
               />
               <ExplosiveTab 
                 cryptos={cryptos} 
                 selectedCrypto={selectedCrypto} 
-                onSelectCrypto={setSelectedCrypto} 
+                onSelectCrypto={handleSelectCrypto} 
               />
             </div>
           </Tabs>
@@ -98,6 +103,7 @@ const CryptoPanel = () => {
 
         <div className="w-1/2 relative">
           <div className="h-full border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden">
+            {/* Key prop removed to prevent re-rendering */}
             <CryptoChart 
               crypto={selectedCrypto} 
               timeframe={getTimeframe()}

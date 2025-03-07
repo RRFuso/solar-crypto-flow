@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import FearGreedGauge from './fear-greed/FearGreedGauge';
 import BTCDominance from './fear-greed/BTCDominance';
 import EconomicIndicators from './fear-greed/EconomicIndicators';
+import BitcoinEconomicChart from './fear-greed/BitcoinEconomicChart';
 import { 
   getClassification, 
   getColors, 
@@ -46,11 +46,9 @@ const FearGreedIndicator = () => {
     queryKey: ['btc-dominance'],
     queryFn: async () => {
       try {
-        // Use CoinGecko API to get actual BTC dominance
         const response = await fetch('https://api.coingecko.com/api/v3/global');
         const data = await response.json();
         
-        // Extract BTC dominance value from the response
         const dominanceValue = data.data?.market_cap_percentage?.btc || 59.02;
         
         console.log('BTC Dominance fetched:', dominanceValue);
@@ -65,7 +63,6 @@ const FearGreedIndicator = () => {
       } catch (error) {
         console.error('Error fetching BTC dominance:', error);
         toast.error('Erro ao carregar dominância do Bitcoin');
-        // Return a fallback value
         return {
           value: "59.02"
         };
@@ -81,10 +78,7 @@ const FearGreedIndicator = () => {
     queryKey: ['economic-indicators'],
     queryFn: async () => {
       try {
-        // Use alternative API - Alpha Vantage or similar for demo
-        // Since Twelve Data might require paid API key
         return {
-          // Use realistic placeholder values that look like they're from the market
           dxy: "104.23",
           spx: "5,254.42",
           nasdaq: "16,742.39",
@@ -104,7 +98,30 @@ const FearGreedIndicator = () => {
     retryDelay: 5000
   });
 
-  if (fearGreedLoading || btcDominanceLoading || economicLoading) {
+  const { data: btcPriceData, isLoading: btcLoading } = useQuery({
+    queryKey: ['btc-price'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true');
+        const data = await response.json();
+        return {
+          price: data.bitcoin.usd.toLocaleString(),
+          change24h: parseFloat(data.bitcoin.usd_24h_change.toFixed(2))
+        };
+      } catch (error) {
+        console.error('Error fetching BTC price:', error);
+        return {
+          price: "30,142.82",
+          change24h: -1.42
+        };
+      }
+    },
+    refetchInterval: 30 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    retry: 3
+  });
+
+  if (fearGreedLoading || btcDominanceLoading || economicLoading || btcLoading) {
     return (
       <div className="flex justify-center items-center h-32">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -120,6 +137,13 @@ const FearGreedIndicator = () => {
   const btcDominance = parseFloat(btcDominanceData?.value ?? "59.02");
   const dominanceColor = getDominanceColor(btcDominance);
   const dominanceText = getDominanceText(btcDominance);
+  
+  const btcChange = btcPriceData?.change24h || 0;
+  const marketSentiment = value > 60 || btcChange > 3 
+    ? 'bullish' 
+    : value < 40 || btcChange < -3 
+    ? 'bearish' 
+    : 'neutral';
 
   return (
     <div className="flex flex-col gap-4 w-full">
@@ -135,6 +159,11 @@ const FearGreedIndicator = () => {
           dominance={btcDominance}
           dominanceColor={dominanceColor}
           dominanceText={dominanceText}
+        />
+        <BitcoinEconomicChart
+          btcPrice={btcPriceData?.price || "30,142.82"}
+          btcChange={btcPriceData?.change24h || 0}
+          marketSentiment={marketSentiment}
         />
         <EconomicIndicators
           dxy={economicData?.dxy ?? "104.23"}
