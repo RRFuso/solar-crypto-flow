@@ -3,9 +3,9 @@ import { useState } from "react";
 import CryptoPanel from "@/components/CryptoPanel";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import CapitalFlowPanel from "@/components/CapitalFlowPanel";
-import FearGreedIndicator from "@/components/FearGreedIndicator";
 import NarrativeFlowPanel from "@/components/NarrativeFlowPanel";
 import SocialFlowPanel from "@/components/social-flow/SocialFlowPanel";
+import HomePanel from "@/components/home/HomePanel";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
@@ -13,15 +13,7 @@ const Index = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "home":
-        return (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 gap-8">
-              <div className="w-full h-[800px]">
-                <FearGreedIndicator />
-              </div>
-            </div>
-          </div>
-        );
+        return <HomePanel />;
       case "performance":
         return <CryptoPanel />;
       case "narrative-flow":

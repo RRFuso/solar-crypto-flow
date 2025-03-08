@@ -5,7 +5,7 @@ import { BrainCircuit } from 'lucide-react';
 import { toast } from 'sonner';
 import { getNarratives, calculateHistoricalFlows, predictNarrativeFlows } from '@/lib/narrativeData';
 import { NarrativeControls } from './narrative-flow/NarrativeControls';
-import { NarrativeVisualization } from './narrative-flow/NarrativeVisualization';
+import { NarrativeVisualizationWrapper } from './narrative-flow/NarrativeVisualizationWrapper';
 import {
   Tooltip,
   TooltipContent,
@@ -91,17 +91,12 @@ const NarrativeFlowPanel = () => {
         />
       </div>
 
-      {isLoading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-        </div>
-      ) : (
-        <NarrativeVisualization 
-          flowData={flowData}
-          usePredictions={usePredictions}
-          predictionConfidence={predictionData?.confidence}
-        />
-      )}
+      <NarrativeVisualizationWrapper 
+        isLoading={isLoading}
+        flowData={flowData}
+        usePredictions={usePredictions}
+        predictionConfidence={predictionData?.confidence}
+      />
     </div>
   );
 };
