@@ -3,7 +3,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { NarrativeFlow } from '@/types/narratives';
 import { useNarrativeFlowVisualization } from '@/hooks/useNarrativeFlowVisualization';
 import { getNarratives, getMarketAttentionData } from '@/lib/narrativeData';
-import { TrendingUp, Coins, TrendingDown, FileBarChart } from 'lucide-react';
+import { TrendingUp, Coins, TrendingDown, FileBarChart, Bitcoin } from 'lucide-react';
 
 interface NarrativeVisualizationProps {
   flowData: NarrativeFlow[];
@@ -19,7 +19,7 @@ export const NarrativeVisualization: React.FC<NarrativeVisualizationProps> = ({
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const narratives = getNarratives();
-  const [dimensions, setDimensions] = useState({ width: 800, height: 400 });
+  const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
   const { topNarratives } = getMarketAttentionData();
 
   // Update dimensions when container size changes
@@ -30,7 +30,7 @@ export const NarrativeVisualization: React.FC<NarrativeVisualizationProps> = ({
       if (containerRef.current) {
         setDimensions({
           width: containerRef.current.clientWidth,
-          height: 400
+          height: 500 // Increased height for better visualization
         });
       }
     };
@@ -58,13 +58,13 @@ export const NarrativeVisualization: React.FC<NarrativeVisualizationProps> = ({
   return (
     <div className="flex-1 flex flex-col items-center justify-center relative">
       {usePredictions && predictionConfidence && (
-        <div className="absolute top-0 right-0 bg-gradient-to-r from-purple-900/40 to-indigo-900/40 px-3 py-1 rounded-lg text-xs text-white/90 border border-white/10">
+        <div className="absolute top-2 right-2 bg-gradient-to-r from-purple-900/40 to-indigo-900/40 px-3 py-1 rounded-lg text-xs text-white/90 border border-white/10">
           LSTM Model: {Math.round(predictionConfidence * 100)}% confidence
         </div>
       )}
       
       {/* Market attention panel */}
-      <div className="absolute top-0 left-0 bg-gradient-to-r from-gray-900/80 to-black/50 px-4 py-2 rounded-lg text-xs text-white/90 border border-white/10 m-2">
+      <div className="absolute top-2 left-2 bg-gradient-to-r from-gray-900/80 to-black/50 px-4 py-2 rounded-lg text-xs text-white/90 border border-white/10">
         <div className="flex items-center gap-2 mb-1">
           <FileBarChart className="h-4 w-4 text-purple-400" />
           <span className="font-medium">Top Narratives by Market Attention</span>
@@ -93,7 +93,13 @@ export const NarrativeVisualization: React.FC<NarrativeVisualizationProps> = ({
         <svg ref={svgRef} className="w-full h-full" />
       </div>
       
-      <div className="flex items-center justify-center gap-6 mt-4 text-sm text-white/80">
+      {/* Enhanced legend */}
+      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-4 p-2 bg-black/20 rounded-lg text-sm text-white/80">
+        <div className="flex items-center gap-2">
+          <Bitcoin className="h-4 w-4 text-[#F7931A]" />
+          <span>Bitcoin Narrative (Central)</span>
+        </div>
+        
         {usePredictions ? (
           <>
             <div className="flex items-center gap-2">
@@ -102,7 +108,7 @@ export const NarrativeVisualization: React.FC<NarrativeVisualizationProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-purple-400" />
-              <span>LSTM TensorFlow.js Model</span>
+              <span>LSTM Prediction Model</span>
             </div>
           </>
         ) : (
@@ -117,7 +123,7 @@ export const NarrativeVisualization: React.FC<NarrativeVisualizationProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
-          <span>Attention Score</span>
+          <span>Market Attention</span>
         </div>
       </div>
     </div>

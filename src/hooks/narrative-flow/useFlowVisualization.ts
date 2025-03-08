@@ -60,15 +60,9 @@ export const useFlowVisualization = () => {
           .attr("r", 3)
           .attr("fill", isPredicted ? "#00ffaa" : "#ff00aa")
           .attr("class", "flow-particle")
-          .attr("opacity", 0.8);
-          
-        // Create animated flow effect
-        particle.append("animate")
-          .attr("attributeName", "opacity")
-          .attr("values", "0;1;0")
-          .attr("dur", "4s")
-          .attr("repeatCount", "indefinite")
-          .attr("begin", `${j * 1.3}s`); // Stagger animations
+          .attr("opacity", 0.8)
+          .attr("data-link-index", i)
+          .attr("data-particle-index", j);
       }
     });
 
@@ -80,6 +74,7 @@ export const useFlowVisualization = () => {
       .enter()
       .append("g")
       .attr("class", "node")
+      .attr("data-id", d => d.id)
       .call(d3.drag()
         .on("start", dragHandlers.dragstarted)
         .on("drag", dragHandlers.dragged)
@@ -116,7 +111,7 @@ export const useFlowVisualization = () => {
     node.each(function(d) {
       if (!d.representativeTokens || d.representativeTokens.length === 0) return;
       
-      const numLogos = Math.min(d.representativeTokens.length, 4);
+      const numLogos = Math.min(d.representativeTokens.length, 3);
       const logoRadius = d.radius * 0.25;
       
       // Position logos in a circle around the center
@@ -136,11 +131,6 @@ export const useFlowVisualization = () => {
         const x = Math.sin(angle) * distance;
         const y = Math.cos(angle) * distance;
         
-        // Use better fallback images from CoinGecko or alternative sources
-        // Try to use a more reliable logo source
-        const logoUrl = `https://s2.coinmarketcap.com/static/img/coins/64x64/${getCoinIdForSymbol(token.symbol)}.png`;
-        const fallbackUrl = `https://s3-symbol-logo.tradingview.com/crypto/XTVC${token.symbol}.svg`;
-        
         // Add circular background for the logo
         d3.select(this)
           .append("circle")
@@ -149,6 +139,10 @@ export const useFlowVisualization = () => {
           .attr("r", logoRadius)
           .attr("fill", "white")
           .attr("opacity", 0.9);
+        
+        // Use better fallback images from CoinMarketCap
+        const logoUrl = `https://s2.coinmarketcap.com/static/img/coins/64x64/${getCoinIdForSymbol(token.symbol)}.png`;
+        const fallbackUrl = `https://cryptologos.cc/logos/${token.symbol.toLowerCase()}-${token.symbol.toLowerCase()}-logo.png`;
         
         // Add the logo image with error handling
         const img = d3.select(this)
@@ -250,30 +244,34 @@ export const useFlowVisualization = () => {
     });
 
     // Update particle positions
-    svg.selectAll(".flow-particle").each(function(d, i) {
-      const linkIndex = i % links.length;
+    svg.selectAll(".flow-particle").each(function() {
+      const particle = d3.select(this);
+      const linkIndex = parseInt(particle.attr("data-link-index"));
+      const particleIndex = parseInt(particle.attr("data-particle-index"));
+      
+      if (Number.isNaN(linkIndex) || linkIndex >= links.length) return;
+      
       const link = links[linkIndex];
       
-      // Calculate position along the path
-      const t = (Date.now() / 4000 + i * 0.2) % 1;
-      
-      // Linear interpolation for position
-      const sourceX = link.source.x;
-      const sourceY = link.source.y;
-      const targetX = link.target.x;
-      const targetY = link.target.y;
-      
-      // Add curve to match the path
-      const dx = targetX - sourceX;
-      const dy = targetY - sourceY;
-      
-      // Simple curved path approximation
-      const curveX = sourceX + dx * t;
-      const curveY = sourceY + dy * t - Math.sin(t * Math.PI) * 20;
-      
-      d3.select(this)
-        .attr("cx", curveX)
-        .attr("cy", curveY);
+      try {
+        // Get current position along the path
+        const t = ((Date.now() / 3000) + (particleIndex * 0.3)) % 1;
+        
+        // Get the path element for this link
+        const pathElements = svg.selectAll(".link").nodes();
+        if (linkIndex >= pathElements.length) return;
+        
+        const pathElement = pathElements[linkIndex];
+        const pathLength = pathElement.getTotalLength();
+        const point = pathElement.getPointAtLength(pathLength * t);
+        
+        // Set the particle position
+        particle
+          .attr("cx", point.x)
+          .attr("cy", point.y);
+      } catch (e) {
+        console.error(e);
+      }
     });
 
     // Update node positions

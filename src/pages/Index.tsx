@@ -16,7 +16,7 @@ const Index = () => {
         return (
           <div className="space-y-8">
             <div className="grid grid-cols-1 gap-8">
-              <div className="w-full h-[550px]">
+              <div className="w-full h-[700px]">
                 <FearGreedIndicator />
               </div>
             </div>

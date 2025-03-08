@@ -41,7 +41,7 @@ const CapitalFlowPanel = () => {
     if (!flowData || flowData.length === 0 || !svgRef.current || !containerRef.current) return;
 
     const width = containerRef.current.clientWidth;
-    const height = 350;
+    const height = 400;
     
     // Clear previous SVG content
     d3.select(svgRef.current).selectAll("*").remove();
@@ -56,14 +56,18 @@ const CapitalFlowPanel = () => {
     const nodes = [];
     const uniqueCryptos = new Set();
     
+    // Always ensure BTC is the first node (will be placed in center)
+    nodes.push({ id: "BTC", value: 0, isBitcoin: true });
+    uniqueCryptos.add("BTC");
+    
     flowData.forEach(flow => {
       if (!uniqueCryptos.has(flow.from)) {
         uniqueCryptos.add(flow.from);
-        nodes.push({ id: flow.from, value: 0 });
+        nodes.push({ id: flow.from, value: 0, isBitcoin: flow.from === "BTC" });
       }
       if (!uniqueCryptos.has(flow.to)) {
         uniqueCryptos.add(flow.to);
-        nodes.push({ id: flow.to, value: 0 });
+        nodes.push({ id: flow.to, value: 0, isBitcoin: flow.to === "BTC" });
       }
       
       // Update values based on flows
@@ -79,28 +83,38 @@ const CapitalFlowPanel = () => {
     const maxRadius = 60;
     nodes.forEach(node => {
       const absValue = Math.abs(node.value);
-      node.radius = minRadius + (absValue / maxFlow) * (maxRadius - minRadius);
+      node.radius = node.isBitcoin 
+        ? maxRadius + 10 // Make BTC larger
+        : minRadius + (absValue / maxFlow) * (maxRadius - minRadius);
     });
     
-    // Set up force simulation with stronger repulsion and boundaries
+    // Create defs for glows and gradients
+    const defs = svg.append("defs");
+    
+    // Create glow filter
+    const filter = defs.append("filter")
+      .attr("id", "glow")
+      .attr("x", "-50%")
+      .attr("y", "-50%")
+      .attr("width", "200%")
+      .attr("height", "200%");
+
+    filter.append("feGaussianBlur")
+      .attr("stdDeviation", "3")
+      .attr("result", "coloredBlur");
+
+    const feMerge = filter.append("feMerge");
+    feMerge.append("feMergeNode").attr("in", "coloredBlur");
+    feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+    
+    // Set up force simulation with radial layout
     const simulation = d3.forceSimulation(nodes)
-      .force("charge", d3.forceManyBody().strength(-500)) // Increased repulsion force
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(d => d.radius + 25)) // Increased collision radius
-      .force("x", d3.forceX(width / 2).strength(0.08))
-      .force("y", d3.forceY(height / 2).strength(0.08));
+      .force("charge", d3.forceManyBody().strength(-500))
+      .force("collision", d3.forceCollide().radius(d => d.radius + 25))
+      .force("radial", d3.forceRadial(d => d.isBitcoin ? 0 : width * 0.35, width / 2, height / 2).strength(0.8))
+      .force("center", d3.forceCenter(width / 2, height / 2));
     
-    // Add boundary forces to keep nodes in view
-    simulation.on("tick", () => {
-      nodes.forEach(node => {
-        // Add padding equal to node radius
-        const padding = node.radius || minRadius;
-        node.x = Math.max(padding, Math.min(width - padding, node.x));
-        node.y = Math.max(padding, Math.min(height - padding, node.y));
-      });
-    });
-    
-    // Draw links
+    // Draw links with curved paths
     const links = flowData.map(flow => ({
       source: nodes.find(n => n.id === flow.from),
       target: nodes.find(n => n.id === flow.to),
@@ -110,7 +124,7 @@ const CapitalFlowPanel = () => {
     
     const linkGroup = svg.append("g").attr("class", "links");
     
-    const link = linkGroup.selectAll("line")
+    const link = linkGroup.selectAll("path")
       .data(links)
       .enter()
       .append("path")
@@ -127,7 +141,7 @@ const CapitalFlowPanel = () => {
       .enter().append("marker")
       .attr("id", (d, i) => `arrow-${i}`)
       .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 25)
+      .attr("refX", d => d.target.isBitcoin ? 25 + d.target.radius : 15)
       .attr("refY", 0)
       .attr("markerWidth", 6)
       .attr("markerHeight", 6)
@@ -138,21 +152,19 @@ const CapitalFlowPanel = () => {
     
     link.attr("marker-end", (d, i) => `url(#arrow-${i})`);
     
-    // Animate the flow
-    link.each(function(d, i) {
-      const path = d3.select(this);
-      
-      // Create animated flow effect
-      svg.append("circle")
-        .attr("r", 3)
-        .attr("fill", d.percentage > 0 ? "#00ffcc" : "#ff0066")
-        .attr("class", "flow-particle")
-        .attr("opacity", 0.8)
-        .append("animate")
-        .attr("attributeName", "opacity")
-        .attr("values", "0;1;0")
-        .attr("dur", "4s")
-        .attr("repeatCount", "indefinite");
+    // Animate the flow with particles
+    links.forEach((d, i) => {
+      // Create multiple particles per link
+      const particlesCount = 3;
+      for (let j = 0; j < particlesCount; j++) {
+        svg.append("circle")
+          .attr("r", 3)
+          .attr("fill", d.percentage > 0 ? "#00ffcc" : "#ff0066")
+          .attr("class", "flow-particle")
+          .attr("opacity", 0.8)
+          .attr("data-link-index", i)
+          .attr("data-particle-index", j);
+      }
     });
     
     // Draw circles for nodes
@@ -163,32 +175,55 @@ const CapitalFlowPanel = () => {
       .enter()
       .append("g")
       .attr("class", "node")
+      .attr("data-id", d => d.id)
       .call(d3.drag()
         .on("start", dragstarted)
         .on("drag", dragged)
         .on("end", dragended));
     
-    // Add circles
+    // Add a larger backdrop for BTC
+    node.filter(d => d.isBitcoin)
+      .append("circle")
+      .attr("r", d => d.radius + 10)
+      .attr("fill", "#f7931a20")
+      .attr("stroke", "#f7931a50")
+      .attr("stroke-width", 2)
+      .attr("filter", "url(#glow)");
+    
+    // Add circles for all nodes
     node.append("circle")
       .attr("r", d => d.radius)
       .attr("fill", d => getNodeColor(d))
-      .attr("stroke", "#0ea5e9")
+      .attr("stroke", d => d.isBitcoin ? "#f7931a" : "#0ea5e9")
       .attr("stroke-width", 2)
-      .attr("opacity", 0.7);
+      .attr("opacity", 0.8)
+      .attr("filter", "url(#glow)");
     
-    // Add text
+    // Add logo/icon for BTC 
+    node.filter(d => d.isBitcoin)
+      .append("text")
+      .attr("text-anchor", "middle")
+      .attr("dy", "0.3em")
+      .attr("fill", "#ffffff")
+      .attr("font-size", "24px")
+      .attr("font-weight", "bold")
+      .text("₿");
+    
+    // Add text for all nodes
     node.append("text")
       .attr("text-anchor", "middle")
-      .attr("dy", ".3em")
+      .attr("dy", d => d.isBitcoin ? d.radius + 20 : "0.3em")
       .attr("fill", "white")
       .attr("font-weight", "bold")
+      .attr("font-size", d => d.isBitcoin ? "16px" : "12px")
       .text(d => d.id);
     
-    // Add pulsating effect
-    node.selectAll("circle")
+    // Add pulsating effect for BTC
+    node.filter(d => d.isBitcoin)
+      .select("circle")
       .append("animate")
       .attr("attributeName", "r")
-      .attr("values", d => `${d.radius};${d.radius * 1.05};${d.radius}`)
+      .attr("values", d => `${d.radius};${d.radius * 1.1};${d.radius}`)
       .attr("dur", "3s")
       .attr("repeatCount", "indefinite");
     
@@ -196,44 +231,85 @@ const CapitalFlowPanel = () => {
       if (node.id === "BTC") return "#F7931A"; // Bitcoin color
       if (node.id === "LARGE") return "#0ea5e9"; // Large caps
       if (node.id === "ETH") return "#627EEA"; // Ethereum color
+      if (node.id === "SOL") return "#00FFA3"; // Solana color
+      if (node.id === "XRP") return "#23292F"; // XRP color
+      if (node.id === "ADA") return "#0033AD"; // Cardano color
+      if (node.id === "AVAX") return "#E84142"; // Avalanche color
+      if (node.id === "DOT") return "#E6007A"; // Polkadot color
+      if (node.id === "DOGE") return "#C3A634"; // Dogecoin color
+      if (node.id === "MATIC") return "#8247E5"; // Polygon color
       return "#1c2030"; // Default
     }
     
     // Update positions on each tick
     simulation.on("tick", () => {
-      // Keep nodes within bounds
-      nodes.forEach(d => {
+      // Fix BTC position in center
+      const btcNode = nodes.find(n => n.isBitcoin);
+      if (btcNode) {
+        btcNode.x = width / 2;
+        btcNode.y = height / 2;
+        btcNode.fx = width / 2;
+        btcNode.fy = height / 2;
+      }
+      
+      // Keep other nodes within bounds
+      nodes.filter(n => !n.isBitcoin).forEach(d => {
         const radius = d.radius || minRadius;
         d.x = Math.max(radius, Math.min(width - radius, d.x));
         d.y = Math.max(radius, Math.min(height - radius, d.y));
       });
       
+      // Update path for links as curved lines
       link.attr("d", d => {
-        const dx = d.target.x - d.source.x;
-        const dy = d.target.y - d.source.y;
-        const dr = Math.sqrt(dx * dx + dy * dy) * 2;
-        return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+        const sourceX = d.source.x;
+        const sourceY = d.source.y;
+        const targetX = d.target.x;
+        const targetY = d.target.y;
+        
+        // Calculate path
+        const dx = targetX - sourceX;
+        const dy = targetY - sourceY;
+        const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
+        
+        // When line is to/from BTC, make it curve more elegantly
+        if (d.source.isBitcoin || d.target.isBitcoin) {
+          return `M${sourceX},${sourceY}A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
+        } 
+        
+        return `M${sourceX},${sourceY}A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
       });
       
-      svg.selectAll(".flow-particle")
-        .attr("transform", function(d, i) {
-          const link = links[i % links.length];
-          if (!link) return "";
+      // Update particle positions along the paths
+      svg.selectAll(".flow-particle").each(function() {
+        const particle = d3.select(this);
+        const linkIndex = parseInt(particle.attr("data-link-index"));
+        const particleIndex = parseInt(particle.attr("data-particle-index"));
+        
+        if (Number.isNaN(linkIndex) || linkIndex >= links.length) return;
+        
+        const link = links[linkIndex];
+        
+        // Calculate position along the path using time-based offset
+        const t = ((Date.now() / 3000) + (particleIndex * 0.3)) % 1;
+        
+        try {
+          // Get path element for this link
+          const pathNode = svg.selectAll(".link").nodes()[linkIndex];
+          if (!pathNode) return;
           
-          const t = (Date.now() / 100) % 100 / 100;
+          // Get point at length
+          const pathLength = pathNode.getTotalLength();
+          const point = pathNode.getPointAtLength(pathLength * t);
           
-          // Interpolate position along the path
-          const path = svg.select(`.link:nth-child(${(i % links.length) + 1})`).node();
-          if (!path) return "";
-          
-          try {
-            const point = path.getPointAtLength(path.getTotalLength() * t);
-            return `translate(${point.x}, ${point.y})`;
-          } catch (e) {
-            return "";
-          }
-        });
+          particle
+            .attr("cx", point.x)
+            .attr("cy", point.y);
+        } catch (e) {
+          console.error(e);
+        }
+      });
       
+      // Update node positions
       node.attr("transform", d => `translate(${d.x},${d.y})`);
     });
     
@@ -244,14 +320,23 @@ const CapitalFlowPanel = () => {
     }
     
     function dragged(event, d) {
+      // Don't allow dragging BTC
+      if (d.isBitcoin) return;
+      
       d.fx = event.x;
       d.fy = event.y;
     }
     
     function dragended(event, d) {
       if (!event.active) simulation.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
+      // Keep BTC fixed, but allow others to move
+      if (d.isBitcoin) {
+        d.fx = width / 2;
+        d.fy = height / 2;
+      } else {
+        d.fx = null;
+        d.fy = null;
+      }
     }
     
     return () => {
@@ -329,7 +414,7 @@ const CapitalFlowPanel = () => {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-neon-blue"></div>
-              <span>Large Caps</span>
+              <span>Other Cryptos</span>
             </div>
           </div>
         </div>
