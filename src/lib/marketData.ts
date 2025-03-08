@@ -39,8 +39,8 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
         const relativeFlow = coin.market_cap_change_percentage_24h - btcData.market_cap_change_percentage_24h;
         const flowMagnitude = (coin.market_cap * Math.abs(relativeFlow)) / btcData.market_cap / 10;
         
-        // Lower threshold to ensure we get BTC flows
-        if (Math.abs(relativeFlow) > 0.5) {
+        // IMPORTANT: Lower threshold to ensure we get BTC flows
+        if (Math.abs(relativeFlow) > 0.1) {  // Reduced threshold from 0.5 to 0.1
           flows.push({
             from: relativeFlow > 0 ? 'BTC' : coin.symbol.toUpperCase(),
             to: relativeFlow > 0 ? coin.symbol.toUpperCase() : 'BTC',
@@ -53,9 +53,9 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
 
     // Ensure we have at least some BTC flows
     const btcFlows = flows.filter(flow => flow.from === 'BTC' || flow.to === 'BTC');
-    if (btcFlows.length < 3 && data.length > 5) {
+    if (btcFlows.length < 5 && data.length > 5) {  // Increased from 3 to 5 minimum BTC flows
       // Generate some synthetic BTC flows if we don't have enough
-      const topCoins = data.slice(1, 6); // Top coins excluding BTC
+      const topCoins = data.slice(1, 8);  // Increased from top 6 to top 8 coins
       topCoins.forEach((coin, index) => {
         // Skip if we already have a flow with this coin
         if (flows.some(f => 
@@ -162,8 +162,7 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
       }
     }
 
-    // Sort by flow magnitude and limit to a reasonable number to avoid visual clutter
-    // Prioritize BTC flows in the visualization if they exist
+    // Sort by flow magnitude but prioritize BTC flows
     const sortedFlows = flows.sort((a, b) => {
       // Prioritize BTC flows
       const aHasBtc = a.from === 'BTC' || a.to === 'BTC';
@@ -176,12 +175,12 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
       return b.value - a.value;
     });
     
-    // Take the top flows, ensuring we have BTC flows
-    const resultFlows = sortedFlows.slice(0, 15);
+    // Take the top flows, ensuring we have a mix of BTC and altcoin flows
+    const resultFlows = sortedFlows.slice(0, 20);  // Increased from 15 to 20 for more connections
     
-    // Make sure we have at least 3 BTC flows
+    // Make sure we have at least 5 BTC flows
     const btcFlowsInResult = resultFlows.filter(flow => flow.from === 'BTC' || flow.to === 'BTC');
-    if (btcFlowsInResult.length < 3) {
+    if (btcFlowsInResult.length < 5) {
       console.log(`Only found ${btcFlowsInResult.length} BTC flows, supplementing with synthetic data`);
       
       // Add synthetic BTC flows if needed
@@ -203,10 +202,22 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
           to: 'AVAX',
           value: 25,
           percentage: 1.5
+        },
+        {
+          from: 'DOT',
+          to: 'BTC',
+          value: 35,
+          percentage: -2.1
+        },
+        {
+          from: 'BTC',
+          to: 'MATIC',
+          value: 20,
+          percentage: 1.2
         }
       ];
       
-      for (let i = 0; i < 3 - btcFlowsInResult.length; i++) {
+      for (let i = 0; i < 5 - btcFlowsInResult.length; i++) {
         if (i < syntheticBtcFlows.length) {
           resultFlows.push(syntheticBtcFlows[i]);
         }
