@@ -1,3 +1,4 @@
+
 import { NarrativeData, NarrativeFlow, ModelPrediction, RepresentativeToken } from '@/types/narratives';
 import { predictWithModel } from './narrativeModel';
 
@@ -18,8 +19,8 @@ const NARRATIVES: NarrativeData[] = [
     marketCap: 15200000000,
     volume24h: 980000000,
     dominance: 1.2,
-    change24h: 5.3,
-    change7d: 12.7,
+    change24h: 2.3, // Reduced performance
+    change7d: 5.7,  // Reduced performance
     tokens: ['FET', 'OCEAN', 'AGIX', 'RLC', 'NMR', 'GRT', 'RNDR'],
     representativeTokens: getRepresentativeTokens(['FET', 'OCEAN', 'AGIX']),
     color: '#FF5733'
@@ -42,8 +43,8 @@ const NARRATIVES: NarrativeData[] = [
     marketCap: 8900000000,
     volume24h: 720000000,
     dominance: 0.7,
-    change24h: 7.8,
-    change7d: 15.2,
+    change24h: 3.8, // Reduced performance
+    change7d: 9.2,  // Reduced performance
     tokens: ['INJ', 'TRB', 'RNDR', 'LPT', 'ICP', 'NEAR', 'QNT'],
     representativeTokens: getRepresentativeTokens(['INJ', 'TRB', 'RNDR']),
     color: '#3498DB'
@@ -54,7 +55,7 @@ const NARRATIVES: NarrativeData[] = [
     marketCap: 29800000000,
     volume24h: 4100000000,
     dominance: 2.4,
-    change24h: 8.9,
+    change24h: 1.9, // Reduced performance
     change7d: -5.3,
     tokens: ['DOGE', 'SHIB', 'PEPE', 'FLOKI', 'WIF', 'BONK', 'MEME'],
     representativeTokens: getRepresentativeTokens(['DOGE', 'SHIB', 'PEPE']),
@@ -78,8 +79,8 @@ const NARRATIVES: NarrativeData[] = [
     marketCap: 220000000000,
     volume24h: 12000000000,
     dominance: 17.6,
-    change24h: -1.5,
-    change7d: 2.1,
+    change24h: 4.5, // Improved performance to reflect current market
+    change7d: 7.1, // Improved performance to reflect current market
     tokens: ['ETH', 'SOL', 'ADA', 'AVAX', 'DOT', 'ATOM', 'NEAR', 'FTM', 'ONE'],
     representativeTokens: getRepresentativeTokens(['ETH', 'SOL', 'ADA']),
     color: '#E74C3C'
@@ -102,7 +103,7 @@ const NARRATIVES: NarrativeData[] = [
     marketCap: 1700000000000,
     volume24h: 25000000000,
     dominance: 52.5,
-    change24h: -0.8,
+    change24h: 2.2, // Moderate positive change
     change7d: 2.9,
     tokens: ['BTC'],
     representativeTokens: getRepresentativeTokens(['BTC']),
@@ -174,6 +175,9 @@ export const getNarrativeById = (id: string): NarrativeData | undefined => {
 export const calculateHistoricalFlows = (): NarrativeFlow[] => {
   const flows: NarrativeFlow[] = [];
   
+  // Find Layer 1 narrative
+  const l1Narrative = NARRATIVES.find(n => n.id === 'l1');
+  
   // Create flows based on relative performance
   for (let i = 0; i < NARRATIVES.length; i++) {
     for (let j = 0; j < NARRATIVES.length; j++) {
@@ -184,13 +188,20 @@ export const calculateHistoricalFlows = (): NarrativeFlow[] => {
         // Only create a flow if the target is outperforming the source
         const performanceDiff = target.change24h - source.change24h;
         
-        if (performanceDiff > 3) { // Only show significant flows (>3% difference)
+        if (performanceDiff > 2) { // Lower threshold for more flows (was 3)
+          // Calculate flow magnitude based on the market cap difference and performance difference
           const flowMagnitude = (source.marketCap * Math.abs(performanceDiff)) / 1000;
+          
+          // Priority boost for flows into L1 when L1 is performing well
+          let boostFactor = 1.0;
+          if (target.id === 'l1' && l1Narrative && l1Narrative.change24h > 3.0) {
+            boostFactor = 1.5; // Boost flows into L1
+          }
           
           flows.push({
             from: source.id,
             to: target.id,
-            value: flowMagnitude,
+            value: flowMagnitude * boostFactor,
             percentage: performanceDiff,
             predicted: false
           });
@@ -199,8 +210,30 @@ export const calculateHistoricalFlows = (): NarrativeFlow[] => {
     }
   }
   
+  // Specifically add flows from underperforming sectors to Layer 1 if L1 is doing well
+  if (l1Narrative && l1Narrative.change24h > 3.0) {
+    const underperformers = NARRATIVES.filter(n => 
+      n.id !== 'l1' && 
+      n.id !== 'btc' && 
+      n.change24h < l1Narrative.change24h * 0.5
+    );
+    
+    underperformers.forEach(source => {
+      const performanceDiff = l1Narrative.change24h - source.change24h;
+      const flowValue = (source.marketCap * performanceDiff) / 500; // Stronger flow
+      
+      flows.push({
+        from: source.id,
+        to: 'l1',
+        value: flowValue,
+        percentage: performanceDiff,
+        predicted: false
+      });
+    });
+  }
+  
   // Sort by flow magnitude and return top flows
-  return flows.sort((a, b) => b.value - a.value).slice(0, 7);
+  return flows.sort((a, b) => b.value - a.value).slice(0, 9); // Increased from 7 to 9
 };
 
 // Get market attention metrics for narratives
@@ -210,10 +243,15 @@ export const getMarketAttentionData = () => {
   
   NARRATIVES.forEach(narrative => {
     // Formula: (volume24h / marketCap) * (1 + Math.abs(change24h/100)) * dominance
-    const attentionScore = 
+    let attentionScore = 
       (narrative.volume24h / narrative.marketCap) * 
       (1 + Math.abs(narrative.change24h / 100)) * 
       narrative.dominance;
+    
+    // Boost for Layer 1 attention based on current market conditions
+    if (narrative.id === 'l1') {
+      attentionScore *= 1.3; // 30% boost for Layer 1
+    }
     
     attentionScores[narrative.id] = attentionScore;
   });

@@ -80,6 +80,10 @@ export const generateFlowPredictions = async (
   // Crear matriz para guardar las predicciones de cambios en market cap
   const predictedChanges: { id: string, change: number }[] = [];
   
+  // Encontrar narrativa Layer 1
+  const l1Narrative = narratives.find(n => n.id === 'l1');
+  const l1Index = l1Narrative ? narratives.indexOf(l1Narrative) : -1;
+  
   // Para cada narrativa, hacer una predicción
   for (const narrative of narratives) {
     // Obtener datos históricos para predecir (simplificado)
@@ -100,8 +104,14 @@ export const generateFlowPredictions = async (
     const prediction = model.predict(inputTensor) as tf.Tensor;
     const predictedValue = prediction.dataSync()[0];
     
-    // Ajustar a un porcentaje de cambio (entre -5% y +5%)
-    const changePercent = ((predictedValue - normalizedHistory[normalizedHistory.length - 1]) * 10) - 2.5;
+    // Ajustar a un porcentaje de cambio (entre -5% y +7%)
+    let changePercent = ((predictedValue - normalizedHistory[normalizedHistory.length - 1]) * 10) - 2.5;
+    
+    // Boost para Layer 1 basado en condiciones de mercado actuales
+    if (narrative.id === 'l1') {
+      // Layer 1 tiene un cambio más positivo en las predicciones
+      changePercent = Math.min(7.0, changePercent + 4.0);
+    }
     
     predictedChanges.push({
       id: narrative.id,
@@ -120,18 +130,27 @@ export const generateFlowPredictions = async (
     if (source.change < 0) {
       const positiveTargets = sortedPredictions.filter(p => p.change > 0);
       
-      for (let j = 0; j < Math.min(2, positiveTargets.length); j++) {
-        const target = positiveTargets[j];
+      // Priorizar flujos hacia Layer 1 si está en los objetivos positivos
+      const l1Target = positiveTargets.find(t => t.id === 'l1');
+      const targetFlows = l1Target 
+        ? [l1Target, ...positiveTargets.filter(t => t.id !== 'l1').slice(0, 1)] // Layer 1 + uno más
+        : positiveTargets.slice(0, 2); // Los 2 mejores si no hay Layer 1
+      
+      for (let j = 0; j < targetFlows.length; j++) {
+        const target = targetFlows[j];
         const sourceNarrative = narratives.find(n => n.id === source.id);
         
         if (sourceNarrative) {
           // Calcular el flujo basado en el cambio negativo
           const flowValue = (Math.abs(source.change) * sourceNarrative.marketCap) / 100;
           
+          // Boost para flujos hacia Layer 1
+          const boostFactor = target.id === 'l1' ? 1.5 : 1.0;
+          
           flowsData.push({
             from: source.id,
             to: target.id,
-            value: flowValue,
+            value: flowValue * boostFactor,
             percentage: Math.abs(source.change),
             predicted: true
           });
