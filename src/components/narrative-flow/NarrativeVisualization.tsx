@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { NarrativeFlow } from '@/types/narratives';
 import { useNarrativeFlowVisualization } from '@/hooks/useNarrativeFlowVisualization';
-import { getNarratives, getMarketAttentionData } from '@/lib/narratives'; // Updated import path
+import { getNarratives, getMarketAttentionData } from '@/lib/narrativeData';
 import { TrendingUp, Coins, TrendingDown, FileBarChart, Bitcoin } from 'lucide-react';
 
 interface NarrativeVisualizationProps {
