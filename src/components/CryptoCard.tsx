@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { useCryptoLogos } from '@/contexts/CryptoLogosContext';
 
 interface CryptoData {
   id: string;
@@ -20,10 +22,18 @@ interface CryptoCardProps {
 
 const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = false }: CryptoCardProps) => {
   const isPositive = crypto.performance > 0;
-  const logoMap = {
+  const { getLogo, addLogo } = useCryptoLogos();
+  
+  // Some symbols have dedicated mappings
+  const specialLogoMap = {
     'PENDLE': 'https://s2.coinmarketcap.com/static/img/coins/64x64/8409.png',
     'JUP': 'https://s2.coinmarketcap.com/static/img/coins/64x64/25147.png'
   };
+  
+  // If it's a special symbol, add it to the cache
+  if (specialLogoMap[crypto.id]) {
+    addLogo(crypto.id, specialLogoMap[crypto.id]);
+  }
   
   return (
     <div
@@ -35,10 +45,12 @@ const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = 
     >
       <div className="flex items-center gap-4">
         <img
-          src={logoMap[crypto.id] || `https://s3-symbol-logo.tradingview.com/crypto/XTVC${crypto.id}.svg`}
+          src={getLogo(crypto.id)}
           alt={`${crypto.name} logo`}
           className="w-8 h-8"
           onError={(e) => {
+            // If image fails to load, set a fallback and update cache
+            addLogo(crypto.id, 'https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg');
             e.currentTarget.src = 'https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg';
           }}
         />

@@ -1,13 +1,12 @@
-
 import { NarrativeData, NarrativeFlow, ModelPrediction, RepresentativeToken } from '@/types/narratives';
 import { predictWithModel } from './narrativeModel';
 
-// Define representative tokens with their logo URLs
+// Define representative tokens with their logo URLs - use consistent method
 const getRepresentativeTokens = (symbols: string[]): RepresentativeToken[] => {
   return symbols.map(symbol => ({
     symbol,
     name: symbol,
-    logoUrl: `https://assets.coingecko.com/coins/images/1/thumb/${symbol.toLowerCase()}.png`
+    logoUrl: `https://s2.coinmarketcap.com/static/img/coins/64x64/1.png` // Default that will be replaced by context
   }));
 };
 

@@ -2,6 +2,7 @@
 import { RefObject } from 'react';
 import * as d3 from 'd3';
 import { NarrativeFlow, NarrativeNode } from '@/types/narratives';
+import { useCryptoLogos } from '@/contexts/CryptoLogosContext';
 
 interface DrawOptions {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -12,6 +13,8 @@ interface DrawOptions {
 }
 
 export const useFlowVisualization = () => {
+  const { getLogo } = useCryptoLogos();
+  
   // Create visual elements for the flow visualization
   const drawVisualization = (options: DrawOptions) => {
     const { svg, nodes, links, isPredicted, dragHandlers } = options;
@@ -119,6 +122,8 @@ export const useFlowVisualization = () => {
         // Create clip path for circular logos
         const clipId = `clip-${d.id}-${token.symbol}`;
         
+        const defs = svg.select("defs");
+        
         defs.append("clipPath")
           .attr("id", clipId)
           .append("circle")
@@ -140,9 +145,8 @@ export const useFlowVisualization = () => {
           .attr("fill", "white")
           .attr("opacity", 0.9);
         
-        // Use better fallback images from CoinMarketCap
-        const logoUrl = `https://s2.coinmarketcap.com/static/img/coins/64x64/${getCoinIdForSymbol(token.symbol)}.png`;
-        const fallbackUrl = `https://cryptologos.cc/logos/${token.symbol.toLowerCase()}-${token.symbol.toLowerCase()}-logo.png`;
+        // Get logo URL from our context
+        const logoUrl = getLogo(token.symbol);
         
         // Add the logo image with error handling
         const img = d3.select(this)
@@ -157,7 +161,8 @@ export const useFlowVisualization = () => {
         
         // Add error handling for the image
         img.on("error", function() {
-          d3.select(this).attr("href", fallbackUrl);
+          // If the image fails to load, update with fallback
+          d3.select(this).attr("href", 'https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg');
         });
       });
     });
