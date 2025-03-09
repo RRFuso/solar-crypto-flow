@@ -1,4 +1,5 @@
 
+import * as d3 from 'd3';
 import { NarrativeNode } from '@/types/narratives';
 import { useDrawVisualization } from './useDrawVisualization';
 import { useNodeLogos } from './useNodeLogos';
