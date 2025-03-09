@@ -3,7 +3,11 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BrainCircuit } from 'lucide-react';
 import { toast } from 'sonner';
-import { getNarratives, calculateHistoricalFlows, predictNarrativeFlows } from '@/lib/narrativeData';
+import { 
+  getNarratives, 
+  calculateHistoricalFlows, 
+  predictNarrativeFlows 
+} from '@/lib/narratives'; // Updated import path
 import { NarrativeControls } from './narrative-flow/NarrativeControls';
 import { NarrativeVisualizationWrapper } from './narrative-flow/NarrativeVisualizationWrapper';
 import {
