@@ -7,6 +7,12 @@ export const useNodeLogos = () => {
   
   // Add representative token logos to nodes
   const addNodeLogos = (nodes: d3.Selection<d3.BaseType, any, d3.BaseType, unknown>, svg: d3.Selection<SVGSVGElement, unknown, null, undefined>) => {
+    // Make sure defs exists
+    let defs = svg.select("defs");
+    if (defs.empty()) {
+      defs = svg.append("defs");
+    }
+    
     nodes.each(function(d) {
       if (!d.representativeTokens || d.representativeTokens.length === 0) return;
       
@@ -15,10 +21,10 @@ export const useNodeLogos = () => {
       
       // Position logos in a circle around the center
       d.representativeTokens.slice(0, numLogos).forEach((token, i) => {
+        if (!token || !token.symbol) return;
+        
         // Create clip path for circular logos
         const clipId = `clip-${d.id}-${token.symbol}`;
-        
-        const defs = svg.select("defs");
         
         defs.append("clipPath")
           .attr("id", clipId)

@@ -10,6 +10,7 @@ import {
 } from '@/lib/narratives'; // Updated import path
 import { NarrativeControls } from './narrative-flow/NarrativeControls';
 import { NarrativeVisualizationWrapper } from './narrative-flow/NarrativeVisualizationWrapper';
+import { CryptoLogosProvider } from '@/contexts/CryptoLogosContext';
 import {
   Tooltip,
   TooltipContent,
@@ -63,45 +64,47 @@ const NarrativeFlowPanel = () => {
   };
 
   return (
-    <div className="w-full h-full flex flex-col gap-6 p-6 bg-crypto-dark backdrop-blur-xl border border-white/10 rounded-xl shadow-lg">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-500 via-pink-400 to-indigo-500 bg-clip-text text-transparent">
-            Narrative Flows
-          </h2>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <BrainCircuit className="h-5 w-5 text-purple-400" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="max-w-xs">
-                  {usePredictions 
-                    ? "AI predictions using TensorFlow.js LSTM model trained on narrative capital flow patterns" 
-                    : "Historical capital flows between different crypto market narratives"
-                  }
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+    <CryptoLogosProvider>
+      <div className="w-full h-full flex flex-col gap-6 p-6 bg-crypto-dark backdrop-blur-xl border border-white/10 rounded-xl shadow-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-500 via-pink-400 to-indigo-500 bg-clip-text text-transparent">
+              Narrative Flows
+            </h2>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <BrainCircuit className="h-5 w-5 text-purple-400" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    {usePredictions 
+                      ? "AI predictions using TensorFlow.js LSTM model trained on narrative capital flow patterns" 
+                      : "Historical capital flows between different crypto market narratives"
+                    }
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          
+          <NarrativeControls 
+            timeframe={timeframe}
+            usePredictions={usePredictions}
+            onTimeframeChange={setTimeframe}
+            onPredictionsChange={handleTogglePredictions}
+            onRefresh={handleRefresh}
+          />
         </div>
-        
-        <NarrativeControls 
-          timeframe={timeframe}
+
+        <NarrativeVisualizationWrapper 
+          isLoading={isLoading}
+          flowData={flowData}
           usePredictions={usePredictions}
-          onTimeframeChange={setTimeframe}
-          onPredictionsChange={handleTogglePredictions}
-          onRefresh={handleRefresh}
+          predictionConfidence={predictionData?.confidence}
         />
       </div>
-
-      <NarrativeVisualizationWrapper 
-        isLoading={isLoading}
-        flowData={flowData}
-        usePredictions={usePredictions}
-        predictionConfidence={predictionData?.confidence}
-      />
-    </div>
+    </CryptoLogosProvider>
   );
 };
 

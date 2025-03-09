@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { fetchMarketData } from '@/lib/marketData';
 import { FlowData } from '@/types/crypto';
 import { FlowVisualization } from '@/components/capital-flow/FlowVisualization';
+import { CryptoLogosProvider } from '@/contexts/CryptoLogosContext';
 
 const CapitalFlowPanel = () => {
   const [flows, setFlows] = useState<FlowData[]>([]);
@@ -36,11 +37,13 @@ const CapitalFlowPanel = () => {
   }
 
   return (
-    <div className="w-full h-full flex items-center justify-center">
-      <FlowVisualization 
-        flowData={flows || []} 
-      />
-    </div>
+    <CryptoLogosProvider>
+      <div className="w-full h-full flex items-center justify-center">
+        <FlowVisualization 
+          flowData={flows || []} 
+        />
+      </div>
+    </CryptoLogosProvider>
   );
 };
 
