@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -147,30 +148,44 @@ const FearGreedIndicator = () => {
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      <div className="flex flex-wrap justify-center gap-4 md:flex-nowrap">
-        <FearGreedGauge
-          value={value}
-          classification={classification}
-          colors={colors}
-          message={message}
-          messageColor={messageColor}
-        />
-        <BTCDominance
-          dominance={btcDominance}
-          dominanceColor={dominanceColor}
-          dominanceText={dominanceText}
-        />
-        <BitcoinEconomicChart
-          btcPrice={btcPriceData?.price || "30,142.82"}
-          btcChange={btcPriceData?.change24h || 0}
-          marketSentiment={marketSentiment}
-        />
-        <EconomicIndicators
-          dxy={economicData?.dxy ?? "104.23"}
-          spx={economicData?.spx ?? "5,254.42"}
-          nasdaq={economicData?.nasdaq ?? "16,742.39"}
-        />
+      {/* First row: Economic Indicators and Bitcoin Chart side by side */}
+      <div className="flex flex-wrap md:flex-nowrap gap-4">
+        <div className="w-full md:w-1/2">
+          <EconomicIndicators
+            dxy={economicData?.dxy ?? "104.23"}
+            spx={economicData?.spx ?? "5,254.42"}
+            nasdaq={economicData?.nasdaq ?? "16,742.39"}
+          />
+        </div>
+        <div className="w-full md:w-1/2">
+          <BitcoinEconomicChart
+            btcPrice={btcPriceData?.price || "30,142.82"}
+            btcChange={btcPriceData?.change24h || 0}
+            marketSentiment={marketSentiment}
+          />
+        </div>
       </div>
+      
+      {/* Second row: Fear & Greed and BTC Dominance side by side */}
+      <div className="flex flex-wrap gap-4 md:flex-nowrap">
+        <div className="w-full md:w-1/2">
+          <FearGreedGauge
+            value={value}
+            classification={classification}
+            colors={colors}
+            message={message}
+            messageColor={messageColor}
+          />
+        </div>
+        <div className="w-full md:w-1/2">
+          <BTCDominance
+            dominance={btcDominance}
+            dominanceColor={dominanceColor}
+            dominanceText={dominanceText}
+          />
+        </div>
+      </div>
+      
       <div className="text-center text-[10px] text-gray-500">
         Este painel é uma ferramenta para auxiliar sua análise. Todas as decisões de investimento são de sua responsabilidade.
       </div>

@@ -28,11 +28,19 @@ const CapitalFlowPanel = () => {
   }, []);
 
   if (loading) {
-    return <div className="text-center">Loading capital flow data...</div>;
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-red-500 text-center">Error: {error}</div>;
+    return (
+      <div className="w-full h-full flex items-center justify-center text-red-500 text-center">
+        Error: {error}
+      </div>
+    );
   }
 
   return (

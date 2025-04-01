@@ -2,6 +2,7 @@
 import * as d3 from 'd3';
 import { NarrativeData, NarrativeNode } from '@/types/narratives';
 import { useMarketAttention } from './useMarketAttention';
+import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
 
 export const useNodeSizing = (narratives: NarrativeData[]) => {
   const { applyAttentionScoresToNodes } = useMarketAttention();
@@ -64,37 +65,6 @@ export const useNodeSizing = (narratives: NarrativeData[]) => {
 
     // Apply market attention scores to nodes
     return applyAttentionScoresToNodes(nodes, narratives);
-  };
-
-  // Helper function to get better logo URLs
-  const getCryptoLogoUrl = (symbol: string): string => {
-    // Map common symbols to their CoinMarketCap IDs
-    const symbolToId: Record<string, number> = {
-      'BTC': 1,
-      'ETH': 1027,
-      'SOL': 5426,
-      'BNB': 1839,
-      'XRP': 52,
-      'ADA': 2010,
-      'AVAX': 5805,
-      'DOT': 6636,
-      'DOGE': 74,
-      'MATIC': 3890,
-      'LINK': 1975,
-      'UNI': 7083,
-      'SHIB': 5994,
-      'TRX': 1958,
-      'TON': 11419,
-      'ICP': 8916,
-      'NEAR': 6535,
-      'APT': 21794,
-      'ARB': 11841,
-      'OP': 11840,
-      'FIL': 2280
-    };
-    
-    const id = symbolToId[symbol] || 1; // Default to BTC if symbol not found
-    return `https://s2.coinmarketcap.com/static/img/coins/64x64/${id}.png`;
   };
 
   // Scale node sizes based on market cap and attention

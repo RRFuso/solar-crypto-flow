@@ -2,6 +2,7 @@
 import { RefObject } from 'react';
 import * as d3 from 'd3';
 import { NarrativeFlow, NarrativeNode } from '@/types/narratives';
+import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
 
 interface DrawOptions {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -140,9 +141,8 @@ export const useFlowVisualization = () => {
           .attr("fill", "white")
           .attr("opacity", 0.9);
         
-        // Use better fallback images from CoinMarketCap
-        const logoUrl = `https://s2.coinmarketcap.com/static/img/coins/64x64/${getCoinIdForSymbol(token.symbol)}.png`;
-        const fallbackUrl = `https://cryptologos.cc/logos/${token.symbol.toLowerCase()}-${token.symbol.toLowerCase()}-logo.png`;
+        // Use better fallback images
+        const logoUrl = getCryptoLogoUrl(token.symbol);
         
         // Add the logo image with error handling
         const img = d3.select(this)
@@ -157,7 +157,7 @@ export const useFlowVisualization = () => {
         
         // Add error handling for the image
         img.on("error", function() {
-          d3.select(this).attr("href", fallbackUrl);
+          d3.select(this).attr("href", getFallbackLogoUrl());
         });
       });
     });
@@ -186,49 +186,6 @@ export const useFlowVisualization = () => {
       node,
       svg
     };
-  };
-
-  // Map crypto symbols to CoinMarketCap IDs for better logo retrieval
-  const getCoinIdForSymbol = (symbol: string): number => {
-    const symbolToId: Record<string, number> = {
-      'BTC': 1,
-      'ETH': 1027,
-      'SOL': 5426,
-      'BNB': 1839,
-      'XRP': 52,
-      'ADA': 2010,
-      'AVAX': 5805,
-      'DOT': 6636,
-      'DOGE': 74,
-      'MATIC': 3890,
-      'LINK': 1975,
-      'UNI': 7083,
-      'SHIB': 5994,
-      'TRX': 1958,
-      'TON': 11419,
-      'ICP': 8916,
-      'NEAR': 6535,
-      'APT': 21794,
-      'ARB': 11841,
-      'OP': 11840,
-      'FIL': 2280,
-      'SUI': 20947,
-      'ALGO': 4030,
-      'ATOM': 3794,
-      'MANA': 1966,
-      'SEI': 20947,
-      'GRT': 6719,
-      'AAVE': 7278,
-      'MKR': 1518,
-      'CRV': 6538,
-      'COMP': 5692,
-      'SNX': 2586,
-      'LDO': 8000,
-      'RUNE': 4157,
-      'FXS': 6953
-    };
-    
-    return symbolToId[symbol] || 1; // Default to BTC if symbol not found
   };
 
   // Update element positions on tick
