@@ -12,6 +12,7 @@ export interface CryptoData {
   volume?: string;
   high24h?: string;
   low24h?: string;
+  symbol?: string; // Added symbol property
   macd?: {
     value: number;
     signal: number;

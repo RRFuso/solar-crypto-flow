@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { fetchTickers, fetchKlines } from '@/lib/binance';
 import { calculateRSI, calculateEMA } from '@/lib/technicalAnalysis';
@@ -58,9 +59,13 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
                 return null;
               }
 
+              // Extract the symbol without USDT suffix
+              const baseSymbol = symbol.replace('USDT', '');
+
               return {
-                id: symbol.replace('USDT', ''),
-                name: symbol.replace('USDT', ''),
+                id: baseSymbol,
+                name: baseSymbol,
+                symbol: baseSymbol, // Explicitly set the symbol property
                 performance: priceChange - btcChange,
                 price: currentPrice.toFixed(8),
                 rsi: rsiValues[rsiValues.length - 1],

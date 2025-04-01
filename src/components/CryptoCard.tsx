@@ -19,7 +19,7 @@ const CryptoCard: React.FC<CryptoCardProps> = ({
   showRsi = false,
   showRsi4h = false
 }) => {
-  const { id, name, symbol = id, performance = 0, price, volume } = crypto;
+  const { id, name, symbol, performance = 0, price, volume } = crypto;
   const logoUrl = getCryptoLogoUrl(symbol || id);
   const fallbackLogoUrl = getFallbackLogoUrl();
   
