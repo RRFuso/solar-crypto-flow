@@ -1,12 +1,12 @@
 
 import React from 'react';
-import FearGreedIndicator from "@/components/FearGreedIndicator";
+import MarketRotationIndicator from './MarketRotationIndicator';
 
 const HomePanel = () => {
   return (
     <div className="space-y-8">
       <div className="w-full h-[800px]">
-        <FearGreedIndicator />
+        <MarketRotationIndicator />
       </div>
     </div>
   );

@@ -1,16 +1,16 @@
 
 import { MarketIndex, IndexFlowData, IndexRotationResult } from '@/types/indices';
 
-// Market indices with their symbols
+// Índices de mercado com seus símbolos
 const marketIndices: MarketIndex[] = [
-  { id: 'SP500', name: 'S&P 500', symbol: '^GSPC', color: '#8884d8' },
-  { id: 'NASDAQ', name: 'Nasdaq', symbol: '^IXIC', color: '#82ca9d' },
-  { id: 'DOW', name: 'Dow Jones', symbol: '^DJI', color: '#ffc658' },
-  { id: 'RUSSELL', name: 'Russell 2000', symbol: '^RUT', color: '#ff8042' },
-  { id: 'GOLD', name: 'Gold', symbol: 'GC=F', color: '#FFD700' }
+  { id: 'SP500', name: 'S&P 500', symbol: '^GSPC', color: '#4f46e5' },
+  { id: 'NASDAQ', name: 'Nasdaq', symbol: '^IXIC', color: '#06b6d4' },
+  { id: 'DOW', name: 'Dow Jones', symbol: '^DJI', color: '#10b981' },
+  { id: 'RUSSELL', name: 'Russell 2000', symbol: '^RUT', color: '#f59e0b' },
+  { id: 'GOLD', name: 'Ouro', symbol: 'GC=F', color: '#f7bd16' }
 ];
 
-// Mock data for development purposes
+// Dados simulados para desenvolvimento
 const mockHistoricalData = {
   'SP500': [9950, 10000, 10050, 10100, 10150, 10200, 10250],
   'NASDAQ': [14900, 15000, 15100, 15050, 15000, 15200, 15300],
@@ -19,7 +19,7 @@ const mockHistoricalData = {
   'GOLD': [1890, 1900, 1910, 1920, 1930, 1940, 1950]
 };
 
-// Calculate percentage changes
+// Calcular variações percentuais
 function calculatePercentageChanges(data: Record<string, number[]>): Record<string, number[]> {
   const percentageChanges: Record<string, number[]> = {};
   
@@ -34,37 +34,37 @@ function calculatePercentageChanges(data: Record<string, number[]>): Record<stri
   return percentageChanges;
 }
 
-// Detect capital flows between indices
+// Detectar fluxos de capital entre índices
 function detectCapitalFlows(percentageChanges: Record<string, number[]>): IndexFlowData[] {
   const flows: IndexFlowData[] = [];
   const indices = Object.keys(percentageChanges);
   const latestChanges: Record<string, number> = {};
   
-  // Get latest percentage change for each index
+  // Obter última variação percentual para cada índice
   indices.forEach(index => {
     const changes = percentageChanges[index];
     latestChanges[index] = changes[changes.length - 1];
   });
   
-  // Sort indices by performance
-  const sortedIndices = indices.sort((a, b) => latestChanges[b] - latestChanges[a]);
+  // Ordenar índices por desempenho
+  const sortedIndices = [...indices].sort((a, b) => latestChanges[b] - latestChanges[a]);
   
-  // Create flows from worst performers to best performers
+  // Criar fluxos dos piores para os melhores desempenhos
   for (let i = sortedIndices.length - 1; i > 0; i--) {
     const fromIndex = sortedIndices[i];
-    const toIndex = sortedIndices[0]; // Best performer
+    const toIndex = sortedIndices[0]; // Melhor desempenho
     
     if (latestChanges[fromIndex] < 0 && latestChanges[toIndex] > 0) {
       flows.push({
         from: fromIndex,
         to: toIndex,
-        value: Math.abs(latestChanges[fromIndex]) * 10, // Scale for visualization
+        value: Math.abs(latestChanges[fromIndex]) * 10, // Escala para visualização
         percentage: latestChanges[toIndex] - latestChanges[fromIndex]
       });
     }
   }
   
-  // If no negative performers, detect flows between weaker and stronger positive performers
+  // Se não houver desempenhos negativos, detectar fluxos entre positivos mais fracos e mais fortes
   if (flows.length === 0) {
     for (let i = sortedIndices.length - 1; i > 0; i--) {
       const fromIndex = sortedIndices[i];
@@ -74,7 +74,7 @@ function detectCapitalFlows(percentageChanges: Record<string, number[]>): IndexF
         flows.push({
           from: fromIndex,
           to: toIndex,
-          value: (latestChanges[toIndex] - latestChanges[fromIndex]) * 5, // Scale for visualization
+          value: (latestChanges[toIndex] - latestChanges[fromIndex]) * 5, // Escala para visualização
           percentage: latestChanges[toIndex] - latestChanges[fromIndex]
         });
       }
@@ -84,30 +84,88 @@ function detectCapitalFlows(percentageChanges: Record<string, number[]>): IndexF
   return flows;
 }
 
-// Main function to fetch and analyze market data
+// Função principal para buscar e analisar dados de mercado
 export async function fetchMarketRotationData(period: string = '7d'): Promise<IndexRotationResult> {
-  // In a real implementation, this would fetch data from an API
-  // For now, using mock data
+  // Em uma implementação real, isso buscaria dados de uma API
+  // Por enquanto, usando dados simulados
   
-  // Update mock indices with latest values and changes
+  // Atualizar índices simulados com valores e variações recentes
   const updatedIndices = marketIndices.map(index => {
-    const values = mockHistoricalData[index.id];
+    const values = mockHistoricalData[index.id as keyof typeof mockHistoricalData];
     const latestValue = values[values.length - 1];
     const previousValue = values[values.length - 2];
     const change = ((latestValue - previousValue) / previousValue) * 100;
     
+    // Adicionar aleatoriedade para dinamizar a visualização
+    const randomFactor = (Math.random() * 4) - 2; // Entre -2% e +2%
+    const adjustedChange = change + randomFactor;
+    
     return {
       ...index,
       value: latestValue,
-      change: Number(change.toFixed(2))
+      change: Number(adjustedChange.toFixed(2)),
+      marketCap: latestValue * 1000000, // Simulação de market cap
+      volume: latestValue * 10000 * Math.random() // Simulação de volume
     };
   });
   
-  // Calculate percentage changes for analysis
+  // Calcular variações percentuais para análise
   const percentageChanges = calculatePercentageChanges(mockHistoricalData);
   
-  // Detect capital flows
+  // Detectar fluxos de capital
   const flows = detectCapitalFlows(percentageChanges);
+  
+  // Adicionar mais fluxos para enriquecer a visualização
+  const topPerformer = updatedIndices.reduce((prev, curr) => 
+    (curr.change || 0) > (prev.change || 0) ? curr : prev, updatedIndices[0]);
+    
+  const worstPerformer = updatedIndices.reduce((prev, curr) => 
+    (curr.change || 0) < (prev.change || 0) ? curr : prev, updatedIndices[0]);
+    
+  // Adicionar fluxo direto do pior para o melhor desempenho
+  if (topPerformer.id !== worstPerformer.id) {
+    const flowAlreadyExists = flows.some(
+      flow => flow.from === worstPerformer.id && flow.to === topPerformer.id
+    );
+    
+    if (!flowAlreadyExists && (worstPerformer.change || 0) < 0 && (topPerformer.change || 0) > 0) {
+      flows.push({
+        from: worstPerformer.id,
+        to: topPerformer.id,
+        value: Math.abs((worstPerformer.change || 0) - (topPerformer.change || 0)) * 5,
+        percentage: (topPerformer.change || 0) - (worstPerformer.change || 0)
+      });
+    }
+  }
+  
+  // Detectar correlações negativas entre ativos
+  updatedIndices.forEach((idx1, i) => {
+    updatedIndices.forEach((idx2, j) => {
+      if (i < j) {
+        const change1 = idx1.change || 0;
+        const change2 = idx2.change || 0;
+        
+        // Se um subiu e o outro caiu significativamente
+        if ((change1 > 1 && change2 < -1) || (change1 < -1 && change2 > 1)) {
+          const from = change1 < change2 ? idx1.id : idx2.id;
+          const to = change1 < change2 ? idx2.id : idx1.id;
+          
+          const flowAlreadyExists = flows.some(
+            flow => flow.from === from && flow.to === to
+          );
+          
+          if (!flowAlreadyExists) {
+            flows.push({
+              from,
+              to,
+              value: Math.abs(change1 - change2) * 3,
+              percentage: Math.abs(change1 - change2)
+            });
+          }
+        }
+      }
+    });
+  });
   
   return {
     indices: updatedIndices,
