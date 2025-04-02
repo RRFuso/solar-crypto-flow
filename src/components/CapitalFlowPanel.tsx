@@ -45,9 +45,11 @@ const CapitalFlowPanel = () => {
 
   return (
     <div className="w-full h-full flex items-center justify-center">
-      <FlowVisualization 
-        flowData={flows || []} 
-      />
+      <div className="w-full h-[500px]">
+        <FlowVisualization 
+          flowData={flows || []} 
+        />
+      </div>
     </div>
   );
 };
