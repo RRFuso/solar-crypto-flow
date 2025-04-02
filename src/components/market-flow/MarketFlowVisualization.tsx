@@ -56,54 +56,92 @@ export const MarketFlowVisualization: React.FC<MarketFlowVisualizationProps> = (
       percentage: flow.percentage
     })).filter(link => link.source && link.target);
     
-    // Calculate orbital distances
-    const orbitalLayers = 3; // Number of distinct orbital layers
-    const minRadius = Math.min(width, height) * 0.15;
-    const maxRadius = Math.min(width, height) * 0.35;
-    const orbitStep = (maxRadius - minRadius) / orbitalLayers;
+    // Position nodes in planetary layout
+    // First, sort other nodes by market cap (value) in descending order
+    const nonCentralNodes = nodes
+      .filter(n => !n.isCentral)
+      .sort((a, b) => b.value - a.value);
     
-    // Assign nodes to orbital layers (excluding central node)
-    const nonCentralNodes = nodes.filter(n => !n.isCentral);
-    const nodesPerLayer = Math.ceil(nonCentralNodes.length / orbitalLayers);
+    // Calculate orbit layers based on market cap
+    const orbitLayers = Math.min(3, Math.ceil(nonCentralNodes.length / 6));
+    const baseRadius = Math.min(width, height) * 0.3 / orbitLayers;
     
-    const orbitRadii = nodes.map(node => {
-      if (node.isCentral) return 0;
-      
-      const nonCentralIndex = nonCentralNodes.indexOf(node);
-      const orbitLayer = Math.floor(nonCentralIndex / nodesPerLayer);
-      return minRadius + (orbitLayer * orbitStep);
-    });
+    // Position central node in the middle
+    const centralNode = nodes.find(n => n.isCentral);
+    if (centralNode) {
+      centralNode.x = width / 2;
+      centralNode.y = height / 2;
+    }
     
-    // Draw orbital paths
-    for (let i = 0; i < orbitalLayers; i++) {
-      const radius = minRadius + (i * orbitStep);
+    // Draw orbit circles
+    for (let i = 1; i <= orbitLayers; i++) {
+      const orbitRadius = i * baseRadius;
       svg.append("circle")
         .attr("cx", width / 2)
         .attr("cy", height / 2)
-        .attr("r", radius)
+        .attr("r", orbitRadius)
         .attr("fill", "none")
         .attr("stroke", "rgba(255, 255, 255, 0.1)")
         .attr("stroke-width", 1)
-        .attr("stroke-dasharray", "3,3");
+        .attr("stroke-dasharray", "5,5");
     }
     
-    // Position nodes in orbits
-    nodes.forEach((node, i) => {
-      if (node.isCentral) {
-        node.x = width / 2;
-        node.y = height / 2;
-      } else {
-        const layer = Math.floor(nonCentralNodes.indexOf(node) / nodesPerLayer);
-        const nodesInThisLayer = Math.min(
-          nodesPerLayer, 
-          nonCentralNodes.length - (layer * nodesPerLayer)
-        );
+    // Position other nodes in orbits based on market cap
+    // with anti-collision logic
+    const placedNodes: Array<{x: number, y: number, radius: number}> = [
+      { x: width / 2, y: height / 2, radius: (centralNode?.radius || 40) * 1.2 }
+    ];
+    
+    nonCentralNodes.forEach((node, i) => {
+      // Determine which orbit layer this node belongs to
+      // Higher values get closer orbits
+      const valueRatio = node.value / (centralNode?.value || 1);
+      const layerIndex = Math.min(
+        orbitLayers - 1, 
+        Math.floor((1 - Math.min(valueRatio, 0.8)) * orbitLayers)
+      );
+      const orbitRadius = (layerIndex + 1) * baseRadius;
+      
+      // Try to find a position that doesn't overlap with existing nodes
+      let angle = (i * 0.618033988749895) * Math.PI * 2; // Golden angle for better distribution
+      let found = false;
+      let attempts = 0;
+      const maxAttempts = 50;
+      
+      while (!found && attempts < maxAttempts) {
+        const testX = width / 2 + Math.cos(angle) * orbitRadius;
+        const testY = height / 2 + Math.sin(angle) * orbitRadius;
         
-        const indexInLayer = nonCentralNodes.indexOf(node) % nodesPerLayer;
-        const angle = (indexInLayer / nodesInThisLayer) * Math.PI * 2;
+        // Check for collisions with existing nodes
+        let collision = false;
+        for (const placed of placedNodes) {
+          const dx = testX - placed.x;
+          const dy = testY - placed.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const minDistance = placed.radius + node.radius * 1.2; // Add some padding
+          
+          if (distance < minDistance) {
+            collision = true;
+            break;
+          }
+        }
         
-        node.x = width/2 + Math.cos(angle) * orbitRadii[i];
-        node.y = height/2 + Math.sin(angle) * orbitRadii[i];
+        if (!collision) {
+          node.x = testX;
+          node.y = testY;
+          placedNodes.push({ x: testX, y: testY, radius: node.radius * 1.2 });
+          found = true;
+        } else {
+          angle += 0.5; // Try another angle
+          attempts++;
+        }
+      }
+      
+      // If we couldn't find a non-colliding position, place it anyway
+      if (!found) {
+        const fallbackAngle = i * (Math.PI * 2 / nonCentralNodes.length);
+        node.x = width / 2 + Math.cos(fallbackAngle) * orbitRadius;
+        node.y = height / 2 + Math.sin(fallbackAngle) * orbitRadius;
       }
     });
     
@@ -172,7 +210,7 @@ export const MarketFlowVisualization: React.FC<MarketFlowVisualizationProps> = (
             
             // Add time-based offset that loops
             offset += (Date.now() / 50) % pathLength;
-            if (d.percentage !== undefined && d.percentage <= 0) { // Fixed: Changed comparison to handle both boolean and number
+            if (d.percentage !== undefined && d.percentage <= 0) { 
               offset = pathLength - offset; // Reverse direction for outflows
             }
             
@@ -221,13 +259,13 @@ export const MarketFlowVisualization: React.FC<MarketFlowVisualizationProps> = (
       .attr("stroke-width", 2)
       .attr("opacity", 0.8);
     
-    // Add text (index name) - now in white
+    // Add text (index name) - always white
     node.append("text")
       .attr("text-anchor", "middle")
       .attr("dy", ".3em")
-      .attr("fill", "white") // Changed to white
+      .attr("fill", "white")
       .attr("font-weight", "bold")
-      .attr("font-size", "12px")
+      .attr("font-size", d => d.isCentral ? "14px" : "12px")
       .text(d => d.name);
     
     // Add percentage text - keep the color for positive/negative indication
@@ -253,7 +291,7 @@ export const MarketFlowVisualization: React.FC<MarketFlowVisualizationProps> = (
       });
     
     // Add subtle orbital rotation animation
-    const rotationSpeed = 0.0001; // Slow rotation
+    const rotationSpeed = 0.00005; // Slow rotation for more realistic planetary movement
     
     function animateOrbits() {
       nodes.forEach((node, i) => {
@@ -288,13 +326,11 @@ export const MarketFlowVisualization: React.FC<MarketFlowVisualizationProps> = (
       });
       
       // Continue animation
-      requestAnimationFrame(animateOrbits);
+      return requestAnimationFrame(animateOrbits);
     }
     
     // Start animation
-    animateOrbits();
-    
-    const animationFrameId = requestAnimationFrame(animateOrbits);
+    const animationFrameId = animateOrbits();
     
     // Cleanup on unmount
     return () => {

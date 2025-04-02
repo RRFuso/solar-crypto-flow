@@ -22,6 +22,7 @@ export interface CryptoData {
   score?: number;
   isExplosive?: boolean;
   criteriaHit?: string[];
+  marketCap?: number; // Added marketCap property
 }
 
 export interface FlowData {
@@ -29,5 +30,6 @@ export interface FlowData {
   to: string;
   value: number;
   percentage: number;
-  volume?: number; // Add volume property to FlowData interface
+  volume?: number; // Volume property for FlowData interface
+  marketCap?: number; // Added marketCap property
 }

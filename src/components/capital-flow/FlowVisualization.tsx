@@ -36,68 +36,140 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
         ...data.map(d => d.to)
       ]));
       
-      // Create nodes
-      const nodes = assets.map(id => ({
-        id,
-        radius: 30,
-        type: id.includes("BTC") ? "central" : "orbital",
-        x: 0,
-        y: 0
-      }));
+      // Compute total volume per asset to determine market cap if not provided
+      const assetVolumes = new Map<string, number>();
+      
+      data.forEach(flow => {
+        // Sum volumes for both source and target nodes
+        const fromVolume = assetVolumes.get(flow.from) || 0;
+        assetVolumes.set(flow.from, fromVolume + (flow.volume || 0));
+        
+        const toVolume = assetVolumes.get(flow.to) || 0;
+        assetVolumes.set(flow.to, toVolume + (flow.volume || 0));
+      });
+      
+      // Create nodes with market cap (or volume) information
+      const nodes = assets.map(id => {
+        // Use marketCap if available in data, otherwise use the computed volume
+        const marketCap = data.find(d => d.from === id || d.to === id)?.marketCap || 
+                          assetVolumes.get(id) || 1;
+        
+        const isBTC = id === 'BTC';
+        
+        return {
+          id,
+          marketCap,
+          radius: isBTC ? 45 : Math.max(20, Math.min(40, 20 + (marketCap / 1000))),
+          type: isBTC ? "central" : "orbital",
+          x: 0,
+          y: 0
+        };
+      });
+      
+      // Find the node with the highest market cap to serve as the central node
+      const centralNode = nodes.reduce((max, node) => 
+        node.marketCap > max.marketCap ? node : max, 
+        { ...nodes[0], marketCap: -Infinity });
+      
+      // Mark the central node
+      centralNode.type = "central";
+      centralNode.radius = 45; // Make central node bigger
       
       // Create links
       const links = data.map(flow => ({
         source: nodes.find(n => n.id === flow.from),
         target: nodes.find(n => n.id === flow.to),
         value: flow.value,
-        volume: flow.volume
+        volume: flow.volume,
+        percentage: flow.percentage
       })).filter(link => link.source && link.target);
       
-      // Find central node (BTC or highest volume)
-      const centralNode = nodes.find(n => n.type === "central") || 
-        nodes.reduce((max, node) => {
-          const nodeVolume = data
-            .filter(d => d.from === node.id || d.to === node.id)
-            .reduce((sum, d) => sum + d.volume, 0);
-          
-          const maxVolume = data
-            .filter(d => d.from === max.id || d.to === max.id)
-            .reduce((sum, d) => sum + d.volume, 0);
-          
-          return nodeVolume > maxVolume ? node : max;
-        }, nodes[0]);
+      // Position nodes in planetary layout
+      // First, sort other nodes by market cap in descending order
+      const nonCentralNodes = nodes
+        .filter(n => n.id !== centralNode.id)
+        .sort((a, b) => b.marketCap - a.marketCap);
       
-      if (centralNode) {
-        centralNode.type = "central";
-        centralNode.radius = 45; // Make central node bigger
-      }
-      
-      // Position nodes in orbital layout
-      const nonCentralNodes = nodes.filter(n => n.id !== centralNode.id);
-      const orbitRadius = Math.min(width, height) * 0.3;
+      // Calculate orbit layers based on market cap
+      // Larger market caps get closer orbits
+      const orbitLayers = Math.min(5, Math.ceil(nonCentralNodes.length / 5));
+      const baseRadius = Math.min(width, height) * 0.3 / orbitLayers;
       
       // Position central node in the middle
-      if (centralNode) {
-        centralNode.x = width / 2;
-        centralNode.y = height / 2;
+      centralNode.x = width / 2;
+      centralNode.y = height / 2;
+      
+      // Draw orbit circles
+      for (let i = 1; i <= orbitLayers; i++) {
+        const orbitRadius = i * baseRadius;
+        svgSelection.append("circle")
+          .attr("cx", width / 2)
+          .attr("cy", height / 2)
+          .attr("r", orbitRadius)
+          .attr("fill", "none")
+          .attr("stroke", "rgba(255, 255, 255, 0.1)")
+          .attr("stroke-width", 1)
+          .attr("stroke-dasharray", "5,5");
       }
       
-      // Position other nodes in orbit
-      nonCentralNodes.forEach((node, i) => {
-        const angle = (i / nonCentralNodes.length) * Math.PI * 2;
-        node.x = width / 2 + Math.cos(angle) * orbitRadius;
-        node.y = height / 2 + Math.sin(angle) * orbitRadius;
-      });
+      // Position other nodes in orbits based on market cap
+      // with anti-collision logic
+      const placedNodes: Array<{x: number, y: number, radius: number}> = [
+        { x: centralNode.x, y: centralNode.y, radius: centralNode.radius * 1.2 }
+      ];
       
-      // Draw orbit circle
-      svgSelection.append("circle")
-        .attr("cx", width / 2)
-        .attr("cy", height / 2)
-        .attr("r", orbitRadius)
-        .attr("fill", "none")
-        .attr("stroke", "rgba(255, 255, 255, 0.1)")
-        .attr("stroke-width", 1)
-        .attr("stroke-dasharray", "5,5");
+      nonCentralNodes.forEach((node, i) => {
+        // Determine which orbit layer this node belongs to
+        // Larger market caps get closer orbits
+        const marketCapRatio = node.marketCap / centralNode.marketCap;
+        const layerIndex = Math.min(
+          orbitLayers - 1, 
+          Math.floor((1 - Math.min(marketCapRatio, 0.8)) * orbitLayers)
+        );
+        const orbitRadius = (layerIndex + 1) * baseRadius;
+        
+        // Try to find a position that doesn't overlap with existing nodes
+        let angle = (i * 0.618033988749895) * Math.PI * 2; // Golden angle for better distribution
+        let found = false;
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        while (!found && attempts < maxAttempts) {
+          const testX = width / 2 + Math.cos(angle) * orbitRadius;
+          const testY = height / 2 + Math.sin(angle) * orbitRadius;
+          
+          // Check for collisions with existing nodes
+          let collision = false;
+          for (const placed of placedNodes) {
+            const dx = testX - placed.x;
+            const dy = testY - placed.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const minDistance = placed.radius + node.radius * 1.2; // Add some padding
+            
+            if (distance < minDistance) {
+              collision = true;
+              break;
+            }
+          }
+          
+          if (!collision) {
+            node.x = testX;
+            node.y = testY;
+            placedNodes.push({ x: testX, y: testY, radius: node.radius * 1.2 });
+            found = true;
+          } else {
+            angle += 0.5; // Try another angle
+            attempts++;
+          }
+        }
+        
+        // If we couldn't find a non-colliding position, place it anyway
+        if (!found) {
+          const fallbackAngle = i * (Math.PI * 2 / nonCentralNodes.length);
+          node.x = width / 2 + Math.cos(fallbackAngle) * orbitRadius;
+          node.y = height / 2 + Math.sin(fallbackAngle) * orbitRadius;
+        }
+      });
       
       // Draw links with gradient
       const linkGroup = svgSelection.append("g").attr("class", "links");
@@ -134,7 +206,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
           .attr("orient", "auto")
           .append("path")
           .attr("d", "M0,-5L10,0L0,5")
-          .attr("fill", link.value > 0 ? "#4ade80" : "#f43f5e");
+          .attr("fill", link.percentage > 0 ? "#4ade80" : "#f43f5e");
       });
       
       // Draw link paths
@@ -164,7 +236,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
           .enter()
           .append("circle")
           .attr("r", 2)
-          .attr("fill", link.value > 0 ? "#4ade80" : "#f43f5e")
+          .attr("fill", link.percentage > 0 ? "#4ade80" : "#f43f5e")
           .attr("opacity", 0.8);
         
         function animateParticles() {
@@ -179,6 +251,11 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
             
             // Add time-based offset that loops
             offset += (Date.now() / 50) % pathLength;
+            
+            // Reverse direction for outflows
+            if (link.percentage <= 0) {
+              offset = pathLength - offset;
+            }
             
             // Loop back to start when reaching the end
             offset = offset % pathLength;
@@ -225,13 +302,13 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
         .attr("stroke-width", 2)
         .attr("opacity", 0.8);
       
-      // Add text labels (now white)
+      // Add text labels (always white)
       node.append("text")
         .attr("text-anchor", "middle")
         .attr("dy", ".3em")
-        .attr("fill", "white") // Changed to white
+        .attr("fill", "white")
         .attr("font-weight", "bold")
-        .attr("font-size", "12px")
+        .attr("font-size", d => d.type === "central" ? "14px" : "12px")
         .text(d => d.id);
       
       // Add pulsating animation to central node
@@ -246,12 +323,12 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
           .attr("repeatCount", "indefinite");
       }
       
-      // Add subtle orbital rotation
-      const rotationSpeed = 0.0001; // Very slow rotation
+      // Add subtle orbital rotation (slow for realism)
+      const rotationSpeed = 0.00005; // Very slow rotation
       
       function animateOrbits() {
-        nonCentralNodes.forEach((node, i) => {
-          // Calculate current angle and radius
+        nonCentralNodes.forEach((node) => {
+          // Calculate current angle from center
           const dx = node.x - width/2;
           const dy = node.y - height/2;
           const angle = Math.atan2(dy, dx) + rotationSpeed;
@@ -285,13 +362,19 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
       }
       
       // Start animation
-      animateOrbits();
+      const animationFrameId = requestAnimationFrame(animateOrbits);
+      
+      // Cleanup on unmount will be handled by the returned function
+      return animationFrameId;
     };
     
     // Use our modified visualization function
-    customVisualization(flowData, svgRef.current, containerRef.current);
+    const animationFrameId = customVisualization(flowData, svgRef.current, containerRef.current);
     
     return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       d3.select(svgRef.current).selectAll("*").remove();
     };
   }, [flowData, createVisualization]);
