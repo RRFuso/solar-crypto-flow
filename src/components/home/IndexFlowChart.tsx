@@ -60,7 +60,7 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       .enter()
       .append("path")
       .attr("class", "link")
-      .attr("stroke", d => d.percentage > 0 ? "#4ade80" : "#f43f5e")
+      .attr("stroke", d => d.percentage > 0 ? "#4ade80" : "#f43f5e") // Cores mais vibrantes
       .attr("stroke-width", d => 2 + Math.min(5, Math.abs(d.value) / 10))
       .attr("fill", "none")
       .attr("stroke-dasharray", "10,10")
@@ -79,7 +79,7 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       .attr("markerHeight", 6)
       .attr("orient", "auto")
       .append("path")
-      .attr("fill", d => d.percentage > 0 ? "#4ade80" : "#f43f5e")
+      .attr("fill", d => d.percentage > 0 ? "#4ade80" : "#f43f5e") // Cores mais vibrantes
       .attr("d", "M0,-5L10,0L0,5");
     
     // Desenhar nós (círculos)
@@ -109,6 +109,8 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       .attr("fill", "white")
       .attr("font-weight", "bold")
       .attr("font-size", "12px")
+      .attr("stroke", "black")
+      .attr("stroke-width", "0.5px")
       .text(d => d.name);
     
     // Adicionar variação percentual
@@ -118,6 +120,8 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       .attr("fill", d => d.change >= 0 ? "#4ade80" : "#f43f5e")
       .attr("font-weight", "bold")
       .attr("font-size", "11px")
+      .attr("stroke", "black")
+      .attr("stroke-width", "0.3px")
       .text(d => (d.change >= 0 ? "+" : "") + d.change.toFixed(2) + "%");
     
     // Atualizar posições a cada tick

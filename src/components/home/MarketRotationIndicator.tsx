@@ -47,7 +47,7 @@ const MarketRotationIndicator = () => {
             <SelectTrigger className="w-32 bg-black/20 border-gray-800">
               <SelectValue placeholder="Período" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-gray-900 border-gray-800">
               <SelectItem value="1d">1 dia</SelectItem>
               <SelectItem value="7d">7 dias</SelectItem>
               <SelectItem value="30d">30 dias</SelectItem>
@@ -60,10 +60,10 @@ const MarketRotationIndicator = () => {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-96 gap-4">
             <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-            <p className="text-gray-400">Carregando dados do mercado...</p>
+            <p className="text-gray-300">Carregando dados do mercado...</p>
           </div>
         ) : isError ? (
-          <div className="flex flex-col items-center justify-center h-96 text-amber-500 gap-4">
+          <div className="flex flex-col items-center justify-center h-96 text-amber-400 gap-4">
             <AlertTriangle className="w-8 h-8" />
             <div className="text-center">
               <p className="mb-2">Erro ao carregar dados</p>
@@ -71,7 +71,7 @@ const MarketRotationIndicator = () => {
                 variant="outline" 
                 size="sm" 
                 onClick={() => refetch()}
-                className="text-amber-500 border-amber-500"
+                className="text-amber-400 border-amber-400 hover:bg-amber-400/10"
               >
                 Tentar novamente
               </Button>
@@ -81,7 +81,7 @@ const MarketRotationIndicator = () => {
           <div className="p-4">
             {data.indices.some(index => index.value === undefined) && (
               <div className="mb-4 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
-                <p className="text-yellow-500 text-xs flex items-center">
+                <p className="text-yellow-400 text-xs flex items-center">
                   <AlertTriangle className="w-4 h-4 mr-2" />
                   Alguns dados podem estar utilizando valores estimados devido a limitações da API
                 </p>
@@ -94,9 +94,9 @@ const MarketRotationIndicator = () => {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: index.color }}></div>
-                      <span>{index.name}</span>
+                      <span className="text-gray-200">{index.name}</span>
                     </div>
-                    <div className={`flex items-center ${index.change && index.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    <div className={`flex items-center ${index.change && index.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                       {index.change && index.change >= 0 ? (
                         <ArrowUpRight className="w-4 h-4 mr-1" />
                       ) : (
@@ -113,8 +113,8 @@ const MarketRotationIndicator = () => {
               <IndexFlowChart data={data} />
             </div>
             
-            <div className="mt-4 text-sm text-gray-400">
-              <h4 className="font-bold mb-2">Análise de Rotação de Capital</h4>
+            <div className="mt-4 text-sm text-gray-300">
+              <h4 className="font-bold mb-2 text-white">Análise de Rotação de Capital</h4>
               {data.flows.length > 0 ? (
                 <ul className="space-y-1 list-disc pl-5">
                   {data.flows.map((flow, idx) => {
@@ -139,10 +139,10 @@ const MarketRotationIndicator = () => {
                   })}
                 </ul>
               ) : (
-                <p className="italic">Nenhum fluxo de capital significativo detectado neste período.</p>
+                <p className="italic text-gray-400">Nenhum fluxo de capital significativo detectado neste período.</p>
               )}
               
-              <div className="mt-4 text-xs text-gray-500">
+              <div className="mt-4 text-xs text-gray-400">
                 Última atualização: {new Date(data.timestamp).toLocaleString()}
               </div>
             </div>
