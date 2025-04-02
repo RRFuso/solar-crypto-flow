@@ -149,7 +149,7 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
     updateLinkPaths();
     
     // Animation for orbital movement
-    setInterval(() => {
+    const animationInterval = setInterval(() => {
       // Create subtle orbital movement
       nodes.forEach((node, i) => {
         if (!node.isCentral) {
@@ -241,7 +241,7 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
     
     // Cleanup on unmount
     return () => {
-      clearInterval();
+      clearInterval(animationInterval); // Fixed: Now passing the interval ID
     };
   }, [data]);
 

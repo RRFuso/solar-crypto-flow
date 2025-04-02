@@ -29,4 +29,5 @@ export interface FlowData {
   to: string;
   value: number;
   percentage: number;
+  volume?: number; // Add volume property to FlowData interface
 }

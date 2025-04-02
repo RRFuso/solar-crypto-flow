@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { IndexRotationResult } from '@/types/indices';
@@ -171,7 +172,7 @@ export const MarketFlowVisualization: React.FC<MarketFlowVisualizationProps> = (
             
             // Add time-based offset that loops
             offset += (Date.now() / 50) % pathLength;
-            if (!d.percentage > 0) {
+            if (d.percentage !== undefined && d.percentage <= 0) { // Fixed: Changed comparison to handle both boolean and number
               offset = pathLength - offset; // Reverse direction for outflows
             }
             
@@ -293,10 +294,11 @@ export const MarketFlowVisualization: React.FC<MarketFlowVisualizationProps> = (
     // Start animation
     animateOrbits();
     
+    const animationFrameId = requestAnimationFrame(animateOrbits);
+    
     // Cleanup on unmount
     return () => {
-      // Cancel animation frames
-      // This needs to be improved with actual references to the animation frames
+      cancelAnimationFrame(animationFrameId);
     };
     
   }, [data]);
