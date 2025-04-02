@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCcw, Twitter, TrendingUp, MessageSquare } from 'lucide-react';
+import { RefreshCcw, Twitter, TrendingUp, MessageSquare, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,18 +12,45 @@ import { getTrendingCryptoMentions } from '@/lib/socialData';
 
 const SocialFlowPanel = () => {
   const [timeframe, setTimeframe] = useState('24h');
+  const [realTimeEnabled, setRealTimeEnabled] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  // Use shorter refetch interval for real-time updates
+  const refetchInterval = realTimeEnabled ? 15000 : 60000 * 5; // 15 seconds in real-time mode or 5 minutes in normal mode
 
   const { data, isLoading, error, refetch } = useQuery<SocialMentionsData>({
     queryKey: ['social-mentions', timeframe],
     queryFn: () => getTrendingCryptoMentions(timeframe),
-    refetchInterval: 60 * 1000 * 5, // 5 minutes
-    staleTime: 60 * 1000 * 2, // 2 minutes
+    refetchInterval: refetchInterval,
+    staleTime: realTimeEnabled ? 5000 : 60000 * 2, // 5 seconds in real-time mode or 2 minutes in normal mode
     meta: {
       onError: () => {
         toast.error("Failed to fetch social mentions data");
       }
     }
   });
+  
+  // Update the last updated timestamp whenever new data arrives
+  useEffect(() => {
+    if (data) {
+      setLastUpdated(new Date());
+    }
+  }, [data]);
+
+  const handleRefresh = () => {
+    refetch();
+    toast.success("Refreshing social data");
+  };
+
+  const toggleRealTime = () => {
+    setRealTimeEnabled(!realTimeEnabled);
+    toast.info(realTimeEnabled ? "Real-time updates disabled" : "Real-time updates enabled");
+  };
+
+  // Format the last updated time
+  const formatLastUpdated = (date: Date) => {
+    return date.toLocaleTimeString();
+  };
 
   return (
     <div className="w-full h-full flex flex-col gap-6 p-6 bg-crypto-dark backdrop-blur-xl border border-white/10 rounded-xl shadow-lg">
@@ -36,8 +63,15 @@ const SocialFlowPanel = () => {
         </div>
         
         <div className="flex items-center gap-2">
+          {realTimeEnabled && (
+            <div className="flex items-center mr-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-1"></div>
+              <span className="text-xs text-white">LIVE</span>
+            </div>
+          )}
+          
           <Select value={timeframe} onValueChange={setTimeframe}>
-            <SelectTrigger className="w-32 bg-white/5 border-white/10">
+            <SelectTrigger className="w-32 bg-white/5 border-white/10 text-white">
               <SelectValue placeholder="Timeframe" />
             </SelectTrigger>
             <SelectContent>
@@ -48,14 +82,33 @@ const SocialFlowPanel = () => {
           </Select>
           
           <Button
+            variant={realTimeEnabled ? "default" : "outline"}
+            size="sm"
+            className={realTimeEnabled 
+              ? "bg-green-600 hover:bg-green-700 text-white" 
+              : "bg-white/5 border-white/10 hover:bg-white/10 text-white"}
+            onClick={toggleRealTime}
+          >
+            <Activity className="h-4 w-4 mr-1" />
+            {realTimeEnabled ? "Live" : "Real-time"}
+          </Button>
+          
+          <Button
             variant="outline"
             size="icon"
-            className="bg-white/5 border-white/10 hover:bg-white/10"
-            onClick={() => refetch()}
+            className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
+            onClick={handleRefresh}
           >
             <RefreshCcw className="h-4 w-4" />
           </Button>
         </div>
+      </div>
+      
+      {/* Last updated indicator */}
+      <div className="flex justify-end">
+        <span className="text-xs text-gray-400">
+          Last updated: {formatLastUpdated(lastUpdated)}
+        </span>
       </div>
 
       {isLoading ? (
@@ -96,7 +149,7 @@ const SocialFlowPanel = () => {
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-10 rounded-full ${mention.sentiment > 0 ? 'bg-green-500' : 'bg-red-500'}`}></div>
                       <div>
-                        <div className="font-bold">{mention.symbol}</div>
+                        <div className="font-bold text-white">{mention.symbol}</div>
                         <div className="text-xs text-gray-400">{mention.name}</div>
                       </div>
                     </div>

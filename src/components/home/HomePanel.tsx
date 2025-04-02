@@ -28,12 +28,12 @@ const CryptoMarketSummary = () => {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-40 gap-4">
             <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-            <p className="text-gray-300">Carregando dados de crypto...</p>
+            <p className="text-white">Carregando dados de crypto...</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center h-40 text-amber-400">
             <AlertTriangle className="w-8 h-8 mb-2" />
-            <p>Erro ao carregar dados de crypto</p>
+            <p className="text-white">Erro ao carregar dados de crypto</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -43,7 +43,7 @@ const CryptoMarketSummary = () => {
                 {topGainers.map((crypto) => (
                   <div key={crypto.id} className="flex justify-between items-center bg-black/30 p-3 rounded-lg border border-gray-800">
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-200 font-medium">{crypto.symbol}</span>
+                      <span className="text-white font-medium">{crypto.symbol}</span>
                       <span className="text-gray-400 text-sm">{crypto.name}</span>
                     </div>
                     <div className="text-green-400 flex items-center">
@@ -61,7 +61,7 @@ const CryptoMarketSummary = () => {
                 {topLosers.map((crypto) => (
                   <div key={crypto.id} className="flex justify-between items-center bg-black/30 p-3 rounded-lg border border-gray-800">
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-200 font-medium">{crypto.symbol}</span>
+                      <span className="text-white font-medium">{crypto.symbol}</span>
                       <span className="text-gray-400 text-sm">{crypto.name}</span>
                     </div>
                     <div className="text-red-400 flex items-center">
