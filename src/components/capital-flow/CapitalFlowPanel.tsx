@@ -65,7 +65,7 @@ const CapitalFlowPanel = () => {
           Failed to load market data
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center relative">
+        <div className="flex-1 flex flex-col items-center justify-center relative" style={{ minHeight: "650px" }}>
           {/* D3 Visualization */}
           <FlowVisualization flowData={flowData || []} />
           

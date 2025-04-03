@@ -42,6 +42,9 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
   useEffect(() => {
     if (!flowData || flowData.length === 0 || !svgRef.current || !containerRef.current) return;
     
+    // Clear previous SVG content
+    d3.select(svgRef.current).selectAll("*").remove();
+    
     // Initialize visualization
     const { svg, width, height, nodes, links, centralNode } = createOrbitalVisualization(
       flowData, 
@@ -49,10 +52,10 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
       containerRef.current
     );
     
-    // Calculate orbit parameters
+    // Calculate orbit parameters - increased spacing to avoid overlaps
     const nonCentralNodes = nodes.filter(n => n.id !== centralNode.id);
     const orbitLayers = Math.min(8, Math.ceil(nonCentralNodes.length / 4));
-    const baseRadius = Math.min(width, height) * 0.4 / orbitLayers;
+    const baseRadius = Math.min(width, height) * 0.45 / orbitLayers;
     
     // Update state
     setVisualizationState({

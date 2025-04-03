@@ -26,14 +26,15 @@ export const useOrbitalVisualization = () => {
     svgElement: SVGSVGElement,
     containerElement: HTMLDivElement
   ) => {
-    // Get width and height
+    // Get width and height - ensuring sufficient height
     const width = containerElement.clientWidth;
-    const height = containerElement.clientHeight;
+    const height = Math.max(650, containerElement.clientHeight);
     
     // Create D3 selection
     const svg = d3.select(svgElement)
       .attr("width", width)
-      .attr("height", height);
+      .attr("height", height)
+      .attr("viewBox", `0 0 ${width} ${height}`);
     
     // Clear previous SVG content
     svg.selectAll("*").remove();
