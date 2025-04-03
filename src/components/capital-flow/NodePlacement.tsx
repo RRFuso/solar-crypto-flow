@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 
 type OrbitalNode = {
   id: string;
@@ -146,8 +146,14 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
   return nodes;
 };
 
-export const NodePlacement: React.FC<NodePlacementProps> = (props) => {
-  React.useEffect(() => {
+export class NodePlacement {
+  constructor(props: NodePlacementProps) {
+    calculateNodePositions(props);
+  }
+}
+
+export const NodePlacementComponent: React.FC<NodePlacementProps> = (props) => {
+  useEffect(() => {
     calculateNodePositions(props);
   }, [props]);
   

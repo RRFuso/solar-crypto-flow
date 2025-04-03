@@ -18,15 +18,19 @@ interface OrbitalAnimationProps {
   height: number;
 }
 
-export const OrbitalAnimation: React.FC<OrbitalAnimationProps> = ({ svg, nodes, width, height }) => {
-  const animationRef = useRef<number>();
-  const nonCentralNodes = nodes.filter(node => node.type !== "central");
+export class OrbitalAnimation {
+  private animationRef: number | undefined;
   
-  useEffect(() => {
+  constructor(props: OrbitalAnimationProps) {
+    this.startAnimation(props);
+  }
+  
+  private startAnimation({ svg, nodes, width, height }: OrbitalAnimationProps) {
     // Add subtle orbital rotation (slow for realism)
     const rotationSpeed = 0.00005; // Very slow rotation
+    const nonCentralNodes = nodes.filter(node => node.type !== "central");
     
-    function animateOrbits() {
+    const animateOrbits = () => {
       nonCentralNodes.forEach((node) => {
         // Calculate current angle from center
         const dx = node.x - width/2;
@@ -58,19 +62,33 @@ export const OrbitalAnimation: React.FC<OrbitalAnimationProps> = ({ svg, nodes, 
         });
       
       // Continue animation
-      animationRef.current = requestAnimationFrame(animateOrbits);
-    }
+      this.animationRef = requestAnimationFrame(animateOrbits);
+    };
     
     // Start animation
-    animationRef.current = requestAnimationFrame(animateOrbits);
+    this.animationRef = requestAnimationFrame(animateOrbits);
+  }
+  
+  public cleanup() {
+    if (this.animationRef) {
+      cancelAnimationFrame(this.animationRef);
+    }
+  }
+}
+
+export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = (props) => {
+  const animationInstanceRef = useRef<OrbitalAnimation | null>(null);
+  
+  useEffect(() => {
+    animationInstanceRef.current = new OrbitalAnimation(props);
     
     // Cleanup on unmount
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      if (animationInstanceRef.current) {
+        animationInstanceRef.current.cleanup();
       }
     };
-  }, [svg, nonCentralNodes, width, height]);
+  }, [props]);
   
   return null;
 };

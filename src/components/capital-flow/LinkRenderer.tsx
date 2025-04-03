@@ -24,8 +24,12 @@ interface LinkRendererProps {
   links: OrbitalLink[];
 }
 
-export const LinkRenderer: React.FC<LinkRendererProps> = ({ svg, links }) => {
-  useEffect(() => {
+export class LinkRenderer {
+  constructor(props: LinkRendererProps) {
+    this.renderLinks(props);
+  }
+  
+  private renderLinks({ svg, links }: LinkRendererProps) {
     // Draw links with gradient
     const linkGroup = svg.append("g").attr("class", "links");
     
@@ -44,7 +48,7 @@ export const LinkRenderer: React.FC<LinkRendererProps> = ({ svg, links }) => {
         
       gradient.append("stop")
         .attr("offset", "0%")
-        .attr("stop-color", "#3182ce");
+        .attr("stop-color", "#F7931A");
         
       gradient.append("stop")
         .attr("offset", "100%")
@@ -125,12 +129,18 @@ export const LinkRenderer: React.FC<LinkRendererProps> = ({ svg, links }) => {
       
       animateParticles();
     });
+  }
+}
+
+export const LinkRendererComponent: React.FC<LinkRendererProps> = (props) => {
+  useEffect(() => {
+    new LinkRenderer(props);
     
+    // Clean up
     return () => {
-      // Clean up
-      svg.selectAll(".flow-particles").remove();
+      props.svg.selectAll(".flow-particles").remove();
     };
-  }, [svg, links]);
+  }, [props]);
   
   return null;
 };

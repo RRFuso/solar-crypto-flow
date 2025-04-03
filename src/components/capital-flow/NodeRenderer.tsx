@@ -17,8 +17,12 @@ interface NodeRendererProps {
   centralNode: OrbitalNode;
 }
 
-export const NodeRenderer: React.FC<NodeRendererProps> = ({ svg, nodes, centralNode }) => {
-  useEffect(() => {
+export class NodeRenderer {
+  constructor(props: NodeRendererProps) {
+    this.renderNodes(props);
+  }
+  
+  private renderNodes({ svg, nodes, centralNode }: NodeRendererProps) {
     // Draw nodes with glowing effect
     const nodeGroup = svg.append("g").attr("class", "nodes");
     
@@ -31,7 +35,7 @@ export const NodeRenderer: React.FC<NodeRendererProps> = ({ svg, nodes, centralN
       .attr("cx", d => d.x)
       .attr("cy", d => d.y)
       .attr("r", d => d.radius * 1.3)
-      .attr("fill", d => d.type === "central" ? "#3182ce" : "#00b5d8")
+      .attr("fill", d => d.type === "central" ? "#F7931A" : "#00b5d8") // Bitcoin orange for central node
       .attr("opacity", 0.2)
       .attr("filter", "blur(8px)");
     
@@ -45,7 +49,7 @@ export const NodeRenderer: React.FC<NodeRendererProps> = ({ svg, nodes, centralN
     
     node.append("circle")
       .attr("r", d => d.radius)
-      .attr("fill", d => d.type === "central" ? "#3182ce" : "#00b5d8")
+      .attr("fill", d => d.type === "central" ? "#F7931A" : "#00b5d8") // Bitcoin orange for central node
       .attr("stroke", "#ffffff") // White border
       .attr("stroke-width", 2)
       .attr("opacity", 0.8);
@@ -76,12 +80,18 @@ export const NodeRenderer: React.FC<NodeRendererProps> = ({ svg, nodes, centralN
       
       createPulse();
     }
+  }
+}
+
+export const NodeRendererComponent: React.FC<NodeRendererProps> = (props) => {
+  useEffect(() => {
+    new NodeRenderer(props);
     
+    // Clean up any D3 animations
     return () => {
-      // Clean up any D3 animations
-      svg.selectAll(".node").selectAll("*").interrupt();
+      props.svg.selectAll(".node").selectAll("*").interrupt();
     };
-  }, [svg, nodes, centralNode]);
+  }, [props]);
   
   return null;
 };
