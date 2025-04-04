@@ -34,7 +34,7 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
   // Position other nodes in orbits based on market cap
   // with improved anti-collision logic
   const placedNodes: Array<{x: number, y: number, radius: number}> = [
-    { x: centralNode.x, y: centralNode.y, radius: centralNode.radius * 2 } // Increase padding for central node
+    { x: centralNode.x, y: centralNode.y, radius: centralNode.radius * 3 } // Increase padding for central node
   ];
   
   nonCentralNodes.forEach((node, i) => {
@@ -46,13 +46,13 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
     );
     
     // Calculate orbit radius with added spacing between orbits
-    const orbitRadius = (layerIndex + 1) * baseRadius * 1.5; // Increase spacing by 50%
+    const orbitRadius = (layerIndex + 1) * baseRadius * 2; // Double spacing
     
     // Try to find a position that doesn't overlap with existing nodes
     let angle = (i * 0.618033988749895) * Math.PI * 2; // Golden angle for better distribution
     let found = false;
     let attempts = 0;
-    const maxAttempts = 150; // Increase max attempts
+    const maxAttempts = 250; // Increase max attempts
     
     // Calculate optimal angular spacing for this orbit
     const nodesInThisOrbit = nonCentralNodes.filter(n => {
@@ -68,8 +68,10 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
     
     while (!found && attempts < maxAttempts) {
       // Use a combination of golden angle and optimal spacing based on attempt number
-      if (attempts < 20) {
-        angle = (i * optimalAngleStep) + (attempts * 0.2); // Increased angle step
+      if (attempts < 30) {
+        angle = (i * optimalAngleStep) + (attempts * 0.3); // Increased angle step
+      } else if (attempts < 100) {
+        angle = (i * 0.618033988749895 * Math.PI * 2) + (attempts * 0.1); // Try golden ratio with different offsets
       } else {
         angle = Math.random() * 2 * Math.PI; // After initial attempts, try random placement
       }
@@ -83,7 +85,7 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
         const dx = testX - placed.x;
         const dy = testY - placed.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const minDistance = placed.radius + node.radius * 2; // Double the minimum distance
+        const minDistance = placed.radius + node.radius * 3; // Triple the minimum distance
         
         if (distance < minDistance) {
           collision = true;
@@ -94,7 +96,7 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
       if (!collision) {
         node.x = testX;
         node.y = testY;
-        placedNodes.push({ x: testX, y: testY, radius: node.radius * 1.5 });
+        placedNodes.push({ x: testX, y: testY, radius: node.radius * 2.5 });
         found = true;
       } else {
         attempts++;
@@ -120,7 +122,7 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
           const dx = safeX - placed.x;
           const dy = safeY - placed.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
-          const minDistance = placed.radius + node.radius * 2; // Double the minimum distance
+          const minDistance = placed.radius + node.radius * 3; // Triple minimum distance for fallback
           
           if (distance < minDistance) {
             safeFound = false;
@@ -129,7 +131,7 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
         }
         
         if (!safeFound) {
-          safeRadius += 20; // Increment by larger amount to find space faster
+          safeRadius += 25; // Increment by larger amount to find space faster
         }
       }
       
@@ -138,7 +140,7 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
       placedNodes.push({ 
         x: node.x, 
         y: node.y, 
-        radius: node.radius * 2 
+        radius: node.radius * 3 
       });
     }
   });

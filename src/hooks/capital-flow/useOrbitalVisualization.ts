@@ -24,12 +24,9 @@ export const useOrbitalVisualization = () => {
   const createOrbitalVisualization = useCallback((
     flowData: FlowData[],
     svgElement: SVGSVGElement,
-    containerElement: HTMLDivElement
+    width: number,
+    height: number
   ) => {
-    // Get width and height - ensuring sufficient height
-    const width = containerElement.clientWidth;
-    const height = Math.max(650, containerElement.clientHeight);
-    
     // Create D3 selection
     const svg = d3.select(svgElement)
       .attr("width", width)

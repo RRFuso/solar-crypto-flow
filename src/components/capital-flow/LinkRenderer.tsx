@@ -30,8 +30,12 @@ export class LinkRenderer {
   }
   
   private renderLinks({ svg, links }: LinkRendererProps) {
+    // Clear any existing links first
+    svg.selectAll('.links-group').remove();
+    
     // Draw links with gradient
-    const linkGroup = svg.append("g").attr("class", "links");
+    const linkGroup = svg.append("g")
+      .attr("class", "links-group");
     
     // Create gradients for links
     const defs = svg.append("defs");
@@ -58,7 +62,7 @@ export class LinkRenderer {
       defs.append("marker")
         .attr("id", `arrow-${i}`)
         .attr("viewBox", "0 -5 10 10")
-        .attr("refX", 25)
+        .attr("refX", link.target.radius + 10) // Adjust to stop at node edge
         .attr("refY", 0)
         .attr("markerWidth", 6)
         .attr("markerHeight", 6)
@@ -73,6 +77,7 @@ export class LinkRenderer {
       .data(links)
       .enter()
       .append("path")
+      .attr("class", "link-path")
       .attr("d", d => {
         const dx = d.target.x - d.source.x;
         const dy = d.target.y - d.source.y;
@@ -88,8 +93,10 @@ export class LinkRenderer {
       
     // Add flow particles animation
     links.forEach((link, i) => {
-      const particles = svg.append("g")
-        .attr("class", "flow-particles")
+      const particleGroup = svg.append("g")
+        .attr("class", "flow-particles");
+        
+      const particles = particleGroup
         .selectAll("circle")
         .data(d3.range(5)) // 5 particles per link
         .enter()
@@ -123,11 +130,9 @@ export class LinkRenderer {
           const point = path.getPointAtLength(offset);
           return `translate(${point.x}, ${point.y})`;
         });
-        
-        requestAnimationFrame(animateParticles);
       }
       
-      animateParticles();
+      // Start animation for the particles - this is handled by the orbital animation class
     });
   }
 }

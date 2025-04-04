@@ -23,8 +23,11 @@ export class NodeRenderer {
   }
   
   private renderNodes({ svg, nodes, centralNode }: NodeRendererProps) {
+    // Clear any existing nodes first
+    svg.selectAll('.nodes-group').remove();
+    
     // Draw nodes with glowing effect
-    const nodeGroup = svg.append("g").attr("class", "nodes");
+    const nodeGroup = svg.append("g").attr("class", "nodes-group");
     
     // Add glowing effect around nodes
     nodeGroup.selectAll(".node-glow")
@@ -34,9 +37,9 @@ export class NodeRenderer {
       .attr("class", "node-glow")
       .attr("cx", d => d.x)
       .attr("cy", d => d.y)
-      .attr("r", d => d.radius * 1.3)
+      .attr("r", d => d.radius * 1.5)
       .attr("fill", d => d.type === "central" ? "#F7931A" : "#00b5d8") // Bitcoin orange for central node
-      .attr("opacity", 0.2)
+      .attr("opacity", 0.3)
       .attr("filter", "blur(8px)");
     
     // Draw node circles
@@ -52,15 +55,17 @@ export class NodeRenderer {
       .attr("fill", d => d.type === "central" ? "#F7931A" : "#00b5d8") // Bitcoin orange for central node
       .attr("stroke", "#ffffff") // White border
       .attr("stroke-width", 2)
-      .attr("opacity", 0.8);
+      .attr("opacity", 0.9);
     
-    // Add text labels (always white)
+    // Add text labels with better visibility
     node.append("text")
       .attr("text-anchor", "middle")
       .attr("dy", ".3em")
       .attr("fill", "white")
       .attr("font-weight", "bold")
-      .attr("font-size", d => d.type === "central" ? "14px" : "12px")
+      .attr("font-size", d => d.type === "central" ? "16px" : "14px")
+      .attr("stroke", "rgba(0, 0, 0, 0.5)")  // Text outline
+      .attr("stroke-width", "0.5px")         // Thin outline
       .text(d => d.id);
     
     // Add pulsating animation to central node
@@ -71,7 +76,7 @@ export class NodeRenderer {
       function createPulse() {
         centralNodeElement.transition()
           .duration(1500)
-          .attr("r", centralNode.radius * 1.05)
+          .attr("r", centralNode.radius * 1.1)
           .transition()
           .duration(1500)
           .attr("r", centralNode.radius)

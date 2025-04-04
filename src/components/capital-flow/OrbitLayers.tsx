@@ -16,16 +16,20 @@ export class OrbitLayers {
   }
   
   private renderOrbits({ svg, width, height, orbitLayers, baseRadius }: OrbitLayersProps) {
+    // Clear any existing orbit circles first
+    svg.selectAll(".orbit-circle").remove();
+    
     // Draw orbit circles
     for (let i = 1; i <= orbitLayers; i++) {
-      const orbitRadius = i * baseRadius * 1.5; // Increased spacing for better separation
+      const orbitRadius = i * baseRadius * 2; // Increased spacing for better separation
       svg.append("circle")
+        .attr("class", "orbit-circle")
         .attr("cx", width / 2)
         .attr("cy", height / 2)
         .attr("r", orbitRadius)
         .attr("fill", "none")
-        .attr("stroke", "rgba(255, 255, 255, 0.1)")
-        .attr("stroke-width", 1)
+        .attr("stroke", "rgba(255, 255, 255, 0.15)")
+        .attr("stroke-width", 1.5)
         .attr("stroke-dasharray", "5,5");
     }
   }
@@ -34,6 +38,11 @@ export class OrbitLayers {
 export const OrbitLayersComponent: React.FC<OrbitLayersProps> = (props) => {
   useEffect(() => {
     new OrbitLayers(props);
+    
+    // Cleanup
+    return () => {
+      props.svg.selectAll(".orbit-circle").remove();
+    };
   }, [props]);
   
   return null;

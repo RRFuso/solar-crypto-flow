@@ -27,7 +27,7 @@ export class OrbitalAnimation {
   
   private startAnimation({ svg, nodes, width, height }: OrbitalAnimationProps) {
     // Add subtle orbital rotation (slow for realism)
-    const rotationSpeed = 0.00005; // Very slow rotation
+    const rotationSpeed = 0.00008; // Very slow rotation
     const nonCentralNodes = nodes.filter(node => node.type !== "central");
     
     const animateOrbits = () => {
@@ -53,7 +53,7 @@ export class OrbitalAnimation {
         .attr("cy", d => d.y);
       
       // Update link positions
-      svg.selectAll("path")
+      svg.selectAll("path.link-path")
         .attr("d", d => {
           const dx = d.target.x - d.source.x;
           const dy = d.target.y - d.source.y;
@@ -72,6 +72,7 @@ export class OrbitalAnimation {
   public cleanup() {
     if (this.animationRef) {
       cancelAnimationFrame(this.animationRef);
+      this.animationRef = undefined;
     }
   }
 }
