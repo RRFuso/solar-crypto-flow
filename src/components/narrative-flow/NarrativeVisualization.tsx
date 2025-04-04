@@ -1,5 +1,6 @@
 
 import React, { useRef, useEffect, useState } from 'react';
+import * as d3 from 'd3';
 import { NarrativeFlow } from '@/types/narratives';
 import { useNarrativeFlowVisualization } from '@/hooks/useNarrativeFlowVisualization';
 import { getNarratives, getMarketAttentionData } from '@/lib/narrativeData';
@@ -28,9 +29,13 @@ export const NarrativeVisualization: React.FC<NarrativeVisualizationProps> = ({
     
     const updateDimensions = () => {
       if (containerRef.current) {
+        // Apply 80% zoom for the visualization
+        const containerWidth = containerRef.current.clientWidth;
+        const containerHeight = 500; // Base height
+        
         setDimensions({
-          width: containerRef.current.clientWidth,
-          height: 500 // Increased height for better visualization
+          width: containerWidth * 0.8,  // 80% zoom
+          height: containerHeight * 0.8 // 80% zoom
         });
       }
     };
@@ -89,8 +94,17 @@ export const NarrativeVisualization: React.FC<NarrativeVisualizationProps> = ({
         </div>
       </div>
       
-      <div ref={containerRef} className="w-full flex-1">
-        <svg ref={svgRef} className="w-full h-full" />
+      <div ref={containerRef} className="w-full flex-1 flex justify-center">
+        <div className="relative" style={{ width: `${dimensions.width}px`, height: `${dimensions.height}px` }}>
+          <svg ref={svgRef} className="w-full h-full" />
+          
+          {/* Add orbital paths visualization */}
+          {svgRef.current && dimensions.width > 0 && (
+            <>
+              {/* Orbital circles are added by the useNarrativeFlowVisualization hook */}
+            </>
+          )}
+        </div>
       </div>
       
       {/* Enhanced legend */}

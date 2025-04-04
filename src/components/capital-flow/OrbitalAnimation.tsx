@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
@@ -15,6 +16,7 @@ interface OrbitalAnimationProps {
   nodes: OrbitalNode[];
   width: number;
   height: number;
+  rotationSpeed?: number; // Add configurable rotation speed
 }
 
 export class OrbitalAnimation {
@@ -24,9 +26,8 @@ export class OrbitalAnimation {
     this.startAnimation(props);
   }
   
-  private startAnimation({ svg, nodes, width, height }: OrbitalAnimationProps) {
+  private startAnimation({ svg, nodes, width, height, rotationSpeed = 0.00008 }: OrbitalAnimationProps) {
     // Add subtle orbital rotation (slow for realism)
-    const rotationSpeed = 0.00008; // Very slow rotation
     const nonCentralNodes = nodes.filter(node => node.type !== "central");
     
     const animateOrbits = () => {

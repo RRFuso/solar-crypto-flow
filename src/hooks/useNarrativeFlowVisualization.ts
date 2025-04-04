@@ -73,8 +73,36 @@ export const useNarrativeFlowVisualization = (
       updatePositions(elements, nodes, links);
     });
 
+    // Add orbital paths (solar system like)
+    const centralNode = nodes.find(n => n.name.toLowerCase().includes("bitcoin")) || 
+                        nodes.reduce((max, n) => n.value > max.value ? n : max, nodes[0]);
+    
+    if (centralNode) {
+      // Add subtle starfield background
+      const starGroup = svg.append("g").attr("class", "starfield");
+      const numStars = 100;
+      
+      for (let i = 0; i < numStars; i++) {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        const size = Math.random() * 1.5;
+        const opacity = Math.random() * 0.5 + 0.2;
+        
+        starGroup.append("circle")
+          .attr("cx", x)
+          .attr("cy", y)
+          .attr("r", size)
+          .attr("fill", "white")
+          .attr("opacity", opacity);
+      }
+    }
+
     return () => {
       simulation.stop();
+      // Clean up animation frame if it exists
+      if (elements.animationFrameId) {
+        cancelAnimationFrame(elements.animationFrameId);
+      }
     };
   }, [config, svgRef, containerRef]);
 };

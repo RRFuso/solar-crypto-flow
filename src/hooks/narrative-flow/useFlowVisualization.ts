@@ -36,6 +36,40 @@ export const useFlowVisualization = () => {
     feMerge.append("feMergeNode").attr("in", "coloredBlur");
     feMerge.append("feMergeNode").attr("in", "SourceGraphic");
     
+    // Add orbital paths for solar system effect
+    const width = parseInt(svg.style("width"));
+    const height = parseInt(svg.style("height"));
+    const centerX = width / 2;
+    const centerY = height / 2;
+    
+    // Find the central node (Bitcoin or largest)
+    const centralNode = nodes.find(n => n.name.toLowerCase().includes("bitcoin")) || 
+                        nodes.reduce((max, n) => n.value > max.value ? n : max, nodes[0]);
+    
+    if (centralNode) {
+      // Draw orbital circles
+      const orbitGroup = svg.append("g").attr("class", "orbit-paths");
+      const nonCentralNodes = nodes.filter(n => n !== centralNode);
+      
+      // Calculate distance from central node for each other node
+      nonCentralNodes.forEach(node => {
+        // Calculate distance
+        const dx = node.x - centralNode.x;
+        const dy = node.y - centralNode.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Draw orbit circle
+        orbitGroup.append("circle")
+          .attr("cx", centerX)
+          .attr("cy", centerY)
+          .attr("r", distance)
+          .attr("fill", "none")
+          .attr("stroke", "rgba(255, 255, 255, 0.1)")
+          .attr("stroke-width", 1)
+          .attr("stroke-dasharray", "3,3");
+      });
+    }
+    
     // Draw links with curved paths
     const linkGroup = svg.append("g").attr("class", "links");
     
@@ -81,6 +115,14 @@ export const useFlowVisualization = () => {
         .on("drag", dragHandlers.dragged)
         .on("end", dragHandlers.dragended));
 
+    // Add glowing effect around nodes (planetary look)
+    node.append("circle")
+      .attr("class", "node-glow")
+      .attr("r", d => d.radius * 1.5)
+      .attr("fill", d => d.color)
+      .attr("opacity", 0.3)
+      .attr("filter", "url(#glow)");
+      
     // Add node circles
     node.append("circle")
       .attr("r", d => d.radius)
@@ -180,11 +222,62 @@ export const useFlowVisualization = () => {
       .attr("font-weight", "bold")
       .attr("font-size", "12px")
       .text(d => `${d.attentionScore}%`);
+      
+    // Add orbit animations for non-central nodes
+    let lastTimestamp = 0;
+    const orbitAnimationFrame = () => {
+      const now = Date.now();
+      const elapsed = now - lastTimestamp;
+      lastTimestamp = now;
+      
+      // Skip if no time has passed (prevents jumps on first frame)
+      if (elapsed === 0) {
+        requestAnimationFrame(orbitAnimationFrame);
+        return;
+      }
+      
+      // Apply subtle rotation to all non-central nodes
+      if (centralNode) {
+        const rotationSpeed = 0.00005; // Very slow rotation
+        
+        nodes.forEach(node => {
+          if (node === centralNode) return;
+          
+          // Calculate current angle from center
+          const dx = node.x - centralNode.x;
+          const dy = node.y - centralNode.y;
+          const angle = Math.atan2(dy, dx) + rotationSpeed * elapsed;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          // Update position with rotation
+          node.x = centralNode.x + Math.cos(angle) * distance;
+          node.y = centralNode.y + Math.sin(angle) * distance;
+        });
+        
+        // Update node positions
+        node.attr("transform", d => `translate(${d.x},${d.y})`);
+        
+        // Update link paths using curved lines
+        link.attr("d", d => {
+          const dx = d.target.x - d.source.x;
+          const dy = d.target.y - d.source.y;
+          const dr = Math.sqrt(dx * dx + dy * dy) * 2; // Curved path
+          return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+        });
+      }
+      
+      requestAnimationFrame(orbitAnimationFrame);
+    };
+    
+    // Start orbital animation
+    lastTimestamp = Date.now();
+    const animationFrameId = requestAnimationFrame(orbitAnimationFrame);
 
     return {
       link,
       node,
-      svg
+      svg,
+      animationFrameId
     };
   };
 
