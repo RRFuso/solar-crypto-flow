@@ -16,3 +16,10 @@ export interface VisualizationElements {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   animationFrameId?: number;
 }
+
+export interface TokenLogo {
+  symbol: string;
+  x: number;
+  y: number;
+  radius: number;
+}

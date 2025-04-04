@@ -3,6 +3,7 @@ import * as d3 from 'd3';
 import { NarrativeNode } from '@/types/narratives';
 import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
 import { useFiltersAndEffects } from './useFiltersAndEffects';
+import { TokenLogo } from './types';
 
 export const useNodeElements = () => {
   const { createClipPath } = useFiltersAndEffects();
@@ -109,7 +110,7 @@ export const useNodeElements = () => {
           .attr("fill", "white")
           .attr("opacity", 0.9);
         
-        // Use better fallback images
+        // Get the correct logo URL from our cryptoLogos utility
         const logoUrl = getCryptoLogoUrl(token.symbol);
         
         // Add the logo image with error handling
