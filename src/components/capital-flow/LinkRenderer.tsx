@@ -1,15 +1,6 @@
-
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
-
-type OrbitalNode = {
-  id: string;
-  marketCap: number;
-  radius: number;
-  type: "central" | "orbital";
-  x: number;
-  y: number;
-};
+import { OrbitalNode } from './NodePlacement';
 
 type OrbitalLink = {
   source: OrbitalNode;

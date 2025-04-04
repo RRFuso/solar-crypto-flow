@@ -1,14 +1,14 @@
 
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
+import { OrbitalNode } from './NodePlacement';
 
-type OrbitalNode = {
-  id: string;
-  marketCap: number;
-  radius: number;
-  type: "central" | "orbital";
-  x: number;
-  y: number;
+type OrbitalLink = {
+  source: OrbitalNode;
+  target: OrbitalNode;
+  value: number;
+  volume?: number;
+  percentage: number;
 };
 
 interface OrbitalAnimationProps {

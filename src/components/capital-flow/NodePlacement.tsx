@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 
-type OrbitalNode = {
+export type OrbitalNode = {
   id: string;
   marketCap: number;
   radius: number;

@@ -2,15 +2,7 @@
 import { useCallback } from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
-
-type OrbitalNode = {
-  id: string;
-  marketCap: number;
-  radius: number;
-  type: "central" | "orbital";
-  x: number;
-  y: number;
-};
+import { OrbitalNode } from '@/components/capital-flow/NodePlacement';
 
 type OrbitalLink = {
   source: OrbitalNode;
@@ -66,7 +58,7 @@ export const useOrbitalVisualization = () => {
         id,
         marketCap,
         radius: isBTC ? 45 : Math.max(20, Math.min(40, 20 + (marketCap / 1000))),
-        type: isBTC ? "central" : "orbital",
+        type: isBTC ? "central" as const : "orbital" as const,
         x: 0,
         y: 0
       };
