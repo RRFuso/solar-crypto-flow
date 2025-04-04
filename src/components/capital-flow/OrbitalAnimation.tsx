@@ -77,7 +77,8 @@ export class OrbitalAnimation {
   }
 }
 
-export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = (props) => {
+// Fix component export for Fast Refresh compatibility
+export const OrbitalAnimationComponent = React.memo((props: OrbitalAnimationProps) => {
   const animationInstanceRef = useRef<OrbitalAnimation | null>(null);
   
   useEffect(() => {
@@ -92,4 +93,5 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = (props
   }, [props]);
   
   return null;
-};
+});
+

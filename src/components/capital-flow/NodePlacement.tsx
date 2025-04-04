@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 
 export type OrbitalNode = {
@@ -154,10 +153,10 @@ export class NodePlacement {
   }
 }
 
-export const NodePlacementComponent: React.FC<NodePlacementProps> = (props) => {
+export const NodePlacementComponent = React.memo((props: NodePlacementProps) => {
   useEffect(() => {
     calculateNodePositions(props);
   }, [props]);
   
   return null;
-};
+});

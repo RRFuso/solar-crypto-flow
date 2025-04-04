@@ -35,7 +35,8 @@ export class OrbitLayers {
   }
 }
 
-export const OrbitLayersComponent: React.FC<OrbitLayersProps> = (props) => {
+// Fix component export for Fast Refresh compatibility
+export const OrbitLayersComponent = React.memo((props: OrbitLayersProps) => {
   useEffect(() => {
     new OrbitLayers(props);
     
@@ -46,4 +47,5 @@ export const OrbitLayersComponent: React.FC<OrbitLayersProps> = (props) => {
   }, [props]);
   
   return null;
-};
+});
+

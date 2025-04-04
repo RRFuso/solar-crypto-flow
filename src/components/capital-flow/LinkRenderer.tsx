@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
@@ -128,15 +129,17 @@ export class LinkRenderer {
   }
 }
 
-export const LinkRendererComponent: React.FC<LinkRendererProps> = (props) => {
+// Fix component export for Fast Refresh compatibility
+export const LinkRendererComponent = React.memo(({ svg, links }: LinkRendererProps) => {
   useEffect(() => {
-    new LinkRenderer(props);
+    new LinkRenderer({ svg, links });
     
     // Clean up
     return () => {
-      props.svg.selectAll(".flow-particles").remove();
+      svg.selectAll(".flow-particles").remove();
     };
-  }, [props]);
+  }, [svg, links]);
   
   return null;
-};
+});
+

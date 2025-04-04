@@ -1,15 +1,7 @@
+
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
-
-type OrbitalNode = {
-  id: string;
-  marketCap: number;
-  radius: number;
-  type: "central" | "orbital";
-  x: number;
-  y: number;
-};
 
 interface NodeRendererProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -88,15 +80,17 @@ export class NodeRenderer {
   }
 }
 
-export const NodeRendererComponent: React.FC<NodeRendererProps> = (props) => {
+// Fix component export for Fast Refresh compatibility
+export const NodeRendererComponent = React.memo(({ svg, nodes, centralNode }: NodeRendererProps) => {
   useEffect(() => {
-    new NodeRenderer(props);
+    new NodeRenderer({ svg, nodes, centralNode });
     
     // Clean up any D3 animations
     return () => {
-      props.svg.selectAll(".node").selectAll("*").interrupt();
+      svg.selectAll(".node").selectAll("*").interrupt();
     };
-  }, [props]);
+  }, [svg, nodes, centralNode]);
   
   return null;
-};
+});
+
