@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
@@ -142,4 +141,3 @@ export const LinkRendererComponent = React.memo(({ svg, links }: LinkRendererPro
   
   return null;
 });
-

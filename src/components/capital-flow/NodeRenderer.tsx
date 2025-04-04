@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
@@ -81,16 +80,15 @@ export class NodeRenderer {
 }
 
 // Fix component export for Fast Refresh compatibility
-export const NodeRendererComponent = React.memo(({ svg, nodes, centralNode }: NodeRendererProps) => {
+export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
   useEffect(() => {
-    new NodeRenderer({ svg, nodes, centralNode });
+    new NodeRenderer(props);
     
     // Clean up any D3 animations
     return () => {
-      svg.selectAll(".node").selectAll("*").interrupt();
+      props.svg.selectAll(".node").selectAll("*").interrupt();
     };
-  }, [svg, nodes, centralNode]);
+  }, [props]);
   
   return null;
 });
-

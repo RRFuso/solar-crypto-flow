@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
@@ -94,4 +93,3 @@ export const OrbitalAnimationComponent = React.memo((props: OrbitalAnimationProp
   
   return null;
 });
-

@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
 import { useOrbitalVisualization } from '@/hooks/capital-flow/useOrbitalVisualization';
 import { OrbitLayersComponent } from './OrbitLayers';
-import { NodePlacementComponent, calculateNodePositions } from './NodePlacement';
+import { NodePlacementComponent, calculateNodePositions, OrbitalNode } from './NodePlacement';
 import { LinkRendererComponent } from './LinkRenderer';
 import { NodeRendererComponent } from './NodeRenderer';
 import { OrbitalAnimationComponent } from './OrbitalAnimation';
@@ -18,6 +18,11 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
   const containerRef = useRef<HTMLDivElement>(null);
   const { createOrbitalVisualization } = useOrbitalVisualization();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [visualizationData, setVisualizationData] = useState<{
+    nodes: OrbitalNode[],
+    links: any[],
+    centralNode: OrbitalNode | null
+  }>({ nodes: [], links: [], centralNode: null });
   const animationRef = useRef<any | null>(null);
   
   // Handle window resize
@@ -87,6 +92,9 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
     const nodePositionsProps = { nodes, centralNode, width, height, orbitLayers, baseRadius };
     calculateNodePositions(nodePositionsProps);
     
+    // Store visualization data for rendering
+    setVisualizationData({ nodes, links, centralNode });
+    
     // Render visualization components
     return () => {
       // Component cleanup
@@ -103,21 +111,13 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
   }
 
   // Only render the visualization components if we have the SVG and data
-  const renderVisualization = svgRef.current && dimensions.width > 0 && flowData.length > 0;
+  const renderVisualization = svgRef.current && dimensions.width > 0 && visualizationData.nodes.length > 0;
 
   return (
     <div ref={containerRef} className="w-full h-full" style={{ minHeight: "700px" }}>
       <svg ref={svgRef} className="w-full h-full" />
       {renderVisualization && svgRef.current && (
         <>
-          <NodePlacementComponent 
-            nodes={[]} 
-            centralNode={null} 
-            width={dimensions.width} 
-            height={dimensions.height}
-            orbitLayers={0}
-            baseRadius={0}
-          />
           <OrbitLayersComponent 
             svg={d3.select(svgRef.current)}
             width={dimensions.width}
@@ -127,16 +127,16 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
           />
           <LinkRendererComponent 
             svg={d3.select(svgRef.current)}
-            links={[]}
+            links={visualizationData.links}
           />
           <NodeRendererComponent 
             svg={d3.select(svgRef.current)}
-            nodes={[]}
-            centralNode={null}
+            nodes={visualizationData.nodes}
+            centralNode={visualizationData.centralNode}
           />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
-            nodes={[]}
+            nodes={visualizationData.nodes}
             width={dimensions.width}
             height={dimensions.height}
           />
@@ -145,4 +145,3 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
     </div>
   );
 };
-
