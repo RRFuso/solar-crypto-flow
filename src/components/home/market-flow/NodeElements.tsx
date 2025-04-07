@@ -20,42 +20,84 @@ export const createNodeElements = (props: NodeElementsProps) => {
     .append("g")
     .attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
   
-  // Add glowing effect for planetary look
+  // Add outer glow for better visibility
+  node.append("circle")
+    .attr("class", "outer-glow")
+    .attr("r", d => d.radius * 1.4)
+    .attr("fill", d => d.color)
+    .attr("opacity", 0.15)
+    .attr("filter", "blur(12px)"); // Stronger blur
+  
+  // Add inner glowing effect for planetary look
   node.append("circle")
     .attr("class", "glow")
     .attr("r", d => d.radius * 1.2)
     .attr("fill", d => d.color)
     .attr("opacity", 0.3)
-    .attr("filter", "blur(8px)"); // Add blur for better glow effect
+    .attr("filter", "blur(6px)");
   
-  // Add circles
-  node.append("circle")
-    .attr("r", d => d.radius)
-    .attr("fill", d => d.color)
-    .attr("stroke", "#ffffff")
-    .attr("stroke-width", 2)
-    .attr("opacity", 0.8);
+  // Add circles with gradient effect
+  node.each(function(d) {
+    const nodeGroup = d3.select(this);
+    
+    // Create unique gradient ID
+    const gradientId = `gradient-${d.id}`;
+    
+    // Add gradient definition
+    const gradient = svg.append("defs")
+      .append("radialGradient")
+      .attr("id", gradientId)
+      .attr("cx", "50%")
+      .attr("cy", "50%")
+      .attr("r", "50%")
+      .attr("fx", "50%")
+      .attr("fy", "50%");
+      
+    // Add gradient stops
+    gradient.append("stop")
+      .attr("offset", "0%")
+      .attr("stop-color", d3.color(d.color)?.brighter(0.5)?.toString() || d.color)
+      .attr("stop-opacity", 0.9);
+      
+    gradient.append("stop")
+      .attr("offset", "80%")
+      .attr("stop-color", d.color)
+      .attr("stop-opacity", 0.8);
+      
+    gradient.append("stop")
+      .attr("offset", "100%")
+      .attr("stop-color", d3.color(d.color)?.darker(0.5)?.toString() || d.color)
+      .attr("stop-opacity", 0.8);
+      
+    // Add main circle with gradient
+    nodeGroup.append("circle")
+      .attr("r", d.radius)
+      .attr("fill", `url(#${gradientId})`)
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 2)
+      .attr("stroke-opacity", 0.6);
+  });
   
-  // Add text (index name) - now in white
+  // Add text (index name) - now with better visibility
   node.append("text")
     .attr("text-anchor", "middle")
     .attr("dy", ".3em")
     .attr("fill", "white")
     .attr("font-weight", "bold")
-    .attr("font-size", "13px") // Slightly larger
-    .attr("stroke", "rgba(0, 0, 0, 0.7)") // Text outline for better visibility
+    .attr("font-size", "14px") // Larger font
+    .attr("stroke", "rgba(0, 0, 0, 0.7)")
     .attr("stroke-width", "0.5px")
     .text(d => d.name);
   
-  // Add percentage change - now with better visibility
+  // Add percentage change with enhanced visibility
   node.append("text")
     .attr("text-anchor", "middle")
-    .attr("dy", "1.6em")
-    .attr("fill", d => d.change >= 0 ? "#4ade80" : "#f43f5e") // Maintain color for trend indication
+    .attr("dy", "1.8em")
+    .attr("fill", d => d.change >= 0 ? "#4ade80" : "#f43f5e")
     .attr("font-weight", "bold")
-    .attr("font-size", "12px") // Slightly larger
-    .attr("stroke", "rgba(0, 0, 0, 0.7)") // Stronger outline for better visibility
-    .attr("stroke-width", "0.5px")
+    .attr("font-size", "13px")
+    .attr("stroke", "rgba(0, 0, 0, 0.8)") // Stronger outline
+    .attr("stroke-width", "0.6px")
     .text(d => (d.change >= 0 ? "+" : "") + (d.change ? d.change.toFixed(2) : "0.00") + "%");
 
   return node;

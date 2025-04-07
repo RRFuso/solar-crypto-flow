@@ -8,16 +8,37 @@ import { prioritizeAndSortFlows, ensureMinimumBtcFlows } from './flowUtils';
 
 export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> => {
   try {
-    // Increase per_page to 50 to capture more cryptocurrencies
-    const response = await fetch(
-      `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&sparkline=false&price_change_percentage=24h,7d,30d`
-    );
+    // Add caching and retry logic
+    const cacheKey = `market-data-${timeframe}-${new Date().toISOString().split('T')[0]}`;
+    const cachedData = sessionStorage.getItem(cacheKey);
     
-    if (!response.ok) {
-      throw new Error('Failed to fetch market data');
+    if (cachedData) {
+      return JSON.parse(cachedData);
     }
+    
+    // Implement retry logic
+    const fetchWithRetry = async (retries = 3): Promise<MarketData[]> => {
+      try {
+        const response = await fetch(
+          `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&sparkline=false&price_change_percentage=24h,7d,30d`
+        );
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch market data: ${response.status}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        if (retries > 0) {
+          console.log(`Retrying market data fetch, ${retries} attempts remaining`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return fetchWithRetry(retries - 1);
+        }
+        throw error;
+      }
+    };
 
-    const data: MarketData[] = await response.json();
+    const data = await fetchWithRetry();
     const btcData = data.find(coin => coin.symbol === 'btc');
     
     if (!btcData) {
@@ -37,8 +58,8 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
     // Ensure we have at least some BTC flows
     const existingBtcFlows = flows.filter(flow => flow.from === 'BTC' || flow.to === 'BTC');
     if (existingBtcFlows.length < MIN_BTC_FLOWS && data.length > 5) {
-      // Generate some synthetic BTC flows if we don't have enough
-      const topCoins = data.slice(1, 8);  // Top coins excluding BTC
+      // Add more synthetic BTC flows if needed
+      const topCoins = data.slice(1, 8);
       topCoins.forEach((coin, index) => {
         // Skip if we already have a flow with this coin
         if (flows.some(f => 
@@ -78,6 +99,9 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
     
     // Ensure minimum number of BTC flows
     const finalFlows = ensureMinimumBtcFlows(resultFlows, data, syntheticBtcFlows);
+    
+    // Cache the results
+    sessionStorage.setItem(cacheKey, JSON.stringify(finalFlows));
     
     return finalFlows;
   } catch (error) {
