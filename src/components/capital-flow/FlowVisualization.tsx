@@ -69,6 +69,9 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
     const width = dimensions.width;
     const height = dimensions.height;
     
+    // Add starfield background
+    createStarfield(d3.select(svgRef.current), width, height);
+    
     // Initialize visualization
     const { svg, nodes, links, centralNode } = createOrbitalVisualization(
       flowData, 
@@ -101,6 +104,49 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
       d3.select(svgRef.current).selectAll("*").remove();
     };
   }, [flowData, dimensions, createOrbitalVisualization]);
+
+  // Function to create starfield
+  const createStarfield = (svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, width: number, height: number) => {
+    const starGroup = svg.append("g").attr("class", "starfield");
+    const numStars = 150;
+    
+    for (let i = 0; i < numStars; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const size = Math.random() * 1.5 + 0.2;
+      const opacity = Math.random() * 0.5 + 0.2;
+      
+      const star = starGroup.append("circle")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", size)
+        .attr("fill", "white")
+        .attr("opacity", opacity);
+        
+      // Add twinkling effect to some stars
+      if (Math.random() > 0.7) {
+        star.append("animate")
+          .attr("attributeName", "opacity")
+          .attr("values", `${opacity};${opacity * 0.5};${opacity}`)
+          .attr("dur", `${2 + Math.random() * 4}s`)
+          .attr("repeatCount", "indefinite");
+      }
+    }
+    
+    // Add a few distant "galaxies" (blurred star clusters)
+    for (let i = 0; i < 2; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const galaxySize = 20 + Math.random() * 40;
+      
+      starGroup.append("circle")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", galaxySize)
+        .attr("fill", "rgba(100, 100, 150, 0.02)")
+        .attr("filter", "blur(8px)");
+    }
+  };
 
   if (!flowData || flowData.length === 0) {
     return (

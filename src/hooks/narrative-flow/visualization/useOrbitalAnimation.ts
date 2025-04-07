@@ -64,27 +64,61 @@ export const useOrbitalAnimation = () => {
     return requestAnimationFrame(orbitAnimationFrame);
   };
   
-  // Create starfield background effect
+  // Create starfield background effect - enhanced with more stars and variety
   const createStarfield = (
     svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
     width: number,
     height: number
   ) => {
     const starGroup = svg.append("g").attr("class", "starfield");
-    const numStars = 100;
+    const numStars = 200; // Increased from 100 to 200 stars
     
     for (let i = 0; i < numStars; i++) {
       const x = Math.random() * width;
       const y = Math.random() * height;
-      const size = Math.random() * 1.5;
-      const opacity = Math.random() * 0.5 + 0.2;
+      // More variety in star sizes
+      const size = Math.random() * 1.8 + 0.2; // 0.2 to 2.0
+      const opacity = Math.random() * 0.6 + 0.2; // 0.2 to 0.8
+      
+      // Add subtle color variation to some stars
+      const colorRand = Math.random();
+      let color = "white";
+      
+      // Add very subtle color to some stars (10%)
+      if (colorRand > 0.9) {
+        const colors = ["#f0f8ff", "#fffaf0", "#f5f5dc", "#e6e6fa"];
+        color = colors[Math.floor(Math.random() * colors.length)];
+      }
+      
+      const star = starGroup.append("circle")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", size)
+        .attr("fill", color)
+        .attr("opacity", opacity);
+        
+      // Add subtle twinkling effect to some stars
+      if (Math.random() > 0.7) {
+        star.append("animate")
+          .attr("attributeName", "opacity")
+          .attr("values", `${opacity};${opacity * 0.5};${opacity}`)
+          .attr("dur", `${2 + Math.random() * 5}s`)
+          .attr("repeatCount", "indefinite");
+      }
+    }
+    
+    // Add a few distant "galaxies" (blurred star clusters)
+    for (let i = 0; i < 3; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const galaxySize = 30 + Math.random() * 50;
       
       starGroup.append("circle")
         .attr("cx", x)
         .attr("cy", y)
-        .attr("r", size)
-        .attr("fill", "white")
-        .attr("opacity", opacity);
+        .attr("r", galaxySize)
+        .attr("fill", "rgba(120, 120, 180, 0.03)")
+        .attr("filter", "blur(10px)");
     }
     
     return starGroup;

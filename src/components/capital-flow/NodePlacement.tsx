@@ -46,7 +46,7 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
     );
     
     // Calculate orbit radius with added spacing between orbits
-    const orbitRadius = (layerIndex + 1) * baseRadius * 2; // Double spacing
+    const orbitRadius = (layerIndex + 1) * baseRadius * 2.5; // Increased spacing from 2.0 to 2.5
     
     // Try to find a position that doesn't overlap with existing nodes
     let angle = (i * 0.618033988749895) * Math.PI * 2; // Golden angle for better distribution

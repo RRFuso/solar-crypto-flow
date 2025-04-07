@@ -29,6 +29,9 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       .attr("width", width)
       .attr("height", height);
     
+    // Add starfield background
+    createStarfield(svg, width, height);
+    
     // Find central index (usually the most important one)
     const centralIndex = data.indices.find(index => index.id === 'SPY') || data.indices[0];
     
@@ -56,7 +59,7 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       percentage: flow.percentage
     })).filter(link => link.source && link.target);
     
-    // Calculate orbital distances
+    // Calculate orbital distances - increasing spacing between orbits
     const orbitRadii = calculateOrbitalPositions(nodes, width, height);
     
     // Draw orbit paths
@@ -100,6 +103,39 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       clearInterval(animationInterval);
     };
   }, [data]);
+
+  // Create starfield background
+  const createStarfield = (
+    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+    width: number,
+    height: number
+  ) => {
+    const starGroup = svg.append("g").attr("class", "starfield");
+    const numStars = 120;
+    
+    for (let i = 0; i < numStars; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const size = Math.random() * 1.2 + 0.2;
+      const opacity = Math.random() * 0.4 + 0.1;
+      
+      const star = starGroup.append("circle")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", size)
+        .attr("fill", "white")
+        .attr("opacity", opacity);
+        
+      // Add twinkling to some stars
+      if (Math.random() > 0.8) {
+        star.append("animate")
+          .attr("attributeName", "opacity")
+          .attr("values", `${opacity};${opacity * 0.5};${opacity}`)
+          .attr("dur", `${3 + Math.random() * 4}s`)
+          .attr("repeatCount", "indefinite");
+      }
+    }
+  };
 
   return (
     <div ref={containerRef} className="w-full h-full">

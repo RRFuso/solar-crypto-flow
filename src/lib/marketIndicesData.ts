@@ -7,7 +7,7 @@ const marketIndices: MarketIndex[] = [
   { id: 'NASDAQ', name: 'Nasdaq', symbol: '^IXIC', color: '#06b6d4' },
   { id: 'DOW', name: 'Dow Jones', symbol: '^DJI', color: '#10b981' },
   { id: 'RUSSELL', name: 'Russell 2000', symbol: '^RUT', color: '#f59e0b' },
-  { id: 'GOLD', name: 'Ouro', symbol: 'GC=F', color: '#f7bd16' }
+  { id: 'DXY', name: 'US Dollar Index', symbol: 'DX-Y.NYB', color: '#ef4444' }
 ];
 
 // URL base para a API Alpha Vantage

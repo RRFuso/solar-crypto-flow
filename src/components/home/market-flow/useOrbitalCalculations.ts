@@ -11,8 +11,8 @@ export const useOrbitalCalculations = () => {
   // Calculate orbital positions for planetary-like arrangement
   const calculateOrbitalPositions = (nodes: any[], width: number, height: number) => {
     const centralIndex = nodes.findIndex(n => n.isCentral);
-    const minRadius = Math.min(width, height) * 0.15;
-    const maxRadius = Math.min(width, height) * 0.35;
+    const minRadius = Math.min(width, height) * 0.20; // Increased from 0.15
+    const maxRadius = Math.min(width, height) * 0.45; // Increased from 0.35
     
     // Calculate spacing between orbits
     const nonCentralNodes = nodes.filter(n => !n.isCentral);
