@@ -64,14 +64,24 @@ export const useOrbitalVisualization = () => {
       };
     });
     
-    // Find the node with the highest market cap to serve as the central node
-    const centralNode = nodes.reduce((max, node) => 
-      node.marketCap > max.marketCap ? node : max, 
-      { ...nodes[0], marketCap: -Infinity });
+    // Always make BTC the central node, regardless of market cap
+    const btcNode = nodes.find(node => node.id === 'BTC');
+    let centralNode;
     
-    // Mark the central node
-    centralNode.type = "central";
-    centralNode.radius = 45; // Make central node bigger
+    if (btcNode) {
+      centralNode = btcNode;
+      centralNode.type = "central";
+      centralNode.radius = 45; // Make central node bigger
+    } else {
+      // If BTC is not in the dataset, use the largest market cap as fallback
+      centralNode = nodes.reduce((max, node) => 
+        node.marketCap > max.marketCap ? node : max, 
+        { ...nodes[0], marketCap: -Infinity });
+      
+      // Mark the central node
+      centralNode.type = "central";
+      centralNode.radius = 45;
+    }
     
     // Create links
     const links = flowData.map(flow => ({
