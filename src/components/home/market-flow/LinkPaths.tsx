@@ -22,7 +22,18 @@ export const createLinkPaths = (props: LinkPathsProps) => {
     .attr("stroke-width", d => 2 + Math.min(5, Math.abs(d.value) / 10))
     .attr("fill", "none")
     .attr("stroke-dasharray", "5,5")
+    .attr("opacity", 0.7) // Slightly more visible
     .attr("marker-end", (d, i) => `url(#arrow-${i})`);
+  
+  // Add glow effect to links
+  svg.append("defs").append("filter")
+    .attr("id", "glow")
+    .append("feGaussianBlur")
+    .attr("stdDeviation", "2")
+    .attr("result", "coloredBlur");
+  
+  // Apply glow filter
+  link.attr("filter", "url(#glow)");
   
   // Add arrows
   svg.append("defs").selectAll("marker")
@@ -61,7 +72,7 @@ export const updateLinkPaths = (link: d3.Selection<SVGPathElement, any, SVGGElem
     const distance = Math.sqrt(dx * dx + dy * dy);
     
     // More pronounced curve for longer distances
-    const curveFactor = Math.min(distance / 4, 50);
+    const curveFactor = Math.min(distance / 3, 60); // Increased curve factor
     
     // Calculate perpendicular offset for curve
     const normX = -dy / distance;

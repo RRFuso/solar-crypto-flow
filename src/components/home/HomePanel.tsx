@@ -9,11 +9,11 @@ const CryptoMarketSummary = () => {
   const { data: cryptos = [], isLoading, error } = useCryptoData({ timeframe: '4h' });
 
   // Get top 5 gainers and losers
-  const topGainers = [...cryptos]
+  const topGainers = [...(cryptos || [])]
     .sort((a, b) => (b.performance || 0) - (a.performance || 0))
     .slice(0, 5);
 
-  const topLosers = [...cryptos]
+  const topLosers = [...(cryptos || [])]
     .sort((a, b) => (a.performance || 0) - (b.performance || 0))
     .slice(0, 5);
 
@@ -35,7 +35,7 @@ const CryptoMarketSummary = () => {
             <AlertTriangle className="w-8 h-8 mb-2" />
             <p className="text-white">Erro ao carregar dados de crypto</p>
           </div>
-        ) : (
+        ) : cryptos?.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="text-lg font-medium text-white mb-3">Top Gainers</h3>
@@ -72,6 +72,10 @@ const CryptoMarketSummary = () => {
                 ))}
               </div>
             </div>
+          </div>
+        ) : (
+          <div className="text-center text-gray-400 py-8">
+            <p>Nenhum dado de cryptocurrency disponível</p>
           </div>
         )}
       </CardContent>

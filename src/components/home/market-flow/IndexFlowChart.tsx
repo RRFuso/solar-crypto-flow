@@ -14,7 +14,8 @@ interface IndexFlowChartProps {
 export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { calculateOrbitalPositions, positionNodesInOrbits } = useOrbitalCalculations();
+  const animationRef = useRef<number | null>(null);
+  const { calculateOrbitalPositions, positionNodesInOrbits, createStarfield } = useOrbitalCalculations();
 
   useEffect(() => {
     if (!data || !svgRef.current || !containerRef.current) return;
@@ -30,10 +31,12 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       .attr("height", height);
     
     // Add starfield background
-    createStarfield(svg, width, height);
+    createStarfield(svg, width, height, 180);
     
-    // Find central index (usually the most important one)
-    const centralIndex = data.indices.find(index => index.id === 'SPY') || data.indices[0];
+    // Find central index (now DXY instead of Gold)
+    const centralIndex = data.indices.find(index => index.id === 'DXY') || 
+                        data.indices.find(index => index.id === 'SPY') || 
+                        data.indices[0];
     
     // Create nodes for the indices
     const nodes = data.indices.map(index => {
@@ -78,7 +81,7 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
     updateLinkPaths(link);
     
     // Animation for orbital movement
-    const animationInterval = setInterval(() => {
+    const animate = () => {
       // Create subtle orbital movement
       nodes.forEach((node, i) => {
         if (!node.isCentral) {
@@ -96,46 +99,21 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       
       // Update link positions
       updateLinkPaths(link);
-    }, 50);
+      
+      // Continue animation
+      animationRef.current = requestAnimationFrame(animate);
+    };
+    
+    // Start animation
+    animationRef.current = requestAnimationFrame(animate);
     
     // Cleanup on unmount
     return () => {
-      clearInterval(animationInterval);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
     };
   }, [data]);
-
-  // Create starfield background
-  const createStarfield = (
-    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-    width: number,
-    height: number
-  ) => {
-    const starGroup = svg.append("g").attr("class", "starfield");
-    const numStars = 120;
-    
-    for (let i = 0; i < numStars; i++) {
-      const x = Math.random() * width;
-      const y = Math.random() * height;
-      const size = Math.random() * 1.2 + 0.2;
-      const opacity = Math.random() * 0.4 + 0.1;
-      
-      const star = starGroup.append("circle")
-        .attr("cx", x)
-        .attr("cy", y)
-        .attr("r", size)
-        .attr("fill", "white")
-        .attr("opacity", opacity);
-        
-      // Add twinkling to some stars
-      if (Math.random() > 0.8) {
-        star.append("animate")
-          .attr("attributeName", "opacity")
-          .attr("values", `${opacity};${opacity * 0.5};${opacity}`)
-          .attr("dur", `${3 + Math.random() * 4}s`)
-          .attr("repeatCount", "indefinite");
-      }
-    }
-  };
 
   return (
     <div ref={containerRef} className="w-full h-full">
@@ -143,3 +121,5 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
     </div>
   );
 };
+
+export default IndexFlowChart;

@@ -25,7 +25,8 @@ export const createNodeElements = (props: NodeElementsProps) => {
     .attr("class", "glow")
     .attr("r", d => d.radius * 1.2)
     .attr("fill", d => d.color)
-    .attr("opacity", 0.3);
+    .attr("opacity", 0.3)
+    .attr("filter", "blur(8px)"); // Add blur for better glow effect
   
   // Add circles
   node.append("circle")
@@ -41,7 +42,9 @@ export const createNodeElements = (props: NodeElementsProps) => {
     .attr("dy", ".3em")
     .attr("fill", "white")
     .attr("font-weight", "bold")
-    .attr("font-size", "12px")
+    .attr("font-size", "13px") // Slightly larger
+    .attr("stroke", "rgba(0, 0, 0, 0.7)") // Text outline for better visibility
+    .attr("stroke-width", "0.5px")
     .text(d => d.name);
   
   // Add percentage change - now with better visibility
@@ -50,10 +53,10 @@ export const createNodeElements = (props: NodeElementsProps) => {
     .attr("dy", "1.6em")
     .attr("fill", d => d.change >= 0 ? "#4ade80" : "#f43f5e") // Maintain color for trend indication
     .attr("font-weight", "bold")
-    .attr("font-size", "11px")
-    .attr("stroke", "rgba(0, 0, 0, 0.5)") // Add subtle outline for better visibility
-    .attr("stroke-width", "0.3px")
-    .text(d => (d.change >= 0 ? "+" : "") + d.change.toFixed(2) + "%");
+    .attr("font-size", "12px") // Slightly larger
+    .attr("stroke", "rgba(0, 0, 0, 0.7)") // Stronger outline for better visibility
+    .attr("stroke-width", "0.5px")
+    .text(d => (d.change >= 0 ? "+" : "") + (d.change ? d.change.toFixed(2) : "0.00") + "%");
 
   return node;
 };
