@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { IndexFlowChart } from './IndexFlowChart';
+import IndexFlowChart from './IndexFlowChart';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
 
