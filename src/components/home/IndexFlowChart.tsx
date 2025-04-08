@@ -30,11 +30,11 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       .attr("height", height);
     
     // Add starfield background
-    createStarfield(svg, width, height, 180);
+    createStarfield(svg, width, height, 250);
     
-    // Find central index (now DXY instead of Gold)
-    const centralIndex = data.indices.find(index => index.id === 'DXY') || 
-                        data.indices.find(index => index.id === 'SPY') || 
+    // Find central index (BTC)
+    const centralIndex = data.indices.find(index => index.id === 'BTC') || 
+                        data.indices.find(index => index.id === 'DXY') || 
                         data.indices[0];
     
     // Create nodes for the indices
@@ -46,7 +46,7 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
         value: index.value || 0,
         change: index.change || 0,
         color: index.color,
-        radius: isCentral ? 50 : 35, // Central node is larger
+        radius: isCentral ? 60 : 35, // Larger central node
         x: 0,
         y: 0,
         isCentral
@@ -84,7 +84,7 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       // Create subtle orbital movement
       nodes.forEach((node, i) => {
         if (!node.isCentral) {
-          const speed = 0.001; // Slow rotation speed
+          const speed = 0.0005; // Slow rotation speed
           const angle = Math.atan2(node.y - height/2, node.x - width/2) + speed;
           const radius = orbitRadii[i];
           
@@ -129,8 +129,8 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       
       // How many non-central nodes came before this one
       const nonCentralIndex = nodes.slice(0, i).filter(node => !node.isCentral).length;
-      // Add extra spacing between orbits using a multiplier of 1.2
-      return minRadius + (nonCentralIndex * orbitStep * 1.2);
+      // Add extra spacing between orbits using a multiplier of 1.5
+      return minRadius + (nonCentralIndex * orbitStep * 1.5);
     });
   };
   

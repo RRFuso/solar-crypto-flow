@@ -31,7 +31,7 @@ const MarketRotationIndicator = () => {
     <Card className="w-full h-full bg-black/50 border border-gray-800 overflow-hidden">
       <CardHeader className="border-b border-gray-800 p-4 flex flex-row items-center justify-between">
         <CardTitle className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-          Rotação de Capital Macro
+          Fluxo de Capital em Cripto
         </CardTitle>
         <div className="flex items-center space-x-2">
           <Button 
@@ -88,36 +88,15 @@ const MarketRotationIndicator = () => {
               </div>
             )}
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              {data.indices.map((index) => (
-                <div key={index.id} className="bg-black/30 border border-gray-800 rounded-lg p-4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: index.color }}></div>
-                      <span className="text-gray-200">{index.name}</span>
-                    </div>
-                    <div className={`flex items-center ${index.change && index.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {index.change && index.change >= 0 ? (
-                        <ArrowUpRight className="w-4 h-4 mr-1" />
-                      ) : (
-                        <ArrowDownRight className="w-4 h-4 mr-1" />
-                      )}
-                      {index.change !== undefined ? `${index.change.toFixed(2)}%` : 'N/A'}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="h-96 w-full">
+            <div className="h-[calc(100vh-250px)] min-h-[400px] w-full">
               <IndexFlowChart data={data} />
             </div>
             
             <div className="mt-4 text-sm text-gray-300">
-              <h4 className="font-bold mb-2 text-white">Análise de Rotação de Capital</h4>
+              <h4 className="font-bold mb-2 text-white">Análise de Fluxo de Capital</h4>
               {data.flows.length > 0 ? (
                 <ul className="space-y-1 list-disc pl-5">
-                  {data.flows.map((flow, idx) => {
+                  {data.flows.slice(0, 10).map((flow, idx) => {
                     const fromIndex = data.indices.find(i => i.id === flow.from);
                     const toIndex = data.indices.find(i => i.id === flow.to);
                     

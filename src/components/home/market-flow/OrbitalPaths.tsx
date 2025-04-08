@@ -33,7 +33,7 @@ export const createStarfield = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   width: number,
   height: number,
-  numStars: number = 200 // Increased number of stars
+  numStars: number = 250 // Increased number of stars
 ) => {
   const starGroup = svg.append("g").attr("class", "starfield");
   
@@ -42,7 +42,7 @@ export const createStarfield = (
   for (let i = 0; i < numNebulas; i++) {
     const x = Math.random() * width;
     const y = Math.random() * height;
-    const size = Math.random() * 250 + 150;
+    const size = Math.random() * 300 + 150;
     
     // Generate colors for nebulas
     const nebulaColors = [
@@ -58,15 +58,15 @@ export const createStarfield = (
       .attr("cy", y)
       .attr("r", size)
       .attr("fill", nebulaColors[Math.floor(Math.random() * nebulaColors.length)])
-      .attr("filter", "blur(30px)");
+      .attr("filter", "blur(40px)");
   }
   
   // Add stars with varied sizes and brightness
   for (let i = 0; i < numStars; i++) {
     const x = Math.random() * width;
     const y = Math.random() * height;
-    const size = Math.random() * 2 + 0.2; // Larger stars
-    const opacity = Math.random() * 0.7 + 0.2; // More visible stars
+    const size = Math.random() * 2 + 0.2; // Varied sizes
+    const opacity = Math.random() * 0.7 + 0.2; // Varied brightness
     
     const star = starGroup.append("circle")
       .attr("cx", x)
@@ -121,6 +121,20 @@ export const createStarfield = (
         .attr("dur", `${3 + Math.random() * 4}s`)
         .attr("repeatCount", "indefinite");
     }
+  }
+  
+  // Add subtle dust clouds
+  for (let i = 0; i < 5; i++) {
+    const x = Math.random() * width;
+    const y = Math.random() * height;
+    const size = Math.random() * 400 + 200;
+    
+    starGroup.append("circle")
+      .attr("cx", x)
+      .attr("cy", y)
+      .attr("r", size)
+      .attr("fill", "rgba(50, 50, 80, 0.03)")
+      .attr("filter", "blur(60px)");
   }
   
   return starGroup;

@@ -6,14 +6,29 @@ const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 interface MarketData {
   id: string;
   symbol: string;
+  name: string;
+  image: string;
   market_cap: number;
   market_cap_change_percentage_24h: number;
   total_volume: number;
+  current_price: number;
+  price_change_percentage_24h: number;
 }
 
 export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> => {
   try {
-    // Increase per_page to 50 to capture more cryptocurrencies
+    // Add caching to prevent excessive API calls
+    const cacheKey = `market-data-${timeframe}`;
+    const cachedData = sessionStorage.getItem(cacheKey);
+    const cacheExpiry = sessionStorage.getItem(`${cacheKey}-expiry`);
+    
+    // Check if we have valid cached data (less than 5 minutes old)
+    if (cachedData && cacheExpiry && Number(cacheExpiry) > Date.now()) {
+      return JSON.parse(cachedData);
+    }
+    
+    console.log('Fetching fresh market data...');
+    // Increase per_page to capture more cryptocurrencies and include more data fields
     const response = await fetch(
       `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&sparkline=false&price_change_percentage=24h,7d,30d`
     );
@@ -24,7 +39,6 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
 
     const data: MarketData[] = await response.json();
     const btcData = data.find(coin => coin.symbol === 'btc');
-    const ethData = data.find(coin => coin.symbol === 'eth');
     
     if (!btcData) {
       throw new Error('BTC data not found');
@@ -33,14 +47,14 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
     // Calculate flows between different categories
     const flows: FlowData[] = [];
     
-    // BTC vs other major coins flows - ENSURE THIS GENERATES FLOWS
-    data.slice(0, 20).forEach((coin) => {
+    // BTC vs other major coins flows
+    data.slice(0, 25).forEach((coin) => {
       if (coin.symbol !== 'btc' && coin.market_cap_change_percentage_24h) {
         const relativeFlow = coin.market_cap_change_percentage_24h - btcData.market_cap_change_percentage_24h;
         const flowMagnitude = (coin.market_cap * Math.abs(relativeFlow)) / btcData.market_cap / 10;
         
-        // IMPORTANT: Lower threshold to ensure we get BTC flows
-        if (Math.abs(relativeFlow) > 0.1) {  // Reduced threshold from 0.5 to 0.1
+        // Lower threshold to ensure we get more BTC flows
+        if (Math.abs(relativeFlow) > 0.1) {
           flows.push({
             from: relativeFlow > 0 ? 'BTC' : coin.symbol.toUpperCase(),
             to: relativeFlow > 0 ? coin.symbol.toUpperCase() : 'BTC',
@@ -53,9 +67,9 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
 
     // Ensure we have at least some BTC flows
     const btcFlows = flows.filter(flow => flow.from === 'BTC' || flow.to === 'BTC');
-    if (btcFlows.length < 5 && data.length > 5) {  // Increased from 3 to 5 minimum BTC flows
+    if (btcFlows.length < 8 && data.length > 8) {  // Increased required BTC flows
       // Generate some synthetic BTC flows if we don't have enough
-      const topCoins = data.slice(1, 8);  // Increased from top 6 to top 8 coins
+      const topCoins = data.slice(1, 10);  // Top 10 coins excluding BTC
       topCoins.forEach((coin, index) => {
         // Skip if we already have a flow with this coin
         if (flows.some(f => 
@@ -80,6 +94,7 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
     }
 
     // ETH vs DeFi coins flows
+    const ethData = data.find(coin => coin.symbol === 'eth');
     const defiCoins = data.filter(coin => {
       const defiTokens = ['uni', 'aave', 'mkr', 'snx', 'comp', 'cake', 'crv', 'sushi'];
       return defiTokens.includes(coin.symbol);
@@ -91,7 +106,7 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
           const relativeFlow = coin.market_cap_change_percentage_24h - ethData.market_cap_change_percentage_24h;
           const flowMagnitude = (coin.market_cap * Math.abs(relativeFlow)) / ethData.market_cap / 10;
           
-          if (Math.abs(relativeFlow) > 1.5) {
+          if (Math.abs(relativeFlow) > 1.0) { // Reduced threshold from 1.5 to 1.0
             flows.push({
               from: relativeFlow > 0 ? 'ETH' : coin.symbol.toUpperCase(),
               to: relativeFlow > 0 ? coin.symbol.toUpperCase() : 'ETH',
@@ -109,7 +124,7 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
       return platformTokens.includes(coin.symbol);
     });
 
-    // Create some cross-flows between platforms
+    // Create more cross-flows between platforms with reduced threshold
     for (let i = 0; i < platforms.length; i++) {
       for (let j = i + 1; j < platforms.length; j++) {
         const coinA = platforms[i];
@@ -118,7 +133,7 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
         if (coinA.market_cap_change_percentage_24h && coinB.market_cap_change_percentage_24h) {
           const relativeFlow = coinA.market_cap_change_percentage_24h - coinB.market_cap_change_percentage_24h;
           
-          if (Math.abs(relativeFlow) > 2) {
+          if (Math.abs(relativeFlow) > 1.5) { // Reduced from 2.0 to 1.5
             const flowMagnitude = Math.min(coinA.market_cap, coinB.market_cap) * Math.abs(relativeFlow) / 100 / 10;
             
             flows.push({
@@ -132,38 +147,27 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
       }
     }
 
-    // Add LARGE CAPS category for major transfers
-    const largeCapThreshold = data[9].market_cap; // Top 10 threshold
-    const largeCaps = data.filter(coin => coin.market_cap >= largeCapThreshold && coin.symbol !== 'btc' && coin.symbol !== 'eth');
-    const smallCaps = data.filter(coin => coin.market_cap < largeCapThreshold);
-    
-    // See if there's a trend between large caps and smaller caps
-    const avgLargeCapChange = largeCaps.reduce((sum, coin) => sum + (coin.market_cap_change_percentage_24h || 0), 0) / largeCaps.length;
-    const avgSmallCapChange = smallCaps.reduce((sum, coin) => sum + (coin.market_cap_change_percentage_24h || 0), 0) / smallCaps.length;
-    
-    const largeCapsVsSmallCaps = avgLargeCapChange - avgSmallCapChange;
-    
-    if (Math.abs(largeCapsVsSmallCaps) > 1) {
-      flows.push({
-        from: largeCapsVsSmallCaps < 0 ? 'LARGE' : 'SMALL',
-        to: largeCapsVsSmallCaps < 0 ? 'SMALL' : 'LARGE',
-        value: Math.abs(largeCapsVsSmallCaps) * 5,
-        percentage: largeCapsVsSmallCaps
+    // Add market caps to each flow for better visualization
+    const cryptoMap = new Map();
+    data.forEach(coin => {
+      cryptoMap.set(coin.symbol.toUpperCase(), {
+        marketCap: coin.market_cap,
+        change: coin.price_change_percentage_24h,
+        image: coin.image
       });
-      
-      // Add a BTC to LARGE flow if we don't have many BTC flows
-      if (btcFlows.length < 4) {
-        flows.push({
-          from: 'BTC',
-          to: 'LARGE',
-          value: Math.abs(btcData.market_cap_change_percentage_24h || 0) * 5,
-          percentage: (btcData.market_cap_change_percentage_24h || 0) - avgLargeCapChange
-        });
-      }
-    }
+    });
+    
+    // Enhance flows with market cap data
+    const enhancedFlows = flows.map(flow => ({
+      ...flow,
+      sourceMarketCap: cryptoMap.get(flow.from)?.marketCap || 0,
+      targetMarketCap: cryptoMap.get(flow.to)?.marketCap || 0,
+      sourceImage: cryptoMap.get(flow.from)?.image || '',
+      targetImage: cryptoMap.get(flow.to)?.image || ''
+    }));
 
-    // Sort by flow magnitude but prioritize BTC flows
-    const sortedFlows = flows.sort((a, b) => {
+    // Sort flows by magnitude but prioritize BTC flows
+    const sortedFlows = enhancedFlows.sort((a, b) => {
       // Prioritize BTC flows
       const aHasBtc = a.from === 'BTC' || a.to === 'BTC';
       const bHasBtc = b.from === 'BTC' || b.to === 'BTC';
@@ -176,53 +180,11 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
     });
     
     // Take the top flows, ensuring we have a mix of BTC and altcoin flows
-    const resultFlows = sortedFlows.slice(0, 20);  // Increased from 15 to 20 for more connections
+    const resultFlows = sortedFlows.slice(0, 25);  // Increased from 20 to 25 for more connections
     
-    // Make sure we have at least 5 BTC flows
-    const btcFlowsInResult = resultFlows.filter(flow => flow.from === 'BTC' || flow.to === 'BTC');
-    if (btcFlowsInResult.length < 5) {
-      console.log(`Only found ${btcFlowsInResult.length} BTC flows, supplementing with synthetic data`);
-      
-      // Add synthetic BTC flows if needed
-      const syntheticBtcFlows = [
-        {
-          from: 'BTC',
-          to: 'ETH',
-          value: 50,
-          percentage: 2.5
-        },
-        {
-          from: 'SOL',
-          to: 'BTC',
-          value: 30,
-          percentage: -1.8
-        },
-        {
-          from: 'BTC',
-          to: 'AVAX',
-          value: 25,
-          percentage: 1.5
-        },
-        {
-          from: 'DOT',
-          to: 'BTC',
-          value: 35,
-          percentage: -2.1
-        },
-        {
-          from: 'BTC',
-          to: 'MATIC',
-          value: 20,
-          percentage: 1.2
-        }
-      ];
-      
-      for (let i = 0; i < 5 - btcFlowsInResult.length; i++) {
-        if (i < syntheticBtcFlows.length) {
-          resultFlows.push(syntheticBtcFlows[i]);
-        }
-      }
-    }
+    // Cache the result for 5 minutes
+    sessionStorage.setItem(cacheKey, JSON.stringify(resultFlows));
+    sessionStorage.setItem(`${cacheKey}-expiry`, (Date.now() + 5 * 60 * 1000).toString());
     
     return resultFlows;
   } catch (error) {

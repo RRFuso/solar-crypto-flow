@@ -5,7 +5,7 @@ import { IndexRotationResult } from '@/types/indices';
 import { useOrbitalCalculations } from './useOrbitalCalculations';
 import { createLinkPaths, updateLinkPaths } from './LinkPaths';
 import { createNodeElements } from './NodeElements';
-import { createOrbitalPaths } from './OrbitalPaths';
+import { createOrbitalPaths, createStarfield } from './OrbitalPaths';
 
 interface IndexFlowChartProps {
   data: IndexRotationResult;
@@ -15,7 +15,7 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
-  const { calculateOrbitalPositions, positionNodesInOrbits, createStarfield } = useOrbitalCalculations();
+  const { calculateOrbitalPositions, positionNodesInOrbits } = useOrbitalCalculations();
 
   useEffect(() => {
     if (!data || !svgRef.current || !containerRef.current) return;
@@ -31,11 +31,11 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       .attr("height", height);
     
     // Add starfield background
-    createStarfield(svg, width, height, 180);
+    createStarfield(svg, width, height, 250); // Increased star count for better space visualization
     
-    // Find central index (now DXY instead of Gold)
-    const centralIndex = data.indices.find(index => index.id === 'DXY') || 
-                        data.indices.find(index => index.id === 'SPY') || 
+    // Find central index (BTC)
+    const centralIndex = data.indices.find(index => index.id === 'BTC') || 
+                        data.indices.find(index => index.id === 'DXY') || 
                         data.indices[0];
     
     // Create nodes for the indices
@@ -47,7 +47,7 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
         value: index.value || 0,
         change: index.change || 0,
         color: index.color,
-        radius: isCentral ? 50 : 35, // Central node is larger
+        radius: isCentral ? 60 : 35, // Increased central node size for BTC
         x: 0,
         y: 0,
         isCentral
@@ -62,7 +62,7 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       percentage: flow.percentage
     })).filter(link => link.source && link.target);
     
-    // Calculate orbital distances - increasing spacing between orbits
+    // Calculate orbital distances - with greater spacing between orbits
     const orbitRadii = calculateOrbitalPositions(nodes, width, height);
     
     // Draw orbit paths
@@ -85,7 +85,7 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       // Create subtle orbital movement
       nodes.forEach((node, i) => {
         if (!node.isCentral) {
-          const speed = 0.001; // Slow rotation speed
+          const speed = 0.0005; // Slightly faster rotation for better visualization
           const angle = Math.atan2(node.y - height/2, node.x - width/2) + speed;
           const radius = orbitRadii[i];
           
