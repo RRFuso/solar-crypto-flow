@@ -1,0 +1,35 @@
+
+import * as d3 from 'd3';
+import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
+
+export const createNodePatterns = (
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+  nodes: any[]
+) => {
+  // Create defs for logo image patterns
+  const defs = svg.append("defs");
+  
+  // Create patterns for each node to hold the logo
+  nodes.forEach(node => {
+    const patternId = `logo-${node.id}`;
+    const pattern = defs.append("pattern")
+      .attr("id", patternId)
+      .attr("width", 1)
+      .attr("height", 1)
+      .attr("patternUnits", "objectBoundingBox");
+      
+    // Add image to pattern
+    pattern.append("image")
+      .attr("xlink:href", () => {
+        // Try to get logo URL, fallback to a color if unavailable
+        const logoUrl = getCryptoLogoUrl(node.id.toLowerCase()) || 
+                      getFallbackLogoUrl();
+        return logoUrl || `https://cryptocurrencyliveprices.com/img/${node.id.toLowerCase()}.png`;
+      })
+      .attr("width", node.radius * 2 * 0.8) // 80% of the circle's diameter
+      .attr("height", node.radius * 2 * 0.8)
+      .attr("x", node.radius * 0.2) // Center the image
+      .attr("y", node.radius * 0.2)
+      .attr("preserveAspectRatio", "xMidYMid slice");
+  });
+};
