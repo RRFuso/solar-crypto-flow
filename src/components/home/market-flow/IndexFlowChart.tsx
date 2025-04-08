@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 import { IndexRotationResult } from '@/types/indices';
 import { useOrbitalCalculations } from './useOrbitalCalculations';
 import { createLinkPaths, updateLinkPaths } from './LinkPaths';
-import { createNodeElements } from './NodeElements';
+import { createNodeElements } from './node-elements';
 import { createOrbitalPaths, createStarfield } from './OrbitalPaths';
 
 interface IndexFlowChartProps {

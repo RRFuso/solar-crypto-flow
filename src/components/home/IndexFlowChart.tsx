@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { IndexRotationResult } from '@/types/indices';
 import { createLinkPaths, updateLinkPaths } from './market-flow/LinkPaths';
-import { createNodeElements } from './market-flow/NodeElements';
+import { createNodeElements } from './market-flow/node-elements';
 import { createOrbitalPaths, createStarfield } from './market-flow/OrbitalPaths';
 
 interface IndexFlowChartProps {
