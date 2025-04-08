@@ -31,23 +31,28 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       .attr("height", height);
     
     // Add starfield background
-    createStarfield(svg, width, height, 250); // Increased star count for better space visualization
+    createStarfield(svg, width, height, 300); // Increased star count for better space visualization
     
     // Find central index (BTC)
     const centralIndex = data.indices.find(index => index.id === 'BTC') || 
                         data.indices.find(index => index.id === 'DXY') || 
                         data.indices[0];
     
-    // Create nodes for the indices
+    // Create nodes for the indices based on market cap
     const nodes = data.indices.map(index => {
       const isCentral = index.id === centralIndex.id;
+      // Calculate radius based on market cap (square root scale for better visibility)
+      const marketCapRatio = index.marketCap ? Math.sqrt(index.marketCap / (centralIndex.marketCap || 1)) : 0.3;
+      const baseRadius = isCentral ? 70 : Math.max(25, Math.min(50, 25 * marketCapRatio));
+      
       return {
         id: index.id,
-        name: index.name,
+        name: index.name || index.id,
         value: index.value || 0,
         change: index.change || 0,
         color: index.color,
-        radius: isCentral ? 60 : 35, // Increased central node size for BTC
+        marketCap: index.marketCap || 0,
+        radius: baseRadius,
         x: 0,
         y: 0,
         isCentral
@@ -62,19 +67,19 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       percentage: flow.percentage
     })).filter(link => link.source && link.target);
     
-    // Calculate orbital distances - with greater spacing between orbits
+    // Calculate orbital distances based on market cap
     const orbitRadii = calculateOrbitalPositions(nodes, width, height);
     
     // Draw orbit paths
     createOrbitalPaths({ svg, nodes, width, height, orbitRadii });
     
-    // Position nodes in orbital arrangement
+    // Position nodes in orbital arrangement based on market cap
     positionNodesInOrbits(nodes, width, height, orbitRadii);
     
     // Draw links (connections)
     const link = createLinkPaths({ svg, links });
     
-    // Draw nodes (circles)
+    // Draw nodes (circles with logos)
     const node = createNodeElements({ svg, nodes });
     
     // Update link positions
@@ -85,7 +90,8 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       // Create subtle orbital movement
       nodes.forEach((node, i) => {
         if (!node.isCentral) {
-          const speed = 0.0005; // Slightly faster rotation for better visualization
+          // Smaller cryptocurrencies move faster
+          const speed = 0.0005 / (node.marketCap ? Math.sqrt(node.marketCap / 1e9) * 0.5 : 1);
           const angle = Math.atan2(node.y - height/2, node.x - width/2) + speed;
           const radius = orbitRadii[i];
           
@@ -113,7 +119,7 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [data]);
+  }, [data, calculateOrbitalPositions, positionNodesInOrbits]);
 
   return (
     <div ref={containerRef} className="w-full h-full">

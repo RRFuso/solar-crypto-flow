@@ -28,8 +28,8 @@ const Index = () => {
       default:
         return (
           <div className="text-center text-gray-400 mt-20">
-            <h2 className="text-2xl font-bold mb-4">Coming Soon</h2>
-            <p>This section is under development.</p>
+            <h2 className="text-2xl font-bold mb-4">Em breve</h2>
+            <p>Esta seção está em desenvolvimento.</p>
           </div>
         );
     }

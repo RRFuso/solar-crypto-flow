@@ -2,7 +2,7 @@
 import React from 'react';
 import { useMarketRotation } from '@/hooks/useMarketRotation';
 import { ArrowDownRight, ArrowUpRight, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
 import {
   Select,
   SelectContent,
@@ -11,7 +11,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import IndexFlowChart from './IndexFlowChart';
-import { Button } from '../ui/button';
 import { toast } from 'sonner';
 
 const MarketRotationIndicator = () => {
@@ -28,11 +27,11 @@ const MarketRotationIndicator = () => {
   };
 
   return (
-    <Card className="w-full h-full bg-black/50 border border-gray-800 overflow-hidden">
-      <CardHeader className="border-b border-gray-800 p-4 flex flex-row items-center justify-between">
-        <CardTitle className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+    <div className="w-full h-full bg-black/50 border-gray-800 overflow-hidden flex flex-col">
+      <div className="border-b border-gray-800 p-4 flex flex-row items-center justify-between">
+        <h2 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
           Fluxo de Capital em Cripto
-        </CardTitle>
+        </h2>
         <div className="flex items-center space-x-2">
           <Button 
             variant="ghost" 
@@ -55,15 +54,15 @@ const MarketRotationIndicator = () => {
             </SelectContent>
           </Select>
         </div>
-      </CardHeader>
-      <CardContent className="p-0">
+      </div>
+      <div className="flex-1 relative">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-96 gap-4">
+          <div className="flex flex-col items-center justify-center h-full gap-4">
             <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
             <p className="text-gray-300">Carregando dados do mercado...</p>
           </div>
         ) : isError ? (
-          <div className="flex flex-col items-center justify-center h-96 text-amber-400 gap-4">
+          <div className="flex flex-col items-center justify-center h-full text-amber-400 gap-4">
             <AlertTriangle className="w-8 h-8" />
             <div className="text-center">
               <p className="mb-2">Erro ao carregar dados</p>
@@ -78,57 +77,27 @@ const MarketRotationIndicator = () => {
             </div>
           </div>
         ) : data ? (
-          <div className="p-4">
+          <div className="h-full w-full">
             {data.indices.some(index => index.value === undefined) && (
-              <div className="mb-4 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+              <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
                 <p className="text-yellow-400 text-xs flex items-center">
                   <AlertTriangle className="w-4 h-4 mr-2" />
-                  Alguns dados podem estar utilizando valores estimados devido a limitações da API
+                  Alguns dados podem estar utilizando valores estimados
                 </p>
               </div>
             )}
             
-            <div className="h-[calc(100vh-250px)] min-h-[400px] w-full">
+            <div className="h-full w-full">
               <IndexFlowChart data={data} />
             </div>
             
-            <div className="mt-4 text-sm text-gray-300">
-              <h4 className="font-bold mb-2 text-white">Análise de Fluxo de Capital</h4>
-              {data.flows.length > 0 ? (
-                <ul className="space-y-1 list-disc pl-5">
-                  {data.flows.slice(0, 10).map((flow, idx) => {
-                    const fromIndex = data.indices.find(i => i.id === flow.from);
-                    const toIndex = data.indices.find(i => i.id === flow.to);
-                    
-                    if (!fromIndex || !toIndex) return null;
-                    
-                    return (
-                      <li key={idx}>
-                        Fluxo de{' '}
-                        <span style={{ color: fromIndex.color }} className="font-medium">
-                          {fromIndex.name}
-                        </span>{' '}
-                        para{' '}
-                        <span style={{ color: toIndex.color }} className="font-medium">
-                          {toIndex.name}
-                        </span>{' '}
-                        ({flow.percentage.toFixed(2)}%)
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p className="italic text-gray-400">Nenhum fluxo de capital significativo detectado neste período.</p>
-              )}
-              
-              <div className="mt-4 text-xs text-gray-400">
-                Última atualização: {new Date(data.timestamp).toLocaleString()}
-              </div>
+            <div className="absolute bottom-0 left-0 right-0 bg-black/70 backdrop-blur-sm p-3 text-xs text-gray-400">
+              Última atualização: {new Date(data.timestamp).toLocaleString()}
             </div>
           </div>
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
