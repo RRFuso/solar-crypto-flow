@@ -88,8 +88,19 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
     
     // Calculate orbit parameters
     const nonCentralNodes = nodes.filter(n => n.id !== centralNode.id);
-    const orbitLayers = Math.min(8, Math.ceil(nonCentralNodes.length / 3)); // Fewer nodes per orbit
-    const baseRadius = Math.min(width, height) * 0.35 / orbitLayers;
+    const orbitLayers = Math.min(10, Math.ceil(nonCentralNodes.length / 10)); // More orbit layers for more nodes
+    
+    // Apply 70% zoom scale by modifying the base radius and scale factors
+    const baseRadius = Math.min(width, height) * 0.25 / orbitLayers * 0.7; // Apply 70% zoom
+    
+    // Manually scale down node radii
+    nodes.forEach(node => {
+      if (node.id === 'BTC') {
+        node.radius = Math.max(30, node.radius * 0.7); // Ensure BTC still stands out but is scaled
+      } else {
+        node.radius = Math.max(10, node.radius * 0.7); // Apply 70% zoom to node sizes
+      }
+    });
     
     // Position nodes
     const nodePositionsProps = { nodes, centralNode, width, height, orbitLayers, baseRadius };
@@ -108,7 +119,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
   // Function to create starfield
   const createStarfield = (svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, width: number, height: number) => {
     const starGroup = svg.append("g").attr("class", "starfield");
-    const numStars = 150;
+    const numStars = 250; // Increased stars for better background effect
     
     for (let i = 0; i < numStars; i++) {
       const x = Math.random() * width;
@@ -134,7 +145,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
     }
     
     // Add a few distant "galaxies" (blurred star clusters)
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 4; i++) {
       const x = Math.random() * width;
       const y = Math.random() * height;
       const galaxySize = 20 + Math.random() * 40;
@@ -169,7 +180,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
             width={dimensions.width}
             height={dimensions.height}
             orbitLayers={8}
-            baseRadius={30}
+            baseRadius={30 * 0.7} // Apply 70% zoom to orbit radius
           />
           <LinkRendererComponent 
             svg={d3.select(svgRef.current)}

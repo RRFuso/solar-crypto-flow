@@ -8,7 +8,7 @@ export const createNodeText = (
   node.append("text")
     .attr("class", "ticker")
     .attr("text-anchor", "middle")
-    .attr("dy", "1.6em")
+    .attr("dy", "2.0em") // Adjusted position to accommodate logo above
     .attr("fill", "white")
     .attr("font-weight", "bold")
     .attr("font-size", d => d.isCentral ? "16px" : "14px") // Larger font for central node
@@ -20,7 +20,7 @@ export const createNodeText = (
   node.append("text")
     .attr("class", "percentage")
     .attr("text-anchor", "middle")
-    .attr("dy", "3.0em")
+    .attr("dy", "3.4em") // Position below ticker
     .attr("fill", d => d.change >= 0 ? "#4ade80" : "#f43f5e")
     .attr("font-weight", "bold")
     .attr("font-size", "13px")

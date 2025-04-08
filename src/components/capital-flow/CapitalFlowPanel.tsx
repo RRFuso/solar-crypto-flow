@@ -31,9 +31,13 @@ const CapitalFlowPanel = () => {
   return (
     <div className="w-full h-full flex flex-col gap-6 p-6 bg-crypto-dark backdrop-blur-xl border border-white/10 rounded-xl shadow-lg">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-neon-blue via-neon-blue/90 to-neon-blue/70 bg-clip-text text-transparent">
-          Capital Flow 🚀
-        </h2>
+        <div className="flex items-center gap-3">
+          <img 
+            src="/lovable-uploads/8b011f9d-f3aa-4409-8750-9bd757d934fc.png" 
+            alt="SolarCrypto Logo" 
+            className="h-12 object-contain"
+          />
+        </div>
         <div className="flex items-center gap-4">
           <Select value={timeframe} onValueChange={setTimeframe}>
             <SelectTrigger className="w-32 bg-white/5 border-white/10">
