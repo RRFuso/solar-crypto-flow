@@ -29,7 +29,7 @@ export const createNodeElements = (props: NodeElementsProps) => {
       .attr("xlink:href", (d) => {
         // Try to get logo URL, fallback to a color if unavailable
         const logoUrl = getCryptoLogoUrl(node.id.toLowerCase()) || 
-                      getFallbackLogoUrl(node.id.toLowerCase());
+                      getFallbackLogoUrl();
         return logoUrl || `https://cryptocurrencyliveprices.com/img/${node.id.toLowerCase()}.png`;
       })
       .attr("width", node.radius * 2 * 0.8) // 80% of the circle's diameter
@@ -113,7 +113,7 @@ export const createNodeElements = (props: NodeElementsProps) => {
       .attr("xlink:href", () => {
         // Try to get logo URL, fallback to a color if unavailable
         const logoUrl = getCryptoLogoUrl(d.id.toLowerCase()) || 
-                      getFallbackLogoUrl(d.id.toLowerCase());
+                      getFallbackLogoUrl();
         return logoUrl || `https://cryptocurrencyliveprices.com/img/${d.id.toLowerCase()}.png`;
       })
       .attr("x", -logoSize / 2)
