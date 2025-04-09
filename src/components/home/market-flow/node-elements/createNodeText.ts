@@ -16,11 +16,21 @@ export const createNodeText = (
     .attr("stroke-width", "0.5px")
     .text(d => d.id);
   
+  // Add crypto name (if available)
+  node.append("text")
+    .attr("class", "name")
+    .attr("text-anchor", "middle")
+    .attr("dy", "3.2em") // Position below ticker
+    .attr("fill", "rgba(255, 255, 255, 0.8)")
+    .attr("font-size", "10px")
+    .attr("font-weight", "500")
+    .text(d => d.name && d.name !== d.id ? d.name.substring(0, 12) : "");
+  
   // Add percentage change with enhanced visibility
   node.append("text")
     .attr("class", "percentage")
     .attr("text-anchor", "middle")
-    .attr("dy", "3.4em") // Position below ticker
+    .attr("dy", "4.4em") // Position below name
     .attr("fill", d => d.change >= 0 ? "#4ade80" : "#f43f5e")
     .attr("font-weight", "bold")
     .attr("font-size", "13px")

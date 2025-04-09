@@ -30,6 +30,10 @@ export const createNodePatterns = (
       .attr("height", node.radius * 2 * 0.8)
       .attr("x", node.radius * 0.2) // Center the image
       .attr("y", node.radius * 0.2)
-      .attr("preserveAspectRatio", "xMidYMid slice");
+      .attr("preserveAspectRatio", "xMidYMid slice")
+      .on("error", function() {
+        // Fallback to alternative source if primary logo fails to load
+        d3.select(this).attr("xlink:href", getFallbackLogoUrl());
+      });
   });
 };

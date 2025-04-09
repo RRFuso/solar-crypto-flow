@@ -11,9 +11,13 @@ import { OrbitalAnimationComponent } from './OrbitalAnimation';
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
+  zoomLevel?: number;
 }
 
-export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }) => {
+export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
+  flowData, 
+  zoomLevel = 70 
+}) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { createOrbitalVisualization } = useOrbitalVisualization();
@@ -21,8 +25,9 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
   const [visualizationData, setVisualizationData] = useState<{
     nodes: OrbitalNode[],
     links: any[],
-    centralNode: OrbitalNode | null
-  }>({ nodes: [], links: [], centralNode: null });
+    centralNode: OrbitalNode | null,
+    selectedNodeId: string | null
+  }>({ nodes: [], links: [], centralNode: null, selectedNodeId: null });
   const animationRef = useRef<any | null>(null);
   
   // Handle window resize
@@ -90,15 +95,16 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
     const nonCentralNodes = nodes.filter(n => n.id !== centralNode.id);
     const orbitLayers = Math.min(10, Math.ceil(nonCentralNodes.length / 10)); // More orbit layers for more nodes
     
-    // Apply 70% zoom scale by modifying the base radius and scale factors
-    const baseRadius = Math.min(width, height) * 0.25 / orbitLayers * 0.7; // Apply 70% zoom
+    // Apply zoom scale by modifying the base radius and scale factors
+    const zoomFactor = zoomLevel / 100;
+    const baseRadius = Math.min(width, height) * 0.25 / orbitLayers * zoomFactor;
     
     // Manually scale down node radii
     nodes.forEach(node => {
       if (node.id === 'BTC') {
-        node.radius = Math.max(30, node.radius * 0.7); // Ensure BTC still stands out but is scaled
+        node.radius = Math.max(30, node.radius * zoomFactor);
       } else {
-        node.radius = Math.max(10, node.radius * 0.7); // Apply 70% zoom to node sizes
+        node.radius = Math.max(10, node.radius * zoomFactor);
       }
     });
     
@@ -106,15 +112,31 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
     const nodePositionsProps = { nodes, centralNode, width, height, orbitLayers, baseRadius };
     calculateNodePositions(nodePositionsProps);
     
+    // Add click handlers to highlight connections
+    svg.selectAll(".node")
+      .on("click", function(event, d) {
+        // Toggle selection state
+        if (visualizationData.selectedNodeId === d.id) {
+          setVisualizationData(prev => ({ ...prev, selectedNodeId: null }));
+        } else {
+          setVisualizationData(prev => ({ ...prev, selectedNodeId: d.id }));
+        }
+      });
+    
     // Store visualization data for rendering
-    setVisualizationData({ nodes, links, centralNode });
+    setVisualizationData({ 
+      nodes, 
+      links, 
+      centralNode,
+      selectedNodeId: visualizationData.selectedNodeId
+    });
     
     // Render visualization components
     return () => {
       // Component cleanup
       d3.select(svgRef.current).selectAll("*").remove();
     };
-  }, [flowData, dimensions, createOrbitalVisualization]);
+  }, [flowData, dimensions, zoomLevel, createOrbitalVisualization]);
 
   // Function to create starfield
   const createStarfield = (svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, width: number, height: number) => {
@@ -180,16 +202,19 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ flowData }
             width={dimensions.width}
             height={dimensions.height}
             orbitLayers={8}
-            baseRadius={30 * 0.7} // Apply 70% zoom to orbit radius
+            baseRadius={30 * (zoomLevel / 100)} // Apply zoom to orbit radius
+            extendFullScreen={true} // Extend orbit lines to full screen
           />
           <LinkRendererComponent 
             svg={d3.select(svgRef.current)}
             links={visualizationData.links}
+            selectedNodeId={visualizationData.selectedNodeId}
           />
           <NodeRendererComponent 
             svg={d3.select(svgRef.current)}
             nodes={visualizationData.nodes}
             centralNode={visualizationData.centralNode}
+            selectedNodeId={visualizationData.selectedNodeId}
           />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}

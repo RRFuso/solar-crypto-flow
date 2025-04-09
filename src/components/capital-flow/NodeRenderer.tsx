@@ -8,6 +8,7 @@ interface NodeRendererProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   nodes: OrbitalNode[];
   centralNode: OrbitalNode;
+  selectedNodeId?: string | null;
 }
 
 export class NodeRenderer {
@@ -15,7 +16,7 @@ export class NodeRenderer {
     this.renderNodes(props);
   }
   
-  private renderNodes({ svg, nodes, centralNode }: NodeRendererProps) {
+  private renderNodes({ svg, nodes, centralNode, selectedNodeId }: NodeRendererProps) {
     // Clear any existing nodes first
     svg.selectAll('.nodes-group').remove();
     
@@ -50,6 +51,23 @@ export class NodeRenderer {
         .attr("preserveAspectRatio", "xMidYMid slice");
     });
     
+    // Add selection highlight for selected node
+    if (selectedNodeId) {
+      const selectedNode = nodes.find(n => n.id === selectedNodeId);
+      if (selectedNode) {
+        nodeGroup.append("circle")
+          .attr("class", "selection-highlight")
+          .attr("cx", selectedNode.x)
+          .attr("cy", selectedNode.y)
+          .attr("r", selectedNode.radius * 1.8)
+          .attr("fill", "none")
+          .attr("stroke", "#ffffff")
+          .attr("stroke-width", 2)
+          .attr("stroke-dasharray", "4,4")
+          .attr("opacity", 0.7);
+      }
+    }
+    
     // Add glowing effect around nodes
     nodeGroup.selectAll(".node-glow")
       .data(nodes)
@@ -59,8 +77,14 @@ export class NodeRenderer {
       .attr("cx", d => d.x)
       .attr("cy", d => d.y)
       .attr("r", d => d.radius * 1.5)
-      .attr("fill", d => d.type === "central" ? "#F7931A" : "#00b5d8") // Bitcoin orange for central node
-      .attr("opacity", 0.3)
+      .attr("fill", d => {
+        // Highlight selected node with a brighter glow
+        if (selectedNodeId === d.id) {
+          return d.type === "central" ? "#F7931A" : "#00e5ff";
+        }
+        return d.type === "central" ? "#F7931A" : "#00b5d8";
+      })
+      .attr("opacity", d => selectedNodeId === d.id ? 0.5 : 0.3)
       .attr("filter", "blur(8px)");
     
     // Draw node circles
@@ -69,15 +93,28 @@ export class NodeRenderer {
       .enter()
       .append("g")
       .attr("class", "node")
-      .attr("transform", d => `translate(${d.x},${d.y})`);
+      .attr("transform", d => `translate(${d.x},${d.y})`)
+      .style("cursor", "pointer") // Add pointer cursor to indicate clickability
+      .on("mouseover", function() {
+        d3.select(this).select("circle").attr("stroke-width", 3);
+      })
+      .on("mouseout", function() {
+        d3.select(this).select("circle").attr("stroke-width", 2);
+      });
     
     // Add main circle with logo pattern
     node.append("circle")
       .attr("r", d => d.radius)
       .attr("fill", d => `url(#logo-${d.id})`) // Use pattern with logo
-      .attr("stroke", d => d.type === "central" ? "#F7931A" : "#00b5d8") // Bitcoin orange for central node
-      .attr("stroke-width", 2)
-      .attr("opacity", 0.9);
+      .attr("stroke", d => {
+        // Use different stroke colors based on selection state
+        if (selectedNodeId === d.id) {
+          return "#ffffff"; // White stroke for selected node
+        }
+        return d.type === "central" ? "#F7931A" : "#00b5d8"; // Bitcoin orange for central node
+      })
+      .attr("stroke-width", d => selectedNodeId === d.id ? 3 : 2)
+      .attr("opacity", d => selectedNodeId && selectedNodeId !== d.id ? 0.7 : 0.9);
     
     // Add ticker text below
     node.append("text")
@@ -91,11 +128,21 @@ export class NodeRenderer {
       .attr("stroke-width", "0.5px")         // Thin outline
       .text(d => d.id);
     
+    // Add name text (when available)
+    node.append("text")
+      .attr("class", "name")
+      .attr("text-anchor", "middle")
+      .attr("dy", d => d.radius + 33)
+      .attr("fill", "rgba(255, 255, 255, 0.8)")
+      .attr("font-size", "10px")
+      .attr("font-weight", "500")
+      .text(d => d.name && d.name !== d.id ? d.name.substring(0, 12) : "");
+    
     // Add percentage change with better visibility
     node.append("text")
       .attr("class", "percentage")
       .attr("text-anchor", "middle")
-      .attr("dy", d => d.radius + 32)
+      .attr("dy", d => d.radius + 50)
       .attr("fill", d => d.change >= 0 ? "#4ade80" : "#f43f5e") // Green for positive, red for negative
       .attr("font-weight", "bold")
       .attr("font-size", "13px")

@@ -1,18 +1,11 @@
+
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
-import { OrbitalNode } from './NodePlacement';
-
-type OrbitalLink = {
-  source: OrbitalNode;
-  target: OrbitalNode;
-  value: number;
-  volume?: number;
-  percentage: number;
-};
 
 interface LinkRendererProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  links: OrbitalLink[];
+  links: any[];
+  selectedNodeId?: string | null;
 }
 
 export class LinkRenderer {
@@ -20,124 +13,131 @@ export class LinkRenderer {
     this.renderLinks(props);
   }
   
-  private renderLinks({ svg, links }: LinkRendererProps) {
+  private renderLinks({ svg, links, selectedNodeId }: LinkRendererProps) {
     // Clear any existing links first
     svg.selectAll('.links-group').remove();
     
-    // Draw links with gradient
-    const linkGroup = svg.append("g")
-      .attr("class", "links-group");
+    // Create links group
+    const linkGroup = svg.append("g").attr("class", "links-group");
     
-    // Create gradients for links
-    const defs = svg.append("defs");
-    
-    links.forEach((link, i) => {
-      const id = `link-gradient-${i}`;
-      const gradient = defs.append("linearGradient")
-        .attr("id", id)
-        .attr("gradientUnits", "userSpaceOnUse")
-        .attr("x1", link.source.x)
-        .attr("y1", link.source.y)
-        .attr("x2", link.target.x)
-        .attr("y2", link.target.y);
-        
-      gradient.append("stop")
-        .attr("offset", "0%")
-        .attr("stop-color", "#F7931A");
-        
-      gradient.append("stop")
-        .attr("offset", "100%")
-        .attr("stop-color", "#00b5d8");
-      
-      // Create arrow markers
-      defs.append("marker")
-        .attr("id", `arrow-${i}`)
-        .attr("viewBox", "0 -5 10 10")
-        .attr("refX", link.target.radius + 10) // Adjust to stop at node edge
-        .attr("refY", 0)
-        .attr("markerWidth", 6)
-        .attr("markerHeight", 6)
-        .attr("orient", "auto")
-        .append("path")
-        .attr("d", "M0,-5L10,0L0,5")
-        .attr("fill", link.percentage > 0 ? "#4ade80" : "#f43f5e");
-    });
-    
-    // Draw link paths
-    linkGroup.selectAll("path")
+    // Draw links with curved paths
+    const link = linkGroup.selectAll("path")
       .data(links)
       .enter()
       .append("path")
-      .attr("class", "link-path")
+      .attr("class", "link")
       .attr("d", d => {
+        // Create curved paths between nodes
         const dx = d.target.x - d.source.x;
         const dy = d.target.y - d.source.y;
-        const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-        return `M${d.source.x},${d.source.y} A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+        const dr = Math.sqrt(dx * dx + dy * dy) * 2;
+        return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
       })
-      .attr("stroke", (d, i) => `url(#link-gradient-${i})`)
-      .attr("stroke-width", d => 2 + Math.min(5, Math.abs(d.value) / 10) * 2)
+      .attr("stroke", d => d.percentage > 0 ? "#4ade80" : "#f43f5e") // Green for positive flow, red for negative
+      .attr("stroke-width", d => {
+        // Calculate base width based on flow value
+        const baseWidth = 1 + Math.min(4, Math.abs(d.value));
+        
+        // If this link is connected to the selected node, make it wider
+        if (selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId)) {
+          return baseWidth * 2;
+        }
+        return baseWidth;
+      })
       .attr("fill", "none")
-      .attr("stroke-dasharray", "10,10")
-      .attr("opacity", 0.7)
-      .attr("marker-end", (d, i) => `url(#arrow-${i})`);
-      
-    // Add flow particles animation
+      .attr("stroke-dasharray", "6,6")
+      .attr("opacity", d => {
+        // If a node is selected, fade links that don't involve it
+        if (selectedNodeId && d.source.id !== selectedNodeId && d.target.id !== selectedNodeId) {
+          return 0.2;
+        }
+        return 0.7;
+      });
+    
+    // Create arrowheads for directional flow
+    const defs = svg.append("defs");
+    
+    // Create a unique arrow marker for each link
     links.forEach((link, i) => {
-      const particleGroup = svg.append("g")
-        .attr("class", "flow-particles");
-        
-      const particles = particleGroup
-        .selectAll("circle")
-        .data(d3.range(5)) // 5 particles per link
-        .enter()
-        .append("circle")
-        .attr("r", 2)
-        .attr("fill", link.percentage > 0 ? "#4ade80" : "#f43f5e")
-        .attr("opacity", 0.8);
+      const markerId = `arrowhead-${i}`;
+      const color = link.percentage > 0 ? "#4ade80" : "#f43f5e";
       
-      function animateParticles() {
-        const path = linkGroup.selectAll("path").nodes()[i];
-        if (!path) return;
-        
-        const pathLength = path.getTotalLength();
-        
-        particles.attr("transform", function(d, j) {
-          // Stagger the particles
-          let offset = (j / 5) * pathLength;
-          
-          // Add time-based offset that loops
-          offset += (Date.now() / 50) % pathLength;
-          
-          // Reverse direction for outflows
-          if (link.percentage <= 0) {
-            offset = pathLength - offset;
-          }
-          
-          // Loop back to start when reaching the end
-          offset = offset % pathLength;
-          
-          // Get point along the path
-          const point = path.getPointAtLength(offset);
-          return `translate(${point.x}, ${point.y})`;
-        });
+      defs.append("marker")
+        .attr("id", markerId)
+        .attr("viewBox", "0 -5 10 10")
+        .attr("refX", 22) // Position the arrowhead away from the target
+        .attr("refY", 0)
+        .attr("markerWidth", 5)
+        .attr("markerHeight", 5)
+        .attr("orient", "auto")
+        .append("path")
+        .attr("d", "M0,-5L10,0L0,5")
+        .attr("fill", color);
+      
+      // Apply the marker to the link
+      link.markerId = markerId;
+    });
+    
+    link.attr("marker-end", d => `url(#${d.markerId})`);
+    
+    // Add animated particles along the links for flow visualization
+    links.forEach((link, i) => {
+      if (selectedNodeId && link.source.id !== selectedNodeId && link.target.id !== selectedNodeId) {
+        return; // Skip animation for links not connected to selected node
       }
       
-      // Start animation for the particles - this is handled by the orbital animation class
+      const numParticles = Math.min(5, Math.max(2, Math.floor(Math.abs(link.value))));
+      const particleGroup = linkGroup.append("g").attr("class", "particles");
+      
+      for (let j = 0; j < numParticles; j++) {
+        particleGroup.append("circle")
+          .attr("class", "particle")
+          .attr("r", 2)
+          .attr("fill", link.percentage > 0 ? "#4ade80" : "#f43f5e")
+          .attr("opacity", 0.7);
+      }
+      
+      // Animate particles along path
+      const linkNode = link;
+      const particleNodes = particleGroup.selectAll(".particle");
+      const pathElement = linkGroup.select(`.link:nth-child(${i + 1})`).node();
+      
+      if (pathElement) {
+        const pathLength = (pathElement as SVGPathElement).getTotalLength();
+        
+        function animateParticles() {
+          particleNodes.each(function(d, j) {
+            // Calculate position along path based on time
+            const offset = ((Date.now() / 2000) + (j / numParticles)) % 1;
+            // Get the point at specified position along the path
+            const point = (pathElement as SVGPathElement).getPointAtLength(offset * pathLength);
+            
+            // Update particle position
+            d3.select(this)
+              .attr("cx", point.x)
+              .attr("cy", point.y);
+          });
+          
+          requestAnimationFrame(animateParticles);
+        }
+        
+        animateParticles();
+      }
     });
   }
 }
 
 // Fix component export for Fast Refresh compatibility
-export const LinkRendererComponent = React.memo(({ svg, links }: LinkRendererProps) => {
+export const LinkRendererComponent = React.memo((props: LinkRendererProps) => {
   useEffect(() => {
-    new LinkRenderer({ svg, links });
+    new LinkRenderer(props);
     
-    // Clean up
+    // Cleanup
     return () => {
-      svg.selectAll(".flow-particles").remove();
+      props.svg.selectAll(".links-group").remove();
+      props.svg.selectAll("defs").remove();
     };
-  }, [svg, links]);
+  }, [props]);
   
   return null;
 });

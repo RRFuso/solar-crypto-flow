@@ -48,7 +48,7 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
     const flows: FlowData[] = [];
     
     // BTC vs other major coins flows
-    data.slice(0, 50).forEach((coin) => {
+    data.slice(0, 100).forEach((coin) => {
       if (coin.symbol !== 'btc' && coin.market_cap_change_percentage_24h) {
         const relativeFlow = coin.market_cap_change_percentage_24h - btcData.market_cap_change_percentage_24h;
         const flowMagnitude = (coin.market_cap * Math.abs(relativeFlow)) / btcData.market_cap / 10;
@@ -61,7 +61,9 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
             value: flowMagnitude,
             percentage: relativeFlow,
             marketCap: coin.market_cap,
-            volume: coin.total_volume
+            volume: coin.total_volume,
+            name: coin.name,  // Add name for display
+            change: coin.price_change_percentage_24h  // Add price change percentage
           });
         }
       }
@@ -82,13 +84,15 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
           value: flowValue,
           percentage: coin.market_cap_change_percentage_24h || 0,
           marketCap: coin.market_cap,
-          volume: coin.total_volume
+          volume: coin.total_volume,
+          name: coin.name,  // Add name for display
+          change: coin.price_change_percentage_24h  // Add price change percentage
         });
       }
     }
     
     // Add some flows between non-BTC cryptocurrencies
-    for (let i = 1; i < Math.min(data.length - 1, 30); i++) {
+    for (let i = 1; i < Math.min(data.length - 1, 50); i++) {
       const coinA = data[i];
       const coinB = data[i + 1];
       
@@ -103,7 +107,9 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
             value: flowMagnitude,
             percentage: relativeFlow,
             marketCap: Math.min(coinA.market_cap, coinB.market_cap),
-            volume: Math.min(coinA.total_volume, coinB.total_volume)
+            volume: Math.min(coinA.total_volume, coinB.total_volume),
+            name: relativeFlow > 0 ? coinA.name : coinB.name,  // Add name for display
+            change: relativeFlow > 0 ? coinA.price_change_percentage_24h : coinB.price_change_percentage_24h  // Add price change percentage
           });
         }
       }

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCcw } from 'lucide-react';
+import { RefreshCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { fetchMarketData } from '@/lib/marketData';
@@ -11,6 +11,7 @@ import { FlowLegend } from './FlowLegend';
 
 const CapitalFlowPanel = () => {
   const [timeframe, setTimeframe] = useState('24h');
+  const [zoomLevel, setZoomLevel] = useState(70); // Default zoom level at 70%
   const { toast } = useToast();
 
   const { data: flowData, isLoading, error, refetch } = useQuery({
@@ -28,6 +29,14 @@ const CapitalFlowPanel = () => {
     }
   });
 
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 10, 150));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 10, 40));
+  };
+
   return (
     <div className="w-full h-full flex flex-col gap-6 p-6 bg-crypto-dark backdrop-blur-xl border border-white/10 rounded-xl shadow-lg">
       <div className="flex items-center justify-between">
@@ -37,8 +46,31 @@ const CapitalFlowPanel = () => {
             alt="SolarCrypto Logo" 
             className="h-12 object-contain"
           />
+          <div className="flex flex-col">
+            <h2 className="text-xl font-bold text-white">Crypto Capital Flow</h2>
+            <p className="text-white/60 text-sm">Market capital movements in real time</p>
+          </div>
         </div>
         <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 mr-2">
+            <Button 
+              variant="outline" 
+              size="icon"
+              className="bg-white/5 border-white/10 hover:bg-white/10"
+              onClick={handleZoomOut}
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <span className="text-white/80 text-xs w-10 text-center">{zoomLevel}%</span>
+            <Button 
+              variant="outline" 
+              size="icon"
+              className="bg-white/5 border-white/10 hover:bg-white/10"
+              onClick={handleZoomIn}
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+          </div>
           <Select value={timeframe} onValueChange={setTimeframe}>
             <SelectTrigger className="w-32 bg-white/5 border-white/10">
               <SelectValue placeholder="Timeframe" />
@@ -70,8 +102,8 @@ const CapitalFlowPanel = () => {
         </div>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center relative" style={{ minHeight: "700px" }}>
-          {/* D3 Visualization */}
-          <FlowVisualization flowData={flowData || []} />
+          {/* D3 Visualization with zoom level prop */}
+          <FlowVisualization flowData={flowData || []} zoomLevel={zoomLevel} />
           
           {/* Legend */}
           <FlowLegend />
