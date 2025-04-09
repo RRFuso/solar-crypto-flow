@@ -58,7 +58,7 @@ export class LinkRenderer {
     link.on("mouseover", function(event, d) {
         d3.select(this)
           .attr("opacity", 1)
-          .attr("stroke-width", d => 2 + Math.min(8, Math.abs(d.value)))
+          .attr("stroke-width", currentD => 2 + Math.min(8, Math.abs(currentD.value)))
           .attr("filter", "url(#glow-filter)");
           
         // Show tooltip with flow details
@@ -103,12 +103,13 @@ export class LinkRenderer {
           .text(`Change: ${(d.percentage >= 0 ? "+" : "") + d.percentage.toFixed(2)}%`);
       })
       .on("mouseout", function() {
+        const currentData = d3.select(this).datum();
         // Restore original link style
         d3.select(this)
-          .attr("opacity", selectedNodeId && (d.source.id !== selectedNodeId && d.target.id !== selectedNodeId) ? 0.2 : 0.7)
-          .attr("stroke-width", d => {
-            const baseWidth = 1 + Math.min(8, Math.abs(d.value));
-            return selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? baseWidth * 1.5 : baseWidth;
+          .attr("opacity", selectedNodeId && (currentData.source.id !== selectedNodeId && currentData.target.id !== selectedNodeId) ? 0.2 : 0.7)
+          .attr("stroke-width", currentData => {
+            const baseWidth = 1 + Math.min(8, Math.abs(currentData.value));
+            return selectedNodeId && (currentData.source.id === selectedNodeId || currentData.target.id === selectedNodeId) ? baseWidth * 1.5 : baseWidth;
           })
           .attr("filter", null);
           
