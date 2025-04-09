@@ -1,13 +1,12 @@
 
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
-import { OrbitalNode } from './NodePlacement';
 import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
 
 interface NodeRendererProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  nodes: OrbitalNode[];
-  centralNode: OrbitalNode;
+  nodes: any[];
+  centralNode: any;
   selectedNodeId?: string | null;
 }
 
@@ -17,16 +16,16 @@ export class NodeRenderer {
   }
   
   private renderNodes({ svg, nodes, centralNode, selectedNodeId }: NodeRendererProps) {
-    // Clear any existing nodes first
+    // First clear any existing nodes
     svg.selectAll('.nodes-group').remove();
     
-    // Draw nodes with glowing effect
+    // Create nodes group
     const nodeGroup = svg.append("g").attr("class", "nodes-group");
     
-    // Create defs for logo patterns
+    // Create defs for patterns (logos)
     const defs = svg.append("defs");
     
-    // Create patterns for each node to hold the logo
+    // Create patterns for each node
     nodes.forEach(node => {
       const patternId = `logo-${node.id}`;
       const pattern = defs.append("pattern")
@@ -38,146 +37,179 @@ export class NodeRenderer {
       // Add image to pattern
       pattern.append("image")
         .attr("xlink:href", () => {
-          // Try to get logo URL, fallback to a color if unavailable
+          // Try to get logo URL, fallback to a default if unavailable
           const logoUrl = getCryptoLogoUrl(node.id.toLowerCase()) || 
-                        `https://s2.coinmarketcap.com/static/img/coins/64x64/${node.id.toLowerCase()}.png` || 
                         `https://cryptocurrencyliveprices.com/img/${node.id.toLowerCase()}.png`;
-          return logoUrl || getFallbackLogoUrl();
+          return logoUrl;
         })
-        .attr("width", node.radius * 2 * 0.8) // 80% of the circle's diameter
-        .attr("height", node.radius * 2 * 0.8)
-        .attr("x", node.radius * 0.2) // Center the image
-        .attr("y", node.radius * 0.2)
-        .attr("preserveAspectRatio", "xMidYMid slice");
+        .attr("width", node.radius * 2)
+        .attr("height", node.radius * 2)
+        .attr("preserveAspectRatio", "xMidYMid slice")
+        .on("error", function() {
+          // Fallback to a color pattern if image fails to load
+          d3.select(this).attr("xlink:href", getFallbackLogoUrl());
+        });
     });
     
-    // Add selection highlight for selected node
-    if (selectedNodeId) {
-      const selectedNode = nodes.find(n => n.id === selectedNodeId);
-      if (selectedNode) {
-        nodeGroup.append("circle")
-          .attr("class", "selection-highlight")
-          .attr("cx", selectedNode.x)
-          .attr("cy", selectedNode.y)
-          .attr("r", selectedNode.radius * 1.8)
-          .attr("fill", "none")
-          .attr("stroke", "#ffffff")
-          .attr("stroke-width", 2)
-          .attr("stroke-dasharray", "4,4")
-          .attr("opacity", 0.7);
-      }
-    }
-    
-    // Add glowing effect around nodes
-    nodeGroup.selectAll(".node-glow")
-      .data(nodes)
-      .enter()
-      .append("circle")
-      .attr("class", "node-glow")
-      .attr("cx", d => d.x)
-      .attr("cy", d => d.y)
-      .attr("r", d => d.radius * 1.5)
-      .attr("fill", d => {
-        // Highlight selected node with a brighter glow
-        if (selectedNodeId === d.id) {
-          return d.type === "central" ? "#F7931A" : "#00e5ff";
-        }
-        return d.type === "central" ? "#F7931A" : "#00b5d8";
-      })
-      .attr("opacity", d => selectedNodeId === d.id ? 0.5 : 0.3)
-      .attr("filter", "blur(8px)");
-    
-    // Draw node circles
+    // Create node elements
     const node = nodeGroup.selectAll(".node")
       .data(nodes)
       .enter()
       .append("g")
       .attr("class", "node")
-      .attr("transform", d => `translate(${d.x},${d.y})`)
-      .style("cursor", "pointer") // Add pointer cursor to indicate clickability
-      .on("mouseover", function() {
-        d3.select(this).select("circle").attr("stroke-width", 3);
-      })
-      .on("mouseout", function() {
-        d3.select(this).select("circle").attr("stroke-width", 2);
+      .attr("id", d => `node-${d.id}`)
+      .attr("transform", d => `translate(${d.x || 0},${d.y || 0})`)
+      .style("cursor", "pointer")
+      .on("click", function(event, d) {
+        // Handle node selection
+        const currentlySelected = selectedNodeId === d.id;
+        
+        // Reset all nodes and links to default state
+        svg.selectAll(".node")
+          .classed("selected", false)
+          .selectAll("circle.node-circle")
+          .attr("stroke-width", 2);
+        
+        svg.selectAll(".link")
+          .attr("opacity", 0.7)
+          .attr("stroke-width", link => 1 + Math.min(4, Math.abs(link.value)));
+        
+        // If this node wasn't already selected, highlight it and its connections
+        if (!currentlySelected) {
+          // Highlight this node
+          d3.select(this).classed("selected", true)
+            .select("circle.node-circle")
+            .attr("stroke-width", 4);
+          
+          // Highlight connected links and fade others
+          svg.selectAll(".link")
+            .attr("opacity", link => {
+              if (link.source.id === d.id || link.target.id === d.id) {
+                return 1;
+              } else {
+                return 0.2;
+              }
+            })
+            .attr("stroke-width", link => {
+              if (link.source.id === d.id || link.target.id === d.id) {
+                return 2 + Math.min(6, Math.abs(link.value));
+              } else {
+                return 1 + Math.min(4, Math.abs(link.value));
+              }
+            });
+        }
       });
     
-    // Add main circle with logo pattern
+    // Add glow effect for nodes
     node.append("circle")
-      .attr("r", d => d.radius)
-      .attr("fill", d => `url(#logo-${d.id})`) // Use pattern with logo
-      .attr("stroke", d => {
-        // Use different stroke colors based on selection state
-        if (selectedNodeId === d.id) {
-          return "#ffffff"; // White stroke for selected node
-        }
-        return d.type === "central" ? "#F7931A" : "#00b5d8"; // Bitcoin orange for central node
+      .attr("class", "node-glow")
+      .attr("r", d => d.radius * 1.3)
+      .attr("fill", d => {
+        const change = d.change || 0;
+        // Color based on change percentage
+        if (change > 0) return "rgba(52, 211, 153, 0.2)"; // Green for positive
+        if (change < 0) return "rgba(248, 113, 113, 0.2)"; // Red for negative
+        return "rgba(156, 163, 175, 0.2)"; // Gray for no change
       })
-      .attr("stroke-width", d => selectedNodeId === d.id ? 3 : 2)
-      .attr("opacity", d => selectedNodeId && selectedNodeId !== d.id ? 0.7 : 0.9);
+      .attr("filter", "url(#glow-filter)");
     
-    // Add ticker text below
+    // Create a circular background for logos
+    node.append("circle")
+      .attr("class", "node-circle")
+      .attr("r", d => d.radius)
+      .attr("fill", d => `url(#logo-${d.id})`)
+      .attr("stroke", d => {
+        const change = d.change || 0;
+        if (change > 0) return "#4ade80"; // Green for positive
+        if (change < 0) return "#f43f5e"; // Red for negative
+        return "#94a3b8"; // Gray for no change
+      })
+      .attr("stroke-width", 2);
+    
+    // Add crypto symbol text
     node.append("text")
-      .attr("class", "ticker")
+      .attr("class", "symbol-text")
+      .attr("dy", d => d.radius + 16)
       .attr("text-anchor", "middle")
-      .attr("dy", d => d.radius + 15)
       .attr("fill", "white")
       .attr("font-weight", "bold")
-      .attr("font-size", d => d.type === "central" ? "16px" : "14px")
-      .attr("stroke", "rgba(0, 0, 0, 0.7)")  // Text outline
-      .attr("stroke-width", "0.5px")         // Thin outline
-      .text(d => d.id);
+      .attr("font-size", d => d.id === centralNode.id ? "14px" : "12px")
+      .text(d => d.id.toUpperCase());
     
-    // Add name text (when available)
+    // Add percentage change text with appropriate handling for missing values
     node.append("text")
-      .attr("class", "name")
+      .attr("class", "change-text")
+      .attr("dy", d => d.radius + 32)
       .attr("text-anchor", "middle")
-      .attr("dy", d => d.radius + 33)
-      .attr("fill", "rgba(255, 255, 255, 0.8)")
-      .attr("font-size", "10px")
-      .attr("font-weight", "500")
-      .text(d => d.name && d.name !== d.id ? d.name.substring(0, 12) : "");
-    
-    // Add percentage change with better visibility
-    node.append("text")
-      .attr("class", "percentage")
-      .attr("text-anchor", "middle")
-      .attr("dy", d => d.radius + 50)
-      .attr("fill", d => d.change >= 0 ? "#4ade80" : "#f43f5e") // Green for positive, red for negative
+      .attr("fill", d => {
+        const change = d.change || 0;
+        if (change > 0) return "#4ade80"; // Green for positive
+        if (change < 0) return "#f43f5e"; // Red for negative
+        return "#94a3b8"; // Gray for no change
+      })
+      .attr("font-size", "11px")
       .attr("font-weight", "bold")
-      .attr("font-size", "13px")
-      .attr("stroke", "rgba(0, 0, 0, 0.8)") // Stronger outline for better visibility
-      .attr("stroke-width", "0.6px")
-      .text(d => (d.change >= 0 ? "+" : "") + (d.change ? d.change.toFixed(2) : "0.00") + "%");
+      .text(d => {
+        const change = d.change;
+        // Handle missing or zero values
+        if (change === undefined || change === null) return "--";
+        if (change === 0) return "0.00%";
+        return `${change > 0 ? "+" : ""}${change.toFixed(2)}%`;
+      });
     
-    // Add pulsating animation to central node
-    if (centralNode) {
-      const centralNodeElement = node.filter(d => d.type === "central")
-        .select("circle");
-        
-      function createPulse() {
-        centralNodeElement.transition()
-          .duration(1500)
-          .attr("r", centralNode.radius * 1.1)
-          .transition()
-          .duration(1500)
-          .attr("r", centralNode.radius)
-          .on("end", createPulse);
-      }
+    // Add SVG filter for glow effect if not already present
+    if (!svg.select("#glow-filter").size()) {
+      const filter = svg.append("defs")
+        .append("filter")
+        .attr("id", "glow-filter");
       
-      createPulse();
+      filter.append("feGaussianBlur")
+        .attr("stdDeviation", "3.5")
+        .attr("result", "coloredBlur");
+      
+      const feMerge = filter.append("feMerge");
+      feMerge.append("feMergeNode")
+        .attr("in", "coloredBlur");
+      feMerge.append("feMergeNode")
+        .attr("in", "SourceGraphic");
     }
+    
+    // Add tooltips on hover
+    node.append("title")
+      .text(d => {
+        const changeText = d.change !== undefined && d.change !== null 
+          ? `${d.change > 0 ? "+" : ""}${d.change.toFixed(2)}%` 
+          : "No data";
+        const marketCapText = d.marketCap 
+          ? `$${this.formatLargeNumber(d.marketCap)}` 
+          : "Unknown";
+        
+        return `${d.name || d.id.toUpperCase()}\nMarket Cap: ${marketCapText}\nChange: ${changeText}`;
+      });
+  }
+  
+  private formatLargeNumber(num: number): string {
+    if (num >= 1_000_000_000) {
+      return (num / 1_000_000_000).toFixed(2) + 'B';
+    }
+    if (num >= 1_000_000) {
+      return (num / 1_000_000).toFixed(2) + 'M';
+    }
+    if (num >= 1_000) {
+      return (num / 1_000).toFixed(2) + 'K';
+    }
+    return num.toString();
   }
 }
 
-// Fix component export for Fast Refresh compatibility
+// React component wrapper for the D3 renderer
 export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
   useEffect(() => {
     new NodeRenderer(props);
     
-    // Clean up any D3 animations
+    // Cleanup
     return () => {
-      props.svg.selectAll(".node").selectAll("*").interrupt();
+      props.svg.selectAll(".nodes-group").remove();
     };
   }, [props]);
   

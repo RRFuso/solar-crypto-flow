@@ -11,73 +11,61 @@ interface OrbitLayersProps {
   extendFullScreen?: boolean;
 }
 
-export class OrbitLayers {
-  constructor(props: OrbitLayersProps) {
-    this.renderOrbits(props);
-  }
+export const OrbitLayersComponent = React.memo((props: OrbitLayersProps) => {
+  const { svg, width, height, orbitLayers, baseRadius, extendFullScreen = true } = props;
   
-  private renderOrbits({ svg, width, height, orbitLayers, baseRadius, extendFullScreen = false }: OrbitLayersProps) {
-    // Clear any existing orbit circles first
-    svg.selectAll(".orbit-circle").remove();
+  useEffect(() => {
+    // Clear existing orbit layers
+    svg.selectAll('.orbit-layers').remove();
     
-    // Calculate the maximum radius that covers the entire screen
-    const maxScreenRadius = Math.max(
-      Math.sqrt(Math.pow(width/2, 2) + Math.pow(height/2, 2)) * 1.2, // Diagonal distance * 1.2 for full coverage
-      Math.max(width, height)
-    );
+    // Create orbit layers group
+    const orbitGroup = svg.append("g").attr("class", "orbit-layers");
+    
+    // Calculate max radius to cover entire screen
+    const maxScreenRadius = Math.sqrt(Math.pow(width/2, 2) + Math.pow(height/2, 2));
+    
+    // Calculate center point
+    const centerX = width / 2;
+    const centerY = height / 2;
     
     // Draw orbit circles
     for (let i = 1; i <= orbitLayers; i++) {
-      const orbitRadius = extendFullScreen && i === orbitLayers 
-        ? maxScreenRadius // Last orbit extends to screen edge
-        : i * baseRadius * 2; // Normal orbit spacing
-
-      svg.append("circle")
-        .attr("class", "orbit-circle")
-        .attr("cx", width / 2)
-        .attr("cy", height / 2)
+      // Calculate radius - either use incremental base radius or extend to full screen
+      let orbitRadius = extendFullScreen
+        ? (maxScreenRadius / orbitLayers) * i // Distribute evenly across full screen
+        : baseRadius * i; // Use incremental base radius
+      
+      orbitGroup.append("circle")
+        .attr("cx", centerX)
+        .attr("cy", centerY)
         .attr("r", orbitRadius)
         .attr("fill", "none")
-        .attr("stroke", "rgba(255, 255, 255, 0.15)")
-        .attr("stroke-width", 1.5)
-        .attr("stroke-dasharray", "5,5");
+        .attr("stroke", "rgba(255, 255, 255, 0.05)")
+        .attr("stroke-width", i === 1 ? 2 : 1) // Make inner orbit slightly thicker
+        .attr("stroke-dasharray", "3,3");
     }
     
-    // If extending to full screen, add additional orbits to fill the space
-    if (extendFullScreen) {
-      const baseLayers = orbitLayers;
-      const additionalLayers = 3; // Add more orbits for better spacing
+    // Add faint radial lines for better spatial orientation
+    const radialLineCount = 12;
+    for (let i = 0; i < radialLineCount; i++) {
+      const angle = (i / radialLineCount) * Math.PI * 2;
+      const lineEndX = centerX + Math.cos(angle) * maxScreenRadius;
+      const lineEndY = centerY + Math.sin(angle) * maxScreenRadius;
       
-      for (let i = 1; i <= additionalLayers; i++) {
-        // Create additional orbits between the last regular orbit and the extended one
-        const progress = i / (additionalLayers + 1);
-        const lastRegularOrbit = baseLayers * baseRadius * 2;
-        const orbitRadius = lastRegularOrbit + progress * (maxScreenRadius - lastRegularOrbit);
-        
-        svg.append("circle")
-          .attr("class", "orbit-circle")
-          .attr("cx", width / 2)
-          .attr("cy", height / 2)
-          .attr("r", orbitRadius)
-          .attr("fill", "none")
-          .attr("stroke", "rgba(255, 255, 255, 0.1)") // Slightly more transparent
-          .attr("stroke-width", 1)
-          .attr("stroke-dasharray", "3,7"); // More sparse dashes for distant orbits
-      }
+      orbitGroup.append("line")
+        .attr("x1", centerX)
+        .attr("y1", centerY)
+        .attr("x2", lineEndX)
+        .attr("y2", lineEndY)
+        .attr("stroke", "rgba(255, 255, 255, 0.03)")
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "2,4");
     }
-  }
-}
-
-// Fix component export for Fast Refresh compatibility
-export const OrbitLayersComponent = React.memo((props: OrbitLayersProps) => {
-  useEffect(() => {
-    new OrbitLayers(props);
     
-    // Cleanup
     return () => {
-      props.svg.selectAll(".orbit-circle").remove();
+      svg.selectAll('.orbit-layers').remove();
     };
-  }, [props]);
+  }, [svg, width, height, orbitLayers, baseRadius, extendFullScreen]);
   
   return null;
 });

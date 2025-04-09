@@ -35,12 +35,12 @@ export class LinkRenderer {
       })
       .attr("stroke", d => d.percentage > 0 ? "#4ade80" : "#f43f5e") // Green for positive flow, red for negative
       .attr("stroke-width", d => {
-        // Calculate base width based on flow value
-        const baseWidth = 1 + Math.min(4, Math.abs(d.value));
+        // Calculate base width based on flow value - thicker for more significant flows
+        const baseWidth = 1 + Math.min(8, Math.abs(d.value));
         
         // If this link is connected to the selected node, make it wider
         if (selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId)) {
-          return baseWidth * 2;
+          return baseWidth * 1.5;
         }
         return baseWidth;
       })
@@ -52,6 +52,68 @@ export class LinkRenderer {
           return 0.2;
         }
         return 0.7;
+      });
+      
+    // Add hover effect and tooltip to links
+    link.on("mouseover", function(event, d) {
+        d3.select(this)
+          .attr("opacity", 1)
+          .attr("stroke-width", d => 2 + Math.min(8, Math.abs(d.value)))
+          .attr("filter", "url(#glow-filter)");
+          
+        // Show tooltip with flow details
+        const tooltip = svg.append("g")
+          .attr("class", "tooltip")
+          .attr("transform", `translate(${event.offsetX},${event.offsetY - 40})`);
+        
+        tooltip.append("rect")
+          .attr("rx", 5)
+          .attr("ry", 5)
+          .attr("x", -80)
+          .attr("y", -40)
+          .attr("width", 160)
+          .attr("height", 55)
+          .attr("fill", "rgba(0, 0, 0, 0.8)")
+          .attr("stroke", d.percentage > 0 ? "#4ade80" : "#f43f5e")
+          .attr("stroke-width", 1);
+          
+        // Flow direction text
+        tooltip.append("text")
+          .attr("x", 0)
+          .attr("y", -25)
+          .attr("text-anchor", "middle")
+          .attr("fill", "white")
+          .attr("font-weight", "bold")
+          .text(`${d.source.id.toUpperCase()} → ${d.target.id.toUpperCase()}`);
+        
+        // Flow value text
+        tooltip.append("text")
+          .attr("x", 0)
+          .attr("y", -5)
+          .attr("text-anchor", "middle")
+          .attr("fill", "white")
+          .text(`Volume: $${formatValue(d.value)}`);
+        
+        // Change percentage text
+        tooltip.append("text")
+          .attr("x", 0)
+          .attr("y", 15)
+          .attr("text-anchor", "middle")
+          .attr("fill", d.percentage > 0 ? "#4ade80" : "#f43f5e")
+          .text(`Change: ${(d.percentage >= 0 ? "+" : "") + d.percentage.toFixed(2)}%`);
+      })
+      .on("mouseout", function() {
+        // Restore original link style
+        d3.select(this)
+          .attr("opacity", selectedNodeId && (d.source.id !== selectedNodeId && d.target.id !== selectedNodeId) ? 0.2 : 0.7)
+          .attr("stroke-width", d => {
+            const baseWidth = 1 + Math.min(8, Math.abs(d.value));
+            return selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? baseWidth * 1.5 : baseWidth;
+          })
+          .attr("filter", null);
+          
+        // Remove tooltip
+        svg.selectAll(".tooltip").remove();
       });
     
     // Create arrowheads for directional flow
@@ -67,8 +129,8 @@ export class LinkRenderer {
         .attr("viewBox", "0 -5 10 10")
         .attr("refX", 22) // Position the arrowhead away from the target
         .attr("refY", 0)
-        .attr("markerWidth", 5)
-        .attr("markerHeight", 5)
+        .attr("markerWidth", 6)
+        .attr("markerHeight", 6)
         .attr("orient", "auto")
         .append("path")
         .attr("d", "M0,-5L10,0L0,5")
@@ -82,11 +144,13 @@ export class LinkRenderer {
     
     // Add animated particles along the links for flow visualization
     links.forEach((link, i) => {
+      // Skip animation for faded links if a node is selected
       if (selectedNodeId && link.source.id !== selectedNodeId && link.target.id !== selectedNodeId) {
-        return; // Skip animation for links not connected to selected node
+        return;
       }
       
-      const numParticles = Math.min(5, Math.max(2, Math.floor(Math.abs(link.value))));
+      // Number of particles based on flow value - more particles for larger flows
+      const numParticles = Math.min(6, Math.max(2, Math.floor(Math.abs(link.value))));
       const particleGroup = linkGroup.append("g").attr("class", "particles");
       
       for (let j = 0; j < numParticles; j++) {
@@ -94,7 +158,7 @@ export class LinkRenderer {
           .attr("class", "particle")
           .attr("r", 2)
           .attr("fill", link.percentage > 0 ? "#4ade80" : "#f43f5e")
-          .attr("opacity", 0.7);
+          .attr("opacity", 0.8);
       }
       
       // Animate particles along path
@@ -125,6 +189,14 @@ export class LinkRenderer {
       }
     });
   }
+}
+
+// Helper function to format large values
+function formatValue(value: number): string {
+  if (value >= 1e9) return (value / 1e9).toFixed(1) + 'B';
+  if (value >= 1e6) return (value / 1e6).toFixed(1) + 'M';
+  if (value >= 1e3) return (value / 1e3).toFixed(1) + 'K';
+  return value.toFixed(1);
 }
 
 // Fix component export for Fast Refresh compatibility

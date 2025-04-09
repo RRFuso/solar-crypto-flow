@@ -23,6 +23,7 @@ export interface CryptoData {
   isExplosive?: boolean;
   criteriaHit?: string[];
   marketCap?: number; // Added marketCap property
+  category?: string; // Added category property for filtering by type
 }
 
 export interface FlowData {
@@ -34,4 +35,7 @@ export interface FlowData {
   marketCap?: number; // Added marketCap property
   name?: string; // Added name property to resolve error
   change?: number; // Added change property to resolve error
+  category?: string; // Added category for filtering purposes
+  fromCategory?: string; // Source node category
+  toCategory?: string; // Target node category
 }
