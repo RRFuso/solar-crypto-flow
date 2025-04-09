@@ -66,6 +66,8 @@ export class LinkRenderer {
           .attr("class", "tooltip")
           .attr("transform", `translate(${event.offsetX},${event.offsetY - 40})`);
         
+        const currentData = d3.select(this).datum();
+        
         tooltip.append("rect")
           .attr("rx", 5)
           .attr("ry", 5)
@@ -74,7 +76,7 @@ export class LinkRenderer {
           .attr("width", 160)
           .attr("height", 55)
           .attr("fill", "rgba(0, 0, 0, 0.8)")
-          .attr("stroke", d.percentage > 0 ? "#4ade80" : "#f43f5e")
+          .attr("stroke", currentData.percentage > 0 ? "#4ade80" : "#f43f5e")
           .attr("stroke-width", 1);
           
         // Flow direction text
@@ -84,7 +86,7 @@ export class LinkRenderer {
           .attr("text-anchor", "middle")
           .attr("fill", "white")
           .attr("font-weight", "bold")
-          .text(`${d.source.id.toUpperCase()} → ${d.target.id.toUpperCase()}`);
+          .text(`${currentData.source.id.toUpperCase()} → ${currentData.target.id.toUpperCase()}`);
         
         // Flow value text
         tooltip.append("text")
@@ -92,15 +94,15 @@ export class LinkRenderer {
           .attr("y", -5)
           .attr("text-anchor", "middle")
           .attr("fill", "white")
-          .text(`Volume: $${formatValue(d.value)}`);
+          .text(`Volume: $${formatValue(currentData.value)}`);
         
         // Change percentage text
         tooltip.append("text")
           .attr("x", 0)
           .attr("y", 15)
           .attr("text-anchor", "middle")
-          .attr("fill", d.percentage > 0 ? "#4ade80" : "#f43f5e")
-          .text(`Change: ${(d.percentage >= 0 ? "+" : "") + d.percentage.toFixed(2)}%`);
+          .attr("fill", currentData.percentage > 0 ? "#4ade80" : "#f43f5e")
+          .text(`Change: ${(currentData.percentage >= 0 ? "+" : "") + currentData.percentage.toFixed(2)}%`);
       })
       .on("mouseout", function() {
         const currentData = d3.select(this).datum();
