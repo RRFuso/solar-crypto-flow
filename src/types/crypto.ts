@@ -32,4 +32,6 @@ export interface FlowData {
   percentage: number;
   volume?: number; // Volume property for FlowData interface
   marketCap?: number; // Added marketCap property
+  name?: string; // Added name property to resolve error
+  change?: number; // Added change property to resolve error
 }
