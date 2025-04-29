@@ -31,7 +31,7 @@ const CATEGORIES = [
 
 const CapitalFlowPanel = () => {
   const [timeframe, setTimeframe] = useState('24h');
-  const [zoomLevel, setZoomLevel] = useState(70); // Default zoom level at 40%
+  const [zoomLevel, setZoomLevel] = useState(40); // Default zoom level at 40%
   const [flowLimit, setFlowLimit] = useState(30); // Default to 30 flows
   const [selectedCategory, setSelectedCategory] = useState('all');
   const { toast } = useToast();
