@@ -1,8 +1,7 @@
 
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
-const getLogoUrl = (symbol: string) => {
-  return `https://cryptoicon-api.vercel.app/api/icon/${symbol.toLowerCase()}`;
+import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
 
 interface NodeRendererProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
