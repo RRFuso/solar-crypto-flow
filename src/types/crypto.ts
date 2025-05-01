@@ -12,7 +12,7 @@ export interface CryptoData {
   volume?: string;
   high24h?: string;
   low24h?: string;
-  symbol?: string; // Added symbol property
+  symbol?: string;
   macd?: {
     value: number;
     signal: number;
@@ -22,8 +22,12 @@ export interface CryptoData {
   score?: number;
   isExplosive?: boolean;
   criteriaHit?: string[];
-  marketCap?: number; // Added marketCap property
-  category?: string; // Added category property for filtering by type
+  marketCap?: number;
+  category?: string;
+  priceChange1h?: number;
+  priceChange24h?: number;
+  priceChange7d?: number;
+  volumeChange24h?: number;
 }
 
 export interface FlowData {
@@ -31,11 +35,11 @@ export interface FlowData {
   to: string;
   value: number;
   percentage: number;
-  volume?: number; // Volume property for FlowData interface
-  marketCap?: number; // Added marketCap property
-  name?: string; // Added name property to resolve error
-  change?: number; // Added change property to resolve error
-  category?: string; // Added category for filtering purposes
-  fromCategory?: string; // Source node category
-  toCategory?: string; // Target node category
+  volume?: number;
+  marketCap?: number;
+  name?: string;
+  change?: number;
+  category?: string;
+  fromCategory?: string;
+  toCategory?: string;
 }

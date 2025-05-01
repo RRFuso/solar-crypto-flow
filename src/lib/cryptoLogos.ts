@@ -45,7 +45,22 @@ export const symbolToIdMap: Record<string, number> = {
   'STX': 4847,
   'IMX': 10603,
   'WIF': 27867,
-  'ORDI': 27889
+  'ORDI': 27889,
+  // Additional popular cryptos
+  'PEPE': 24478,
+  'BONK': 27855,
+  'FLOKI': 9023,
+  'KAS': 21566,
+  'GALA': 12493,
+  'SAND': 6210,
+  'AXS': 6783,
+  'APE': 18876,
+  'DYDX': 11156,
+  'GMT': 18069,
+  'FET': 3773,
+  'AGIX': 2424,
+  'OCEAN': 3911,
+  'RENDER': 7129,
 };
 
 export const getCoinIdForSymbol = (symbol: string): number => {
@@ -54,9 +69,35 @@ export const getCoinIdForSymbol = (symbol: string): number => {
 
 export const getCryptoLogoUrl = (symbol: string): string => {
   const id = getCoinIdForSymbol(symbol);
+  
+  // Try CoinMarketCap first
   return `https://s2.coinmarketcap.com/static/img/coins/64x64/${id}.png`;
 };
 
 export const getFallbackLogoUrl = (): string => {
   return 'https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg';
+};
+
+/**
+ * Multi-source logo service with fallbacks
+ */
+export const getReliableCryptoLogoUrl = (symbol: string): string[] => {
+  const normalizedSymbol = symbol.toUpperCase();
+  
+  return [
+    // CoinMarketCap (highest quality, requires ID mapping)
+    getCryptoLogoUrl(normalizedSymbol),
+    
+    // TradingView Symbol Service (fairly reliable)
+    `https://s3-symbol-logo.tradingview.com/crypto/XTVC${normalizedSymbol}.svg`,
+    
+    // CryptoCompare (another reliable source)
+    `https://www.cryptocompare.com/media/37746238/${normalizedSymbol}.png`,
+    
+    // CryptoIcon API (Vercel-hosted service)
+    `https://cryptoicon-api.vercel.app/api/icon/${normalizedSymbol.toLowerCase()}`,
+    
+    // Generic fallback
+    getFallbackLogoUrl()
+  ];
 };

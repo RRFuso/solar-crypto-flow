@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RefreshCcw, ZoomIn, ZoomOut, Filter, ArrowDownUp } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -8,6 +8,11 @@ import { fetchMarketData } from '@/lib/marketData';
 import { useToast } from '@/hooks/use-toast';
 import { FlowVisualization } from './FlowVisualization';
 import { FlowLegend } from './FlowLegend';
+import { fetchCryptoData, fetchCapitalFlows } from '@/lib/dataFetcher';
+import { extractFeatures } from '@/lib/featureExtractor';
+import { predictPriceMovements } from '@/lib/aiModel';
+import { Prediction } from '@/lib/aiModel';
+import AIWatchlist from '../ai/AIWatchlist';
 import {
   Popover,
   PopoverContent,
@@ -31,9 +36,10 @@ const CATEGORIES = [
 
 const CapitalFlowPanel = () => {
   const [timeframe, setTimeframe] = useState('24h');
-  const [zoomLevel, setZoomLevel] = useState(70); // Default zoom level at 70%
+  const [zoomLevel, setZoomLevel] = useState(40); // Default zoom level at 40%
   const [flowLimit, setFlowLimit] = useState(30); // Default to 30 flows
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [predictions, setPredictions] = useState<Prediction[]>([]);
   const { toast } = useToast();
 
   const { data: flowData, isLoading, error, refetch } = useQuery({
@@ -70,12 +76,48 @@ const CapitalFlowPanel = () => {
     return sortedFlows.slice(0, flowLimit);
   }, [flowData, flowLimit, selectedCategory]);
 
+  // Update AI predictions
+  useEffect(() => {
+    const updatePredictions = async () => {
+      if (!flowData || flowData.length === 0) return;
+      
+      try {
+        // Get unique crypto symbols from the flow data
+        const symbols = [...new Set([
+          ...flowData.map(flow => flow.from),
+          ...flowData.map(flow => flow.to)
+        ])];
+        
+        // Get crypto data for these symbols
+        const cryptoData = await fetchCryptoData();
+        const relevantCryptos = cryptoData.filter(
+          crypto => symbols.includes(crypto.symbol)
+        );
+        
+        if (relevantCryptos.length > 0) {
+          // Get features and make predictions
+          const features = await extractFeatures(relevantCryptos, flowData);
+          const newPredictions = predictPriceMovements(features);
+          setPredictions(newPredictions);
+        }
+      } catch (error) {
+        console.error("Error updating AI predictions:", error);
+      }
+    };
+    
+    updatePredictions();
+    // Update predictions every 10 minutes
+    const interval = setInterval(updatePredictions, 600000);
+    
+    return () => clearInterval(interval);
+  }, [flowData]);
+
   const handleZoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 10, 150));
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 10, 40));
+    setZoomLevel(prev => Math.max(prev - 10, 10)); // Minimum 10% zoom
   };
 
   const handleLimitChange = (value: number[]) => {
@@ -186,26 +228,39 @@ const CapitalFlowPanel = () => {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neon-blue"></div>
+      <div className="flex gap-6 flex-1" style={{ minHeight: "700px" }}>
+        {/* Main Visualization Area */}
+        <div className="flex-1 flex flex-col items-center justify-center relative">
+          {isLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neon-blue"></div>
+            </div>
+          ) : error ? (
+            <div className="flex-1 flex items-center justify-center text-neon-red">
+              Failed to load market data
+            </div>
+          ) : (
+            <>
+              {/* D3 Visualization with zoom level prop */}
+              <FlowVisualization 
+                flowData={processedFlowData} 
+                zoomLevel={zoomLevel}
+                predictions={predictions} 
+              />
+              
+              {/* Legend */}
+              <FlowLegend />
+            </>
+          )}
         </div>
-      ) : error ? (
-        <div className="flex-1 flex items-center justify-center text-neon-red">
-          Failed to load market data
-        </div>
-      ) : (
-        <div className="flex-1 flex flex-col items-center justify-center relative" style={{ minHeight: "700px" }}>
-          {/* D3 Visualization with zoom level prop */}
-          <FlowVisualization 
-            flowData={processedFlowData} 
-            zoomLevel={zoomLevel} 
-          />
-          
-          {/* Legend */}
-          <FlowLegend />
-        </div>
-      )}
+        
+        {/* AI Watchlist Sidebar */}
+        {predictions.length > 0 && (
+          <div className="w-64 h-full">
+            <AIWatchlist predictions={predictions} maxItems={8} />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -32,17 +32,26 @@ export class LinkRenderer {
       removeLinkTooltip(svg);
     };
     
+    // Process links for visualization
+    const processedLinks = links.map(link => {
+      // Make sure positions use real node coordinates
+      return {
+        ...link,
+        markerId: `marker-${link.source.id}-${link.target.id}`,
+      };
+    });
+    
     // Draw links with curved paths and hover effects
-    const link = stylizeLinks(svg, linkGroup, links, selectedNodeId, handleMouseOver, handleMouseOut);
+    const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
     
     // Create arrowheads for directional flow
-    createArrowheads(svg, links);
+    createArrowheads(svg, processedLinks);
     
     // Apply the markers to links
     link.attr("marker-end", d => `url(#${d.markerId})`);
     
     // Add animated particles for flow visualization
-    addFlowParticles(svg, linkGroup, links, selectedNodeId);
+    addFlowParticles(svg, linkGroup, processedLinks, selectedNodeId);
   }
 }
 

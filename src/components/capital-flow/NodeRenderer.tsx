@@ -1,13 +1,15 @@
 
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
+import { OrbitalNode } from './NodePlacement';
 import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
 
 interface NodeRendererProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  nodes: any[];
-  centralNode: any;
-  selectedNodeId?: string | null;
+  nodes: OrbitalNode[];
+  centralNode: OrbitalNode | null;
+  selectedNodeId: string | null;
+  zoomLevel: number;
 }
 
 export class NodeRenderer {
@@ -15,201 +17,158 @@ export class NodeRenderer {
     this.renderNodes(props);
   }
   
-  private renderNodes({ svg, nodes, centralNode, selectedNodeId }: NodeRendererProps) {
-    // First clear any existing nodes
+  private renderNodes({ svg, nodes, centralNode, selectedNodeId, zoomLevel }: NodeRendererProps) {
+    // Clean up previous nodes
     svg.selectAll('.nodes-group').remove();
     
-    // Create nodes group
-    const nodeGroup = svg.append("g").attr("class", "nodes-group");
+    // Create new nodes group
+    const nodesGroup = svg.append("g").attr("class", "nodes-group");
     
-    // Create defs for patterns (logos)
-    const defs = svg.append("defs");
+    // Create patterns for logo images
+    this.createNodePatterns(svg, nodes);
     
-    // Create patterns for each node
-    nodes.forEach(node => {
-      const patternId = `logo-${node.id}`;
-      const pattern = defs.append("pattern")
-        .attr("id", patternId)
-        .attr("width", 1)
-        .attr("height", 1)
-        .attr("patternUnits", "objectBoundingBox");
-        
-      // Add image to pattern
-      pattern.append("image")
-        .attr("xlink:href", () => {
-          // Try to get logo URL, fallback to a default if unavailable
-          const logoUrl = getCryptoLogoUrl(node.id.toLowerCase()) || 
-                        `https://cryptocurrencyliveprices.com/img/${node.id.toLowerCase()}.png`;
-          return logoUrl;
-        })
-        .attr("width", node.radius * 2)
-        .attr("height", node.radius * 2)
-        .attr("preserveAspectRatio", "xMidYMid slice")
-        .on("error", function() {
-          // Fallback to a color pattern if image fails to load
-          d3.select(this).attr("xlink:href", getFallbackLogoUrl());
-        });
-    });
-    
-    // Create node elements
-    const node = nodeGroup.selectAll(".node")
+    // Create node glows (auras)
+    nodesGroup.selectAll('circle.node-glow')
       .data(nodes)
       .enter()
-      .append("g")
-      .attr("class", "node")
-      .attr("id", d => `node-${d.id}`)
-      .attr("transform", d => `translate(${d.x || 0},${d.y || 0})`)
-      .style("cursor", "pointer")
-      .on("click", function(event, d) {
-        // Handle node selection
-        const currentlySelected = selectedNodeId === d.id;
-        
-        // Reset all nodes and links to default state
-        svg.selectAll(".node")
-          .classed("selected", false)
-          .selectAll("circle.node-circle")
-          .attr("stroke-width", 2);
-        
-        svg.selectAll(".link")
-          .attr("opacity", 0.7)
-          .attr("stroke-width", link => 1 + Math.min(4, Math.abs(link.value)));
-        
-        // If this node wasn't already selected, highlight it and its connections
-        if (!currentlySelected) {
-          // Highlight this node
-          d3.select(this).classed("selected", true)
-            .select("circle.node-circle")
-            .attr("stroke-width", 4);
-          
-          // Highlight connected links and fade others
-          svg.selectAll(".link")
-            .attr("opacity", link => {
-              if (link.source.id === d.id || link.target.id === d.id) {
-                return 1;
-              } else {
-                return 0.2;
-              }
-            })
-            .attr("stroke-width", link => {
-              if (link.source.id === d.id || link.target.id === d.id) {
-                return 2 + Math.min(6, Math.abs(link.value));
-              } else {
-                return 1 + Math.min(4, Math.abs(link.value));
-              }
-            });
+      .append('circle')
+      .attr('class', 'node-glow')
+      .attr('cx', d => d.x)
+      .attr('cy', d => d.y)
+      .attr('r', d => d.radius * 1.6 * (zoomLevel / 100))
+      .attr('fill', d => d.type === 'central' ? 'rgba(247, 147, 26, 0.3)' : 'rgba(0, 181, 216, 0.3)')
+      .attr('filter', 'blur(8px)');
+    
+    // Create main nodes
+    const node = nodesGroup.selectAll('g.node')
+      .data(nodes)
+      .enter()
+      .append('g')
+      .attr('class', 'node')
+      .attr('transform', d => `translate(${d.x},${d.y})`)
+      .attr('data-id', d => d.id)
+      .on('mouseenter', (event, d) => {
+        // Highlight this node on hover
+        d3.select(event.currentTarget)
+          .select('circle.node-circle')
+          .transition()
+          .duration(200)
+          .attr('stroke-width', 3);
+      })
+      .on('mouseleave', (event, d) => {
+        // Return to normal state
+        d3.select(event.currentTarget)
+          .select('circle.node-circle')
+          .transition() 
+          .duration(200)
+          .attr('stroke-width', 2);
+      })
+      .on('click', (event, d) => {
+        // Handle node selection (for highlighting flows)
+        console.log(`Node clicked: ${d.id}`);
+        // Selection would be managed by the parent component
+      });
+    
+    // Add circle with pattern fill
+    node.append('circle')
+      .attr('class', 'node-circle')
+      .attr('r', d => d.radius * (zoomLevel / 100))
+      .attr('fill', d => `url(#logo-${d.id})`)
+      .attr('stroke', d => {
+        // Highlight the node if it's selected
+        if (selectedNodeId === d.id) {
+          return '#ffffff';
         }
-      });
-    
-    // Add glow effect for nodes
-    node.append("circle")
-      .attr("class", "node-glow")
-      .attr("r", d => d.radius * 1.3)
-      .attr("fill", d => {
-        const change = d.change || 0;
-        // Color based on change percentage
-        if (change > 0) return "rgba(52, 211, 153, 0.2)"; // Green for positive
-        if (change < 0) return "rgba(248, 113, 113, 0.2)"; // Red for negative
-        return "rgba(156, 163, 175, 0.2)"; // Gray for no change
+        return d.type === 'central' ? '#F7931A' : '#00b5d8';
       })
-      .attr("filter", "url(#glow-filter)");
+      .attr('stroke-width', d => selectedNodeId === d.id ? 3 : 2)
+      .attr('stroke-opacity', 0.9);
     
-    // Create a circular background for logos
-    node.append("circle")
-      .attr("class", "node-circle")
-      .attr("r", d => d.radius)
-      .attr("fill", d => `url(#logo-${d.id})`)
-      .attr("stroke", d => {
-        const change = d.change || 0;
-        if (change > 0) return "#4ade80"; // Green for positive
-        if (change < 0) return "#f43f5e"; // Red for negative
-        return "#94a3b8"; // Gray for no change
-      })
-      .attr("stroke-width", 2);
+    // Add node labels
+    node.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', d => d.radius * (zoomLevel / 100) + 15)
+      .attr('fill', 'white')
+      .attr('font-size', d => Math.max(10, Math.min(14, d.radius * 0.4) * (zoomLevel / 100)))
+      .attr('font-weight', 'bold')
+      .text(d => d.id);
     
-    // Add crypto symbol text
-    node.append("text")
-      .attr("class", "symbol-text")
-      .attr("dy", d => d.radius + 16)
-      .attr("text-anchor", "middle")
-      .attr("fill", "white")
-      .attr("font-weight", "bold")
-      .attr("font-size", d => d.id === centralNode.id ? "14px" : "12px")
-      .text(d => d.id.toUpperCase());
-    
-    // Add percentage change text with appropriate handling for missing values
-    node.append("text")
-      .attr("class", "change-text")
-      .attr("dy", d => d.radius + 32)
-      .attr("text-anchor", "middle")
-      .attr("fill", d => {
-        const change = d.change || 0;
-        if (change > 0) return "#4ade80"; // Green for positive
-        if (change < 0) return "#f43f5e"; // Red for negative
-        return "#94a3b8"; // Gray for no change
-      })
-      .attr("font-size", "11px")
-      .attr("font-weight", "bold")
-      .text(d => {
-        const change = d.change;
-        // Handle missing or zero values
-        if (change === undefined || change === null) return "--";
-        if (change === 0) return "0.00%";
-        return `${change > 0 ? "+" : ""}${change.toFixed(2)}%`;
-      });
-    
-    // Add SVG filter for glow effect if not already present
-    if (!svg.select("#glow-filter").size()) {
-      const filter = svg.append("defs")
-        .append("filter")
-        .attr("id", "glow-filter");
+    // Add pulse animation to central node
+    if (centralNode) {
+      const pulseNode = node.filter(d => d.id === centralNode.id);
       
-      filter.append("feGaussianBlur")
-        .attr("stdDeviation", "3.5")
-        .attr("result", "coloredBlur");
-      
-      const feMerge = filter.append("feMerge");
-      feMerge.append("feMergeNode")
-        .attr("in", "coloredBlur");
-      feMerge.append("feMergeNode")
-        .attr("in", "SourceGraphic");
+      pulseNode.append('circle')
+        .attr('class', 'pulse-circle')
+        .attr('r', centralNode.radius * 1.2 * (zoomLevel / 100))
+        .attr('fill', 'none')
+        .attr('stroke', '#F7931A')
+        .attr('stroke-width', 2)
+        .attr('stroke-opacity', 0.5)
+        .call(selection => {
+          selection.transition()
+            .attr('stroke-opacity', 0.7)
+            .attr('r', d => d.radius * 1.2 * (zoomLevel / 100))
+            .duration(2000)
+            .transition()
+            .attr('stroke-opacity', 0.1)
+            .attr('r', d => d.radius * 1.6 * (zoomLevel / 100))
+            .duration(2000)
+            .on('end', function repeat() {
+              d3.select(this)
+                .transition()
+                .attr('stroke-opacity', 0.7)
+                .attr('r', d => d.radius * 1.2 * (zoomLevel / 100))
+                .duration(2000)
+                .transition()
+                .attr('stroke-opacity', 0.1)
+                .attr('r', d => d.radius * 1.6 * (zoomLevel / 100))
+                .duration(2000)
+                .on('end', repeat);
+            });
+        });
     }
-    
-    // Add tooltips on hover
-    node.append("title")
-      .text(d => {
-        const changeText = d.change !== undefined && d.change !== null 
-          ? `${d.change > 0 ? "+" : ""}${d.change.toFixed(2)}%` 
-          : "No data";
-        const marketCapText = d.marketCap 
-          ? `$${this.formatLargeNumber(d.marketCap)}` 
-          : "Unknown";
-        
-        return `${d.name || d.id.toUpperCase()}\nMarket Cap: ${marketCapText}\nChange: ${changeText}`;
-      });
   }
   
-  private formatLargeNumber(num: number): string {
-    if (num >= 1_000_000_000) {
-      return (num / 1_000_000_000).toFixed(2) + 'B';
-    }
-    if (num >= 1_000_000) {
-      return (num / 1_000_000).toFixed(2) + 'M';
-    }
-    if (num >= 1_000) {
-      return (num / 1_000).toFixed(2) + 'K';
-    }
-    return num.toString();
+  private createNodePatterns(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, nodes: OrbitalNode[]) {
+    // Remove any existing patterns
+    svg.select('defs').remove();
+    
+    // Create definitions for patterns
+    const defs = svg.append('defs');
+    
+    // Create a pattern for each node
+    nodes.forEach(node => {
+      const pattern = defs.append('pattern')
+        .attr('id', `logo-${node.id}`)
+        .attr('width', 1)
+        .attr('height', 1)
+        .attr('patternContentUnits', 'objectBoundingBox');
+      
+      // Get logo URL from our utility
+      const logoUrl = getCryptoLogoUrl(node.id);
+      
+      // Add logo image with fallback
+      pattern.append('image')
+        .attr('href', logoUrl)
+        .attr('width', 1)
+        .attr('height', 1)
+        .attr('preserveAspectRatio', 'xMidYMid slice')
+        .on('error', function() {
+          // If primary logo fails, use fallback
+          d3.select(this).attr('href', getFallbackLogoUrl());
+        });
+    });
   }
 }
 
-// React component wrapper for the D3 renderer
+// Component wrapper for React
 export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
   useEffect(() => {
     new NodeRenderer(props);
     
-    // Cleanup
+    // Cleanup on unmount
     return () => {
-      props.svg.selectAll(".nodes-group").remove();
+      props.svg.selectAll('.nodes-group').remove();
     };
   }, [props]);
   

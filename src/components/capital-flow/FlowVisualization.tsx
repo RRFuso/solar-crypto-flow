@@ -2,22 +2,26 @@
 import React from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
+import { Prediction } from '@/lib/aiModel';
 import { OrbitLayersComponent } from './OrbitLayers';
 import { LinkRendererComponent } from './LinkRenderer';
 import { NodeRendererComponent } from './NodeRenderer';
 import { OrbitalAnimationComponent } from './OrbitalAnimation';
 import { StarfieldBackground } from './visualization/StarfieldBackground';
+import PredictionOrbitalOverlay from '../ai/PredictionOrbitalOverlay';
 import { useVisualizationSetup } from './visualization/useVisualizationSetup';
 import { useVisualizationData } from './visualization/useVisualizationData';
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
   zoomLevel?: number;
+  predictions?: Prediction[];
 }
 
 export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
   flowData, 
-  zoomLevel = 70 
+  zoomLevel = 40,
+  predictions = []
 }) => {
   const {
     svgRef,
@@ -82,13 +86,24 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             nodes={visualizationData.nodes}
             centralNode={visualizationData.centralNode}
             selectedNodeId={visualizationData.selectedNodeId}
+            zoomLevel={zoomLevel}
           />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
             nodes={visualizationData.nodes}
             width={dimensions.width}
             height={dimensions.height}
+            rotationSpeed={0.00004} // Slower rotation for more realism
           />
+          
+          {/* Add AI predictions overlay */}
+          {predictions && predictions.length > 0 && (
+            <PredictionOrbitalOverlay
+              svg={d3.select(svgRef.current)}
+              nodes={visualizationData.nodes}
+              updateInterval={600000} // Update every 10 minutes
+            />
+          )}
         </>
       )}
     </div>
