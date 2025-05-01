@@ -135,7 +135,7 @@ export function normalizeFeatures(
   
   // Normalize each feature
   return features.map(feature => {
-    const normalized = { ...feature };
+    const normalized = { ...feature } as CryptoFeatures;
     
     numericFields.forEach(field => {
       const val = feature[field as keyof CryptoFeatures] as number;
@@ -143,10 +143,10 @@ export function normalizeFeatures(
       const max = maxs[field];
       
       if (max === min) {
-        normalized[field as keyof CryptoFeatures] = 0 as any;
+        normalized[field as keyof CryptoFeatures] = 0;
       } else {
-        normalized[field as keyof CryptoFeatures] = 
-          (minVal + ((val - min) / (max - min)) * (maxVal - minVal)) as any;
+        const normalizedValue = minVal + ((val - min) / (max - min)) * (maxVal - minVal);
+        normalized[field as keyof CryptoFeatures] = normalizedValue;
       }
     });
     
