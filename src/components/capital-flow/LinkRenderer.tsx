@@ -4,11 +4,13 @@ import * as d3 from 'd3';
 import { createLinkTooltip, removeLinkTooltip } from './link-renderer/LinkTooltip';
 import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
 import { addFlowParticles } from './link-renderer/ParticleAnimation';
+import { Prediction } from '@/lib/aiModel';
 
 interface LinkRendererProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   links: any[];
   selectedNodeId?: string | null;
+  predictions?: Prediction[];
 }
 
 export class LinkRenderer {
@@ -16,7 +18,7 @@ export class LinkRenderer {
     this.renderLinks(props);
   }
   
-  private renderLinks({ svg, links, selectedNodeId }: LinkRendererProps) {
+  private renderLinks({ svg, links, selectedNodeId, predictions = [] }: LinkRendererProps) {
     // Clear any existing links first
     svg.selectAll('.links-group').remove();
     
@@ -32,12 +34,30 @@ export class LinkRenderer {
       removeLinkTooltip(svg);
     };
     
-    // Process links for visualization
+    // Process links for visualization with prediction data
     const processedLinks = links.map(link => {
-      // Make sure positions use real node coordinates
+      // Find predictions for the source and target nodes
+      const sourcePrediction = predictions?.find(p => p.symbol === link.source.id);
+      const targetPrediction = predictions?.find(p => p.symbol === link.target.id);
+      
+      // Determine if this link should be colored based on predictions
+      let predictionColor = null;
+      
+      // Color based on source prediction if it has high confidence
+      if (sourcePrediction && sourcePrediction.confidence >= 0.6) {
+        predictionColor = sourcePrediction.bullish ? "#00ff80" : "#ff3232"; // Neon green or neon red
+      }
+      // If target has higher confidence, use that
+      if (targetPrediction && targetPrediction.confidence >= 0.6) {
+        if (!predictionColor || targetPrediction.confidence > (sourcePrediction?.confidence || 0)) {
+          predictionColor = targetPrediction.bullish ? "#00ff80" : "#ff3232";
+        }
+      }
+      
       return {
         ...link,
         markerId: `marker-${link.source.id}-${link.target.id}`,
+        predictionColor
       };
     });
     

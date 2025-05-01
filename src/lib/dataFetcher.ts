@@ -124,7 +124,10 @@ export async function fetchCapitalFlows(cryptos: CryptoData[]): Promise<FlowData
  * Fetches technical indicators (RSI, MACD, etc.) for a cryptocurrency
  * Using a simulation for demo purposes
  */
-export async function fetchTechnicalIndicators(symbol: string): Promise<{
+export async function fetchTechnicalIndicators(
+  symbol: string, 
+  timeframe: string = '4h'
+): Promise<{
   rsi: number;
   rsi4h: number;
   macd: { value: number; signal: number; histogram: number };
@@ -133,23 +136,61 @@ export async function fetchTechnicalIndicators(symbol: string): Promise<{
   obv: number;
 }> {
   // In a real app, this would call a technical analysis API or calculate from OHLCV data
+  // For now, we'll simulate different indicator values based on timeframe
+  
+  // Add some variation based on timeframe to make the simulation more realistic
+  const timeframeMultiplier = getTimeframeMultiplier(timeframe);
+  
   return {
-    rsi: simulateRSI(),
-    rsi4h: simulateRSI(),
+    rsi: simulateRSI(timeframeMultiplier),
+    rsi4h: simulateRSI(0.9), // 4h RSI is less volatile
     macd: {
-      value: simulateMACD(0.5),
-      signal: simulateMACD(0.4),
-      histogram: simulateMACD(0.1),
+      value: simulateMACD(0.5 * timeframeMultiplier),
+      signal: simulateMACD(0.4 * timeframeMultiplier),
+      histogram: simulateMACD(0.1 * timeframeMultiplier),
     },
-    ema12: simulateEMA(),
-    ema26: simulateEMA(),
+    ema12: simulateEMA() * timeframeMultiplier,
+    ema26: simulateEMA() * (timeframeMultiplier * 0.9), // EMA26 changes more slowly
     obv: Math.random() * 1000000 - 500000,
   };
 }
 
+// Helper function to get a multiplier based on timeframe
+function getTimeframeMultiplier(timeframe: string): number {
+  switch (timeframe) {
+    case '5m':
+      return 1.5; // More volatile
+    case '15m':
+      return 1.3;
+    case '30m':
+      return 1.2;
+    case '1h':
+      return 1.1;
+    case '4h':
+      return 1.0; // Base reference
+    case '24h':
+      return 0.9;
+    case '7d':
+      return 0.7; // Less volatile
+    default:
+      return 1.0;
+  }
+}
+
 // Helper functions to simulate technical indicators
-function simulateRSI(): number {
-  return Math.floor(Math.random() * 100);
+function simulateRSI(volatilityFactor: number = 1): number {
+  // More realistic distribution - cluster around 30-70 range with tails
+  const base = Math.random();
+  if (base < 0.1) {
+    // Low RSI (10-30)
+    return (10 + Math.random() * 20) * volatilityFactor;
+  } else if (base > 0.9) {
+    // High RSI (70-90)
+    return (70 + Math.random() * 20) * Math.min(1, volatilityFactor);
+  } else {
+    // Normal range (30-70)
+    return (30 + Math.random() * 40);
+  }
 }
 
 function simulateMACD(bias: number = 0): number {

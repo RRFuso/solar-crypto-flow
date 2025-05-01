@@ -21,18 +21,34 @@ export const addFlowParticles = (
     const numParticles = Math.min(6, Math.max(2, Math.floor(Math.abs(link.value))));
     const particleGroup = linkGroup.append("g").attr("class", "particles");
     
+    // Determine particle color based on prediction or flow direction
+    const particleColor = link.predictionColor || (link.percentage > 0 ? "#4ade80" : "#f43f5e");
+    
+    // Create particles
     for (let j = 0; j < numParticles; j++) {
       particleGroup.append("circle")
         .attr("class", "particle")
-        .attr("r", 2)
-        .attr("fill", link.percentage > 0 ? "#4ade80" : "#f43f5e")
-        .attr("opacity", 0.8);
+        .attr("r", link.predictionColor ? 2.5 : 2) // Slightly larger for prediction links
+        .attr("fill", particleColor)
+        .attr("opacity", link.predictionColor ? 0.9 : 0.8);
+      
+      // Add glow effect for prediction particles
+      if (link.predictionColor) {
+        particleGroup.append("circle")
+          .attr("class", "particle-glow")
+          .attr("r", 4)
+          .attr("fill", "none")
+          .attr("stroke", particleColor)
+          .attr("stroke-width", 1)
+          .attr("opacity", 0.5)
+          .attr("filter", "url(#glow)");
+      }
     }
     
     // Animate particles along path
     const linkNode = link;
-    const particleNodes = particleGroup.selectAll(".particle");
-    const pathElement = linkGroup.select(`.link:nth-child(${i + 1})`).node();
+    const particleNodes = particleGroup.selectAll(".particle, .particle-glow");
+    const pathElement = svg.select(`#link-${i}`).node();
     
     if (pathElement) {
       const pathLength = (pathElement as SVGPathElement).getTotalLength();
@@ -40,7 +56,9 @@ export const addFlowParticles = (
       function animateParticles() {
         particleNodes.each(function(d, j) {
           // Calculate position along path based on time
-          const offset = ((Date.now() / 2000) + (j / numParticles)) % 1;
+          // Use different speeds based on if it's a prediction or not
+          const speed = link.predictionColor ? 3000 : 2000; // Faster for prediction links
+          const offset = ((Date.now() / speed) + (j / numParticles)) % 1;
           // Get the point at specified position along the path
           const point = (pathElement as SVGPathElement).getPointAtLength(offset * pathLength);
           

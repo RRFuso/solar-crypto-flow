@@ -28,6 +28,7 @@ export interface CryptoFeatures {
   outgoingFlows: number;
   netFlowPercentage: number;
   category: string;
+  price: string;
 }
 
 /**
@@ -35,7 +36,8 @@ export interface CryptoFeatures {
  */
 export async function extractFeatures(
   cryptoData: CryptoData[],
-  flowData: FlowData[]
+  flowData: FlowData[],
+  chartTimeframe: string = '4h'
 ): Promise<CryptoFeatures[]> {
   const features: CryptoFeatures[] = [];
   
@@ -43,7 +45,7 @@ export async function extractFeatures(
   for (const crypto of cryptoData) {
     try {
       // Get technical indicators and on-chain data
-      const technical = await fetchTechnicalIndicators(crypto.symbol);
+      const technical = await fetchTechnicalIndicators(crypto.symbol, chartTimeframe);
       const onChain = await fetchOnChainData(crypto.symbol);
       
       // Calculate flow metrics
@@ -85,7 +87,8 @@ export async function extractFeatures(
         incomingFlows,
         outgoingFlows,
         netFlowPercentage,
-        category: crypto.category || 'other'
+        category: crypto.category || 'other',
+        price: crypto.price || "0"
       });
     } catch (error) {
       console.error(`Error extracting features for ${crypto.symbol}:`, error);

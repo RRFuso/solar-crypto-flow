@@ -16,12 +16,14 @@ interface FlowVisualizationProps {
   flowData: FlowData[];
   zoomLevel?: number;
   predictions?: Prediction[];
+  chartTimeframe?: string;
 }
 
 export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
   flowData, 
   zoomLevel = 40,
-  predictions = []
+  predictions = [],
+  chartTimeframe = '4h'
 }) => {
   const {
     svgRef,
@@ -80,6 +82,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             svg={d3.select(svgRef.current)}
             links={visualizationData.links}
             selectedNodeId={visualizationData.selectedNodeId}
+            predictions={predictions}
           />
           <NodeRendererComponent 
             svg={d3.select(svgRef.current)}
@@ -102,6 +105,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
               svg={d3.select(svgRef.current)}
               nodes={visualizationData.nodes}
               updateInterval={600000} // Update every 10 minutes
+              predictions={predictions}
+              chartTimeframe={chartTimeframe}
             />
           )}
         </>

@@ -42,4 +42,5 @@ export interface FlowData {
   category?: string;
   fromCategory?: string;
   toCategory?: string;
+  predictionColor?: string;
 }

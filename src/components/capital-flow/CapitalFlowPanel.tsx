@@ -1,11 +1,11 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCcw, ZoomIn, ZoomOut, Filter, ArrowDownUp } from 'lucide-react';
+import { RefreshCcw, ZoomIn, ZoomOut, Filter, ArrowDownUp, Clock, Bell } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { fetchMarketData } from '@/lib/marketData';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { FlowVisualization } from './FlowVisualization';
 import { FlowLegend } from './FlowLegend';
 import { fetchCryptoData, fetchCapitalFlows } from '@/lib/dataFetcher';
@@ -13,6 +13,8 @@ import { extractFeatures } from '@/lib/featureExtractor';
 import { predictPriceMovements } from '@/lib/aiModel';
 import { Prediction } from '@/lib/aiModel';
 import AIWatchlist from '../ai/AIWatchlist';
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
@@ -34,13 +36,25 @@ const CATEGORIES = [
   { value: 'privacy', label: 'Privacy' },
 ];
 
+// Chart timeframes
+const TIMEFRAMES = [
+  { value: '5m', label: '5 min' },
+  { value: '15m', label: '15 min' },
+  { value: '30m', label: '30 min' },
+  { value: '1h', label: '1 hour' },
+  { value: '4h', label: '4 hours' },
+  { value: '24h', label: '24 hours' },
+  { value: '7d', label: '7 days' },
+];
+
 const CapitalFlowPanel = () => {
   const [timeframe, setTimeframe] = useState('24h');
+  const [chartTimeframe, setChartTimeframe] = useState('4h');
   const [zoomLevel, setZoomLevel] = useState(40); // Default zoom level at 40%
   const [flowLimit, setFlowLimit] = useState(30); // Default to 30 flows
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [predictions, setPredictions] = useState<Prediction[]>([]);
-  const { toast } = useToast();
+  const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
 
   const { data: flowData, isLoading, error, refetch } = useQuery({
     queryKey: ['capital-flow', timeframe],
@@ -48,9 +62,8 @@ const CapitalFlowPanel = () => {
     refetchInterval: 30000,
     meta: {
       onError: () => {
-        toast({
-          title: "Error fetching data",
-          description: "Failed to fetch market data. Please try again later.",
+        toast("Failed to fetch market data. Please try again later.", {
+          description: "An error occurred while fetching market data.",
           variant: "destructive"
         });
       }
@@ -76,6 +89,14 @@ const CapitalFlowPanel = () => {
     return sortedFlows.slice(0, flowLimit);
   }, [flowData, flowLimit, selectedCategory]);
 
+  // Filter predictions based on showOnlyStrongSignals setting
+  const filteredPredictions = useMemo(() => {
+    if (showOnlyStrongSignals) {
+      return predictions.filter(p => p.confidence >= 0.6);
+    }
+    return predictions;
+  }, [predictions, showOnlyStrongSignals]);
+
   // Update AI predictions
   useEffect(() => {
     const updatePredictions = async () => {
@@ -95,10 +116,18 @@ const CapitalFlowPanel = () => {
         );
         
         if (relevantCryptos.length > 0) {
-          // Get features and make predictions
-          const features = await extractFeatures(relevantCryptos, flowData);
-          const newPredictions = predictPriceMovements(features);
+          // Apply category filter if needed
+          const categoryFilteredCryptos = selectedCategory !== 'all' 
+            ? relevantCryptos.filter(crypto => crypto.category === selectedCategory)
+            : relevantCryptos;
+            
+          // Get features and make predictions with the selected chart timeframe
+          const features = await extractFeatures(categoryFilteredCryptos, flowData, chartTimeframe);
+          const newPredictions = predictPriceMovements(features, chartTimeframe);
           setPredictions(newPredictions);
+          
+          // Show notifications for high confidence predictions
+          showPredictionAlerts(newPredictions);
         }
       } catch (error) {
         console.error("Error updating AI predictions:", error);
@@ -106,11 +135,30 @@ const CapitalFlowPanel = () => {
     };
     
     updatePredictions();
-    // Update predictions every 10 minutes
-    const interval = setInterval(updatePredictions, 600000);
+    // Update predictions whenever flow data, category, or chart timeframe changes
+    // Use a shorter interval for shorter timeframes
+    const intervalTime = chartTimeframe === '5m' || chartTimeframe === '15m' ? 60000 : 300000;
+    const interval = setInterval(updatePredictions, intervalTime);
     
     return () => clearInterval(interval);
-  }, [flowData]);
+  }, [flowData, selectedCategory, chartTimeframe]);
+
+  // Show notifications for high confidence predictions
+  const showPredictionAlerts = (predictions: Prediction[]) => {
+    const highConfidencePredictions = predictions.filter(p => p.confidence > 0.8);
+    
+    highConfidencePredictions.forEach(prediction => {
+      const emoji = prediction.bullish ? '🚀' : '🔻';
+      const direction = prediction.bullish ? 'bullish' : 'bearish';
+      const factors = prediction.factors.slice(0, 2).join(' + ');
+      
+      toast(`${emoji} ${prediction.symbol} ${direction} signal (${chartTimeframe})`, {
+        description: `${factors}. Confidence: ${Math.round(prediction.confidence * 100)}%`,
+        duration: 8000,
+        className: prediction.bullish ? 'bg-green-900/60' : 'bg-red-900/60',
+      });
+    });
+  };
 
   const handleZoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 10, 150));
@@ -122,6 +170,12 @@ const CapitalFlowPanel = () => {
 
   const handleLimitChange = (value: number[]) => {
     setFlowLimit(value[0]);
+  };
+
+  const handleChartTimeframeChange = (value: string) => {
+    setChartTimeframe(value);
+    // Trigger prediction recalculation
+    refetch();
   };
 
   return (
@@ -139,6 +193,35 @@ const CapitalFlowPanel = () => {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          {/* Chart Timeframe Selector */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-md">
+            <Clock size={14} className="text-gray-400" />
+            <Select value={chartTimeframe} onValueChange={handleChartTimeframeChange}>
+              <SelectTrigger className="w-24 border-none bg-transparent text-white/80 h-6 py-0 px-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-900 border-gray-800">
+                {TIMEFRAMES.map(tf => (
+                  <SelectItem key={tf.value} value={tf.value}>{tf.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Strong Signal Filter */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-md">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="strong-signals"
+                checked={showOnlyStrongSignals}
+                onCheckedChange={setShowOnlyStrongSignals}
+              />
+              <Label htmlFor="strong-signals" className="text-white/80 text-xs">
+                Strong signals only
+              </Label>
+            </div>
+          </div>
+          
           {/* Zoom Controls */}
           <div className="flex items-center gap-2 mr-2">
             <Button 
@@ -245,7 +328,8 @@ const CapitalFlowPanel = () => {
               <FlowVisualization 
                 flowData={processedFlowData} 
                 zoomLevel={zoomLevel}
-                predictions={predictions} 
+                predictions={filteredPredictions} 
+                chartTimeframe={chartTimeframe}
               />
               
               {/* Legend */}
@@ -255,9 +339,13 @@ const CapitalFlowPanel = () => {
         </div>
         
         {/* AI Watchlist Sidebar */}
-        {predictions.length > 0 && (
+        {filteredPredictions.length > 0 && (
           <div className="w-64 h-full">
-            <AIWatchlist predictions={predictions} maxItems={8} />
+            <AIWatchlist 
+              predictions={filteredPredictions} 
+              maxItems={8} 
+              chartTimeframe={chartTimeframe}
+            />
           </div>
         )}
       </div>
