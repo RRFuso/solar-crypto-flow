@@ -1,5 +1,6 @@
 
 import * as d3 from 'd3';
+import { CapitalFlowNode, CapitalFlowLink } from '@/types/capitalFlow';
 
 /**
  * Applies styling and event handlers to links
@@ -12,7 +13,7 @@ export const stylizeLinks = (
   onMouseOver?: (event: MouseEvent, linkData: any) => void,
   onMouseOut?: (event: MouseEvent, linkData: any) => void
 ) => {
-  // Draw links with curved paths
+  // Draw links with dynamic orbital paths
   const link = linkGroup.selectAll("path")
     .data(links)
     .enter()
@@ -20,10 +21,7 @@ export const stylizeLinks = (
     .attr("class", "link")
     .attr("d", d => {
       // Create curved paths between nodes
-      const dx = d.target.x - d.source.x;
-      const dy = d.target.y - d.source.y;
-      const dr = Math.sqrt(dx * dx + dy * dy) * 2;
-      return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+      return calculateOrbitalPath(d);
     })
     .attr("stroke", d => d.percentage > 0 ? "#4ade80" : "#f43f5e") // Green for positive flow, red for negative
     .attr("stroke-width", d => {
@@ -76,7 +74,40 @@ export const stylizeLinks = (
 };
 
 /**
- * Creates arrowhead markers for directional flow
+ * Calculates a dynamic orbital path between two nodes
+ */
+export const calculateOrbitalPath = (link: any) => {
+  const sourceX = link.source.x;
+  const sourceY = link.source.y;
+  const targetX = link.target.x;
+  const targetY = link.target.y;
+  
+  // Calculate the distance between points
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  
+  // Adjust the curve factor based on distance
+  const curveFactor = Math.min(distance * 0.5, 100);
+  
+  // Find perpendicular vector for control point
+  const midX = (sourceX + targetX) / 2;
+  const midY = (sourceY + targetY) / 2;
+  
+  // Calculate normal vector
+  const nx = -dy / distance;
+  const ny = dx / distance;
+  
+  // Create control point
+  const controlX = midX + nx * curveFactor;
+  const controlY = midY + ny * curveFactor;
+  
+  // Return quadratic Bezier curve path
+  return `M${sourceX},${sourceY} Q${controlX},${controlY} ${targetX},${targetY}`;
+};
+
+/**
+ * Creates arrowheads markers for directional flow
  */
 export const createArrowheads = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
@@ -84,9 +115,16 @@ export const createArrowheads = (
 ) => {
   const defs = svg.append("defs");
   
+  // Add global glow filter
+  defs.append("filter")
+    .attr("id", "glow-filter")
+    .append("feGaussianBlur")
+    .attr("stdDeviation", "2")
+    .attr("result", "coloredBlur");
+  
   // Create a unique arrow marker for each link
   links.forEach((link, i) => {
-    const markerId = `arrowhead-${i}`;
+    const markerId = link.markerId || `arrowhead-${i}`;
     const color = link.percentage > 0 ? "#4ade80" : "#f43f5e";
     
     defs.append("marker")

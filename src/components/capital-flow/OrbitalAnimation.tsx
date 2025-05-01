@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
+import { calculateOrbitalPath } from './link-renderer/LinkStyling';
 
 type OrbitalLink = {
   source: OrbitalNode;
@@ -52,14 +53,9 @@ export class OrbitalAnimation {
         .attr("cx", d => d.x)
         .attr("cy", d => d.y);
       
-      // Update link positions
-      svg.selectAll("path.link-path")
-        .attr("d", d => {
-          const dx = d.target.x - d.source.x;
-          const dy = d.target.y - d.source.y;
-          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-          return `M${d.source.x},${d.source.y} A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-        });
+      // Update link paths dynamically
+      svg.selectAll("path.link")
+        .attr("d", calculateOrbitalPath);
       
       // Continue animation
       this.animationRef = requestAnimationFrame(animateOrbits);

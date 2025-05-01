@@ -1,3 +1,4 @@
+
 import * as d3 from 'd3';
 import { NarrativeLink } from './types';
 
@@ -20,7 +21,7 @@ export const useLinks = () => {
       }
     };
     
-    // Create curved link paths
+    // Create radial links for orbital visualization
     const link = linkGroup.selectAll("path")
       .data(links)
       .enter()
@@ -32,10 +33,8 @@ export const useLinks = () => {
       .attr("stroke-dasharray", "10,10")
       .attr("opacity", 0.7)
       .attr("d", d => {
-        const dx = d.target.x - d.source.x;
-        const dy = d.target.y - d.source.y;
-        const dr = Math.sqrt(dx * dx + dy * dy) * 2; // Curved path
-        return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+        // Use dynamic orbital path calculation
+        return calculateOrbitalPath(d);
       });
     
     // Create arrowheads for directional flow
@@ -63,12 +62,28 @@ export const useLinks = () => {
   const updateLinkPaths = (
     link: d3.Selection<SVGPathElement, NarrativeLink, SVGGElement, unknown>
   ) => {
-    link.attr("d", d => {
-      const dx = d.target.x - d.source.x;
-      const dy = d.target.y - d.source.y;
-      const dr = Math.sqrt(dx * dx + dy * dy) * 2; // Curved path
-      return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-    });
+    link.attr("d", calculateOrbitalPath);
+  };
+
+  // Calculate optimal orbital path between two nodes
+  const calculateOrbitalPath = (d: NarrativeLink) => {
+    const dx = d.target.x - d.source.x;
+    const dy = d.target.y - d.source.y;
+    
+    // Calculate distance for better curve adjustment
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Use dynamic curve based on distance
+    const curveFactor = Math.min(distance / 2.5, 100);
+    
+    // Calculate perpendicular offset for curve
+    const normX = -dy / distance;
+    const normY = dx / distance;
+    
+    const curveX = (d.source.x + d.target.x) / 2 + normX * curveFactor;
+    const curveY = (d.source.y + d.target.y) / 2 + normY * curveFactor;
+    
+    return `M${d.source.x},${d.source.y} Q${curveX},${curveY} ${d.target.x},${d.target.y}`;
   };
 
   // Flow particles have been removed as requested by the user
@@ -84,6 +99,7 @@ export const useLinks = () => {
   return {
     createLinks,
     updateLinkPaths,
-    updateFlowParticles
+    updateFlowParticles,
+    calculateOrbitalPath
   };
 };

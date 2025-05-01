@@ -41,6 +41,11 @@ export class LinkRenderer {
       };
     });
     
+    // Use radial links for better orbital visualization
+    const radialLink = d3.linkRadial()
+      .angle(d => (Math.atan2(d.y - d.source.y, d.x - d.source.x)))
+      .radius(d => Math.hypot(d.y - d.source.y, d.x - d.source.x));
+    
     // Draw links with curved paths and hover effects
     const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
     

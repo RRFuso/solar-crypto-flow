@@ -105,7 +105,7 @@ export function normalizeFeatures(
 ): CryptoFeatures[] {
   if (features.length === 0) return [];
   
-  // Get min/max values for each numeric feature
+  // Define numeric fields that need normalization
   const numericFields = [
     'priceChange1h', 'priceChange24h', 'priceChange7d',
     'volume', 'volumeChange24h', 'marketCap',
@@ -123,14 +123,14 @@ export function normalizeFeatures(
   
   // Initialize with first feature
   numericFields.forEach(field => {
-    mins[field] = features[0][field] as number;
-    maxs[field] = features[0][field] as number;
+    mins[field] = features[0][field];
+    maxs[field] = features[0][field];
   });
   
   // Find min/max
   features.forEach(feature => {
     numericFields.forEach(field => {
-      const val = feature[field] as number;
+      const val = feature[field];
       if (val < mins[field]) mins[field] = val;
       if (val > maxs[field]) maxs[field] = val;
     });
@@ -138,20 +138,20 @@ export function normalizeFeatures(
   
   // Normalize each feature
   return features.map(feature => {
+    // Create a copy of the feature to avoid modifying the original
     const normalized = { ...feature } as CryptoFeatures;
     
     numericFields.forEach(field => {
-      const val = feature[field] as number;
+      const val = feature[field];
       const min = mins[field];
       const max = maxs[field];
       
       if (max === min) {
-        // Using a type assertion to tell TypeScript this is valid
-        (normalized[field] as number) = 0;
+        // Handle the case where all values are the same
+        normalized[field] = 0;
       } else {
-        const normalizedValue = minVal + ((val - min) / (max - min)) * (maxVal - minVal);
-        // Using a type assertion to tell TypeScript this is valid
-        (normalized[field] as number) = normalizedValue;
+        // Perform normalization
+        normalized[field] = minVal + ((val - min) / (max - min)) * (maxVal - minVal);
       }
     });
     
