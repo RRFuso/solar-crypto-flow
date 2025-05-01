@@ -47,47 +47,18 @@ export class OrbitalAnimation {
       svg.selectAll(".node")
         .attr("transform", d => `translate(${d.x},${d.y})`);
       
-      // Update link positions - now correctly handles the links too
+      // Update glow positions
+      svg.selectAll(".node-glow")
+        .attr("cx", d => d.x)
+        .attr("cy", d => d.y);
+      
+      // Update link positions
       svg.selectAll("path.link-path")
-        .attr("d", function(d: any) {
-          if (!d.source || !d.target) return "";
-          
-          const sourceX = d.source.x || 0;
-          const sourceY = d.source.y || 0;
-          const targetX = d.target.x || 0;
-          const targetY = d.target.y || 0;
-          
-          const dx = targetX - sourceX;
-          const dy = targetY - sourceY;
+        .attr("d", d => {
+          const dx = d.target.x - d.source.x;
+          const dy = d.target.y - d.source.y;
           const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-          
-          return `M${sourceX},${sourceY} A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
-        });
-        
-      // Update particle positions
-      svg.selectAll(".flow-particle")
-        .attr("cx", function(d: any) {
-          const path = d3.select(this.parentNode).select("path.link-path").node() as SVGPathElement;
-          if (!path) return 0;
-          
-          const pathLength = path.getTotalLength();
-          const position = (d.progress + d.speed) % 1;
-          const point = path.getPointAtLength(position * pathLength);
-          
-          // Update particle data
-          d.progress = position;
-          
-          return point.x;
-        })
-        .attr("cy", function(d: any) {
-          const path = d3.select(this.parentNode).select("path.link-path").node() as SVGPathElement;
-          if (!path) return 0;
-          
-          const pathLength = path.getTotalLength();
-          const position = d.progress;
-          const point = path.getPointAtLength(position * pathLength);
-          
-          return point.y;
+          return `M${d.source.x},${d.source.y} A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
         });
       
       // Continue animation

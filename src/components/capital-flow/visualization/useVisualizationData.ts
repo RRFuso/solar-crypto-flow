@@ -73,35 +73,21 @@ export const useVisualizationData = ({
     const orbitLayers = Math.min(10, Math.ceil(nonCentralNodes.length / 10));
     
     // Apply zoom scale by modifying the base radius and scale factors
-    const zoomFactor = zoomLevel / 100; // Convert percent to factor (40% -> 0.4)
+    const zoomFactor = zoomLevel / 100;
     const baseRadius = Math.min(width, height) * 0.25 / orbitLayers * zoomFactor;
     
     // Manually scale down node radii
     nodes.forEach(node => {
       if (node.id === 'BTC') {
-        node.radius = Math.max(30 * zoomFactor, 15); // Minimum size for BTC
+        node.radius = Math.max(30, node.radius * zoomFactor);
       } else {
-        node.radius = Math.max(10 * zoomFactor, 5); // Minimum size for other nodes
+        node.radius = Math.max(10, node.radius * zoomFactor);
       }
     });
     
     // Position nodes
     const nodePositionsProps = { nodes, centralNode, width, height, orbitLayers, baseRadius };
     calculateNodePositions(nodePositionsProps);
-    
-    // Make sure links reference the actual node objects
-    links.forEach(link => {
-      // Find source and target by ID if they're just strings
-      if (typeof link.source === 'string') {
-        const sourceNode = nodes.find(n => n.id === link.source);
-        if (sourceNode) link.source = sourceNode;
-      }
-      
-      if (typeof link.target === 'string') {
-        const targetNode = nodes.find(n => n.id === link.target);
-        if (targetNode) link.target = targetNode;
-      }
-    });
     
     // Add click handlers to highlight connections
     svg.selectAll(".node")

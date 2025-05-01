@@ -17,7 +17,7 @@ interface FlowVisualizationProps {
 
 export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
   flowData, 
-  zoomLevel = 40 // Default zoom level at 40%
+  zoomLevel = 70 
 }) => {
   const {
     svgRef,
@@ -75,7 +75,6 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
           <LinkRendererComponent 
             svg={d3.select(svgRef.current)}
             links={visualizationData.links}
-            nodes={visualizationData.nodes} // Pass nodes to the LinkRenderer
             selectedNodeId={visualizationData.selectedNodeId}
           />
           <NodeRendererComponent 
