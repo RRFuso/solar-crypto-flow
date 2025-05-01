@@ -61,7 +61,7 @@ export async function extractFeatures(
       
       // Create feature vector
       features.push({
-        symbol: crypto.symbol,
+        symbol: crypto.symbol || "",
         id: crypto.id,
         priceChange1h: crypto.priceChange1h || 0,
         priceChange24h: crypto.priceChange24h || 0,
@@ -143,10 +143,10 @@ export function normalizeFeatures(
       const max = maxs[field];
       
       if (max === min) {
-        normalized[field as keyof CryptoFeatures] = 0;
+        normalized[field as keyof CryptoFeatures] = 0 as any;
       } else {
         normalized[field as keyof CryptoFeatures] = 
-          minVal + ((val - min) / (max - min)) * (maxVal - minVal);
+          (minVal + ((val - min) / (max - min)) * (maxVal - minVal)) as any;
       }
     });
     
