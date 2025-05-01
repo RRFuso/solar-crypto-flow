@@ -39,7 +39,7 @@ export class NodeRenderer {
         .attr("xlink:href", () => {
           // Try to get logo URL, fallback to a default if unavailable
           const logoUrl = getCryptoLogoUrl(node.id.toLowerCase()) || 
-                        `https://cryptocurrencyliveprices.com/img/${node.id.toLowerCase()}.png`;
+                        `https://cryptoicon-api.vercel.app/api/icon/${node.id.toLowerCase()}`;
           return logoUrl;
         })
         .attr("width", node.radius * 2)
