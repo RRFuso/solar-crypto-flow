@@ -8,6 +8,7 @@ import { addFlowParticles } from './link-renderer/ParticleAnimation';
 interface LinkRendererProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   links: any[];
+  nodes?: any[]; // Add nodes as an optional prop to access their positions
   selectedNodeId?: string | null;
 }
 
@@ -16,7 +17,7 @@ export class LinkRenderer {
     this.renderLinks(props);
   }
   
-  private renderLinks({ svg, links, selectedNodeId }: LinkRendererProps) {
+  private renderLinks({ svg, links, nodes, selectedNodeId }: LinkRendererProps) {
     // Clear any existing links first
     svg.selectAll('.links-group').remove();
     
@@ -32,17 +33,41 @@ export class LinkRenderer {
       removeLinkTooltip(svg);
     };
     
+    // Update link positions if we have nodes information
+    let updatedLinks = [...links];
+    if (nodes && nodes.length > 0) {
+      updatedLinks = links.map(link => {
+        // Find source and target nodes by ID
+        const sourceNode = typeof link.source === 'string' 
+          ? nodes.find(n => n.id === link.source) 
+          : link.source;
+        
+        const targetNode = typeof link.target === 'string'
+          ? nodes.find(n => n.id === link.target)
+          : link.target;
+        
+        if (sourceNode && targetNode) {
+          return {
+            ...link,
+            source: sourceNode,
+            target: targetNode
+          };
+        }
+        return link;
+      });
+    }
+    
     // Draw links with curved paths and hover effects
-    const link = stylizeLinks(svg, linkGroup, links, selectedNodeId, handleMouseOver, handleMouseOut);
+    const link = stylizeLinks(svg, linkGroup, updatedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
     
     // Create arrowheads for directional flow
-    createArrowheads(svg, links);
+    createArrowheads(svg, updatedLinks);
     
     // Apply the markers to links
     link.attr("marker-end", d => `url(#${d.markerId})`);
     
     // Add animated particles for flow visualization
-    addFlowParticles(svg, linkGroup, links, selectedNodeId);
+    addFlowParticles(svg, linkGroup, updatedLinks, selectedNodeId);
   }
 }
 
