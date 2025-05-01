@@ -113,21 +113,24 @@ export function normalizeFeatures(
     'ema12', 'ema26', 'obv',
     'exchangeInflow', 'exchangeOutflow', 'netFlow', 'fundingRate',
     'incomingFlows', 'outgoingFlows', 'netFlowPercentage'
-  ];
+  ] as const; // Make this a readonly tuple
   
-  const mins: Record<string, number> = {};
-  const maxs: Record<string, number> = {};
+  // Define an explicit type for numeric fields
+  type NumericField = typeof numericFields[number];
+  
+  const mins: Record<NumericField, number> = {} as Record<NumericField, number>;
+  const maxs: Record<NumericField, number> = {} as Record<NumericField, number>;
   
   // Initialize with first feature
   numericFields.forEach(field => {
-    mins[field] = features[0][field as keyof CryptoFeatures] as number;
-    maxs[field] = features[0][field as keyof CryptoFeatures] as number;
+    mins[field] = features[0][field] as number;
+    maxs[field] = features[0][field] as number;
   });
   
   // Find min/max
   features.forEach(feature => {
     numericFields.forEach(field => {
-      const val = feature[field as keyof CryptoFeatures] as number;
+      const val = feature[field] as number;
       if (val < mins[field]) mins[field] = val;
       if (val > maxs[field]) maxs[field] = val;
     });
@@ -138,15 +141,17 @@ export function normalizeFeatures(
     const normalized = { ...feature } as CryptoFeatures;
     
     numericFields.forEach(field => {
-      const val = feature[field as keyof CryptoFeatures] as number;
+      const val = feature[field] as number;
       const min = mins[field];
       const max = maxs[field];
       
       if (max === min) {
-        normalized[field as keyof CryptoFeatures] = 0;
+        // Using a type assertion to tell TypeScript this is valid
+        (normalized[field] as number) = 0;
       } else {
         const normalizedValue = minVal + ((val - min) / (max - min)) * (maxVal - minVal);
-        normalized[field as keyof CryptoFeatures] = normalizedValue;
+        // Using a type assertion to tell TypeScript this is valid
+        (normalized[field] as number) = normalizedValue;
       }
     });
     
