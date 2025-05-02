@@ -17,13 +17,15 @@ interface FlowVisualizationProps {
   zoomLevel?: number;
   predictions?: Prediction[];
   chartTimeframe?: string;
+  activeCategory?: string;
 }
 
 export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
   flowData, 
   zoomLevel = 40,
   predictions = [],
-  chartTimeframe = '4h'
+  chartTimeframe = '4h',
+  activeCategory = 'all'
 }) => {
   const {
     svgRef,
@@ -43,7 +45,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     zoomLevel: zoomLevel * 1.15, // Increase node size by 15%
     setVisualizationData,
     animationRef,
-    createOrbitalVisualization
+    createOrbitalVisualization,
+    activeCategory
   });
 
   if (!flowData || flowData.length === 0) {

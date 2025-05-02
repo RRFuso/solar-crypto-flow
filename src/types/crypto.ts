@@ -24,6 +24,7 @@ export interface CryptoData {
   criteriaHit?: string[];
   marketCap?: number;
   category?: string;
+  categories?: string[];
   priceChange1h?: number;
   priceChange24h?: number;
   priceChange7d?: number;
@@ -43,4 +44,5 @@ export interface FlowData {
   fromCategory?: string;
   toCategory?: string;
   predictionColor?: string;
+  categories?: string[];
 }

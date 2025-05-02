@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
@@ -22,6 +21,7 @@ interface UseVisualizationDataProps {
     width: number,
     height: number
   ) => any;
+  activeCategory?: string;
 }
 
 export const useVisualizationData = ({
@@ -31,7 +31,8 @@ export const useVisualizationData = ({
   zoomLevel,
   setVisualizationData,
   animationRef,
-  createOrbitalVisualization
+  createOrbitalVisualization,
+  activeCategory = 'all'
 }: UseVisualizationDataProps) => {
   useEffect(() => {
     if (!flowData || flowData.length === 0 || !svgRef.current || !dimensions.width) return;
@@ -68,8 +69,33 @@ export const useVisualizationData = ({
       return;
     }
     
+    // Apply category filtering
+    let filteredNodes = nodes;
+    let filteredLinks = links;
+    
+    if (activeCategory !== 'all') {
+      // Filter nodes by category
+      filteredNodes = nodes.filter(node => {
+        // Keep central node
+        if (node.id === centralNode.id) return true;
+        
+        // Check if node has this category
+        return node.category === activeCategory || 
+               (node.categories && node.categories.includes(activeCategory));
+      });
+      
+      // Get IDs of filtered nodes
+      const filteredNodeIds = filteredNodes.map(node => node.id);
+      
+      // Filter links to only include connections between filtered nodes
+      filteredLinks = links.filter(link => 
+        filteredNodeIds.includes(link.source.id) && 
+        filteredNodeIds.includes(link.target.id)
+      );
+    }
+    
     // Calculate orbit parameters
-    const nonCentralNodes = nodes.filter(n => n.id !== centralNode.id);
+    const nonCentralNodes = filteredNodes.filter(n => n.id !== centralNode.id);
     const orbitLayers = Math.min(10, Math.ceil(nonCentralNodes.length / 10));
     
     // Apply zoom scale by modifying the base radius and scale factors
@@ -77,7 +103,7 @@ export const useVisualizationData = ({
     const baseRadius = Math.min(width, height) * 0.25 / orbitLayers * zoomFactor;
     
     // Manually scale down node radii
-    nodes.forEach(node => {
+    filteredNodes.forEach(node => {
       if (node.id === 'BTC') {
         node.radius = Math.max(30, node.radius * zoomFactor);
       } else {
@@ -86,7 +112,14 @@ export const useVisualizationData = ({
     });
     
     // Position nodes
-    const nodePositionsProps = { nodes, centralNode, width, height, orbitLayers, baseRadius };
+    const nodePositionsProps = { 
+      nodes: filteredNodes, 
+      centralNode, 
+      width, 
+      height, 
+      orbitLayers, 
+      baseRadius 
+    };
     calculateNodePositions(nodePositionsProps);
     
     // Add click handlers to highlight connections
@@ -101,8 +134,8 @@ export const useVisualizationData = ({
     
     // Store visualization data for rendering
     setVisualizationData(prev => ({ 
-      nodes, 
-      links, 
+      nodes: filteredNodes, 
+      links: filteredLinks, 
       centralNode,
       selectedNodeId: prev.selectedNodeId
     }));
@@ -111,5 +144,5 @@ export const useVisualizationData = ({
       // Component cleanup
       d3.select(svgRef.current).selectAll("*").remove();
     };
-  }, [flowData, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef]);
+  }, [flowData, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory]);
 };

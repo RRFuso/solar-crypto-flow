@@ -23,17 +23,29 @@ import {
 import {
   Slider
 } from "@/components/ui/slider";
+import { Badge } from "../ui/badge";
 
 // Crypto categories
 const CATEGORIES = [
   { value: 'all', label: 'All Categories' },
   { value: 'layer1', label: 'Layer 1' },
+  { value: 'layer2', label: 'Layer 2' },
   { value: 'defi', label: 'DeFi' },
   { value: 'memecoin', label: 'Memecoins' },
   { value: 'stablecoin', label: 'Stablecoins' },
   { value: 'gaming', label: 'Gaming' },
   { value: 'ai', label: 'AI' },
   { value: 'privacy', label: 'Privacy' },
+  { value: 'solana', label: 'Solana Chain' },
+  { value: 'ethereum', label: 'ETH Chain' },
+  { value: 'bitcoin', label: 'BTC Chain' },
+  { value: 'bnb', label: 'BNB Chain' },
+  { value: 'rwa', label: 'RWA' },
+  { value: 'payments', label: 'Payments' },
+  { value: 'metaverse', label: 'Metaverse' },
+  { value: 'nft', label: 'NFT' },
+  { value: 'storage', label: 'Storage' },
+  { value: 'infrastructure', label: 'Infrastructure' },
 ];
 
 // Chart timeframes
@@ -55,6 +67,7 @@ const CapitalFlowPanel = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string>('all'); // Track active category filter
 
   const { data: flowData, isLoading, error, refetch } = useQuery({
     queryKey: ['capital-flow', timeframe],
@@ -77,16 +90,19 @@ const CapitalFlowPanel = () => {
     let sortedFlows = [...flowData].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
     
     // Filter by category if selected
-    if (selectedCategory !== 'all') {
-      sortedFlows = sortedFlows.filter(flow => 
-        flow.fromCategory === selectedCategory || 
-        flow.toCategory === selectedCategory
-      );
+    if (activeCategory !== 'all') {
+      sortedFlows = sortedFlows.filter(flow => {
+        const fromHasCategory = flow.fromCategory === activeCategory || 
+                               (flow.categories && flow.categories.includes(activeCategory));
+        const toHasCategory = flow.toCategory === activeCategory || 
+                             (flow.categories && flow.categories.includes(activeCategory));
+        return fromHasCategory || toHasCategory;
+      });
     }
     
     // Limit to the top N flows to reduce visual clutter
     return sortedFlows.slice(0, flowLimit);
-  }, [flowData, flowLimit, selectedCategory]);
+  }, [flowData, flowLimit, activeCategory]);
 
   // Filter predictions based on showOnlyStrongSignals setting
   const filteredPredictions = useMemo(() => {
@@ -175,6 +191,11 @@ const CapitalFlowPanel = () => {
     setChartTimeframe(value);
     // Trigger prediction recalculation
     refetch();
+  };
+
+  // Handle category filter click
+  const handleCategoryClick = (category: string) => {
+    setActiveCategory(category);
   };
 
   return (
@@ -298,6 +319,25 @@ const CapitalFlowPanel = () => {
         </div>
       </div>
 
+      {/* Category Filter Badges */}
+      <div className="flex flex-wrap gap-2 mb-2">
+        <Badge 
+          className={`cursor-pointer hover:bg-white/20 ${activeCategory === 'all' ? 'bg-white/20 border-white' : 'bg-white/5 border-white/10'}`}
+          onClick={() => handleCategoryClick('all')}
+        >
+          All Categories
+        </Badge>
+        {CATEGORIES.filter(c => c.value !== 'all').map(category => (
+          <Badge 
+            key={category.value}
+            className={`cursor-pointer hover:bg-white/20 ${activeCategory === category.value ? 'bg-white/20 border-white' : 'bg-white/5 border-white/10'}`}
+            onClick={() => handleCategoryClick(category.value)}
+          >
+            {category.label}
+          </Badge>
+        ))}
+      </div>
+
       <div className="flex gap-6 flex-1" style={{ minHeight: "700px" }}>
         {/* Main Visualization Area */}
         <div className="flex-1 flex flex-col items-center justify-center relative">
@@ -317,6 +357,7 @@ const CapitalFlowPanel = () => {
                 zoomLevel={zoomLevel}
                 predictions={filteredPredictions} 
                 chartTimeframe={chartTimeframe}
+                activeCategory={activeCategory}
               />
               
               {/* Legend */}
