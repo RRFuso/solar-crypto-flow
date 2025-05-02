@@ -24,25 +24,26 @@ export const stylizeLinks = (
     const startColor = link.percentage > 0 ? baseColor : "#ffffff";
     const endColor = link.percentage > 0 ? "#ffffff" : baseColor;
     
-    // Create gradient
+    // Create gradient with proper data binding
     const gradient = defs.append("linearGradient")
       .attr("id", gradientId)
       .attr("gradientUnits", "userSpaceOnUse")
-      .attr("x1", link.source.x)
-      .attr("y1", link.source.y)
-      .attr("x2", link.target.x)
-      .attr("y2", link.target.y);
+      .datum(link) // Bind link data to gradient
+      .attr("x1", d => d.source.x)
+      .attr("y1", d => d.source.y)
+      .attr("x2", d => d.target.x)
+      .attr("y2", d => d.target.y);
       
     // Add gradient stops
     gradient.append("stop")
       .attr("offset", "0%")
       .attr("stop-color", startColor)
-      .attr("stop-opacity", 0.8);
+      .attr("stop-opacity", 0.9);
       
     gradient.append("stop")
       .attr("offset", "100%")
       .attr("stop-color", endColor)
-      .attr("stop-opacity", 0.8);
+      .attr("stop-opacity", 0.9);
   });
   
   // Draw links with curved paths
@@ -50,7 +51,7 @@ export const stylizeLinks = (
     .data(links)
     .enter()
     .append("path")
-    .attr("class", "link")
+    .attr("class", "link-path")
     .attr("id", (d, i) => `link-${i}`)
     .attr("stroke", (d, i) => {
       if (d.predictionColor) {
@@ -60,9 +61,9 @@ export const stylizeLinks = (
     })
     .attr("stroke-width", d => {
       // Base width on flow value, scaled for visualization
-      const baseWidth = 1.5 + Math.min(5, Math.abs(d.value) / 1000000);
+      const baseWidth = 1.5 + Math.min(6, Math.abs(d.value) / 800000);
       // If selected, make wider
-      return selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? baseWidth * 1.5 : baseWidth;
+      return selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? baseWidth * 1.6 : baseWidth;
     })
     .attr("fill", "none")
     .attr("opacity", d => {
@@ -83,17 +84,18 @@ export const stylizeLinks = (
       // Add animation effect
       return d.predictionColor ? "none" : "5,5";
     })
-    .attr("marker-end", (d, i) => `url(#arrow-${i})`);
+    .attr("marker-end", (d, i) => `url(#${d.markerId})`);
     
   // Add interactive events
   if (handleMouseOver && handleMouseOut) {
     link
       .on("mouseover", function(event, d) {
+        // Highlight on hover
         d3.select(this)
           .transition()
           .duration(200)
           .attr("stroke-width", d => {
-            const baseWidth = 1.5 + Math.min(5, Math.abs(d.value) / 1000000);
+            const baseWidth = 1.5 + Math.min(6, Math.abs(d.value) / 800000);
             return baseWidth * 1.8;
           })
           .attr("opacity", 1);
@@ -101,12 +103,13 @@ export const stylizeLinks = (
         handleMouseOver(event, d);
       })
       .on("mouseout", function(event, d) {
+        // Return to normal or selected state
         d3.select(this)
           .transition()
           .duration(200)
           .attr("stroke-width", d => {
-            const baseWidth = 1.5 + Math.min(5, Math.abs(d.value) / 1000000);
-            return selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? baseWidth * 1.5 : baseWidth;
+            const baseWidth = 1.5 + Math.min(6, Math.abs(d.value) / 800000);
+            return selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? baseWidth * 1.6 : baseWidth;
           })
           .attr("opacity", d => {
             if (selectedNodeId) {
@@ -140,10 +143,11 @@ export const createArrowheads = (
     defs.append("marker")
       .attr("id", link.markerId)
       .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 8)
+      .datum(link) // Bind link data to marker
+      .attr("refX", d => 8 + (d.target?.radius || 20) * 0.8) // Dynamic refX based on target node size
       .attr("refY", 0)
-      .attr("markerWidth", 6)
-      .attr("markerHeight", 6)
+      .attr("markerWidth", 8)
+      .attr("markerHeight", 8)
       .attr("orient", "auto")
       .append("path")
       .attr("fill", arrowColor)

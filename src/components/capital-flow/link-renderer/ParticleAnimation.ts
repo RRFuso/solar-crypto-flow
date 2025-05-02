@@ -2,7 +2,7 @@
 import * as d3 from 'd3';
 
 /**
- * Adds animated particles along link paths to visualize flow direction and intensity
+ * Adds animated particles flowing along the links to represent capital movement
  */
 export const addFlowParticles = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
@@ -10,68 +10,94 @@ export const addFlowParticles = (
   links: any[],
   selectedNodeId?: string | null
 ) => {
-  // Add animated particles along the links for flow visualization
-  links.forEach((link, i) => {
-    // Skip animation for faded links if a node is selected
+  // Remove any existing particles first
+  svg.selectAll(".particles-group").remove();
+  
+  // Create particle group
+  const particleGroup = linkGroup.append("g")
+    .attr("class", "particles-group");
+  
+  // Process each link for particle animation
+  links.forEach((link, linkIndex) => {
+    // Skip particle animation for unselected links when a node is selected
     if (selectedNodeId && link.source.id !== selectedNodeId && link.target.id !== selectedNodeId) {
       return;
     }
     
-    // Number of particles based on flow value - more particles for larger flows
-    const numParticles = Math.min(6, Math.max(2, Math.floor(Math.abs(link.value))));
-    const particleGroup = linkGroup.append("g").attr("class", "particles");
+    // Get the path element for this link
+    const path = svg.select(`#link-${linkIndex}`).node() as SVGPathElement;
+    if (!path) return;
     
-    // Determine particle color based on prediction or flow direction
-    const particleColor = link.predictionColor || (link.percentage > 0 ? "#4ade80" : "#f43f5e");
+    // Calculate number of particles based on value
+    let particleCount = 1 + Math.floor(Math.min(6, Math.abs(link.value) / 8000000));
     
-    // Create particles
-    for (let j = 0; j < numParticles; j++) {
-      particleGroup.append("circle")
-        .attr("class", "particle")
-        .attr("r", link.predictionColor ? 2.5 : 2) // Slightly larger for prediction links
-        .attr("fill", particleColor)
-        .attr("opacity", link.predictionColor ? 0.9 : 0.8);
-      
-      // Add glow effect for prediction particles
-      if (link.predictionColor) {
-        particleGroup.append("circle")
-          .attr("class", "particle-glow")
-          .attr("r", 4)
-          .attr("fill", "none")
-          .attr("stroke", particleColor)
-          .attr("stroke-width", 1)
-          .attr("opacity", 0.5)
-          .attr("filter", "url(#glow)");
-      }
+    // Increase particles for selected links
+    if (selectedNodeId && (link.source.id === selectedNodeId || link.target.id === selectedNodeId)) {
+      particleCount += 3; // Add more particles to selected links
     }
     
-    // Animate particles along path
-    const linkNode = link;
-    const particleNodes = particleGroup.selectAll(".particle, .particle-glow");
-    const pathElement = svg.select(`#link-${i}`).node();
-    
-    if (pathElement) {
-      const pathLength = (pathElement as SVGPathElement).getTotalLength();
+    // Create particles for this link
+    for (let i = 0; i < particleCount; i++) {
+      // Determine color based on predictions and flow direction
+      let particleColor: string;
       
-      function animateParticles() {
-        particleNodes.each(function(d, j) {
-          // Calculate position along path based on time
-          // Use different speeds based on if it's a prediction or not
-          const speed = link.predictionColor ? 3000 : 2000; // Faster for prediction links
-          const offset = ((Date.now() / speed) + (j / numParticles)) % 1;
-          // Get the point at specified position along the path
-          const point = (pathElement as SVGPathElement).getPointAtLength(offset * pathLength);
-          
-          // Update particle position
-          d3.select(this)
-            .attr("cx", point.x)
-            .attr("cy", point.y);
-        });
-        
-        requestAnimationFrame(animateParticles);
+      if (link.predictionColor) {
+        particleColor = link.predictionColor;
+      } else {
+        particleColor = link.percentage > 0 ? "#4ade80" : "#f43f5e";
       }
       
-      animateParticles();
+      // Initial position along the path
+      const initialPosition = i / particleCount;
+      const pathLength = path.getTotalLength();
+      const point = path.getPointAtLength(initialPosition * pathLength);
+      
+      // Create particle with data
+      particleGroup.append("circle")
+        .datum({
+          linkIndex,
+          path: path,
+          progress: initialPosition,
+          speed: 0.004 + Math.random() * 0.003, // Increased speed slightly
+          direction: link.percentage > 0 ? 1 : -1, // Direction based on flow
+          color: particleColor,
+          pathLength: pathLength
+        })
+        .attr("class", "particle")
+        .attr("r", 2.5 + Math.random() * 2) // Size between 2.5-4.5px
+        .attr("fill", d => d.color)
+        .attr("cx", point.x)
+        .attr("cy", point.y)
+        .attr("opacity", 0.8)
+        .attr("filter", "blur(1px)");
     }
   });
+  
+  // Setup animation loop for particles
+  function animateParticles() {
+    svg.selectAll(".particle").each(function(d: any) {
+      // Update progress along path
+      d.progress += d.speed * d.direction;
+      
+      // Reset when reaching end
+      if (d.progress > 1) d.progress = 0;
+      if (d.progress < 0) d.progress = 1;
+      
+      // Calculate position along path
+      if (d.path && d.pathLength) {
+        const point = d.path.getPointAtLength(d.progress * d.pathLength);
+        
+        // Update particle position
+        d3.select(this)
+          .attr("cx", point.x)
+          .attr("cy", point.y);
+      }
+    });
+    
+    // Continue animation
+    requestAnimationFrame(animateParticles);
+  }
+  
+  // Start animation
+  requestAnimationFrame(animateParticles);
 };
