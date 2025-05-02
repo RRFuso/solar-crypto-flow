@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RefreshCcw, ZoomIn, ZoomOut, Filter, ArrowDownUp, Clock, Bell } from 'lucide-react';
@@ -63,8 +62,7 @@ const CapitalFlowPanel = () => {
     meta: {
       onError: () => {
         toast("Failed to fetch market data. Please try again later.", {
-          description: "An error occurred while fetching market data.",
-          variant: "destructive"
+          description: "An error occurred while fetching market data."
         });
       }
     }
