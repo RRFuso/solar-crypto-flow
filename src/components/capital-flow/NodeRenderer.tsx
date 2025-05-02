@@ -54,48 +54,6 @@ export class NodeRenderer {
           .transition()
           .duration(200)
           .attr('stroke-width', 3);
-          
-        // Show tooltip with price and volume information
-        const tooltip = svg.append("g")
-          .attr("class", "node-tooltip")
-          .attr("transform", `translate(${d.x},${d.y - d.radius * 2 - 40})`);
-        
-        // Add tooltip background
-        tooltip.append("rect")
-          .attr("rx", 5)
-          .attr("ry", 5)
-          .attr("x", -90)
-          .attr("y", -60)
-          .attr("width", 180)
-          .attr("height", 80)
-          .attr("fill", "rgba(0, 0, 0, 0.8)")
-          .attr("stroke", "#00b5d8")
-          .attr("stroke-width", 1);
-        
-        // Add tooltip content
-        tooltip.append("text")
-          .attr("x", 0)
-          .attr("y", -40)
-          .attr("text-anchor", "middle")
-          .attr("fill", "white")
-          .attr("font-weight", "bold")
-          .text(d.id);
-          
-        // Add price info
-        tooltip.append("text")
-          .attr("x", 0)
-          .attr("y", -20)
-          .attr("text-anchor", "middle")
-          .attr("fill", "white")
-          .text(`Price: ${d.price || 'N/A'}`);
-          
-        // Add volume info
-        tooltip.append("text")
-          .attr("x", 0)
-          .attr("y", 0)
-          .attr("text-anchor", "middle")
-          .attr("fill", "white")
-          .text(`Volume: ${d.volume || 'N/A'}`);
       })
       .on('mouseleave', (event, d) => {
         // Return to normal state if not selected
@@ -106,9 +64,6 @@ export class NodeRenderer {
             .duration(200)
             .attr('stroke-width', 2);
         }
-        
-        // Remove tooltip
-        svg.selectAll(".node-tooltip").remove();
       })
       .on('click', (event, d) => {
         // Handle node selection for highlighting flows
