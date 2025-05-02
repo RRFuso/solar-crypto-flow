@@ -29,11 +29,11 @@ export const addFlowParticles = (
     if (!path) return;
     
     // Calculate number of particles based on value
-    let particleCount = 1 + Math.floor(Math.min(6, Math.abs(link.value) / 8000000));
+    let particleCount = 1 + Math.floor(Math.min(5, Math.abs(link.value) / 10000000));
     
     // Increase particles for selected links
     if (selectedNodeId && (link.source.id === selectedNodeId || link.target.id === selectedNodeId)) {
-      particleCount += 3; // Add more particles to selected links
+      particleCount += 2; // Add more particles to selected links
     }
     
     // Create particles for this link
@@ -58,17 +58,17 @@ export const addFlowParticles = (
           linkIndex,
           path: path,
           progress: initialPosition,
-          speed: 0.004 + Math.random() * 0.003, // Increased speed slightly
+          speed: 0.003 + Math.random() * 0.003, // Randomize speed slightly
           direction: link.percentage > 0 ? 1 : -1, // Direction based on flow
           color: particleColor,
           pathLength: pathLength
         })
         .attr("class", "particle")
-        .attr("r", 2.5 + Math.random() * 2) // Size between 2.5-4.5px
+        .attr("r", 2 + Math.random() * 2) // Size between 2-4px
         .attr("fill", d => d.color)
         .attr("cx", point.x)
         .attr("cy", point.y)
-        .attr("opacity", 0.8)
+        .attr("opacity", 0.7)
         .attr("filter", "blur(1px)");
     }
   });
