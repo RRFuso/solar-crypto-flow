@@ -8,7 +8,7 @@ interface CryptoChartProps {
     name: string;
   };
   showBtcDominance?: boolean;
-  timeframe?: "D" | "W" | "240"; // Added timeframe prop
+  timeframe?: "5" | "15" | "30" | "240" | "D" | "W"; // Updated to include all available timeframes
 }
 
 const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: CryptoChartProps) => {

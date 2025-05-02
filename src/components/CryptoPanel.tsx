@@ -22,6 +22,9 @@ import DivergenciaBearTab from './crypto/tabs/DivergenciaBearTab';
 import CryptoSettings from './crypto/CryptoSettings';
 import { CryptoData } from '@/types/crypto';
 
+// Define the allowed timeframe values to match CryptoChart's requirements
+type ChartTimeframe = "D" | "W" | "240" | "5" | "15" | "30";
+
 const CryptoPanel = () => {
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoData>({ id: 'BTC', name: 'Bitcoin', performance: 0 });
   const [activeTab, setActiveTab] = useState('outperforming');
@@ -33,7 +36,7 @@ const CryptoPanel = () => {
     timeframe: '4h'
   });
   
-  const [chartTimeframe, setChartTimeframe] = useState('D'); // Default timeframe
+  const [chartTimeframe, setChartTimeframe] = useState<ChartTimeframe>('D'); // Explicitly typed as ChartTimeframe
 
   const { data: cryptos = [], isLoading, error } = useCryptoData({
     timeframe: settings.timeframe,
@@ -47,7 +50,7 @@ const CryptoPanel = () => {
   }, []);
 
   // Memoized function to get timeframe
-  const getTimeframe = useCallback(() => {
+  const getTimeframe = useCallback((): ChartTimeframe => {
     switch (activeTab) {
       case 'outperforming':
         return 'W';
@@ -67,7 +70,10 @@ const CryptoPanel = () => {
   }, [activeTab, chartTimeframe]);
   
   const handleTimeframeChange = (value: string) => {
-    setChartTimeframe(value);
+    // Validate that the value is one of our allowed timeframes before setting it
+    if (value === "5" || value === "15" || value === "30" || value === "240" || value === "D" || value === "W") {
+      setChartTimeframe(value as ChartTimeframe);
+    }
   };
 
   return (
