@@ -2,7 +2,7 @@
 import React, { useState } from 'react';   
 import { Prediction } from '@/lib/aiModel'; 
 import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
-import { ArrowUpRight, ArrowDownRight, Search } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Search } from 'lucide-react'; 
 import {
   Dialog,
   DialogContent,
