@@ -1,69 +1,74 @@
-
 import React from 'react';
-import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
-import { ArrowDown, ArrowUp } from 'lucide-react';
-import { CryptoData } from '@/types/crypto';
+import { TrendingUp, TrendingDown } from 'lucide-react';
+import { cn } from "@/lib/utils";
+
+interface CryptoData {
+  id: string;
+  name: string;
+  performance: number;
+  rsi?: number;
+  rsi4h?: number;
+}
 
 interface CryptoCardProps {
   crypto: CryptoData;
-  isSelected?: boolean;
-  onClick?: () => void;
+  onClick: () => void;
+  isSelected: boolean;
   showRsi?: boolean;
   showRsi4h?: boolean;
+  extraContent?: React.ReactNode;
 }
 
-const CryptoCard: React.FC<CryptoCardProps> = ({ 
-  crypto, 
-  isSelected = false, 
-  onClick, 
-  showRsi = false,
-  showRsi4h = false
-}) => {
-  const { id, name, symbol, performance = 0, price, volume } = crypto;
-  const logoUrl = getCryptoLogoUrl(symbol || id);
-  const fallbackLogoUrl = getFallbackLogoUrl();
+const CryptoCard = ({ crypto, onClick, isSelected, showRsi = false, showRsi4h = false, extraContent }: CryptoCardProps) => {
+  const isPositive = crypto.performance > 0;
+  const logoMap = {
+    'PENDLE': 'https://s2.coinmarketcap.com/static/img/coins/64x64/8409.png',
+    'JUP': 'https://s2.coinmarketcap.com/static/img/coins/64x64/25147.png'
+  };
   
-  const displayPrice = price ? parseFloat(price) : 0;
-  const displayVolume = volume ? parseFloat(volume) : 0;
-
   return (
-    <div 
-      className={`flex items-center justify-between p-4 border ${isSelected ? 'border-green-500' : 'border-gray-800'} rounded-lg bg-gray-900/50 backdrop-blur-xl cursor-pointer hover:border-gray-700 transition-colors`}
+    <div
+      className={cn(
+        "p-4 rounded-lg cursor-pointer hover:bg-gray-800 transition-colors",
+        isSelected ? "bg-gray-800" : "bg-gray-900",
+      )}
       onClick={onClick}
     >
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center gap-4">
         <img
-          src={logoUrl}
-          alt={`${name} Logo`}
-          className="w-10 h-10 rounded-full"
-          onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-            e.currentTarget.src = fallbackLogoUrl;
+          src={logoMap[crypto.id] || `https://s3-symbol-logo.tradingview.com/crypto/XTVC${crypto.id}.svg`}
+          alt={`${crypto.name} logo`}
+          className="w-8 h-8"
+          onError={(e) => {
+            e.currentTarget.src = 'https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg';
           }}
         />
-        <div>
-          <h3 className="text-lg font-semibold">{name}</h3>
-          <p className="text-sm text-gray-400">{symbol || id}/USDT</p>
-          
-          {showRsi && crypto.rsi !== undefined && (
-            <p className="text-xs text-gray-400">RSI: <span className={crypto.rsi > 70 ? 'text-red-400' : crypto.rsi < 30 ? 'text-green-400' : ''}>{crypto.rsi.toFixed(1)}</span></p>
+        <div className="flex-1">
+          <div className="flex items-center justify-between">
+            <span className="font-bold">{crypto.name}</span>
+            <span className="text-sm text-gray-400">{crypto.id}</span>
+          </div>
+          {crypto.id !== 'BTC' && !showRsi && !showRsi4h && (
+            <div className={cn(
+              "flex items-center gap-1 text-sm",
+              isPositive ? "text-green-400" : "text-red-400"
+            )}>
+              {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+              <span>{Math.abs(crypto.performance).toFixed(2)}% vs BTC</span>
+            </div>
           )}
-          
-          {showRsi4h && crypto.rsi4h !== undefined && (
-            <p className="text-xs text-gray-400">RSI 4h: <span className={crypto.rsi4h > 70 ? 'text-red-400' : crypto.rsi4h < 30 ? 'text-green-400' : ''}>{crypto.rsi4h.toFixed(1)}</span></p>
+          {showRsi && crypto.rsi && (
+            <div className="text-sm text-gray-400">
+              RSI Semanal: {crypto.rsi.toFixed(2)}
+            </div>
           )}
+          {showRsi4h && crypto.rsi4h && (
+            <div className="text-sm text-gray-400">
+              RSI 4h: {crypto.rsi4h.toFixed(2)}
+            </div>
+          )}
+          {extraContent}
         </div>
-      </div>
-      <div className="text-right">
-        <p className={performance > 0 ? "text-green-500 font-bold" : "text-red-500 font-bold"}>
-          {performance > 0 ? (
-            <ArrowUp className="inline-block w-4 h-4 mr-1" />
-          ) : (
-            <ArrowDown className="inline-block w-4 h-4 mr-1" />
-          )}
-          {performance.toFixed(2)}%
-        </p>
-        {displayPrice > 0 && <p className="text-sm text-gray-400">Price: ${displayPrice.toFixed(2)}</p>}
-        {displayVolume > 0 && <p className="text-sm text-gray-400">Volume: ${displayVolume.toFixed(2)}M</p>}
       </div>
     </div>
   );

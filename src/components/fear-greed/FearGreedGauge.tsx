@@ -1,4 +1,3 @@
-
 import React from 'react';
 import GaugeChart from 'react-gauge-chart';
 import { Skull, Scale, PartyPopper } from 'lucide-react';
@@ -19,17 +18,15 @@ export const getIcon = (value: number) => {
 
 const FearGreedGauge = ({ value, classification, colors, message, messageColor }: FearGreedGaugeProps) => {
   return (
-    <div className="w-full max-w-md space-y-2 p-6 bg-gray-900/50 rounded-lg border border-gray-800 shadow-xl">
+    <div className="w-96 space-y-2 p-3 bg-gray-900/50 rounded-lg border border-gray-800">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
+          <span className="text-xs font-medium">Medo & Ganância</span>
           {getIcon(value)}
-          <span className="text-sm font-bold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
-            Medo & Ganância
-          </span>
         </div>
-        <span className="text-lg font-bold text-white">{value}</span>
+        <span className="text-xs font-medium">{value}</span>
       </div>
-      <div className="h-28 flex justify-center mt-2">
+      <div className="h-20">
         <GaugeChart
           id="fear-greed-gauge"
           nrOfLevels={5}
@@ -39,15 +36,13 @@ const FearGreedGauge = ({ value, classification, colors, message, messageColor }
           formatTextValue={() => `${value}`}
           needleColor="#ffffff"
           needleBaseColor="#ffffff"
-          animDelay={0}
-          animateDuration={2000}
         />
       </div>
-      <div className="text-center text-sm font-bold text-white my-2">
+      <div className="text-center text-xs font-medium text-gray-400">
         {classification}
       </div>
       {message && (
-        <div className={`text-center text-sm font-semibold mt-2 ${messageColor} drop-shadow-glow`}>
+        <div className={`text-center text-xs font-medium mt-2 ${messageColor}`}>
           {message}
         </div>
       )}

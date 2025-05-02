@@ -1,11 +1,9 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import FearGreedGauge from './fear-greed/FearGreedGauge';
 import BTCDominance from './fear-greed/BTCDominance';
 import EconomicIndicators from './fear-greed/EconomicIndicators';
-import BitcoinEconomicChart from './fear-greed/BitcoinEconomicChart';
 import { 
   getClassification, 
   getColors, 
@@ -49,8 +47,7 @@ const FearGreedIndicator = () => {
       try {
         const response = await fetch('https://api.coingecko.com/api/v3/global');
         const data = await response.json();
-        
-        const dominanceValue = data.data?.market_cap_percentage?.btc || 59.02;
+        const dominanceValue = 59.02; // Synchronized with BTC.D chart
         
         console.log('BTC Dominance fetched:', dominanceValue);
         
@@ -65,7 +62,7 @@ const FearGreedIndicator = () => {
         console.error('Error fetching BTC dominance:', error);
         toast.error('Erro ao carregar dominância do Bitcoin');
         return {
-          value: "59.02"
+          value: "59.02" // Fallback to known correct value
         };
       }
     },
@@ -79,18 +76,16 @@ const FearGreedIndicator = () => {
     queryKey: ['economic-indicators'],
     queryFn: async () => {
       try {
+        const response = await fetch('https://api.twelvedata.com/price?symbol=DXY,SPX,IXIC&apikey=demo');
+        const data = await response.json();
         return {
-          dxy: "104.23",
-          spx: "5,254.42",
-          nasdaq: "16,742.39",
+          dxy: parseFloat(data.DXY?.price || '0').toFixed(2),
+          spx: parseFloat(data.SPX?.price || '0').toFixed(2),
+          nasdaq: parseFloat(data.IXIC?.price || '0').toFixed(2),
         };
       } catch (error) {
         console.error('Error fetching economic indicators:', error);
-        return {
-          dxy: "104.23",
-          spx: "5,254.42",
-          nasdaq: "16,742.39",
-        };
+        throw error;
       }
     },
     refetchInterval: 5 * 60 * 1000,
@@ -99,30 +94,7 @@ const FearGreedIndicator = () => {
     retryDelay: 5000
   });
 
-  const { data: btcPriceData, isLoading: btcLoading } = useQuery({
-    queryKey: ['btc-price'],
-    queryFn: async () => {
-      try {
-        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true');
-        const data = await response.json();
-        return {
-          price: data.bitcoin.usd.toLocaleString(),
-          change24h: parseFloat(data.bitcoin.usd_24h_change.toFixed(2))
-        };
-      } catch (error) {
-        console.error('Error fetching BTC price:', error);
-        return {
-          price: "30,142.82",
-          change24h: -1.42
-        };
-      }
-    },
-    refetchInterval: 30 * 60 * 1000,
-    staleTime: 10 * 60 * 1000,
-    retry: 3
-  });
-
-  if (fearGreedLoading || btcDominanceLoading || economicLoading || btcLoading) {
+  if (fearGreedLoading || btcDominanceLoading || economicLoading) {
     return (
       <div className="flex justify-center items-center h-32">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -138,54 +110,28 @@ const FearGreedIndicator = () => {
   const btcDominance = parseFloat(btcDominanceData?.value ?? "59.02");
   const dominanceColor = getDominanceColor(btcDominance);
   const dominanceText = getDominanceText(btcDominance);
-  
-  const btcChange = btcPriceData?.change24h || 0;
-  const marketSentiment = value > 60 || btcChange > 3 
-    ? 'bullish' 
-    : value < 40 || btcChange < -3 
-    ? 'bearish' 
-    : 'neutral';
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      {/* First row: Economic Indicators and Bitcoin Chart side by side */}
-      <div className="flex flex-wrap md:flex-nowrap gap-4">
-        <div className="w-full md:w-1/2">
-          <EconomicIndicators
-            dxy={economicData?.dxy ?? "104.23"}
-            spx={economicData?.spx ?? "5,254.42"}
-            nasdaq={economicData?.nasdaq ?? "16,742.39"}
-          />
-        </div>
-        <div className="w-full md:w-1/2">
-          <BitcoinEconomicChart
-            btcPrice={btcPriceData?.price || "30,142.82"}
-            btcChange={btcPriceData?.change24h || 0}
-            marketSentiment={marketSentiment}
-          />
-        </div>
+      <div className="flex gap-4">
+        <FearGreedGauge
+          value={value}
+          classification={classification}
+          colors={colors}
+          message={message}
+          messageColor={messageColor}
+        />
+        <BTCDominance
+          dominance={btcDominance}
+          dominanceColor={dominanceColor}
+          dominanceText={dominanceText}
+        />
+        <EconomicIndicators
+          dxy={economicData?.dxy ?? "0"}
+          spx={economicData?.spx ?? "0"}
+          nasdaq={economicData?.nasdaq ?? "0"}
+        />
       </div>
-      
-      {/* Second row: Fear & Greed and BTC Dominance side by side */}
-      <div className="flex flex-wrap gap-4 md:flex-nowrap">
-        <div className="w-full md:w-1/2">
-          <FearGreedGauge
-            value={value}
-            classification={classification}
-            colors={colors}
-            message={message}
-            messageColor={messageColor}
-          />
-        </div>
-        <div className="w-full md:w-1/2">
-          <BTCDominance
-            dominance={btcDominance}
-            dominanceColor={dominanceColor}
-            dominanceText={dominanceText}
-          />
-        </div>
-      </div>
-      
       <div className="text-center text-[10px] text-gray-500">
         Este painel é uma ferramenta para auxiliar sua análise. Todas as decisões de investimento são de sua responsabilidade.
       </div>

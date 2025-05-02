@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { FishSprite } from './ocean/FishSprite';
 import { CryptoDialog } from './ocean/CryptoDialog';
@@ -112,7 +111,7 @@ const CryptoOcean = ({ cryptos }: CryptoOceanProps) => {
       <Button
         variant="outline"
         size="icon"
-        className="absolute top-4 right-4 bg-gray-800/50 hover:bg-gray-700/50 text-white"
+        className="absolute top-4 right-4 bg-gray-800/50 hover:bg-gray-700/50"
         onClick={resetTank}
       >
         <RefreshCw className="h-4 w-4" />

@@ -1,35 +1,20 @@
-
-import { useState } from "react";
-import CryptoPanel from "@/components/CryptoPanel";
-import DashboardLayout from "@/components/layout/DashboardLayout";
-import SocialFlowPanel from "@/components/social-flow/SocialFlowPanel";
-import HomePanel from "@/components/home/HomePanel";
+import React from 'react';
+import CryptoPanel from '../components/CryptoPanel';
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("home");
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case "home":
-        return <HomePanel />;
-      case "performance":
-        return <CryptoPanel />;
-      case "social-flow":
-        return <SocialFlowPanel />;
-      default:
-        return (
-          <div className="text-center text-gray-400 mt-20">
-            <h2 className="text-2xl font-bold mb-4">Em breve</h2>
-            <p>Esta seção está em desenvolvimento.</p>
-          </div>
-        );
-    }
-  };
-
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      {renderContent()}
-    </DashboardLayout>
+    <div className="min-h-screen bg-black text-white">
+      <div className="container mx-auto py-8">
+        <div className="flex justify-center mb-8">
+          <img 
+            src="/lovable-uploads/75a6a36b-8f61-4896-aa4e-6025303baf1e.png" 
+            alt="Synerdata Logo" 
+            className="w-48 h-48 object-contain"
+          />
+        </div>
+        <CryptoPanel />
+      </div>
+    </div>
   );
 };
 
