@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useCallback } from "react";
 import { useCryptoData } from "@/hooks/useCryptoData";
 import CryptoChart from './CryptoChart';
 import { Tabs } from "@/components/ui/tabs";
 import { Bitcoin } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import TabsList from './crypto/TabsList';
-import PriceHeader from './crypto/PriceHeader';
 import OutperformingTab from './crypto/tabs/OutperformingTab';
 import BullishTab from './crypto/tabs/BullishTab';
 import MatchingTab from './crypto/tabs/MatchingTab'; 
@@ -67,7 +67,7 @@ const CryptoPanel = () => {
             className="w-full h-full flex flex-col"
             onValueChange={setActiveTab}
           >
-            <TabsList />
+            <TabsList activeTab={activeTab} onTabChange={setActiveTab} />
             <div className="flex-1 min-h-0">
               <OutperformingTab 
                 cryptos={cryptos} 

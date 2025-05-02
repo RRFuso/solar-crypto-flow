@@ -19,7 +19,8 @@ export const useDivergenciaBull = (cryptos: CryptoData[]) => {
       .map(crypto => ({
         ...crypto,
         criteriaHit: ['Divergência RSI Bull'],
-        isExplosive: true
+        isExplosive: true,
+        score: 10 // Adding required score property with default value
       }))
       .sort((a, b) => (b.rsi || 0) - (a.rsi || 0));
   }, [cryptos]);
