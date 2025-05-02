@@ -47,8 +47,14 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({ predictions, maxItems = 5, ch
       )
     : sortedPredictions;
       
-  // Limit the number of items shown
-  const displayPredictions = filteredPredictions.slice(0, maxItems);
+  // Split predictions into bullish and bearish
+  const bullishPredictions = filteredPredictions
+    .filter(p => p.bullish)
+    .slice(0, maxItems);
+    
+  const bearishPredictions = filteredPredictions
+    .filter(p => !p.bullish)
+    .slice(0, maxItems);
   
   // Generate strategy data for a given symbol
   const showStrategyModal = (prediction: Prediction) => {
@@ -105,6 +111,56 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({ predictions, maxItems = 5, ch
     }
   };
 
+  // Render prediction card
+  const renderPredictionCard = (prediction: Prediction) => (
+    <div 
+      key={prediction.symbol} 
+      className={`p-2 rounded-md hover:bg-white/5 transition-colors ${
+        prediction.confidence >= 0.8 ? (prediction.bullish ? 'bg-green-900/20' : 'bg-red-900/20') : ''
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <img 
+          src={getCryptoLogoUrl(prediction.symbol)} 
+          alt={prediction.symbol} 
+          className="w-6 h-6 rounded-full"
+          onError={(e) => {
+            (e.target as HTMLImageElement).onerror = null;
+            (e.target as HTMLImageElement).src = 'https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg';
+          }}
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <span className="font-medium text-white text-xs">{prediction.symbol}</span>
+            <span 
+              className={`flex items-center text-xs ${
+                prediction.bullish ? 'text-green-500' : 'text-red-500'
+              }`}
+            >
+              {prediction.bullish ? (
+                <ArrowUpRight className="h-3 w-3 mr-1" />
+              ) : (
+                <ArrowDownRight className="h-3 w-3 mr-1" />
+              )}
+              {Math.round(prediction.confidence * 100)}%
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-xs text-white/60">
+            <span className="truncate text-[10px]">{prediction.factors[0]}</span>
+            {prediction.confidence >= 0.6 && (
+              <button 
+                className="ml-1 px-1 py-0.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded text-[10px] transition-colors"
+                onClick={() => showStrategyModal(prediction)}
+              >
+                🔍 View
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="bg-black/50 border border-white/10 rounded-xl overflow-hidden flex flex-col h-full">
       <div className="p-4 border-b border-white/10 bg-black/30">
@@ -128,60 +184,37 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({ predictions, maxItems = 5, ch
       </div>
       
       <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-        {displayPredictions.length === 0 ? (
+        {filteredPredictions.length === 0 ? (
           <div className="p-4 text-center text-white/50 text-sm">
             No signals detected
           </div>
         ) : (
-          <div className="space-y-1 p-1">
-            {displayPredictions.map(prediction => (
-              <div 
-                key={prediction.symbol} 
-                className={`p-3 rounded-md hover:bg-white/5 transition-colors ${
-                  prediction.confidence >= 0.8 ? (prediction.bullish ? 'bg-green-900/20' : 'bg-red-900/20') : ''
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <img 
-                    src={getCryptoLogoUrl(prediction.symbol)} 
-                    alt={prediction.symbol} 
-                    className="w-6 h-6 rounded-full"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).onerror = null;
-                      (e.target as HTMLImageElement).src = 'https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg';
-                    }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-white">{prediction.symbol}</span>
-                      <span 
-                        className={`flex items-center ${
-                          prediction.bullish ? 'text-green-500' : 'text-red-500'
-                        }`}
-                      >
-                        {prediction.bullish ? (
-                          <ArrowUpRight className="h-4 w-4 mr-1" />
-                        ) : (
-                          <ArrowDownRight className="h-4 w-4 mr-1" />
-                        )}
-                        {Math.round(prediction.confidence * 100)}%
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-white/60">
-                      <span className="truncate">{prediction.factors[0]}</span>
-                      {prediction.confidence >= 0.6 && (
-                        <button 
-                          className="ml-2 px-2 py-0.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded text-xs transition-colors"
-                          onClick={() => showStrategyModal(prediction)}
-                        >
-                          🔍 View Strategy
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+          <div className="grid grid-cols-2 gap-1 p-1">
+            {/* Bull Signals Column */}
+            <div className="space-y-1">
+              <div className="text-center py-1 bg-green-900/20 rounded-md">
+                <h4 className="text-xs font-medium text-green-400">🐂 Bull Signals</h4>
               </div>
-            ))}
+              <div className="space-y-1">
+                {bullishPredictions.length > 0 ? 
+                  bullishPredictions.map(renderPredictionCard) : 
+                  <div className="text-center text-xs text-white/30 py-2">No bullish signals</div>
+                }
+              </div>
+            </div>
+            
+            {/* Bear Signals Column */}
+            <div className="space-y-1">
+              <div className="text-center py-1 bg-red-900/20 rounded-md">
+                <h4 className="text-xs font-medium text-red-400">🐻 Bear Signals</h4>
+              </div>
+              <div className="space-y-1">
+                {bearishPredictions.length > 0 ? 
+                  bearishPredictions.map(renderPredictionCard) : 
+                  <div className="text-center text-xs text-white/30 py-2">No bearish signals</div>
+                }
+              </div>
+            </div>
           </div>
         )}
       </div>
