@@ -10,9 +10,6 @@ export const addFlowParticles = (
   links: any[],
   selectedNodeId?: string | null
 ) => {
-  // Remove any existing particles first
-  svg.selectAll(".particles-group").remove();
-  
   // Create particle group
   const particleGroup = linkGroup.append("g")
     .attr("class", "particles-group");
@@ -25,7 +22,7 @@ export const addFlowParticles = (
     }
     
     // Get the path element for this link
-    const path = svg.select(`#link-${linkIndex}`).node() as SVGPathElement;
+    const path = svg.select(`#link-${linkIndex}`).node();
     if (!path) return;
     
     // Calculate number of particles based on value
@@ -37,6 +34,8 @@ export const addFlowParticles = (
     }
     
     // Create particles for this link
+    const particles: d3.Selection<SVGCircleElement, any, null, undefined>[] = [];
+    
     for (let i = 0; i < particleCount; i++) {
       // Determine color based on predictions and flow direction
       let particleColor: string;
@@ -47,57 +46,70 @@ export const addFlowParticles = (
         particleColor = link.percentage > 0 ? "#4ade80" : "#f43f5e";
       }
       
-      // Initial position along the path
-      const initialPosition = i / particleCount;
-      const pathLength = path.getTotalLength();
-      const point = path.getPointAtLength(initialPosition * pathLength);
-      
       // Create particle with data
-      particleGroup.append("circle")
+      const particle = particleGroup.append("circle")
         .datum({
           linkIndex,
-          path: path,
-          progress: initialPosition,
+          pathElement: path,
+          progress: i / particleCount, // Starting position along the path
           speed: 0.003 + Math.random() * 0.003, // Randomize speed slightly
           direction: link.percentage > 0 ? 1 : -1, // Direction based on flow
-          color: particleColor,
-          pathLength: pathLength
+          color: particleColor
         })
         .attr("class", "particle")
         .attr("r", 2 + Math.random() * 2) // Size between 2-4px
         .attr("fill", d => d.color)
-        .attr("cx", point.x)
-        .attr("cy", point.y)
         .attr("opacity", 0.7)
         .attr("filter", "blur(1px)");
+      
+      particles.push(particle);
     }
+    
+    // Animate particles
+    animateParticles(particles, path, link);
   });
+};
+
+/**
+ * Set up animation for particles along paths
+ */
+const animateParticles = (
+  particles: d3.Selection<SVGCircleElement, any, null, undefined>[],
+  path: any,
+  link: any
+) => {
+  const pathLength = path.getTotalLength();
   
-  // Setup animation loop for particles
-  function animateParticles() {
-    svg.selectAll(".particle").each(function(d: any) {
-      // Update progress along path
-      d.progress += d.speed * d.direction;
-      
-      // Reset when reaching end
-      if (d.progress > 1) d.progress = 0;
-      if (d.progress < 0) d.progress = 1;
-      
-      // Calculate position along path
-      if (d.path && d.pathLength) {
-        const point = d.path.getPointAtLength(d.progress * d.pathLength);
+  // Animation function
+  const animateParticle = () => {
+    particles.forEach(particle => {
+      particle.each(function(d) {
+        // Update progress
+        d.progress += d.speed * d.direction;
         
-        // Update particle position
-        d3.select(this)
-          .attr("cx", point.x)
-          .attr("cy", point.y);
-      }
+        // Reset when reaching end
+        if (d.progress > 1) d.progress = 0;
+        if (d.progress < 0) d.progress = 1;
+        
+        // Calculate position along path
+        try {
+          if (path) {
+            const point = path.getPointAtLength(d.progress * pathLength);
+            // Update particle position
+            d3.select(this)
+              .attr("cx", point.x)
+              .attr("cy", point.y);
+          }
+        } catch (e) {
+          console.error("Error animating particle:", e);
+        }
+      });
     });
     
-    // Continue animation
-    requestAnimationFrame(animateParticles);
-  }
+    // Request next frame
+    requestAnimationFrame(animateParticle);
+  };
   
   // Start animation
-  requestAnimationFrame(animateParticles);
+  requestAnimationFrame(animateParticle);
 };
