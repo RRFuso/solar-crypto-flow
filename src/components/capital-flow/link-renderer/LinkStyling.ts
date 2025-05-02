@@ -24,15 +24,14 @@ export const stylizeLinks = (
     const startColor = link.percentage > 0 ? baseColor : "#ffffff";
     const endColor = link.percentage > 0 ? "#ffffff" : baseColor;
     
-    // Create gradient with proper data binding
+    // Create gradient
     const gradient = defs.append("linearGradient")
       .attr("id", gradientId)
       .attr("gradientUnits", "userSpaceOnUse")
-      .datum(link) // Bind link data to gradient
-      .attr("x1", d => d.source.x)
-      .attr("y1", d => d.source.y)
-      .attr("x2", d => d.target.x)
-      .attr("y2", d => d.target.y);
+      .attr("x1", link.source.x)
+      .attr("y1", link.source.y)
+      .attr("x2", link.target.x)
+      .attr("y2", link.target.y);
       
     // Add gradient stops
     gradient.append("stop")
@@ -51,7 +50,7 @@ export const stylizeLinks = (
     .data(links)
     .enter()
     .append("path")
-    .attr("class", "link-path")
+    .attr("class", "link")
     .attr("id", (d, i) => `link-${i}`)
     .attr("stroke", (d, i) => {
       if (d.predictionColor) {
@@ -84,7 +83,7 @@ export const stylizeLinks = (
       // Add animation effect
       return d.predictionColor ? "none" : "5,5";
     })
-    .attr("marker-end", (d, i) => `url(#${d.markerId})`);
+    .attr("marker-end", (d, i) => `url(#arrow-${i})`);
     
   // Add interactive events
   if (handleMouseOver && handleMouseOut) {
@@ -141,8 +140,7 @@ export const createArrowheads = (
     defs.append("marker")
       .attr("id", link.markerId)
       .attr("viewBox", "0 -5 10 10")
-      .datum(link) // Bind link data to marker
-      .attr("refX", d => 8 + (d.target?.radius || 20) * 0.7) // Dynamic refX based on target node size
+      .attr("refX", 8)
       .attr("refY", 0)
       .attr("markerWidth", 6)
       .attr("markerHeight", 6)
