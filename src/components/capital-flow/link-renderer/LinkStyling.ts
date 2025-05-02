@@ -38,12 +38,12 @@ export const stylizeLinks = (
     gradient.append("stop")
       .attr("offset", "0%")
       .attr("stop-color", startColor)
-      .attr("stop-opacity", 0.8);
+      .attr("stop-opacity", 0.9);
       
     gradient.append("stop")
       .attr("offset", "100%")
       .attr("stop-color", endColor)
-      .attr("stop-opacity", 0.8);
+      .attr("stop-opacity", 0.9);
   });
   
   // Draw links with curved paths
@@ -61,9 +61,9 @@ export const stylizeLinks = (
     })
     .attr("stroke-width", d => {
       // Base width on flow value, scaled for visualization
-      const baseWidth = 1.5 + Math.min(5, Math.abs(d.value) / 1000000);
+      const baseWidth = 1.5 + Math.min(6, Math.abs(d.value) / 800000);
       // If selected, make wider
-      return selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? baseWidth * 1.5 : baseWidth;
+      return selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? baseWidth * 1.6 : baseWidth;
     })
     .attr("fill", "none")
     .attr("opacity", d => {
@@ -90,11 +90,12 @@ export const stylizeLinks = (
   if (handleMouseOver && handleMouseOut) {
     link
       .on("mouseover", function(event, d) {
+        // Highlight on hover
         d3.select(this)
           .transition()
           .duration(200)
           .attr("stroke-width", d => {
-            const baseWidth = 1.5 + Math.min(5, Math.abs(d.value) / 1000000);
+            const baseWidth = 1.5 + Math.min(6, Math.abs(d.value) / 800000);
             return baseWidth * 1.8;
           })
           .attr("opacity", 1);
@@ -102,12 +103,13 @@ export const stylizeLinks = (
         handleMouseOver(event, d);
       })
       .on("mouseout", function(event, d) {
+        // Return to normal or selected state
         d3.select(this)
           .transition()
           .duration(200)
           .attr("stroke-width", d => {
-            const baseWidth = 1.5 + Math.min(5, Math.abs(d.value) / 1000000);
-            return selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? baseWidth * 1.5 : baseWidth;
+            const baseWidth = 1.5 + Math.min(6, Math.abs(d.value) / 800000);
+            return selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? baseWidth * 1.6 : baseWidth;
           })
           .attr("opacity", d => {
             if (selectedNodeId) {
@@ -142,10 +144,10 @@ export const createArrowheads = (
       .attr("id", link.markerId)
       .attr("viewBox", "0 -5 10 10")
       .datum(link) // Bind link data to marker
-      .attr("refX", d => 8 + (d.target?.radius || 20) * 0.7) // Dynamic refX based on target node size
+      .attr("refX", d => 8 + (d.target?.radius || 20) * 0.8) // Dynamic refX based on target node size
       .attr("refY", 0)
-      .attr("markerWidth", 6)
-      .attr("markerHeight", 6)
+      .attr("markerWidth", 8)
+      .attr("markerHeight", 8)
       .attr("orient", "auto")
       .append("path")
       .attr("fill", arrowColor)

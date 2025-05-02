@@ -40,7 +40,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     flowData,
     svgRef,
     dimensions,
-    zoomLevel: zoomLevel * 1.15, // Increase node size by 15%
+    zoomLevel: zoomLevel * 1.2, // Increase node size by 20%
     setVisualizationData,
     animationRef,
     createOrbitalVisualization
@@ -75,7 +75,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             width={dimensions.width}
             height={dimensions.height}
             orbitLayers={8}
-            baseRadius={34.5 * (zoomLevel / 100)} // Increase orbital radius by 15%
+            baseRadius={34.5 * (zoomLevel / 100) * 1.2} // Increase orbital radius by 20%
             extendFullScreen={true} // Extend orbit lines to full screen
           />
           <LinkRendererComponent 
@@ -90,14 +90,14 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             nodes={visualizationData.nodes}
             centralNode={visualizationData.centralNode}
             selectedNodeId={visualizationData.selectedNodeId}
-            zoomLevel={zoomLevel * 1.15} // Increase node size by 15%
+            zoomLevel={zoomLevel * 1.2} // Increase node size by 20%
           />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
             nodes={visualizationData.nodes}
             width={dimensions.width}
             height={dimensions.height}
-            rotationSpeed={0.00004} // Slower rotation for more realism
+            rotationSpeed={0.00015} // Faster rotation (increased from 0.00012)
             updateLinksInRealTime={true} // Update links with orbital movement
           />
           

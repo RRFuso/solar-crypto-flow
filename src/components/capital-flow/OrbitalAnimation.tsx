@@ -27,8 +27,8 @@ export class OrbitalAnimation {
     this.startAnimation(props);
   }
   
-  private startAnimation({ svg, nodes, width, height, rotationSpeed = 0.00008, updateLinksInRealTime = false }: OrbitalAnimationProps) {
-    // Add subtle orbital rotation (slow for realism)
+  private startAnimation({ svg, nodes, width, height, rotationSpeed = 0.00015, updateLinksInRealTime = true }: OrbitalAnimationProps) {
+    // Add orbital rotation (increased speed from 0.00012 to 0.00015)
     const nonCentralNodes = nodes.filter(node => node.type !== "central");
     
     const animateOrbits = () => {
@@ -48,8 +48,13 @@ export class OrbitalAnimation {
       svg.selectAll(".node")
         .attr("transform", d => `translate(${d.x},${d.y})`);
       
-      // Update glow positions
+      // Update glow positions (synchronize with nodes)
       svg.selectAll(".node-glow")
+        .attr("cx", d => d.x)
+        .attr("cy", d => d.y);
+        
+      // Update pulse circles for central node
+      svg.selectAll(".pulse-circle")
         .attr("cx", d => d.x)
         .attr("cy", d => d.y);
       
@@ -77,6 +82,16 @@ export class OrbitalAnimation {
             const targetRadius = d?.target?.radius || 20;
             return 8 + targetRadius * 0.8;
           });
+          
+        // Update flow particles positions
+        svg.selectAll(".particle").each(function(d: any) {
+          if (d.path && d.pathLength) {
+            const point = d.path.getPointAtLength(d.progress * d.pathLength);
+            d3.select(this)
+              .attr("cx", point.x)
+              .attr("cy", point.y);
+          }
+        });
       }
       
       // Continue animation
