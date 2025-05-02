@@ -27,8 +27,8 @@ export class OrbitalAnimation {
     this.startAnimation(props);
   }
   
-  private startAnimation({ svg, nodes, width, height, rotationSpeed = 0.00012, updateLinksInRealTime = true }: OrbitalAnimationProps) {
-    // Add orbital rotation (increased speed from 0.00008 to 0.00012)
+  private startAnimation({ svg, nodes, width, height, rotationSpeed = 0.00008, updateLinksInRealTime = false }: OrbitalAnimationProps) {
+    // Add subtle orbital rotation (slow for realism)
     const nonCentralNodes = nodes.filter(node => node.type !== "central");
     
     const animateOrbits = () => {
@@ -48,13 +48,8 @@ export class OrbitalAnimation {
       svg.selectAll(".node")
         .attr("transform", d => `translate(${d.x},${d.y})`);
       
-      // Update glow positions (synchronize with nodes)
+      // Update glow positions
       svg.selectAll(".node-glow")
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y);
-        
-      // Update pulse circles for central node
-      svg.selectAll(".pulse-circle")
         .attr("cx", d => d.x)
         .attr("cy", d => d.y);
       
