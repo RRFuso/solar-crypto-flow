@@ -25,11 +25,12 @@ export const addFlowParticles = (
     }
     
     // Get the path element for this link
-    const path = svg.select(`#link-${linkIndex}`).node() as SVGPathElement;
-    if (!path) return;
+    const path = svg.select(`#link-${linkIndex}`);
+    const pathElement = path.node() as SVGPathElement;
+    if (!pathElement) return;
     
     // Calculate number of particles based on value
-    let particleCount = 1 + Math.floor(Math.min(5, Math.abs(link.value) / 10000000));
+    let particleCount = Math.max(2, Math.min(5, Math.floor(Math.abs(link.value) / 10000000)));
     
     // Increase particles for selected links
     if (selectedNodeId && (link.source.id === selectedNodeId || link.target.id === selectedNodeId)) {
@@ -47,45 +48,57 @@ export const addFlowParticles = (
         particleColor = link.percentage > 0 ? "#4ade80" : "#f43f5e";
       }
       
+      // Calculate path length once
+      const pathLength = pathElement.getTotalLength();
+      
       // Initial position along the path
-      const initialPosition = i / particleCount;
-      const pathLength = path.getTotalLength();
-      const point = path.getPointAtLength(initialPosition * pathLength);
+      const initialPosition = i / particleCount;      
+      const point = pathElement.getPointAtLength(initialPosition * pathLength);
       
       // Create particle with data
       particleGroup.append("circle")
         .datum({
           linkIndex,
-          path: path,
+          pathElement: pathElement,
           progress: initialPosition,
-          speed: 0.003 + Math.random() * 0.003, // Randomize speed slightly
+          speed: 0.004, // Standardized speed for consistent animation
           direction: link.percentage > 0 ? 1 : -1, // Direction based on flow
           color: particleColor,
-          pathLength: pathLength
+          pathLength: pathLength,
+          completionTime: 6000 // 6 seconds to complete the path
         })
         .attr("class", "particle")
-        .attr("r", 2 + Math.random() * 2) // Size between 2-4px
+        .attr("r", 2.5) // Fixed size for consistency
         .attr("fill", d => d.color)
         .attr("cx", point.x)
         .attr("cy", point.y)
-        .attr("opacity", 0.7)
+        .attr("opacity", 0.8)
         .attr("filter", "blur(1px)");
     }
   });
   
-  // Setup animation loop for particles
-  function animateParticles() {
+  // Setup animation loop for particles with timestamp for smoother animation
+  let lastTimestamp = 0;
+  
+  function animateParticles(timestamp: number) {
+    // Calculate delta time for smooth animation regardless of frame rate
+    const deltaTime = lastTimestamp ? (timestamp - lastTimestamp) / 1000 : 0.016;
+    lastTimestamp = timestamp;
+    
     svg.selectAll(".particle").each(function(d: any) {
-      // Update progress along path
-      d.progress += d.speed * d.direction;
+      if (!d.pathElement) return;
+      
+      // Update progress along path - use fixed step for consistent speed
+      const step = (deltaTime / d.completionTime) * 6; // 6 seconds to complete the path
+      d.progress += step * d.direction;
       
       // Reset when reaching end
       if (d.progress > 1) d.progress = 0;
       if (d.progress < 0) d.progress = 1;
       
       // Calculate position along path
-      if (d.path && d.pathLength) {
-        const point = d.path.getPointAtLength(d.progress * d.pathLength);
+      if (d.pathElement && d.pathLength) {
+        const point = d.pathElement.getPointAtLength(d.progress * d.pathLength);
         
         // Update particle position
         d3.select(this)
