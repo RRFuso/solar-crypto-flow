@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Home, BarChart, MessageCircle } from 'lucide-react';
+import { Home, BarChart, GitBranch, ArrowLeftRight, MessageCircle, Orbit } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
@@ -11,8 +11,11 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ children, activeTab = 'home', onTabChange }: DashboardLayoutProps) => {
   const menuItems = [
-    { id: 'home', icon: Home, label: 'Home' },
+    { id: 'home', icon: Home, label: 'Início' },
+    { id: 'market-rotation', icon: Orbit, label: 'Crypto Flow' },
     { id: 'performance', icon: BarChart, label: 'Performance' },
+    { id: 'narrative-flow', icon: GitBranch, label: 'Narrativas' },
+    { id: 'capital-flow', icon: ArrowLeftRight, label: 'Fluxo de Capital' },
     { id: 'social-flow', icon: MessageCircle, label: 'Social Flow' },
   ];
 
@@ -22,7 +25,7 @@ const DashboardLayout = ({ children, activeTab = 'home', onTabChange }: Dashboar
       <header className="bg-gray-900/90 backdrop-blur-xl border-b border-gray-800 px-4 py-3">
         <div className="container mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-            SolarCrypto
+            Folow The Crypto
           </h1>
           
           <nav className="flex items-center space-x-1">
