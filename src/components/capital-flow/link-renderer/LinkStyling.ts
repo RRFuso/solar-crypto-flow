@@ -90,6 +90,7 @@ export const stylizeLinks = (
   if (handleMouseOver && handleMouseOut) {
     link
       .on("mouseover", function(event, d) {
+        // Highlight on hover
         d3.select(this)
           .transition()
           .duration(200)
@@ -102,6 +103,7 @@ export const stylizeLinks = (
         handleMouseOver(event, d);
       })
       .on("mouseout", function(event, d) {
+        // Return to normal or selected state
         d3.select(this)
           .transition()
           .duration(200)

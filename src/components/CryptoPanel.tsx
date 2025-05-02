@@ -1,17 +1,18 @@
-
-import React, { useState, useCallback } from 'react';
-import { useCryptoData } from '@/hooks/useCryptoData';
+import React, { useState, useEffect } from "react";
+import { useCryptoData } from "@/hooks/useCryptoData";
 import CryptoChart from './CryptoChart';
 import { Tabs } from "@/components/ui/tabs";
 import { Bitcoin } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import TabsList from './crypto/TabsList';
+import PriceHeader from './crypto/PriceHeader';
 import OutperformingTab from './crypto/tabs/OutperformingTab';
 import BullishTab from './crypto/tabs/BullishTab';
-import OversoldTab from './crypto/tabs/OversoldTab';
+import MatchingTab from './crypto/tabs/MatchingTab'; 
 import OverboughtTab from './crypto/tabs/OverboughtTab';
-import MatchingTab from './crypto/tabs/MatchingTab';
-import ExplosiveTab from './crypto/tabs/ExplosiveTab';
+import OversoldTab from './crypto/tabs/OversoldTab';
+import DivergenciaBullTab from './crypto/tabs/DivergenciaBullTab';
+import DivergenciaBearTab from './crypto/tabs/DivergenciaBearTab';
 import CryptoSettings from './crypto/CryptoSettings';
 import { CryptoData } from '@/types/crypto';
 
@@ -93,7 +94,12 @@ const CryptoPanel = () => {
                 selectedCrypto={selectedCrypto} 
                 onSelectCrypto={handleSelectCrypto} 
               />
-              <ExplosiveTab 
+              <DivergenciaBullTab 
+                cryptos={cryptos} 
+                selectedCrypto={selectedCrypto} 
+                onSelectCrypto={handleSelectCrypto} 
+              />
+              <DivergenciaBearTab 
                 cryptos={cryptos} 
                 selectedCrypto={selectedCrypto} 
                 onSelectCrypto={handleSelectCrypto} 
