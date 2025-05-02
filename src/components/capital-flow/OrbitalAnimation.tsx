@@ -17,6 +17,7 @@ interface OrbitalAnimationProps {
   width: number;
   height: number;
   rotationSpeed?: number; // Add configurable rotation speed
+  updateLinksInRealTime?: boolean; // Add option to update links in real time
 }
 
 export class OrbitalAnimation {
@@ -26,8 +27,8 @@ export class OrbitalAnimation {
     this.startAnimation(props);
   }
   
-  private startAnimation({ svg, nodes, width, height, rotationSpeed = 0.00008 }: OrbitalAnimationProps) {
-    // Add subtle orbital rotation (slow for realism)
+  private startAnimation({ svg, nodes, width, height, rotationSpeed = 0.00015, updateLinksInRealTime = true }: OrbitalAnimationProps) {
+    // Add orbital rotation (increased speed from 0.00012 to 0.00015)
     const nonCentralNodes = nodes.filter(node => node.type !== "central");
     
     const animateOrbits = () => {
@@ -47,19 +48,51 @@ export class OrbitalAnimation {
       svg.selectAll(".node")
         .attr("transform", d => `translate(${d.x},${d.y})`);
       
-      // Update glow positions
+      // Update glow positions (synchronize with nodes)
       svg.selectAll(".node-glow")
         .attr("cx", d => d.x)
         .attr("cy", d => d.y);
+        
+      // Update pulse circles for central node
+      svg.selectAll(".pulse-circle")
+        .attr("cx", d => d.x)
+        .attr("cy", d => d.y);
       
-      // Update link positions
-      svg.selectAll("path.link-path")
-        .attr("d", d => {
-          const dx = d.target.x - d.source.x;
-          const dy = d.target.y - d.source.y;
-          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-          return `M${d.source.x},${d.source.y} A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+      // Update link positions if enabled
+      if (updateLinksInRealTime) {
+        svg.selectAll("path.link-path")
+          .attr("d", d => {
+            const dx = d.target.x - d.source.x;
+            const dy = d.target.y - d.source.y;
+            const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
+            return `M${d.source.x},${d.source.y} A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+          });
+          
+        // Update link gradients to follow node positions
+        svg.selectAll("linearGradient")
+          .attr("x1", d => d?.source?.x || 0)
+          .attr("y1", d => d?.source?.y || 0)
+          .attr("x2", d => d?.target?.x || 0)
+          .attr("y2", d => d?.target?.y || 0);
+          
+        // Update arrowheads position
+        svg.selectAll("marker")
+          .attr("refX", d => {
+            // Adjust refX based on target node radius
+            const targetRadius = d?.target?.radius || 20;
+            return 8 + targetRadius * 0.8;
+          });
+          
+        // Update flow particles positions
+        svg.selectAll(".particle").each(function(d: any) {
+          if (d.path && d.pathLength) {
+            const point = d.path.getPointAtLength(d.progress * d.pathLength);
+            d3.select(this)
+              .attr("cx", point.x)
+              .attr("cy", point.y);
+          }
         });
+      }
       
       // Continue animation
       this.animationRef = requestAnimationFrame(animateOrbits);
