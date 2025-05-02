@@ -18,7 +18,6 @@ export class LinkRenderer {
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private links: any[];
   private animationFrameId: number | null = null;
-  private linkElements: d3.Selection<SVGPathElement, any, SVGGElement, unknown> | null = null;
   
   constructor(props: LinkRendererProps) {
     this.svg = props.svg;
@@ -30,10 +29,8 @@ export class LinkRenderer {
     // Clear any existing links first
     svg.selectAll('.links-group').remove();
     
-    // Create links group with lower z-index to ensure it appears below nodes
-    const linkGroup = svg.append("g")
-      .attr("class", "links-group")
-      .attr("style", "z-index: 1");
+    // Create links group
+    const linkGroup = svg.append("g").attr("class", "links-group");
     
     // Handle link hover events
     const handleMouseOver = (event: MouseEvent, linkData: any) => {
@@ -72,16 +69,14 @@ export class LinkRenderer {
       };
     });
     
-    // Draw links with curved paths and hover effects - make sure they're visible by setting proper opacity
-    this.linkElements = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
+    // Draw links with curved paths and hover effects
+    const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
     
     // Create arrowheads for directional flow
     createArrowheads(svg, processedLinks);
     
     // Apply the markers to links
-    if (this.linkElements) {
-      this.linkElements.attr("marker-end", d => `url(#${d.markerId})`);
-    }
+    link.attr("marker-end", d => `url(#${d.markerId})`);
     
     // Add animated particles for flow visualization
     addFlowParticles(svg, linkGroup, processedLinks, selectedNodeId);
@@ -112,14 +107,7 @@ export class LinkRenderer {
           if (selectedNodeId) {
             return d.source.id === selectedNodeId || d.target.id === selectedNodeId ? 0.9 : 0.15;
           }
-          return d.predictionColor ? 0.9 : 0.7; // Increased base opacity for better visibility
-        })
-        .attr("stroke-width", (d: any) => {
-          // Make selected links thicker
-          if (selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId)) {
-            return d.predictionColor ? 3.5 : 2.5; // Thicker for highlighted links
-          }
-          return d.predictionColor ? 2.5 : 1.8; // Normal thickness
+          return d.predictionColor ? 0.9 : 0.6;
         });
       
       // Update link gradients

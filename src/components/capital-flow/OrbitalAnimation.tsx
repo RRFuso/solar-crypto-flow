@@ -30,19 +30,13 @@ export class OrbitalAnimation {
   private startAnimation({ svg, nodes, width, height, rotationSpeed = 0.00012, updateLinksInRealTime = true }: OrbitalAnimationProps) {
     // Add orbital rotation (increased speed from 0.00008 to 0.00012)
     const nonCentralNodes = nodes.filter(node => node.type !== "central");
-    let lastTimestamp = Date.now();
     
     const animateOrbits = () => {
-      // Calculate time delta for smooth animation regardless of frame rate
-      const now = Date.now();
-      const deltaTime = (now - lastTimestamp) / 1000; // convert to seconds
-      lastTimestamp = now;
-      
       nonCentralNodes.forEach((node) => {
         // Calculate current angle from center
         const dx = node.x - width/2;
         const dy = node.y - height/2;
-        const angle = Math.atan2(dy, dx) + rotationSpeed * (deltaTime * 60); // Normalize by framerate
+        const angle = Math.atan2(dy, dx) + rotationSpeed;
         const radius = Math.sqrt(dx*dx + dy*dy);
         
         // Update position with rotation
@@ -50,14 +44,45 @@ export class OrbitalAnimation {
         node.y = height/2 + Math.sin(angle) * radius;
       });
       
-      // Update node positions - now handled by NodeRenderer for synchronization
+      // Update node positions
+      svg.selectAll(".node")
+        .attr("transform", d => `translate(${d.x},${d.y})`);
       
+      // Update glow positions (synchronize with nodes)
+      svg.selectAll(".node-glow")
+        .attr("cx", d => d.x)
+        .attr("cy", d => d.y);
+        
       // Update pulse circles for central node
       svg.selectAll(".pulse-circle")
         .attr("cx", d => d.x)
         .attr("cy", d => d.y);
       
-      // Update link positions if enabled - now handled by LinkRenderer for better synchronization
+      // Update link positions if enabled
+      if (updateLinksInRealTime) {
+        svg.selectAll("path.link-path")
+          .attr("d", d => {
+            const dx = d.target.x - d.source.x;
+            const dy = d.target.y - d.source.y;
+            const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
+            return `M${d.source.x},${d.source.y} A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+          });
+          
+        // Update link gradients to follow node positions
+        svg.selectAll("linearGradient")
+          .attr("x1", d => d?.source?.x || 0)
+          .attr("y1", d => d?.source?.y || 0)
+          .attr("x2", d => d?.target?.x || 0)
+          .attr("y2", d => d?.target?.y || 0);
+          
+        // Update arrowheads position
+        svg.selectAll("marker")
+          .attr("refX", d => {
+            // Adjust refX based on target node radius
+            const targetRadius = d?.target?.radius || 20;
+            return 8 + targetRadius * 0.8;
+          });
+      }
       
       // Continue animation
       this.animationRef = requestAnimationFrame(animateOrbits);

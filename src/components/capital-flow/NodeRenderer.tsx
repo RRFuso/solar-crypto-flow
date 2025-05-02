@@ -3,7 +3,6 @@ import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
 import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface NodeRendererProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -14,12 +13,6 @@ interface NodeRendererProps {
 }
 
 export class NodeRenderer {
-  private nodesGroup: d3.Selection<SVGGElement, unknown, null, undefined> | null = null;
-  private glowGroup: d3.Selection<SVGGElement, unknown, null, undefined> | null = null;
-  private tooltipData: { [key: string]: { price: string; volume: string } } = {};
-  private priceFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-  private volumeFormatter = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 });
-  
   constructor(props: NodeRendererProps) {
     this.renderNodes(props);
   }
@@ -27,31 +20,27 @@ export class NodeRenderer {
   private renderNodes({ svg, nodes, centralNode, selectedNodeId, zoomLevel }: NodeRendererProps) {
     // Clean up previous nodes
     svg.selectAll('.nodes-group').remove();
-    svg.selectAll('.glows-group').remove();
     
-    // Create separate group for glows (lower z-index)
-    this.glowGroup = svg.append("g").attr("class", "glows-group");
-    
-    // Create new nodes group (higher z-index)
-    this.nodesGroup = svg.append("g").attr("class", "nodes-group");
+    // Create new nodes group
+    const nodesGroup = svg.append("g").attr("class", "nodes-group");
     
     // Create patterns for logo images
     this.createNodePatterns(svg, nodes);
     
-    // Create node glows (halos) that move with the nodes
-    const glows = this.glowGroup.selectAll('circle.node-glow')
+    // Create node glows (auras)
+    nodesGroup.selectAll('circle.node-glow')
       .data(nodes)
       .enter()
       .append('circle')
       .attr('class', 'node-glow')
       .attr('cx', d => d.x)
       .attr('cy', d => d.y)
-      .attr('r', d => d.radius * 1.8 * (zoomLevel / 100)) // Increased glow size
+      .attr('r', d => d.radius * 1.6 * (zoomLevel / 100))
       .attr('fill', d => d.type === 'central' ? 'rgba(247, 147, 26, 0.3)' : 'rgba(0, 181, 216, 0.3)')
       .attr('filter', 'blur(8px)');
     
     // Create main nodes
-    const node = this.nodesGroup.selectAll('g.node')
+    const node = nodesGroup.selectAll('g.node')
       .data(nodes)
       .enter()
       .append('g')
@@ -87,10 +76,10 @@ export class NodeRenderer {
         document.dispatchEvent(clickEvent);
       });
     
-    // Add circle with pattern fill - increased size by 30%
+    // Add circle with pattern fill
     node.append('circle')
       .attr('class', 'node-circle')
-      .attr('r', d => d.radius * (zoomLevel / 100) * 1.3) // Increased size by 30%
+      .attr('r', d => d.radius * (zoomLevel / 100))
       .attr('fill', d => `url(#logo-${d.id})`)
       .attr('stroke', d => {
         // Highlight the node if it's selected
@@ -102,15 +91,12 @@ export class NodeRenderer {
       .attr('stroke-width', d => selectedNodeId === d.id ? 3 : 2)
       .attr('stroke-opacity', 0.9);
     
-    // Add custom tooltip with price and volume data
-    this.addNodeTooltips(svg, node);
-    
     // Add node labels
     node.append('text')
       .attr('text-anchor', 'middle')
-      .attr('dy', d => d.radius * (zoomLevel / 100) * 1.3 + 15) // Adjust for larger nodes
+      .attr('dy', d => d.radius * (zoomLevel / 100) + 15)
       .attr('fill', 'white')
-      .attr('font-size', d => Math.max(10, Math.min(14, d.radius * 0.4) * (zoomLevel / 100) * 1.2)) // Increased font size slightly
+      .attr('font-size', d => Math.max(10, Math.min(14, d.radius * 0.4) * (zoomLevel / 100)))
       .attr('font-weight', 'bold')
       .text(d => d.id);
     
@@ -120,7 +106,7 @@ export class NodeRenderer {
       
       pulseNode.append('circle')
         .attr('class', 'pulse-circle')
-        .attr('r', centralNode.radius * 1.2 * (zoomLevel / 100) * 1.3) // Adjust for larger nodes
+        .attr('r', centralNode.radius * 1.2 * (zoomLevel / 100))
         .attr('fill', 'none')
         .attr('stroke', '#F7931A')
         .attr('stroke-width', 2)
@@ -128,137 +114,26 @@ export class NodeRenderer {
         .call(selection => {
           selection.transition()
             .attr('stroke-opacity', 0.7)
-            .attr('r', d => d.radius * 1.2 * (zoomLevel / 100) * 1.3)
+            .attr('r', d => d.radius * 1.2 * (zoomLevel / 100))
             .duration(2000)
             .transition()
             .attr('stroke-opacity', 0.1)
-            .attr('r', d => d.radius * 1.6 * (zoomLevel / 100) * 1.3)
+            .attr('r', d => d.radius * 1.6 * (zoomLevel / 100))
             .duration(2000)
             .on('end', function repeat() {
               d3.select(this)
                 .transition()
                 .attr('stroke-opacity', 0.7)
-                .attr('r', d => d.radius * 1.2 * (zoomLevel / 100) * 1.3)
+                .attr('r', d => d.radius * 1.2 * (zoomLevel / 100))
                 .duration(2000)
                 .transition()
                 .attr('stroke-opacity', 0.1)
-                .attr('r', d => d.radius * 1.6 * (zoomLevel / 100) * 1.3)
+                .attr('r', d => d.radius * 1.6 * (zoomLevel / 100))
                 .duration(2000)
                 .on('end', repeat);
             });
         });
     }
-  }
-  
-  // Add tooltips with price and volume information
-  private addNodeTooltips(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, 
-                         node: d3.Selection<SVGGElement, OrbitalNode, SVGGElement, unknown>) {
-    // Create tooltip container
-    const tooltip = svg.append("g")
-      .attr("class", "node-tooltip")
-      .style("display", "none");
-      
-    // Background rectangle
-    tooltip.append("rect")
-      .attr("rx", 6)
-      .attr("ry", 6)
-      .attr("width", 200)
-      .attr("height", 100)
-      .attr("fill", "rgba(0, 0, 0, 0.85)")
-      .attr("stroke", "#00b5d8")
-      .attr("stroke-width", 1);
-      
-    // Tooltip content
-    const content = tooltip.append("g");
-    
-    // Title
-    content.append("text")
-      .attr("x", 10)
-      .attr("y", 20)
-      .attr("fill", "white")
-      .attr("font-weight", "bold")
-      .attr("font-size", "14px");
-      
-    // Price
-    content.append("text")
-      .attr("x", 10)
-      .attr("y", 45)
-      .attr("fill", "white")
-      .attr("font-size", "12px");
-      
-    // Volume
-    content.append("text")
-      .attr("x", 10)
-      .attr("y", 65)
-      .attr("fill", "white")
-      .attr("font-size", "12px");
-      
-    // Predictions (if available)
-    content.append("text")
-      .attr("x", 10)
-      .attr("y", 85)
-      .attr("font-size", "12px");
-      
-    // Show tooltip on mouseenter
-    node.on("mouseenter.tooltip", (event, d) => {
-      // Get latest market data from window object if available
-      let price = "--";
-      let volume = "--";
-      let priceColor = "white";
-      
-      // Try to access market data from global object
-      const marketData = (window as any).cryptoMarketData;
-      if (marketData && marketData[d.id]) {
-        const data = marketData[d.id];
-        
-        // Format price and volume
-        price = this.priceFormatter.format(data.price || 0);
-        volume = this.volumeFormatter.format(data.volume || 0);
-        
-        // Set price color based on change
-        if (data.priceChangePercent) {
-          priceColor = parseFloat(data.priceChangePercent) >= 0 ? "#4ade80" : "#f43f5e";
-        }
-      }
-      
-      // Position tooltip near the mouse
-      tooltip
-        .attr("transform", `translate(${d.x + 20},${d.y - 50})`)
-        .style("display", null);
-      
-      // Update content
-      content.select("text:nth-child(1)")
-        .text(`${d.id}/USDT`);
-        
-      content.select("text:nth-child(2)")
-        .text(`Price: ${price}`)
-        .attr("fill", priceColor);
-        
-      content.select("text:nth-child(3)")
-        .text(`Volume: ${volume}`);
-        
-      // Update prediction if available (from global data)
-      const predictions = (window as any).cryptoPredictions;
-      if (predictions && predictions[d.id]) {
-        const prediction = predictions[d.id];
-        const sentiment = prediction.bullish ? "Bullish" : "Bearish";
-        const confidence = Math.round(prediction.confidence * 100);
-        const color = prediction.bullish ? "#4ade80" : "#f43f5e";
-        
-        content.select("text:nth-child(4)")
-          .text(`AI: ${sentiment} ${confidence}%`)
-          .attr("fill", color);
-      } else {
-        content.select("text:nth-child(4)")
-          .text("No prediction available")
-          .attr("fill", "#888888");
-      }
-    });
-    
-    // Hide tooltip on mouseleave
-    node.on("mouseleave.tooltip", () => {
-      tooltip.style("display", "none");
-    });
   }
   
   private createNodePatterns(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, nodes: OrbitalNode[]) {
@@ -291,47 +166,16 @@ export class NodeRenderer {
         });
     });
   }
-  
-  // Method to update node and glow positions during animation
-  public updatePositions() {
-    if (!this.nodesGroup || !this.glowGroup) return;
-    
-    // Update node positions
-    this.nodesGroup.selectAll('g.node')
-      .attr('transform', d => `translate(${d.x},${d.y})`);
-      
-    // Synchronize glow positions with nodes
-    this.glowGroup.selectAll('circle.node-glow')
-      .attr('cx', d => d.x)
-      .attr('cy', d => d.y);
-  }
 }
 
 // Component wrapper for React
 export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
-  const nodeRendererRef = React.useRef<NodeRenderer | null>(null);
-  
   useEffect(() => {
-    // Create node renderer
-    nodeRendererRef.current = new NodeRenderer(props);
-    
-    // Update positions on node changes
-    const updateNodePositions = () => {
-      if (nodeRendererRef.current) {
-        nodeRendererRef.current.updatePositions();
-      }
-      requestAnimationFrame(updateNodePositions);
-    };
-    
-    // Start animation loop
-    const animationFrameId = requestAnimationFrame(updateNodePositions);
+    new NodeRenderer(props);
     
     // Cleanup on unmount
     return () => {
-      cancelAnimationFrame(animationFrameId);
       props.svg.selectAll('.nodes-group').remove();
-      props.svg.selectAll('.glows-group').remove();
-      props.svg.selectAll('.node-tooltip').remove();
     };
   }, [props]);
   
