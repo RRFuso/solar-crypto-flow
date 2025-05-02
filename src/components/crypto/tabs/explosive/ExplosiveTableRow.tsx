@@ -16,7 +16,7 @@ interface ExplosiveTableRowProps {
 
 const ExplosiveTableRow = ({ crypto, isSelected, onSelect }: ExplosiveTableRowProps) => {
   const isReadyForEntry = crypto.score >= 10;
-  const volume = crypto.volume ? crypto.volume.toString() : '0';
+  const volume = crypto.volume ? parseFloat(crypto.volume) : 0;
 
   return (
     <TableRow 
@@ -38,11 +38,11 @@ const ExplosiveTableRow = ({ crypto, isSelected, onSelect }: ExplosiveTableRowPr
         {crypto.performance.toFixed(2)}%
       </TableCell>
       <TableCell>
-        {parseFloat(volume) > 1000000 
-          ? `${(parseFloat(volume) / 1000000).toFixed(1)}M`
-          : parseFloat(volume) > 1000 
-            ? `${(parseFloat(volume) / 1000).toFixed(1)}K`
-            : parseFloat(volume).toFixed(0)
+        {volume > 1000000 
+          ? `${(volume / 1000000).toFixed(1)}M`
+          : volume > 1000 
+            ? `${(volume / 1000).toFixed(1)}K`
+            : volume.toFixed(0)
         }
       </TableCell>
       <TableCell>

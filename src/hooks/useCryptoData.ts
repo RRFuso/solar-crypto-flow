@@ -1,46 +1,100 @@
+
 import { useQuery } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { fetchTickers, fetchKlines } from '@/lib/binance';
+import { calculateRSI, calculateEMA } from '@/lib/technicalAnalysis';
 import { CryptoData } from '@/types/crypto';
-import { fetchTickers } from '@/lib/binance';
 
-const fallbackData: CryptoData[] = [
-  { id: 'BTC', name: 'Bitcoin', performance: 2.5, price: '48000', rsi: 55, rsi4h: 58 },
-  { id: 'ETH', name: 'Ethereum', performance: 3.2, price: '2300', rsi: 52, rsi4h: 54 },
-  { id: 'SOL', name: 'Solana', performance: 5.1, price: '98', rsi: 62, rsi4h: 65 },
-  { id: 'AVAX', name: 'Avalanche', performance: 4.2, price: '34', rsi: 58, rsi4h: 60 },
-  { id: 'MATIC', name: 'Polygon', performance: -1.5, price: '0.85', rsi: 45, rsi4h: 42 },
-];
-
-interface UseCryptoDataOptions {
+interface CryptoDataOptions {
   timeframe?: string;
   rsiOverbought?: number;
   rsiOversold?: number;
 }
 
-export const useCryptoData = (options: UseCryptoDataOptions = {}) => {
-  const { timeframe = '4h', rsiOverbought = 70, rsiOversold = 30 } = options;
+export const useCryptoData = (options: CryptoDataOptions = {}) => {
+  const {
+    timeframe = '4h',
+    rsiOverbought = 70,
+    rsiOversold = 30
+  } = options;
 
   return useQuery({
-    queryKey: ['crypto-data', timeframe, rsiOverbought, rsiOversold],
+    queryKey: ['cryptos', timeframe, rsiOverbought, rsiOversold],
     queryFn: async () => {
-      console.info('Fetching crypto data...');
-      try {
-        const tickers = await fetchTickers();
-        if (!tickers || tickers.length === 0) {
-          console.warn('No tickers received, using fallback data');
-          return fallbackData;
-        }
-        return tickers;
-      } catch (error) {
-        console.error('Error fetching crypto data:', error);
-        toast.error('Erro ao carregar dados das criptomoedas. Usando dados de fallback.');
-        return fallbackData;
+      console.log('Fetching crypto data...');
+      const tickers = await fetchTickers();
+      const btcTicker = tickers['BTCUSDT'];
+      
+      if (!btcTicker) {
+        console.error('BTC ticker not found');
+        return [];
       }
+
+      const btcChange = parseFloat(btcTicker.priceChangePercent);
+
+      const usdtPairs = await Promise.all(
+        Object.entries(tickers)
+          .filter(([symbol]) => symbol.endsWith('USDT'))
+          .map(async ([symbol, ticker]) => {
+            try {
+              console.log(`Fetching klines for ${symbol}...`);
+              const klines = await fetchKlines(symbol, timeframe);
+              
+              if (!klines || klines.length === 0) {
+                console.log(`No klines data for ${symbol}`);
+                return null;
+              }
+
+              const prices = klines.map(k => parseFloat(k.close));
+              
+              const rsiValues = calculateRSI(prices);
+              const ema12Values = calculateEMA(prices, 12);
+              const ema26Values = calculateEMA(prices, 26);
+              const ma14Values = calculateEMA(prices, 14);
+              
+              const currentPrice = parseFloat(ticker.lastPrice);
+              const priceChange = parseFloat(ticker.priceChangePercent);
+              
+              if (isNaN(currentPrice) || isNaN(priceChange)) {
+                console.log(`Invalid price data for ${symbol}`);
+                return null;
+              }
+
+              // Extract the symbol without USDT suffix
+              const baseSymbol = symbol.replace('USDT', '');
+
+              return {
+                id: baseSymbol,
+                name: baseSymbol,
+                symbol: baseSymbol, // Explicitly set the symbol property
+                performance: priceChange - btcChange,
+                price: currentPrice.toFixed(8),
+                rsi: rsiValues[rsiValues.length - 1],
+                rsi4h: rsiValues[rsiValues.length - 1],
+                ema12: ema12Values[ema12Values.length - 1],
+                ema26: ema26Values[ema26Values.length - 1],
+                aboveMA14: currentPrice > ma14Values[ma14Values.length - 1],
+                volume: ticker.volume,
+                high24h: ticker.highPrice,
+                low24h: ticker.lowPrice
+              } as CryptoData;
+            } catch (error) {
+              console.error(`Error processing ${symbol}:`, error);
+              return null;
+            }
+          })
+      );
+
+      const validPairs = usdtPairs.filter((pair): pair is CryptoData => 
+        pair !== null && 
+        !isNaN(pair.rsi4h || 0) && 
+        !isNaN(parseFloat(pair.price || '0'))
+      );
+
+      console.log(`Found ${validPairs.length} valid pairs out of ${usdtPairs.length} total`);
+      return validPairs;
     },
-    refetchInterval: 30000,
-    staleTime: 15000,
+    refetchInterval: 15000,
     retry: 3,
-    retryDelay: 5000,
-    initialData: fallbackData
+    staleTime: 10000
   });
 };

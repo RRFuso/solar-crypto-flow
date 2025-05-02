@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { memo } from 'react';
 import TradingViewWidget from 'react-tradingview-widget';
 
 interface CryptoChartProps {
@@ -7,13 +8,15 @@ interface CryptoChartProps {
     name: string;
   };
   showBtcDominance?: boolean;
-  timeframe?: "D" | "W" | "240"; // Added timeframe prop
+  timeframe?: "5" | "15" | "30" | "240" | "D" | "W"; // Updated to include all available timeframes
 }
 
 const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: CryptoChartProps) => {
   const symbol = showBtcDominance 
     ? 'BTC.D'
     : 'USDT' // Now always using USDT pair except for BTC.D
+  
+  const containerId = `tradingview_chart_${crypto.id}_${timeframe}`;
   
   return (
     <div className="h-full bg-gray-900 rounded-lg overflow-hidden">
@@ -38,11 +41,12 @@ const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: Cryp
           hide_top_toolbar={false}
           allow_symbol_change={false}
           studies={["RSI@tv-basicstudies", "StochRSI@tv-basicstudies"]}
-          container_id="tradingview_chart"
+          container_id={containerId}
         />
       </div>
     </div>
   );
 };
 
-export default CryptoChart;
+// Memoize the component to prevent unnecessary re-renders
+export default memo(CryptoChart);

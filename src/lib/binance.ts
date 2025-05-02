@@ -1,149 +1,105 @@
-import { toast } from 'sonner';
-import { CryptoData } from '@/types/crypto';
+import { BinanceTicker, BinanceKline } from '@/types/binance';
+import { filterValidTickers } from './tickerValidation';
 
-const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
-const BINANCE_API = 'https://api.binance.com/api/v3/ticker/24hr';
+const BINANCE_API_URL = 'https://api.binance.com/api/v3';
+const PROXY_URL = 'https://api.allorigins.win/raw?url=';
 
-export const fetchTickers = async (): Promise<CryptoData[]> => {
-  console.info('Fetching tickers from Binance...');
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): Promise<Response> => {
+  let lastError: Error | null = null;
   
-  // First try direct API call
-  try {
-    const response = await fetchWithTimeout(BINANCE_API);
-    if (response.ok) {
-      return processBinanceResponse(await response.json());
-    }
-  } catch (error) {
-    console.warn('Direct API call failed, trying with CORS proxy...', error);
-  }
+  for (let i = 0; i < retries; i++) {
+    try {
+      // First try direct fetch
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Accept': 'application/json',
+          ...options.headers,
+        },
+      });
 
-  // If direct call fails, try with CORS proxy
-  try {
-    const response = await fetchWithTimeout(`${CORS_PROXY}${BINANCE_API}`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      if (response.ok) {
+        return response;
+      }
+
+      // If direct fetch fails, try proxy
+      const proxyResponse = await fetch(`${PROXY_URL}${encodeURIComponent(url)}`, {
+        ...options,
+        headers: {
+          'Accept': 'application/json',
+          ...options.headers,
+        },
+      });
+
+      if (!proxyResponse.ok) {
+        throw new Error(`HTTP error! status: ${proxyResponse.status}`);
+      }
+
+      return proxyResponse;
+    } catch (error) {
+      console.error(`Attempt ${i + 1} failed:`, error);
+      lastError = error as Error;
+      
+      if (i < retries - 1) {
+        // Wait before retrying, with exponential backoff
+        await sleep(1000 * Math.pow(2, i));
+      }
     }
-    return processBinanceResponse(await response.json());
-  } catch (error) {
-    console.error('Error fetching tickers with proxy:', error);
-    toast.error('Erro ao buscar dados da Binance. Usando dados de fallback.');
-    return getFallbackData();
   }
+  
+  throw lastError || new Error('Failed to fetch after retries');
 };
 
-// Helper function to process Binance API response
-const processBinanceResponse = (data: any[]): CryptoData[] => {
-  return data
-    .filter((ticker: any) => 
-      ticker.symbol.endsWith('USDT') && 
-      !ticker.symbol.includes('UP') && 
-      !ticker.symbol.includes('DOWN')
-    )
-    .map((ticker: any) => {
-      const id = ticker.symbol.replace('USDT', '');
-      return {
-        id,
-        name: id,
-        performance: parseFloat(ticker.priceChangePercent),
-        price: ticker.lastPrice,
-        rsi: calculateMockRSI(), // Simulado
-        rsi4h: calculateMockRSI(), // Simulado
-        volume: parseFloat(ticker.volume),
-        priceChange: parseFloat(ticker.priceChange),
-        high24h: ticker.highPrice,
-        low24h: ticker.lowPrice,
-        ema12: calculateMockEMA(12), // Simulado
-        ema26: calculateMockEMA(26), // Simulado
-        aboveMA14: Math.random() > 0.5, // Simulado
-      };
-    })
-    .sort((a: CryptoData, b: CryptoData) => b.performance - a.performance);
-};
-
-// Helper function for fetch with timeout
-const fetchWithTimeout = async (url: string, timeout = 5000) => {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-
+export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => {
   try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    console.log('Fetching tickers from Binance...');
+    const response = await fetchWithRetry(`${BINANCE_API_URL}/ticker/24hr`, {
+      method: 'GET',
     });
-    clearTimeout(id);
-    return response;
+    
+    const data: BinanceTicker[] = await response.json();
+    const allTickers = data.reduce((acc: Record<string, BinanceTicker>, ticker: BinanceTicker) => {
+      acc[ticker.symbol] = ticker;
+      return acc;
+    }, {});
+
+    return filterValidTickers(allTickers);
   } catch (error) {
-    clearTimeout(id);
+    console.error('Error fetching tickers:', error);
     throw error;
   }
 };
 
-// Mock data calculation helpers
-const calculateMockRSI = () => 30 + Math.random() * 40;
-const calculateMockEMA = (period: number) => 100 + (Math.random() * 20 - 10);
+export const fetchKlines = async (symbol: string, interval: string): Promise<BinanceKline[]> => {
+  try {
+    console.log(`Fetching klines for ${symbol}...`);
+    const response = await fetchWithRetry(
+      `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}&limit=100`,
+      {
+        method: 'GET',
+      }
+    );
 
-// Fallback data in case API fails
-const getFallbackData = (): CryptoData[] => [
-  { 
-    id: 'BTC',
-    name: 'Bitcoin',
-    performance: 2.5,
-    price: '48000',
-    rsi: 55,
-    rsi4h: 58,
-    volume: 1000000,
-    ema12: 47500,
-    ema26: 47000,
-    aboveMA14: true
-  },
-  { 
-    id: 'ETH',
-    name: 'Ethereum',
-    performance: 3.2,
-    price: '2300',
-    rsi: 52,
-    rsi4h: 54,
-    volume: 500000,
-    ema12: 2250,
-    ema26: 2200,
-    aboveMA14: true
-  },
-  { 
-    id: 'SOL',
-    name: 'Solana',
-    performance: 5.1,
-    price: '98',
-    rsi: 62,
-    rsi4h: 65,
-    volume: 200000,
-    ema12: 95,
-    ema26: 92,
-    aboveMA14: true
-  },
-  { 
-    id: 'AVAX',
-    name: 'Avalanche',
-    performance: 4.2,
-    price: '34',
-    rsi: 58,
-    rsi4h: 60,
-    volume: 150000,
-    ema12: 33,
-    ema26: 32,
-    aboveMA14: true
-  },
-  { 
-    id: 'MATIC',
-    name: 'Polygon',
-    performance: -1.5,
-    price: '0.85',
-    rsi: 45,
-    rsi4h: 42,
-    volume: 100000,
-    ema12: 0.84,
-    ema26: 0.86,
-    aboveMA14: false
+    const data = await response.json();
+    console.log(`Successfully fetched klines for ${symbol}`);
+    
+    return data.map((kline: any[]): BinanceKline => ({
+      openTime: kline[0],
+      open: kline[1],
+      high: kline[2],
+      low: kline[3],
+      close: kline[4],
+      volume: kline[5],
+      closeTime: kline[6],
+      quoteAssetVolume: kline[7],
+      trades: kline[8],
+      takerBuyBaseAssetVolume: kline[9],
+      takerBuyQuoteAssetVolume: kline[10]
+    }));
+  } catch (error) {
+    console.error('Error fetching klines:', error);
+    throw error;
   }
-];
+};
