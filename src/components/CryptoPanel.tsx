@@ -2,28 +2,19 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useCryptoData } from "@/hooks/useCryptoData";
 import CryptoChart from './CryptoChart';
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs } from "@/components/ui/tabs";
 import { Bitcoin } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import TabsList from './crypto/TabsList';
 import OutperformingTab from './crypto/tabs/OutperformingTab';
 import BullishTab from './crypto/tabs/BullishTab';
+import MatchingTab from './crypto/tabs/MatchingTab'; 
 import OverboughtTab from './crypto/tabs/OverboughtTab';
 import OversoldTab from './crypto/tabs/OversoldTab';
 import DivergenciaBullTab from './crypto/tabs/DivergenciaBullTab';
 import DivergenciaBearTab from './crypto/tabs/DivergenciaBearTab';
 import CryptoSettings from './crypto/CryptoSettings';
 import { CryptoData } from '@/types/crypto';
-
-// Define the allowed timeframe values to match CryptoChart's requirements
-type ChartTimeframe = "D" | "W" | "240" | "5" | "15" | "30";
 
 const CryptoPanel = () => {
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoData>({ id: 'BTC', name: 'Bitcoin', performance: 0 });
@@ -35,8 +26,6 @@ const CryptoPanel = () => {
     rsiNeutralMax: 60,
     timeframe: '4h'
   });
-  
-  const [chartTimeframe, setChartTimeframe] = useState<ChartTimeframe>('D'); // Explicitly typed as ChartTimeframe
 
   const { data: cryptos = [], isLoading, error } = useCryptoData({
     timeframe: settings.timeframe,
@@ -50,7 +39,7 @@ const CryptoPanel = () => {
   }, []);
 
   // Memoized function to get timeframe
-  const getTimeframe = useCallback((): ChartTimeframe => {
+  const getTimeframe = useCallback(() => {
     switch (activeTab) {
       case 'outperforming':
         return 'W';
@@ -60,21 +49,14 @@ const CryptoPanel = () => {
         return '240';
       case 'overbought':
         return '240';
-      case 'div-bull':
+      case 'matching':
         return 'D';
-      case 'div-bear':
-        return 'D';
+      case 'explosive':
+        return '240';
       default:
-        return chartTimeframe;
+        return 'D';
     }
-  }, [activeTab, chartTimeframe]);
-  
-  const handleTimeframeChange = (value: string) => {
-    // Validate that the value is one of our allowed timeframes before setting it
-    if (value === "5" || value === "15" || value === "30" || value === "240" || value === "D" || value === "W") {
-      setChartTimeframe(value as ChartTimeframe);
-    }
-  };
+  }, [activeTab]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -84,52 +66,44 @@ const CryptoPanel = () => {
             defaultValue="outperforming" 
             className="w-full h-full flex flex-col"
             onValueChange={setActiveTab}
-            value={activeTab}
           >
             <TabsList activeTab={activeTab} onTabChange={setActiveTab} />
             <div className="flex-1 min-h-0">
-              <TabsContent value="outperforming" className="h-full p-0 m-0">
-                <OutperformingTab 
-                  cryptos={cryptos} 
-                  selectedCrypto={selectedCrypto} 
-                  onSelectCrypto={handleSelectCrypto} 
-                />
-              </TabsContent>
-              <TabsContent value="bullish" className="h-full p-0 m-0">
-                <BullishTab 
-                  cryptos={cryptos} 
-                  selectedCrypto={selectedCrypto} 
-                  onSelectCrypto={handleSelectCrypto} 
-                />
-              </TabsContent>
-              <TabsContent value="oversold" className="h-full p-0 m-0">
-                <OversoldTab 
-                  cryptos={cryptos} 
-                  selectedCrypto={selectedCrypto} 
-                  onSelectCrypto={handleSelectCrypto} 
-                />
-              </TabsContent>
-              <TabsContent value="overbought" className="h-full p-0 m-0">
-                <OverboughtTab 
-                  cryptos={cryptos} 
-                  selectedCrypto={selectedCrypto} 
-                  onSelectCrypto={handleSelectCrypto} 
-                />
-              </TabsContent>
-              <TabsContent value="div-bull" className="h-full p-0 m-0">
-                <DivergenciaBullTab 
-                  cryptos={cryptos} 
-                  selectedCrypto={selectedCrypto} 
-                  onSelectCrypto={handleSelectCrypto} 
-                />
-              </TabsContent>
-              <TabsContent value="div-bear" className="h-full p-0 m-0">
-                <DivergenciaBearTab 
-                  cryptos={cryptos} 
-                  selectedCrypto={selectedCrypto} 
-                  onSelectCrypto={handleSelectCrypto} 
-                />
-              </TabsContent>
+              <OutperformingTab 
+                cryptos={cryptos} 
+                selectedCrypto={selectedCrypto} 
+                onSelectCrypto={handleSelectCrypto} 
+              />
+              <BullishTab 
+                cryptos={cryptos} 
+                selectedCrypto={selectedCrypto} 
+                onSelectCrypto={handleSelectCrypto} 
+              />
+              <OversoldTab 
+                cryptos={cryptos} 
+                selectedCrypto={selectedCrypto} 
+                onSelectCrypto={handleSelectCrypto} 
+              />
+              <OverboughtTab 
+                cryptos={cryptos} 
+                selectedCrypto={selectedCrypto} 
+                onSelectCrypto={handleSelectCrypto} 
+              />
+              <MatchingTab 
+                cryptos={cryptos} 
+                selectedCrypto={selectedCrypto} 
+                onSelectCrypto={handleSelectCrypto} 
+              />
+              <DivergenciaBullTab 
+                cryptos={cryptos} 
+                selectedCrypto={selectedCrypto} 
+                onSelectCrypto={handleSelectCrypto} 
+              />
+              <DivergenciaBearTab 
+                cryptos={cryptos} 
+                selectedCrypto={selectedCrypto} 
+                onSelectCrypto={handleSelectCrypto} 
+              />
             </div>
           </Tabs>
         </div>
@@ -143,19 +117,6 @@ const CryptoPanel = () => {
             />
           </div>
           <div className="absolute top-4 right-4 flex gap-2">
-            <Select value={chartTimeframe} onValueChange={handleTimeframeChange}>
-              <SelectTrigger className="w-24 bg-gray-800/50 hover:bg-gray-700/50">
-                <SelectValue placeholder="Timeframe" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="5">5min</SelectItem>
-                <SelectItem value="15">15min</SelectItem>
-                <SelectItem value="30">30min</SelectItem>
-                <SelectItem value="240">4h</SelectItem>
-                <SelectItem value="D">Daily</SelectItem>
-                <SelectItem value="W">Weekly</SelectItem>
-              </SelectContent>
-            </Select>
             <CryptoSettings 
               settings={settings}
               onSettingsChange={setSettings}
