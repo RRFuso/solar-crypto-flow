@@ -19,8 +19,7 @@ export const useDivergenciaBear = (cryptos: CryptoData[]) => {
       .map(crypto => ({
         ...crypto,
         criteriaHit: ['Divergência RSI Bear'],
-        isExplosive: true,
-        score: 10 // Adding required score property with default value
+        isExplosive: true
       }))
       .sort((a, b) => (b.priceChange1h || 0) - (a.priceChange1h || 0));
   }, [cryptos]);
