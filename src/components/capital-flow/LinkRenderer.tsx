@@ -11,20 +11,14 @@ interface LinkRendererProps {
   links: any[];
   selectedNodeId?: string | null;
   predictions?: Prediction[];
-  animateWithOrbit?: boolean; // New prop to control orbital animation
 }
 
 export class LinkRenderer {
-  private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  private links: any[];
-  
   constructor(props: LinkRendererProps) {
-    this.svg = props.svg;
-    this.links = props.links;
     this.renderLinks(props);
   }
   
-  private renderLinks({ svg, links, selectedNodeId, predictions = [], animateWithOrbit = false }: LinkRendererProps) {
+  private renderLinks({ svg, links, selectedNodeId, predictions = [] }: LinkRendererProps) {
     // Clear any existing links first
     svg.selectAll('.links-group').remove();
     
@@ -78,51 +72,13 @@ export class LinkRenderer {
     
     // Add animated particles for flow visualization
     addFlowParticles(svg, linkGroup, processedLinks, selectedNodeId);
-    
-    // If orbital animation is enabled, update link positions in real-time
-    if (animateWithOrbit) {
-      this.setupLinkUpdates(linkGroup, processedLinks);
-    }
-  }
-  
-  // New method to update link positions with orbital movements
-  private setupLinkUpdates(linkGroup: d3.Selection<SVGGElement, unknown, null, undefined>, links: any[]) {
-    const updateLinksPosition = () => {
-      // Update each link path
-      this.svg.selectAll("path.link-path")
-        .attr("d", (d: any) => {
-          const dx = d.target.x - d.source.x;
-          const dy = d.target.y - d.source.y;
-          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-          return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-        });
-      
-      // Update particle paths
-      this.svg.selectAll(".particle")
-        .attr("transform", function(d: any) {
-          // Get the current position along the path
-          const path = d3.select(d.pathElement).node();
-          if (path) {
-            const pathLength = path.getTotalLength();
-            const point = path.getPointAtLength(d.progress * pathLength);
-            return `translate(${point.x}, ${point.y})`;
-          }
-          return "";
-        });
-      
-      // Request next animation frame
-      requestAnimationFrame(updateLinksPosition);
-    };
-    
-    // Start the animation loop
-    requestAnimationFrame(updateLinksPosition);
   }
 }
 
 // Fix component export for Fast Refresh compatibility
 export const LinkRendererComponent = React.memo((props: LinkRendererProps) => {
   useEffect(() => {
-    const renderer = new LinkRenderer(props);
+    new LinkRenderer(props);
     
     // Cleanup
     return () => {

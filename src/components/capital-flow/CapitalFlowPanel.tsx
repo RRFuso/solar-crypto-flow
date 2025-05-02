@@ -1,7 +1,6 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCcw, ZoomIn, ZoomOut, Filter, Clock, Bell } from 'lucide-react';
+import { RefreshCcw, ZoomIn, ZoomOut, Filter, ArrowDownUp, Clock, Bell } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { fetchMarketData } from '@/lib/marketData';
@@ -283,6 +282,18 @@ const CapitalFlowPanel = () => {
                   {category.label}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          
+          {/* Timeframe Selector */}
+          <Select value={timeframe} onValueChange={setTimeframe}>
+            <SelectTrigger className="w-32 bg-white/5 border-white/10">
+              <SelectValue placeholder="Timeframe" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-900 border-gray-800">
+              <SelectItem value="24h">24 Hours</SelectItem>
+              <SelectItem value="7d">7 Days</SelectItem>
+              <SelectItem value="30d">30 Days</SelectItem>
             </SelectContent>
           </Select>
           
