@@ -56,17 +56,24 @@ export class NodeRenderer {
           .attr('stroke-width', 3);
       })
       .on('mouseleave', (event, d) => {
-        // Return to normal state
-        d3.select(event.currentTarget)
-          .select('circle.node-circle')
-          .transition() 
-          .duration(200)
-          .attr('stroke-width', 2);
+        // Return to normal state if not selected
+        if (selectedNodeId !== d.id) {
+          d3.select(event.currentTarget)
+            .select('circle.node-circle')
+            .transition() 
+            .duration(200)
+            .attr('stroke-width', 2);
+        }
       })
       .on('click', (event, d) => {
-        // Handle node selection (for highlighting flows)
+        // Handle node selection for highlighting flows
         console.log(`Node clicked: ${d.id}`);
-        // Selection would be managed by the parent component
+        
+        // Trigger an event to notify parent components
+        const clickEvent = new CustomEvent('node-click', {
+          detail: { nodeId: d.id }
+        });
+        document.dispatchEvent(clickEvent);
       });
     
     // Add circle with pattern fill
