@@ -1,4 +1,3 @@
-
 export * from './FlowVisualization';
 export * from './FlowLegend';
 export * from './OrbitLayers';
@@ -12,3 +11,4 @@ export * from './panel/FlowControls';
 export * from './panel/CategoryFilters';
 export * from './panel/FlowVisualizationContent';
 export { default } from './CapitalFlowPanel';
+export { default as SolarCryptoFlowEngine } from '../solar-crypto/SolarCryptoFlowEngine';

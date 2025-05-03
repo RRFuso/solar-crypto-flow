@@ -4,6 +4,7 @@ import CryptoPanel from "@/components/CryptoPanel";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import SocialFlowPanel from "@/components/social-flow/SocialFlowPanel";
 import HomePanel from "@/components/home/HomePanel";
+import { SolarCryptoFlowEngine } from "@/components/capital-flow";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
@@ -16,6 +17,8 @@ const Index = () => {
         return <CryptoPanel />;
       case "social-flow":
         return <SocialFlowPanel />;
+      case "solar-crypto":
+        return <SolarCryptoFlowEngine />;
       default:
         return (
           <div className="text-center text-gray-400 mt-20">
