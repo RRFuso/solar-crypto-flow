@@ -10,30 +10,6 @@ interface FlowMatrixVisualizationProps {
   onCategoryChange: (category: string) => void;
 }
 
-interface NodeType {
-  id: string;
-  inflows: number;
-  outflows: number;
-  size: number;
-  netFlow: number;
-  category: string;
-  x: number;
-  y: number;
-  index?: number;
-  vx?: number;
-  vy?: number;
-  fx?: number | null;
-  fy?: number | null;
-}
-
-interface LinkType {
-  source: NodeType | string;
-  target: NodeType | string;
-  value: number;
-  percentage: number;
-  id: string;
-}
-
 const FlowMatrixVisualization: React.FC<FlowMatrixVisualizationProps> = ({ 
   flowData, 
   activeCategory,
@@ -96,8 +72,8 @@ const FlowMatrixVisualization: React.FC<FlowMatrixVisualizationProps> = ({
       ...filteredData.map(d => d.to)
     ]));
     
-    // Create node data with initial positions
-    const nodes: NodeType[] = uniqueCryptos.map(id => {
+    // Create node data
+    const nodes = uniqueCryptos.map(id => {
       // Calculate total inflow and outflow for each crypto
       const inflows = filteredData.filter(d => d.to === id).reduce((sum, curr) => sum + Math.abs(curr.value), 0);
       const outflows = filteredData.filter(d => d.from === id).reduce((sum, curr) => sum + Math.abs(curr.value), 0);
@@ -112,45 +88,34 @@ const FlowMatrixVisualization: React.FC<FlowMatrixVisualizationProps> = ({
                        id === 'ETH' ? 'ethereum' :
                        flowWithCategory?.fromCategory || flowWithCategory?.toCategory || '';
       
-      // Initial random position within the visualization area
       return {
         id,
         inflows,
         outflows,
         size: nodeSize,
         netFlow: inflows - outflows,
-        category,
-        x: Math.random() * (width - 100) + 50,  // Initialize with random x position
-        y: Math.random() * (height - 100) + 50  // Initialize with random y position
+        category
       };
     });
     
-    // Create links from flow data (using string IDs rather than node references)
-    const links: LinkType[] = filteredData.map((flow, i) => {
-      return {
-        source: flow.from,
-        target: flow.to,
-        value: flow.value,
-        percentage: flow.percentage,
-        id: `link-${i}`
-      };
-    }).filter(link => 
-      uniqueCryptos.includes(link.source as string) && 
-      uniqueCryptos.includes(link.target as string)
-    );
+    // Create links from flow data
+    const links = filteredData.map((flow, i) => ({
+      source: nodes.findIndex(n => n.id === flow.from),
+      target: nodes.findIndex(n => n.id === flow.to),
+      value: flow.value,
+      percentage: flow.percentage,
+      id: `link-${i}`
+    })).filter(link => link.source !== -1 && link.target !== -1);
     
-    // Create force simulation with id accessor to map string IDs to node objects
-    const simulation = d3.forceSimulation<NodeType>(nodes)
-      .force("link", d3.forceLink<NodeType, LinkType>(links)
-        .id((d: NodeType) => d.id)
-        .distance(100))
+    // Create force simulation
+    const simulation = d3.forceSimulation(nodes)
+      .force("link", d3.forceLink(links).id(d => d.id).distance(100))
       .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius((d: NodeType) => d.size * 1.5));
+      .force("collision", d3.forceCollide().radius(d => d.size * 1.5));
     
-    // Create links (paths)
+    // Create links
     const link = svg.append("g")
-      .attr("class", "links")
       .selectAll("path")
       .data(links)
       .enter()
@@ -186,7 +151,7 @@ const FlowMatrixVisualization: React.FC<FlowMatrixVisualizationProps> = ({
       .enter()
       .append("g")
       .attr("class", "node")
-      .call(d3.drag<SVGGElement, NodeType>()
+      .call(d3.drag()
         .on("start", dragstarted)
         .on("drag", dragged)
         .on("end", dragended));
@@ -283,12 +248,9 @@ const FlowMatrixVisualization: React.FC<FlowMatrixVisualizationProps> = ({
     
     // Handle simulation ticks
     simulation.on("tick", () => {
-      // Update link paths based on node positions
       link.attr("d", d => {
-        const sourceNode = nodes.find(n => n.id === d.source) || nodes[0];
-        const targetNode = nodes.find(n => n.id === d.target) || nodes[0];
-        
-        if (!sourceNode || !targetNode) return "";
+        const sourceNode = nodes[d.source.index];
+        const targetNode = nodes[d.target.index];
         
         const dx = targetNode.x - sourceNode.x;
         const dy = targetNode.y - sourceNode.y;
@@ -297,42 +259,29 @@ const FlowMatrixVisualization: React.FC<FlowMatrixVisualizationProps> = ({
         return `M${sourceNode.x},${sourceNode.y} A${dr},${dr} 0 0,1 ${targetNode.x},${targetNode.y}`;
       });
       
-      // Update node positions
       node.attr("transform", d => `translate(${d.x},${d.y})`);
       
       // Update gradient positions
       linkGradients
-        .attr("x1", d => {
-          const sourceNode = nodes.find(n => n.id === d.source);
-          return sourceNode ? sourceNode.x : 0;
-        })
-        .attr("y1", d => {
-          const sourceNode = nodes.find(n => n.id === d.source);
-          return sourceNode ? sourceNode.y : 0;
-        })
-        .attr("x2", d => {
-          const targetNode = nodes.find(n => n.id === d.target);
-          return targetNode ? targetNode.x : 0;
-        })
-        .attr("y2", d => {
-          const targetNode = nodes.find(n => n.id === d.target);
-          return targetNode ? targetNode.y : 0;
-        });
+        .attr("x1", d => nodes[d.source.index].x)
+        .attr("y1", d => nodes[d.source.index].y)
+        .attr("x2", d => nodes[d.target.index].x)
+        .attr("y2", d => nodes[d.target.index].y);
     });
     
     // Drag functions
-    function dragstarted(event: d3.D3DragEvent<SVGGElement, NodeType, NodeType>) {
+    function dragstarted(event: any) {
       if (!event.active) simulation.alphaTarget(0.3).restart();
       event.subject.fx = event.subject.x;
       event.subject.fy = event.subject.y;
     }
     
-    function dragged(event: d3.D3DragEvent<SVGGElement, NodeType, NodeType>) {
+    function dragged(event: any) {
       event.subject.fx = event.x;
       event.subject.fy = event.y;
     }
     
-    function dragended(event: d3.D3DragEvent<SVGGElement, NodeType, NodeType>) {
+    function dragended(event: any) {
       if (!event.active) simulation.alphaTarget(0);
       event.subject.fx = null;
       event.subject.fy = null;
