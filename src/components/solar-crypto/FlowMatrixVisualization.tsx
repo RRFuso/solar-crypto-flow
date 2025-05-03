@@ -10,6 +10,22 @@ interface FlowMatrixVisualizationProps {
   onCategoryChange: (category: string) => void;
 }
 
+interface NodeType {
+  id: string;
+  inflows: number;
+  outflows: number;
+  size: number;
+  netFlow: number;
+  category: string;
+  x?: number;
+  y?: number;
+  index?: number;
+  vx?: number;
+  vy?: number;
+  fx?: number | null;
+  fy?: number | null;
+}
+
 const FlowMatrixVisualization: React.FC<FlowMatrixVisualizationProps> = ({ 
   flowData, 
   activeCategory,
@@ -72,8 +88,8 @@ const FlowMatrixVisualization: React.FC<FlowMatrixVisualizationProps> = ({
       ...filteredData.map(d => d.to)
     ]));
     
-    // Create node data
-    const nodes = uniqueCryptos.map(id => {
+    // Create node data with initial positions
+    const nodes: NodeType[] = uniqueCryptos.map(id => {
       // Calculate total inflow and outflow for each crypto
       const inflows = filteredData.filter(d => d.to === id).reduce((sum, curr) => sum + Math.abs(curr.value), 0);
       const outflows = filteredData.filter(d => d.from === id).reduce((sum, curr) => sum + Math.abs(curr.value), 0);
@@ -88,31 +104,39 @@ const FlowMatrixVisualization: React.FC<FlowMatrixVisualizationProps> = ({
                        id === 'ETH' ? 'ethereum' :
                        flowWithCategory?.fromCategory || flowWithCategory?.toCategory || '';
       
+      // Initial random position within the visualization area
       return {
         id,
         inflows,
         outflows,
         size: nodeSize,
         netFlow: inflows - outflows,
-        category
+        category,
+        x: Math.random() * (width - 100) + 50,  // Initialize with random x position
+        y: Math.random() * (height - 100) + 50  // Initialize with random y position
       };
     });
     
     // Create links from flow data
-    const links = filteredData.map((flow, i) => ({
-      source: nodes.findIndex(n => n.id === flow.from),
-      target: nodes.findIndex(n => n.id === flow.to),
-      value: flow.value,
-      percentage: flow.percentage,
-      id: `link-${i}`
-    })).filter(link => link.source !== -1 && link.target !== -1);
+    const links = filteredData.map((flow, i) => {
+      const source = nodes.findIndex(n => n.id === flow.from);
+      const target = nodes.findIndex(n => n.id === flow.to);
+      
+      return {
+        source,
+        target,
+        value: flow.value,
+        percentage: flow.percentage,
+        id: `link-${i}`
+      };
+    }).filter(link => link.source !== -1 && link.target !== -1);
     
-    // Create force simulation
+    // Create force simulation with properly initialized nodes
     const simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+      .force("link", d3.forceLink(links).id((d: any) => d.id).distance(100))
       .force("charge", d3.forceManyBody().strength(-300))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(d => d.size * 1.5));
+      .force("collision", d3.forceCollide().radius((d: any) => d.size * 1.5));
     
     // Create links
     const link = svg.append("g")
@@ -248,25 +272,41 @@ const FlowMatrixVisualization: React.FC<FlowMatrixVisualizationProps> = ({
     
     // Handle simulation ticks
     simulation.on("tick", () => {
+      // Update link paths based on node positions
       link.attr("d", d => {
-        const sourceNode = nodes[d.source.index];
-        const targetNode = nodes[d.target.index];
+        const sourceNode = nodes[d.source.index as number];
+        const targetNode = nodes[d.target.index as number];
         
-        const dx = targetNode.x - sourceNode.x;
-        const dy = targetNode.y - sourceNode.y;
+        if (!sourceNode || !targetNode) return "";
+        
+        const dx = targetNode.x! - sourceNode.x!;
+        const dy = targetNode.y! - sourceNode.y!;
         const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
         
         return `M${sourceNode.x},${sourceNode.y} A${dr},${dr} 0 0,1 ${targetNode.x},${targetNode.y}`;
       });
       
+      // Update node positions
       node.attr("transform", d => `translate(${d.x},${d.y})`);
       
       // Update gradient positions
       linkGradients
-        .attr("x1", d => nodes[d.source.index].x)
-        .attr("y1", d => nodes[d.source.index].y)
-        .attr("x2", d => nodes[d.target.index].x)
-        .attr("y2", d => nodes[d.target.index].y);
+        .attr("x1", d => {
+          const sourceNode = nodes[d.source.index as number];
+          return sourceNode ? sourceNode.x : 0;
+        })
+        .attr("y1", d => {
+          const sourceNode = nodes[d.source.index as number];
+          return sourceNode ? sourceNode.y : 0;
+        })
+        .attr("x2", d => {
+          const targetNode = nodes[d.target.index as number];
+          return targetNode ? targetNode.x : 0;
+        })
+        .attr("y2", d => {
+          const targetNode = nodes[d.target.index as number];
+          return targetNode ? targetNode.y : 0;
+        });
     });
     
     // Drag functions
