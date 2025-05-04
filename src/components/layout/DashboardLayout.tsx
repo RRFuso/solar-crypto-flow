@@ -1,21 +1,11 @@
 
 import React from 'react';
-import { Home, BarChart, MessageCircle } from 'lucide-react';
-import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  activeTab?: string;
-  onTabChange?: (tab: string) => void;
 }
 
-const DashboardLayout = ({ children, activeTab = 'home', onTabChange }: DashboardLayoutProps) => {
-  const menuItems = [
-    { id: 'home', icon: Home, label: 'Home' },
-    { id: 'performance', icon: BarChart, label: 'Performance' },
-    { id: 'social-flow', icon: MessageCircle, label: 'Social Flow' },
-  ];
-
+const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white overflow-hidden">
       {/* Top Navigation Bar */}
@@ -24,24 +14,6 @@ const DashboardLayout = ({ children, activeTab = 'home', onTabChange }: Dashboar
           <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
             SolarCrypto
           </h1>
-          
-          <nav className="flex items-center space-x-1">
-            {menuItems.map(({ id, icon: Icon, label }) => (
-              <button
-                key={id}
-                onClick={() => onTabChange?.(id)}
-                className={cn(
-                  "flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors text-sm",
-                  activeTab === id 
-                    ? "bg-gray-800 text-white" 
-                    : "text-gray-400 hover:bg-gray-800/50 hover:text-white"
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{label}</span>
-              </button>
-            ))}
-          </nav>
         </div>
       </header>
       

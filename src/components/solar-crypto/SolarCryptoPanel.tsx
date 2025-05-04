@@ -5,11 +5,13 @@ import { analyzeFlows, detectAnomalies } from '@/lib/api/solarCryptoApi';
 import { FlowData } from '@/types/crypto';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { AlertTriangle, Radio, Badge, RefreshCw, Zap } from 'lucide-react';
+import { AlertTriangle, Radio, RefreshCw, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import RealTimeFlowList from './RealTimeFlowList';
 import AnomalyDetection from './AnomalyDetection';
+import FlowHeatmap from './FlowHeatmap';
 
 interface SolarCryptoPanelProps {
   initialFlows?: FlowData[];
@@ -63,10 +65,10 @@ const SolarCryptoPanel: React.FC<SolarCryptoPanelProps> = ({ initialFlows = [] }
   };
 
   return (
-    <div className="flex flex-col gap-4 w-full h-full bg-crypto-dark backdrop-blur-xl border border-white/10 rounded-xl shadow-lg p-6">
+    <div className="flex flex-col gap-6 w-full h-full bg-crypto-dark backdrop-blur-xl border border-white/10 rounded-xl shadow-lg p-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
             SolarCripto Flow Engine
           </h2>
           <Badge 
@@ -141,6 +143,11 @@ const SolarCryptoPanel: React.FC<SolarCryptoPanelProps> = ({ initialFlows = [] }
             isLoading={anomalyLoading}
           />
         </div>
+      </div>
+      
+      {/* Flow Heatmap - Visualization */}
+      <div className="mt-4 border border-gray-800 bg-gray-900/30 rounded-lg p-4">
+        <FlowHeatmap title="Heatmap de Fluxo de Capital" />
       </div>
     </div>
   );
