@@ -11,6 +11,15 @@ import RiskManagementPanel from "@/components/RiskManagementPanel";
 import SolarCryptoPanel from "@/components/solar-crypto/SolarCryptoPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Mock data for CryptoOcean
+const mockCryptos = [
+  { id: 'BTC', name: 'Bitcoin', performance: 15 },
+  { id: 'ETH', name: 'Ethereum', performance: 10 },
+  { id: 'SOL', name: 'Solana', performance: 25 },
+  { id: 'PENDLE', name: 'Pendle', performance: 40 },
+  { id: 'JUP', name: 'Jupiter', performance: 30 },
+];
+
 const Index: React.FC = () => {
   return (
     <DashboardLayout>
@@ -27,7 +36,7 @@ const Index: React.FC = () => {
           <TabsContent value="overview" className="space-y-4">
             <div className="grid gap-4 grid-cols-1">
               <MarketRotationIndicator />
-              <CryptoOcean />
+              <CryptoOcean cryptos={mockCryptos} />
             </div>
           </TabsContent>
 

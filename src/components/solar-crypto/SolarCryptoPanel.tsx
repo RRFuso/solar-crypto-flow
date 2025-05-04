@@ -70,7 +70,6 @@ const SolarCryptoPanel: React.FC<SolarCryptoPanelProps> = ({ initialFlows = [] }
             SolarCripto Flow Engine
           </h2>
           <Badge 
-            variant={isConnected ? "default" : "destructive"}
             className={`${isConnected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}
           >
             {isConnected ? (
@@ -112,7 +111,7 @@ const SolarCryptoPanel: React.FC<SolarCryptoPanelProps> = ({ initialFlows = [] }
               <Zap className="h-4 w-4 text-yellow-400" />
               Sinais em Tempo Real
             </h3>
-            <Badge variant="outline" className="bg-gray-800/50">
+            <Badge className="bg-gray-800/50">
               {realTimeMessages.length} sinais
             </Badge>
           </div>
@@ -130,7 +129,7 @@ const SolarCryptoPanel: React.FC<SolarCryptoPanelProps> = ({ initialFlows = [] }
               Detecção de Anomalias
             </h3>
             {anomalyLoading && (
-              <Badge variant="outline" className="bg-gray-800/50">
+              <Badge className="bg-gray-800/50">
                 <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
                 Atualizando
               </Badge>
