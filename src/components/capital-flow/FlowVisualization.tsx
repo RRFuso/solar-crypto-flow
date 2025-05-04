@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
 import { OrbitLayersComponent } from './OrbitLayers';
-import { LinkRendererComponent } from './LinkRenderer';
+import { LinkRendererExtended } from './LinkRendererExtended';
 import { NodeRendererComponent } from './NodeRenderer';
 import { OrbitalAnimationComponent } from './OrbitalAnimation';
 import { StarfieldBackground } from './visualization/StarfieldBackground';
@@ -100,13 +100,13 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             baseRadius={34.5 * (zoomLevel / 100) * 1.15} // Increase orbital radius by 15%
             extendFullScreen={true} // Extend orbit lines to full screen
           />
-          <LinkRendererComponent 
+          <LinkRendererExtended
             svg={d3.select(svgRef.current)}
             links={visualizationData.links}
             selectedNodeId={visualizationData.selectedNodeId}
             predictions={predictions}
             animateWithOrbit={true} // Enable orbital animation for links
-            getCategoryColor={getCategoryColor} // Pass new function to determine color
+            getCategoryColor={getCategoryColor} // Pass the color function
           />
           <NodeRendererComponent 
             svg={d3.select(svgRef.current)}

@@ -21,7 +21,7 @@ export const useFilteredFlowData = (
                                (flow.categories && flow.categories.includes(activeCategory));
         const toHasCategory = flow.toCategory === activeCategory || 
                              (flow.categories && flow.categories.includes(activeCategory));
-        return fromHasCategory || toHasCategory;
+        return fromHasCategory || toHasCategory || flow.category === activeCategory;
       });
     }
     

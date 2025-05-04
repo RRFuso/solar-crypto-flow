@@ -1,9 +1,12 @@
+
 export interface CryptoData {
   id: string;
   name: string;
+  symbol?: string;
   performance: number;
+  price?: string;
+  volume?: string;
   marketCap?: number;
-  volume?: number;
   change24h?: number;
   change7d?: number;
   change30d?: number;
@@ -11,6 +14,23 @@ export interface CryptoData {
   change1y?: number;
   ath?: number;
   atl?: number;
+  rsi?: number;
+  rsi4h?: number;
+  macd?: {
+    value: number;
+    signal: number;
+    histogram: number;
+  };
+  ema12?: number;
+  ema26?: number;
+  aboveMA14?: boolean;
+  priceChange1h?: number;
+  priceChange24h?: number;
+  priceChange7d?: number;
+  volumeChange24h?: number;
+  high24h?: string;
+  low24h?: string;
+  category?: string;
   description?: string;
   website?: string;
   twitter?: string;
@@ -112,7 +132,6 @@ export interface CryptoData {
   tokenEnergyDescription?: string;
   tokenRealEstateDescription?: string;
   tokenFinanceDescription?: string;
-  tokenInsuranceDescription?: string;
   tokenLawDescription?: string;
   tokenGovernmentDescription?: string;
   tokenCharityDescription?: string;
@@ -125,19 +144,6 @@ export interface CryptoData {
   tokenFashionDescription?: string;
   tokenMediaDescription?: string;
   tokenEntertainmentDescription?: string;
-  tokenGamingDescription?: string;
-  tokenSocialMediaDescription?: string;
-  tokenContentCreationDescription?: string;
-  tokenAdvertisingDescription?: string;
-  tokenDataMonetizationDescription?: string;
-  tokenAiDescription?: string;
-  tokenIotDescription?: string;
-  tokenSupplyChainDescription?: string;
-  tokenHealthcareDescription?: string;
-  tokenEducationDescription?: string;
-  tokenEnergyDescription?: string;
-  tokenRealEstateDescription?: string;
-  tokenFinanceDescription?: string;
 }
 
 export interface FlowData {
@@ -153,7 +159,12 @@ export interface FlowData {
   gasFees?: number;
   dexActivity?: number;
   marketCap?: number;
-  category?: string; // Added category from API
+  category?: string;
+  name?: string;
+  change?: number;
+  fromCategory?: string;
+  toCategory?: string;
+  categories?: string[];
 }
 
 export interface IndexData {
