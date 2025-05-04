@@ -13,6 +13,7 @@
   "dependencies": {
     "@binance/connector": "^3.6.1",
     "@hookform/resolvers": "^3.9.0",
+    "@nivo/heatmap": "^0.83.1",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",

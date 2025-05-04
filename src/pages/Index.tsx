@@ -1,34 +1,63 @@
 
-import { useState } from "react";
-import CryptoPanel from "@/components/CryptoPanel";
+import React from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import SocialFlowPanel from "@/components/social-flow/SocialFlowPanel";
-import HomePanel from "@/components/home/HomePanel";
+import CryptoPanel from "@/components/CryptoPanel";
+import NarrativeFlowPanel from "@/components/NarrativeFlowPanel";
+import FearGreedIndicator from "@/components/FearGreedIndicator";
+import CapitalFlowPanel from "@/components/capital-flow/CapitalFlowPanel";
+import MarketRotationIndicator from "@/components/home/MarketRotationIndicator";
+import CryptoOcean from "@/components/CryptoOcean";
+import RiskManagementPanel from "@/components/RiskManagementPanel";
+import SolarCryptoPanel from "@/components/solar-crypto/SolarCryptoPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const Index = () => {
-  const [activeTab, setActiveTab] = useState("home");
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case "home":
-        return <HomePanel />;
-      case "performance":
-        return <CryptoPanel />;
-      case "social-flow":
-        return <SocialFlowPanel />;
-      default:
-        return (
-          <div className="text-center text-gray-400 mt-20">
-            <h2 className="text-2xl font-bold mb-4">Em breve</h2>
-            <p>Esta seção está em desenvolvimento.</p>
-          </div>
-        );
-    }
-  };
-
+const Index: React.FC = () => {
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      {renderContent()}
+    <DashboardLayout>
+      <main className="p-4 md:p-10 mx-auto max-w-7xl">
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="crypto">Crypto</TabsTrigger>
+            <TabsTrigger value="flows">Fluxos</TabsTrigger>
+            <TabsTrigger value="risk">Risco</TabsTrigger>
+            <TabsTrigger value="solar">SolarCripto</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid gap-4 grid-cols-1">
+              <MarketRotationIndicator />
+              <CryptoOcean />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="crypto" className="space-y-4">
+            <div className="grid gap-4 grid-cols-1">
+              <CryptoPanel />
+              <FearGreedIndicator />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="flows" className="space-y-4">
+            <div className="grid gap-4 grid-cols-1">
+              <CapitalFlowPanel />
+              <NarrativeFlowPanel />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="risk" className="space-y-4">
+            <div className="grid gap-4 grid-cols-1">
+              <RiskManagementPanel />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="solar" className="space-y-4">
+            <div className="grid gap-4 grid-cols-1">
+              <SolarCryptoPanel />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </main>
     </DashboardLayout>
   );
 };
