@@ -1,3 +1,4 @@
+
 export interface CryptoData {
   id: string;
   name: string;
@@ -160,6 +161,11 @@ export interface FlowData {
   fromCategory?: string;
   toCategory?: string;
   outflow?: number;
+  // Add missing properties needed by capitalFlowApi.ts
+  price?: number;
+  previousPrice?: number;
+  gasFees?: number;
+  dexActivity?: number;
 }
 
 export interface IndexData {
