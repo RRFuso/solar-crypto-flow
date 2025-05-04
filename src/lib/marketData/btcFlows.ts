@@ -16,7 +16,6 @@ export const extractBtcFlows = (data: MarketData[], btcData: MarketData): FlowDa
       // IMPORTANT: Lower threshold to ensure we get BTC flows
       if (Math.abs(relativeFlow) > BTC_FLOW_THRESHOLD) {
         flows.push({
-          id: `btc-flow-${coin.id}`,  // Add unique ID
           from: relativeFlow > 0 ? 'BTC' : coin.symbol.toUpperCase(),
           to: relativeFlow > 0 ? coin.symbol.toUpperCase() : 'BTC',
           value: flowMagnitude,
@@ -37,37 +36,32 @@ export const generateSyntheticBtcFlows = (data: MarketData[], existingFlows: Flo
   if (!btcData) return syntheticFlows;
   
   // Predefined synthetic BTC flows
-  const syntheticBtcFlows: FlowData[] = [
+  const syntheticBtcFlows = [
     {
-      id: 'btc-eth-synth',
       from: 'BTC',
       to: 'ETH',
       value: 50,
       percentage: 2.5
     },
     {
-      id: 'sol-btc-synth',
       from: 'SOL',
       to: 'BTC',
       value: 30,
       percentage: -1.8
     },
     {
-      id: 'btc-avax-synth',
       from: 'BTC',
       to: 'AVAX',
       value: 25,
       percentage: 1.5
     },
     {
-      id: 'dot-btc-synth',
       from: 'DOT',
       to: 'BTC',
       value: 35,
       percentage: -2.1
     },
     {
-      id: 'btc-matic-synth',
       from: 'BTC',
       to: 'MATIC',
       value: 20,

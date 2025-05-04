@@ -56,15 +56,14 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
         // Lower threshold to ensure we get more BTC flows
         if (Math.abs(relativeFlow) > 0.1) {
           flows.push({
-            id: `flow-${coin.symbol}-${relativeFlow > 0 ? 'to' : 'from'}-btc`, // Add unique ID
             from: relativeFlow > 0 ? 'BTC' : coin.symbol.toUpperCase(),
             to: relativeFlow > 0 ? coin.symbol.toUpperCase() : 'BTC',
             value: flowMagnitude,
             percentage: relativeFlow,
             marketCap: coin.market_cap,
             volume: coin.total_volume,
-            name: coin.name,
-            change: coin.price_change_percentage_24h
+            name: coin.name,  // Add name for display
+            change: coin.price_change_percentage_24h  // Add price change percentage
           });
         }
       }
@@ -80,15 +79,14 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
         const flowTarget = 'BTC';
         const flowValue = 0.1; // Small flow value
         flows.push({
-          id: `flow-${coin.symbol}-to-btc-min`, // Add unique ID
           from: coin.symbol.toUpperCase(),
           to: flowTarget,
           value: flowValue,
           percentage: coin.market_cap_change_percentage_24h || 0,
           marketCap: coin.market_cap,
           volume: coin.total_volume,
-          name: coin.name,
-          change: coin.price_change_percentage_24h
+          name: coin.name,  // Add name for display
+          change: coin.price_change_percentage_24h  // Add price change percentage
         });
       }
     }
@@ -104,15 +102,14 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
         
         if (Math.abs(relativeFlow) > 0.5) {
           flows.push({
-            id: `flow-${coinA.symbol}-${coinB.symbol}-${relativeFlow > 0 ? 'to' : 'from'}`, // Add unique ID
             from: relativeFlow > 0 ? coinB.symbol.toUpperCase() : coinA.symbol.toUpperCase(),
             to: relativeFlow > 0 ? coinA.symbol.toUpperCase() : coinB.symbol.toUpperCase(),
             value: flowMagnitude,
             percentage: relativeFlow,
             marketCap: Math.min(coinA.market_cap, coinB.market_cap),
             volume: Math.min(coinA.total_volume, coinB.total_volume),
-            name: relativeFlow > 0 ? coinA.name : coinB.name,
-            change: relativeFlow > 0 ? coinA.price_change_percentage_24h : coinB.price_change_percentage_24h
+            name: relativeFlow > 0 ? coinA.name : coinB.name,  // Add name for display
+            change: relativeFlow > 0 ? coinA.price_change_percentage_24h : coinB.price_change_percentage_24h  // Add price change percentage
           });
         }
       }

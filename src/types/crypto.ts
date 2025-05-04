@@ -147,25 +147,24 @@ export interface CryptoData {
 }
 
 export interface FlowData {
-  id?: string;
+  id: string;
   from: string;
   to: string;
   value: number;
   percentage: number;
   volume?: number;
-  marketCap?: number;
-  name?: string;
-  change?: number;
-  category?: string;
-  categories?: string[];
-  fromCategory?: string;
-  toCategory?: string;
   outflow?: number;
-  // Add missing properties needed by capitalFlowApi.ts
   price?: number;
   previousPrice?: number;
   gasFees?: number;
   dexActivity?: number;
+  marketCap?: number;
+  category?: string;
+  name?: string;
+  change?: number;
+  fromCategory?: string;
+  toCategory?: string;
+  categories?: string[];
 }
 
 export interface IndexData {

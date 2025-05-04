@@ -105,7 +105,6 @@ export async function fetchCapitalFlows(cryptos: CryptoData[]): Promise<FlowData
       const percentage = (flowValue / sourceVolume) * 100 * (isOutflow ? -1 : 1);
       
       flows.push({
-        id: `${source.symbol}-${target.symbol}`, // Add a unique ID
         from: source.symbol,
         to: target.symbol,
         value: isOutflow ? -flowValue : flowValue,
