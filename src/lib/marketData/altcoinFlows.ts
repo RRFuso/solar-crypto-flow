@@ -19,6 +19,7 @@ export const extractEthDefiFlows = (data: MarketData[]): FlowData[] => {
       
       if (Math.abs(relativeFlow) > 1.5) {
         flows.push({
+          id: `eth-defi-${coin.id}`,  // Add unique ID
           from: relativeFlow > 0 ? 'ETH' : coin.symbol.toUpperCase(),
           to: relativeFlow > 0 ? coin.symbol.toUpperCase() : 'ETH',
           value: flowMagnitude,
@@ -50,6 +51,7 @@ export const extractPlatformFlows = (data: MarketData[]): FlowData[] => {
           const flowMagnitude = Math.min(coinA.market_cap, coinB.market_cap) * Math.abs(relativeFlow) / 100 / 10;
           
           flows.push({
+            id: `platform-${coinA.id}-${coinB.id}`,  // Add unique ID
             from: relativeFlow > 0 ? coinB.symbol.toUpperCase() : coinA.symbol.toUpperCase(),
             to: relativeFlow > 0 ? coinA.symbol.toUpperCase() : coinB.symbol.toUpperCase(),
             value: flowMagnitude,
@@ -83,6 +85,7 @@ export const extractMarketCapFlows = (data: MarketData[]): FlowData[] => {
   
   if (Math.abs(largeCapsVsSmallCaps) > 1) {
     flows.push({
+      id: 'large-small-caps',  // Add unique ID
       from: largeCapsVsSmallCaps < 0 ? 'LARGE' : 'SMALL',
       to: largeCapsVsSmallCaps < 0 ? 'SMALL' : 'LARGE',
       value: Math.abs(largeCapsVsSmallCaps) * 5,
@@ -91,6 +94,7 @@ export const extractMarketCapFlows = (data: MarketData[]): FlowData[] => {
     
     // Add a BTC to LARGE flow
     flows.push({
+      id: 'btc-large-caps',  // Add unique ID
       from: 'BTC',
       to: 'LARGE',
       value: Math.abs(btcData.market_cap_change_percentage_24h || 0) * 5,

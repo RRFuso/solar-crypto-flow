@@ -1,4 +1,3 @@
-
 export interface CryptoData {
   id: string;
   name: string;
@@ -147,24 +146,20 @@ export interface CryptoData {
 }
 
 export interface FlowData {
-  id: string;
+  id?: string;
   from: string;
   to: string;
   value: number;
   percentage: number;
   volume?: number;
-  outflow?: number;
-  price?: number;
-  previousPrice?: number;
-  gasFees?: number;
-  dexActivity?: number;
   marketCap?: number;
-  category?: string;
   name?: string;
   change?: number;
+  category?: string;
+  categories?: string[];
   fromCategory?: string;
   toCategory?: string;
-  categories?: string[];
+  outflow?: number;
 }
 
 export interface IndexData {

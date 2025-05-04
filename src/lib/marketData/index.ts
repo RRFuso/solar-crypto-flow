@@ -1,4 +1,3 @@
-
 import { FlowData } from '@/types/crypto';
 import { COINGECKO_API, MAX_FLOWS, MIN_BTC_FLOWS } from './config';
 import { MarketData } from './types';
@@ -75,6 +74,7 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
         const percentage = isInflow ? -(2 + Math.random() * 4) : (2 + Math.random() * 4);
         
         flows.push({
+          id: `syn-btc-${coin.id}-${isInflow ? 'in' : 'out'}`,  // Add unique ID
           from: isInflow ? coin.symbol.toUpperCase() : 'BTC',
           to: isInflow ? 'BTC' : coin.symbol.toUpperCase(),
           value,
