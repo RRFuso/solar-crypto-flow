@@ -9,6 +9,7 @@ import { CategoryFilters } from './panel/CategoryFilters';
 import { FlowVisualizationContent } from './panel/FlowVisualizationContent';
 import { usePredictions } from '@/hooks/capital-flow/usePredictions';
 import { useFilteredFlowData } from '@/hooks/capital-flow/useFilteredFlowData';
+import { useFlowAnalysis } from '@/hooks/capital-flow/useFlowAnalysis'; // Import the new hook
 
 const CapitalFlowPanel = () => {
   const [timeframe, setTimeframe] = useState('24h');
@@ -35,6 +36,9 @@ const CapitalFlowPanel = () => {
   // Get processed flow data based on filters
   const processedFlowData = useFilteredFlowData(flowData, flowLimit, activeCategory);
   
+  // Get AI analysis from the FastAPI backend
+  const { data: flowAnalysisData, isLoading: isAnalysisLoading } = useFlowAnalysis(processedFlowData);
+  
   // Get AI predictions
   const { predictions } = usePredictions(flowData, selectedCategory, chartTimeframe);
 
@@ -45,6 +49,26 @@ const CapitalFlowPanel = () => {
     }
     return predictions;
   }, [predictions, showOnlyStrongSignals]);
+
+  // Merge flow data with analysis data when available
+  const enhancedFlowData = React.useMemo(() => {
+    if (!flowAnalysisData || isAnalysisLoading) return processedFlowData;
+    
+    return processedFlowData.map(flow => {
+      const analysis = flowAnalysisData.find(analysis => 
+        analysis.fluxo_in === (flow.volume || 0) && 
+        analysis.fluxo_out === (flow.outflow || 0)
+      );
+      
+      if (analysis) {
+        return {
+          ...flow,
+          category: analysis.categoria
+        };
+      }
+      return flow;
+    });
+  }, [processedFlowData, flowAnalysisData, isAnalysisLoading]);
 
   const handleZoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 10, 150));
@@ -105,9 +129,9 @@ const CapitalFlowPanel = () => {
 
       {/* Main Visualization Content */}
       <FlowVisualizationContent 
-        isLoading={isLoading}
+        isLoading={isLoading || isAnalysisLoading}
         error={error}
-        processedFlowData={processedFlowData}
+        processedFlowData={enhancedFlowData}
         zoomLevel={zoomLevel}
         filteredPredictions={filteredPredictions}
         chartTimeframe={chartTimeframe}

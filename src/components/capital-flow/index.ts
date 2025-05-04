@@ -11,4 +11,5 @@ export * from './panel/FlowPanelHeader';
 export * from './panel/FlowControls';
 export * from './panel/CategoryFilters';
 export * from './panel/FlowVisualizationContent';
+export * from './panel/ApiStatusIndicator';
 export { default } from './CapitalFlowPanel';

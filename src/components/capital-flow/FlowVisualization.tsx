@@ -49,6 +49,25 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     activeCategory
   });
 
+  // Get color based on category from backend
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case "🚀 Alta":
+        return "#00FF88"; // Bright green
+      case "🏃 Fuga":
+        return "#FF3366"; // Bright red
+      case "🧱 Acum.":
+        return "#FFCC00"; // Yellow
+      case "🔁 Rev.":
+        return "#00CCFF"; // Bright blue
+      case "⚠️ Alert":
+        return "#FF9900"; // Orange
+      case "Neutro":
+      default:
+        return "#8A9196"; // Neutral gray
+    }
+  };
+
   if (!flowData || flowData.length === 0) {
     return (
       <div ref={containerRef} className="w-full h-full flex items-center justify-center" style={{ minHeight: "700px" }}>
@@ -87,6 +106,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             selectedNodeId={visualizationData.selectedNodeId}
             predictions={predictions}
             animateWithOrbit={true} // Enable orbital animation for links
+            getCategoryColor={getCategoryColor} // Pass new function to determine color
           />
           <NodeRendererComponent 
             svg={d3.select(svgRef.current)}
