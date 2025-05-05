@@ -74,9 +74,9 @@ export const stylizeLinks = (
       const dr = Math.sqrt(dx * dx + dy * dy) * 1.5; // Curve factor
       return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
     })
-    .attr("stroke-dasharray", "5,5") // Add dashed line
+    .attr("stroke-dasharray", "8,4") // Add dashed line
     .attr("marker-end", (d, i) => `url(#${d.markerId})`)
-    .style("animation", "flowDash 20s linear infinite"); // Add flow animation
+    .style("animation", "flowDash 15s linear infinite"); // Add flow animation
     
   // Add interactive events
   if (handleMouseOver && handleMouseOut) {

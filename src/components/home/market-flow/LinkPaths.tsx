@@ -11,11 +11,11 @@ export const createLinkPaths = (props: LinkPathsProps) => {
   const { svg, links } = props;
 
   // Add global glow filter
-  svg.append("defs")
-    .append("filter")
+  const defs = svg.append("defs");
+  defs.append("filter")
     .attr("id", "glow")
     .append("feGaussianBlur")
-    .attr("stdDeviation", "3.5")
+    .attr("stdDeviation", "2.5")
     .attr("result", "coloredBlur");
   
   // Create gradients and markers for each link
@@ -23,12 +23,11 @@ export const createLinkPaths = (props: LinkPathsProps) => {
     const markerId = `arrow-${i}`;
     const gradientId = `link-gradient-${i}`;
     
-    // Create gradient for color transition
+    // Create gradient for color transition - red to green for outflows, green to red for inflows
     const startColor = link.percentage > 0 ? "#ff3366" : "#4ade80"; // Red to Green
     const endColor = link.percentage > 0 ? "#4ade80" : "#ff3366"; // Green to Red
     
-    const gradient = svg.append("defs")
-      .append("linearGradient")
+    const gradient = defs.append("linearGradient")
       .attr("id", gradientId)
       .attr("gradientUnits", "userSpaceOnUse")
       .attr("x1", link.source.x)
@@ -46,8 +45,8 @@ export const createLinkPaths = (props: LinkPathsProps) => {
       .attr("stop-color", endColor)
       .attr("stop-opacity", 0.9);
     
-    svg.append("defs")
-      .append("marker")
+    // Create arrowhead markers
+    defs.append("marker")
       .attr("id", markerId)
       .attr("viewBox", "0 -5 10 10")
       .attr("refX", 20)
@@ -71,11 +70,10 @@ export const createLinkPaths = (props: LinkPathsProps) => {
     .attr("stroke", (d, i) => `url(#link-gradient-${i})`)
     .attr("stroke-width", d => 2 + Math.min(8, Math.sqrt(Math.abs(d.value)) / 3)) // Thickness based on volume
     .attr("fill", "none")
-    .attr("stroke-dasharray", "6,4") // Dashed pattern
-    .attr("opacity", 0.8) // Higher opacity for better visibility
+    .attr("stroke-dasharray", "8,4") // Dashed pattern
+    .attr("opacity", 0.85) // Higher opacity for better visibility
     .attr("marker-end", (d, i) => `url(#arrow-${i})`)
-    .attr("filter", "url(#glow)")
-    .style("animation", "flowDash 20s linear infinite"); // Add flow animation
+    .attr("filter", "url(#glow)");
   
   return link;
 };

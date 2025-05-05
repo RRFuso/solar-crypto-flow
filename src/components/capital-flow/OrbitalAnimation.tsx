@@ -28,7 +28,7 @@ export class OrbitalAnimation {
   }
   
   private startAnimation({ svg, nodes, width, height, rotationSpeed = 0.00012, updateLinksInRealTime = true }: OrbitalAnimationProps) {
-    // Add orbital rotation (increased speed from 0.00008 to 0.00012)
+    // Add orbital rotation
     const nonCentralNodes = nodes.filter(node => node.type !== "central");
     const centralNode = nodes.find(node => node.type === "central");
     
@@ -83,7 +83,7 @@ export class OrbitalAnimation {
           
           // Update link gradients to follow node positions
           svg.selectAll("linearGradient")
-            .each(function(d) {
+            .each(function(d: any) {
               if (!d || !d.source || !d.target) return;
               
               d3.select(this)

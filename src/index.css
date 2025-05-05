@@ -76,17 +76,17 @@
   }
 }
 
-/* Flow animation keyframes */
+/* Flow animation keyframes with improved speed */
 @keyframes flowDash {
   to {
-    stroke-dashoffset: -30;
+    stroke-dashoffset: -24;
   }
 }
 
 /* Additional crypto orbital visualizations */
 .link-path {
-  stroke-dasharray: 6, 4;
-  animation: flowDash 20s linear infinite;
+  stroke-dasharray: 8, 4;
+  animation: flowDash 15s linear infinite;
 }
 
 .pulse-circle {

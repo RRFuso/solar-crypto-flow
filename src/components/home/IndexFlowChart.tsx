@@ -6,6 +6,7 @@ import { IndexRotationResult } from '@/types/indices';
 import { createLinkPaths, updateLinkPaths } from './market-flow/LinkPaths';
 import { createNodeElements } from './market-flow/node-elements';
 import { createOrbitalPaths, createStarfield } from './market-flow/OrbitalPaths';
+import { useOrbitalCalculations } from './market-flow/useOrbitalCalculations';
 
 interface IndexFlowChartProps {
   data: IndexRotationResult;
@@ -16,6 +17,7 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
   const linkRef = useRef<d3.Selection<SVGPathElement, any, SVGGElement, unknown> | null>(null);
+  const { calculateOrbitalPositions, positionNodesInOrbits, createStarfield } = useOrbitalCalculations();
 
   useEffect(() => {
     if (!data || !svgRef.current || !containerRef.current) return;
@@ -131,68 +133,6 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       }
     };
   }, [data]);
-
-  // Orbital calculation functions
-  const calculateOrbitalPositions = (nodes: any[], width: number, height: number) => {
-    const minRadius = Math.min(width, height) * 0.2; // Reduced from 0.25 to give more space
-    const maxRadius = Math.min(width, height) * 0.45; // Reduced from 0.48 to fit better
-    
-    // Sort non-central nodes by market cap in descending order
-    const nonCentralNodes = nodes
-      .filter(n => !n.isCentral)
-      .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
-    
-    // Number of orbits
-    const orbitCount = Math.min(6, Math.ceil(nonCentralNodes.length / 5));
-    const orbitStep = (maxRadius - minRadius) / orbitCount;
-    
-    // Assign orbit radii based on market cap
-    return nodes.map(node => {
-      if (node.isCentral) return 0;
-      
-      // Find position in sorted list
-      const marketCapRank = nonCentralNodes.findIndex(n => n.id === node.id);
-      
-      // Divide into orbits based on market cap rank
-      // Highest market caps get inner orbits
-      const orbitIndex = Math.min(orbitCount - 1, Math.floor(marketCapRank / 5));
-      
-      // Calculate orbit radius with spacing between orbits
-      return minRadius + (orbitIndex * orbitStep);
-    });
-  };
-  
-  // Position nodes in orbits
-  const positionNodesInOrbits = (nodes: any[], width: number, height: number, orbitRadii: number[]) => {
-    // Place central node in the middle
-    nodes.forEach((node, i) => {
-      if (node.isCentral) {
-        node.x = width / 2;
-        node.y = height / 2;
-      } else {
-        // Get orbit radius for this node
-        const radius = orbitRadii[i];
-        
-        // Find nodes in the same orbit
-        const nodesInSameOrbit = nodes.filter((n, idx) => 
-          !n.isCentral && Math.abs(orbitRadii[idx] - radius) < 5
-        );
-        
-        // Calculate position in orbit
-        const orbitPosition = nodesInSameOrbit.findIndex(n => n.id === node.id);
-        const totalInOrbit = nodesInSameOrbit.length;
-        
-        // Distribute evenly around orbit using golden ratio for better distribution
-        const angle = (orbitPosition / totalInOrbit) * Math.PI * 2;
-        
-        // Set position
-        node.x = width / 2 + Math.cos(angle) * radius;
-        node.y = height / 2 + Math.sin(angle) * radius;
-      }
-    });
-    
-    return nodes;
-  };
 
   return (
     <div ref={containerRef} className="w-full h-full">
