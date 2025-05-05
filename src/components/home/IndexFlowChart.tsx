@@ -75,7 +75,7 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
     // Position nodes in orbital arrangement based on market cap
     positionNodesInOrbits(nodes, width, height, orbitRadii);
     
-    // Draw links (connections)
+    // Draw links (connections) with animated dashed lines
     const link = createLinkPaths({ svg, links });
     
     // Draw nodes (circles with logos)
@@ -102,7 +102,7 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       // Update node positions
       node.attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
       
-      // Update link positions
+      // Update link positions with animations
       updateLinkPaths(link);
       
       // Continue animation

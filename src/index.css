@@ -94,3 +94,15 @@
 .animate-pulse-led {
   animation: pulse-led 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* Flow animation for dashed links */
+@keyframes flowDash {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+.link-path {
+  stroke-dasharray: 5, 5;
+  animation: flowDash 20s linear infinite;
+}

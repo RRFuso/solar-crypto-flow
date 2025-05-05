@@ -12,17 +12,16 @@ export const stylizeLinks = (
   handleMouseOver?: (event: MouseEvent, linkData: any) => void,
   handleMouseOut?: (event: MouseEvent, linkData: any) => void
 ) => {
-  // Create gradient for links
+  // Create gradient definitions section
   const defs = svg.append("defs");
   
   // Create gradients for each link
   links.forEach((link, i) => {
     const gradientId = `link-gradient-${i}`;
     
-    // Determine colors based on prediction and flow direction
-    const baseColor = link.predictionColor || (link.percentage > 0 ? "#4ade80" : "#f43f5e");
-    const startColor = link.percentage > 0 ? baseColor : "#ffffff";
-    const endColor = link.percentage > 0 ? "#ffffff" : baseColor;
+    // Determine colors based on flow direction
+    const startColor = link.percentage > 0 ? "#ff3366" : "#4ade80"; // Red to Green
+    const endColor = link.percentage > 0 ? "#4ade80" : "#ff3366"; // Green to Red
     
     // Create gradient with proper data binding
     const gradient = defs.append("linearGradient")
@@ -38,12 +37,12 @@ export const stylizeLinks = (
     gradient.append("stop")
       .attr("offset", "0%")
       .attr("stop-color", startColor)
-      .attr("stop-opacity", 0.8);
+      .attr("stop-opacity", 0.9);
       
     gradient.append("stop")
       .attr("offset", "100%")
       .attr("stop-color", endColor)
-      .attr("stop-opacity", 0.8);
+      .attr("stop-opacity", 0.9);
   });
   
   // Draw links with curved paths
@@ -53,25 +52,20 @@ export const stylizeLinks = (
     .append("path")
     .attr("class", "link-path")
     .attr("id", (d, i) => `link-${i}`)
-    .attr("stroke", (d, i) => {
-      if (d.predictionColor) {
-        return d.predictionColor;
-      }
-      return `url(#link-gradient-${i})`;
-    })
+    .attr("stroke", (d, i) => `url(#link-gradient-${i})`)
     .attr("stroke-width", d => {
       // Base width on flow value, scaled for visualization
-      const baseWidth = 1.5 + Math.min(5, Math.abs(d.value) / 1000000);
+      const baseWidth = 1.5 + Math.min(6, Math.sqrt(Math.abs(d.value)) / 10);
       // If selected, make wider
       return selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? baseWidth * 1.5 : baseWidth;
     })
     .attr("fill", "none")
     .attr("opacity", d => {
-      // Opacity based on selection or prediction
+      // Opacity based on selection
       if (selectedNodeId) {
         return d.source.id === selectedNodeId || d.target.id === selectedNodeId ? 0.9 : 0.15;
       }
-      return d.predictionColor ? 0.9 : 0.6;
+      return 0.8;
     })
     .attr("d", d => {
       // Create path from source to target with curve
@@ -80,11 +74,9 @@ export const stylizeLinks = (
       const dr = Math.sqrt(dx * dx + dy * dy) * 1.5; // Curve factor
       return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
     })
-    .style("stroke-dasharray", d => {
-      // Add animation effect
-      return d.predictionColor ? "none" : "5,5";
-    })
-    .attr("marker-end", (d, i) => `url(#${d.markerId})`);
+    .style("stroke-dasharray", "5,5") // Add dashed line
+    .attr("marker-end", (d, i) => `url(#${d.markerId})`)
+    .style("animation", "flowDash 20s linear infinite"); // Add flow animation
     
   // Add interactive events
   if (handleMouseOver && handleMouseOut) {
@@ -95,7 +87,7 @@ export const stylizeLinks = (
           .transition()
           .duration(200)
           .attr("stroke-width", d => {
-            const baseWidth = 1.5 + Math.min(5, Math.abs(d.value) / 1000000);
+            const baseWidth = 1.5 + Math.min(6, Math.sqrt(Math.abs(d.value)) / 10);
             return baseWidth * 1.8;
           })
           .attr("opacity", 1);
@@ -108,14 +100,14 @@ export const stylizeLinks = (
           .transition()
           .duration(200)
           .attr("stroke-width", d => {
-            const baseWidth = 1.5 + Math.min(5, Math.abs(d.value) / 1000000);
+            const baseWidth = 1.5 + Math.min(6, Math.sqrt(Math.abs(d.value)) / 10);
             return selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? baseWidth * 1.5 : baseWidth;
           })
           .attr("opacity", d => {
             if (selectedNodeId) {
               return d.source.id === selectedNodeId || d.target.id === selectedNodeId ? 0.9 : 0.15;
             }
-            return d.predictionColor ? 0.9 : 0.6;
+            return 0.8;
           });
         
         handleMouseOut(event, d);
@@ -136,8 +128,8 @@ export const createArrowheads = (
   const defs = svg.select("defs");
   
   links.forEach((link, i) => {
-    // Determine color based on prediction
-    const arrowColor = link.predictionColor || (link.percentage > 0 ? "#4ade80" : "#f43f5e");
+    // Determine color based on flow direction
+    const arrowColor = link.percentage > 0 ? "#4ade80" : "#ff3366"; // Green for inflows, Red for outflows
     
     // Create arrowhead marker
     defs.append("marker")
@@ -152,30 +144,5 @@ export const createArrowheads = (
       .append("path")
       .attr("fill", arrowColor)
       .attr("d", "M0,-5L10,0L0,5");
-      
-    // Create a glow filter for the arrowheads
-    const arrowFilter = `arrow-glow-${i}`;
-    const filter = defs.append("filter")
-      .attr("id", arrowFilter)
-      .attr("x", "-20%")
-      .attr("y", "-20%")
-      .attr("width", "140%")
-      .attr("height", "140%");
-      
-    filter.append("feGaussianBlur")
-      .attr("stdDeviation", "2")
-      .attr("result", "coloredBlur");
-      
-    const feMerge = filter.append("feMerge");
-    feMerge.append("feMergeNode")
-      .attr("in", "coloredBlur");
-    feMerge.append("feMergeNode")
-      .attr("in", "SourceGraphic");
-      
-    // Apply filter if it's a prediction link
-    if (link.predictionColor) {
-      svg.select(`#${link.markerId} path`)
-        .attr("filter", `url(#${arrowFilter})`);
-    }
   });
 };

@@ -1,3 +1,4 @@
+
 import * as d3 from 'd3';
 import { NarrativeLink } from './types';
 
@@ -11,32 +12,52 @@ export const useLinks = () => {
     // Create link group
     const linkGroup = svg.append("g").attr("class", "links");
     
-    // Determine link color based on whether it's a predicted flow
-    const getColor = (d: NarrativeLink) => {
-      if (isPredicted) {
-        return "#00ffaa"; // Green for predictions
-      } else {
-        return "#ff00aa"; // Pink for historical
-      }
-    };
+    // Create gradient definitions for each link
+    svg.append("defs").selectAll("linearGradient")
+      .data(links)
+      .enter()
+      .append("linearGradient")
+      .attr("id", (d, i) => `flow-gradient-${i}`)
+      .attr("gradientUnits", "userSpaceOnUse")
+      .attr("x1", d => d.source.x)
+      .attr("y1", d => d.source.y)
+      .attr("x2", d => d.target.x)
+      .attr("y2", d => d.target.y)
+      .each(function(d, i) {
+        // Determine colors based on prediction or flow direction
+        const startColor = isPredicted ? "#00ffaa" : "#ff3366"; // Green for predictions, Red for historical
+        const endColor = isPredicted ? "#4ade80" : "#00aaff"; // End with blue for historical
+        
+        // Add gradient stops
+        d3.select(this).selectAll("stop")
+          .data([
+            { offset: "0%", color: startColor },
+            { offset: "100%", color: endColor }
+          ])
+          .enter()
+          .append("stop")
+          .attr("offset", d => d.offset)
+          .attr("stop-color", d => d.color);
+      });
     
-    // Create curved link paths
+    // Create curved link paths with gradients and dashed animation
     const link = linkGroup.selectAll("path")
       .data(links)
       .enter()
       .append("path")
-      .attr("class", "link")
+      .attr("class", "link-path")
       .attr("fill", "none")
-      .attr("stroke", d => getColor(d))
+      .attr("stroke", (d, i) => `url(#flow-gradient-${i})`)
       .attr("stroke-width", d => 2 + Math.min(8, (d.value / 1000000000) * 5))
-      .attr("stroke-dasharray", "10,10")
+      .attr("stroke-dasharray", "10,10") // Dashed line
       .attr("opacity", 0.7)
       .attr("d", d => {
         const dx = d.target.x - d.source.x;
         const dy = d.target.y - d.source.y;
         const dr = Math.sqrt(dx * dx + dy * dy) * 2; // Curved path
         return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-      });
+      })
+      .style("animation", "flowDash 20s linear infinite"); // Add flow animation
     
     // Create arrowheads for directional flow
     svg.append("defs").selectAll("marker")
@@ -51,7 +72,7 @@ export const useLinks = () => {
       .attr("markerHeight", 6)
       .attr("orient", "auto")
       .append("path")
-      .attr("fill", d => getColor(d))
+      .attr("fill", d => isPredicted ? "#00ffaa" : "#4ade80")
       .attr("d", "M0,-5L10,0L0,5");
     
     link.attr("marker-end", (d, i) => `url(#arrow-${i})`);
@@ -69,10 +90,19 @@ export const useLinks = () => {
       const dr = Math.sqrt(dx * dx + dy * dy) * 2; // Curved path
       return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
     });
+    
+    // Update gradient positions
+    link.each(function(d, i) {
+      d3.select(`#flow-gradient-${i}`)
+        .attr("x1", d.source.x)
+        .attr("y1", d.source.y)
+        .attr("x2", d.target.x)
+        .attr("y2", d.target.y);
+    });
   };
 
   // Flow particles have been removed as requested by the user
-  // Instead, just update link paths
+  // Instead, we're using animated dash pattern
   const updateFlowParticles = (
     svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
     links: NarrativeLink[]

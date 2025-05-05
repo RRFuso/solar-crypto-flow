@@ -18,10 +18,33 @@ export const createLinkPaths = (props: LinkPathsProps) => {
     .attr("stdDeviation", "3.5")
     .attr("result", "coloredBlur");
   
-  // Create unique marker for each link
+  // Create gradients and markers for each link
   links.forEach((link, i) => {
     const markerId = `arrow-${i}`;
-    const color = link.percentage > 0 ? "#4ade80" : "#f43f5e";
+    const gradientId = `link-gradient-${i}`;
+    
+    // Create gradient for color transition
+    const startColor = link.percentage > 0 ? "#ff3366" : "#4ade80"; // Red to Green
+    const endColor = link.percentage > 0 ? "#4ade80" : "#ff3366"; // Green to Red
+    
+    const gradient = svg.append("defs")
+      .append("linearGradient")
+      .attr("id", gradientId)
+      .attr("gradientUnits", "userSpaceOnUse")
+      .attr("x1", link.source.x)
+      .attr("y1", link.source.y)
+      .attr("x2", link.target.x)
+      .attr("y2", link.target.y);
+      
+    gradient.append("stop")
+      .attr("offset", "0%")
+      .attr("stop-color", startColor)
+      .attr("stop-opacity", 0.9);
+      
+    gradient.append("stop")
+      .attr("offset", "100%")
+      .attr("stop-color", endColor)
+      .attr("stop-opacity", 0.9);
     
     svg.append("defs")
       .append("marker")
@@ -33,97 +56,29 @@ export const createLinkPaths = (props: LinkPathsProps) => {
       .attr("markerHeight", 6)
       .attr("orient", "auto")
       .append("path")
-      .attr("fill", color)
+      .attr("fill", link.percentage > 0 ? "#4ade80" : "#ff3366")
       .attr("d", "M0,-5L10,0L0,5");
   });
 
-  // Draw links with enhanced visibility
+  // Draw links with enhanced visibility and animation
   const link = svg.append("g")
     .attr("class", "links")
     .selectAll("path")
     .data(links)
     .enter()
     .append("path")
-    .attr("class", "link")
-    .attr("stroke", d => d.percentage > 0 ? "#4ade80" : "#f43f5e")
-    .attr("stroke-width", d => 2 + Math.min(8, Math.abs(d.value) / 6)) // Adjusted thickness
+    .attr("class", "link-path")
+    .attr("stroke", (d, i) => `url(#link-gradient-${i})`)
+    .attr("stroke-width", d => 2 + Math.min(8, Math.sqrt(Math.abs(d.value)) / 3)) // Thickness based on volume
     .attr("fill", "none")
-    .attr("stroke-dasharray", "6,4") // More visible dash pattern
+    .attr("stroke-dasharray", "6,4") // Dashed pattern
     .attr("opacity", 0.8) // Higher opacity for better visibility
     .attr("marker-end", (d, i) => `url(#arrow-${i})`)
-    .attr("filter", "url(#glow)"); // Apply glow to all links
+    .attr("filter", "url(#glow)")
+    .style("animation", "flowDash 20s linear infinite"); // Add flow animation
   
-  // Add subtle animation to links
-  link.each(function(d, i) {
-    const path = d3.select(this);
-    
-    // Create animated particles along path
-    addParticleAnimation(svg, path.node(), d);
-    
-    // Animate dash offset for flowing effect
-    path.append("animate")
-      .attr("attributeName", "stroke-dashoffset")
-      .attr("values", d.percentage > 0 ? "0;-20" : "0;20") // Direction based on flow
-      .attr("dur", "2s")
-      .attr("repeatCount", "indefinite");
-      
-    // Subtle opacity pulsing
-    path.append("animate")
-      .attr("attributeName", "opacity")
-      .attr("values", "0.8;0.6;0.8")
-      .attr("dur", "3s")
-      .attr("repeatCount", "indefinite");
-  });
-
   return link;
 };
-
-// Function to add particle animation along paths
-function addParticleAnimation(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, 
-                             pathNode: SVGPathElement | null, 
-                             linkData: any) {
-  if (!pathNode) return;
-  
-  const particleCount = 5 + Math.floor(Math.min(10, Math.abs(linkData.value) / 2));
-  const particleGroup = svg.append("g").attr("class", "particles");
-  const particles: d3.Selection<SVGCircleElement, number, null, undefined>[] = [];
-
-  // Create particles
-  for (let i = 0; i < particleCount; i++) {
-    const particle = particleGroup.append("circle")
-      .attr("r", 2 + Math.random() * 2)
-      .attr("fill", linkData.percentage > 0 ? "#4ade80" : "#f43f5e")
-      .attr("opacity", 0.6 + Math.random() * 0.4)
-      .attr("filter", "blur(1px)");
-    
-    particles.push(particle);
-  }
-  
-  // Function to animate particles along the path
-  function animateParticles() {
-    const pathLength = pathNode.getTotalLength();
-    
-    particles.forEach((particle, i) => {
-      // Calculate position based on time and index
-      let position = ((Date.now() / 2000) + (i / particleCount)) % 1;
-      
-      // Reverse direction for negative flows
-      if (linkData.percentage <= 0) {
-        position = 1 - position;
-      }
-      
-      // Get point at the path
-      const point = pathNode.getPointAtLength(position * pathLength);
-      particle.attr("cx", point.x)
-             .attr("cy", point.y);
-    });
-    
-    requestAnimationFrame(animateParticles);
-  }
-  
-  // Start animation
-  animateParticles();
-}
 
 // Update link paths based on node positions with enhanced curves
 export const updateLinkPaths = (link: d3.Selection<SVGPathElement, any, SVGGElement, unknown>) => {
@@ -149,5 +104,14 @@ export const updateLinkPaths = (link: d3.Selection<SVGPathElement, any, SVGGElem
     const curveY = (sourceY + targetY) / 2 + normY * curveFactor;
     
     return `M${sourceX},${sourceY} Q${curveX},${curveY} ${targetX},${targetY}`;
+  });
+  
+  // Update gradients positions
+  link.each(function(d: any, i: number) {
+    d3.select(`#link-gradient-${i}`)
+      .attr("x1", d.source.x)
+      .attr("y1", d.source.y)
+      .attr("x2", d.target.x)
+      .attr("y2", d.target.y);
   });
 };
