@@ -75,6 +75,7 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
         const percentage = isInflow ? -(2 + Math.random() * 4) : (2 + Math.random() * 4);
         
         flows.push({
+          id: `btc-${coin.symbol}-synthetic-${Date.now()}-${index}`, // Add unique ID
           from: isInflow ? coin.symbol.toUpperCase() : 'BTC',
           to: isInflow ? 'BTC' : coin.symbol.toUpperCase(),
           value,
