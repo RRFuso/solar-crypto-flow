@@ -82,7 +82,11 @@ export const createLinkPaths = (props: LinkPathsProps) => {
 
 // Update link paths based on node positions with enhanced curves
 export const updateLinkPaths = (link: d3.Selection<SVGPathElement, any, SVGGElement, unknown>) => {
+  if (!link) return; // Guard against null
+  
   link.attr("d", (d: any) => {
+    if (!d || !d.source || !d.target) return "";
+    
     const sourceX = d.source.x || 0;
     const sourceY = d.source.y || 0;
     const targetX = d.target.x || 0;
@@ -108,10 +112,15 @@ export const updateLinkPaths = (link: d3.Selection<SVGPathElement, any, SVGGElem
   
   // Update gradients positions
   link.each(function(d: any, i: number) {
-    d3.select(`#link-gradient-${i}`)
-      .attr("x1", d.source.x)
-      .attr("y1", d.source.y)
-      .attr("x2", d.target.x)
-      .attr("y2", d.target.y);
+    if (!d || !d.source || !d.target) return;
+    
+    const gradient = d3.select(`#link-gradient-${i}`);
+    if (!gradient.empty()) {
+      gradient
+        .attr("x1", d.source.x)
+        .attr("y1", d.source.y)
+        .attr("x2", d.target.x)
+        .attr("y2", d.target.y);
+    }
   });
 };

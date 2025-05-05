@@ -15,6 +15,7 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
+  const linkRef = useRef<d3.Selection<SVGPathElement, any, SVGGElement, unknown> | null>(null);
 
   useEffect(() => {
     if (!data || !svgRef.current || !containerRef.current) return;
@@ -77,11 +78,12 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
     
     // Draw links (connections) with animated dashed lines
     const link = createLinkPaths({ svg, links });
+    linkRef.current = link;
     
     // Draw nodes (circles with logos)
     const node = createNodeElements({ svg, nodes });
     
-    // Update link positions
+    // Update link positions initially
     updateLinkPaths(link);
     
     // Animation for orbital movement
@@ -101,6 +103,16 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       
       // Update node positions
       node.attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
+      
+      // Update glow circles
+      svg.selectAll(".node-glow")
+        .attr("cx", d => d.x || 0)
+        .attr("cy", d => d.y || 0);
+      
+      // Update pulse circles
+      svg.selectAll(".pulse-circle")
+        .attr("cx", d => d.x || 0)
+        .attr("cy", d => d.y || 0);
       
       // Update link positions with animations
       updateLinkPaths(link);
