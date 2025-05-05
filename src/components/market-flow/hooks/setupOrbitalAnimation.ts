@@ -30,10 +30,15 @@ export function setupOrbitalAnimation(
     svg.selectAll(".node")
       .attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
     
-    // Update glow positions
-    svg.selectAll(".glow")
+    // Update gradient background positions
+    svg.selectAll(".node-background")
       .attr("cx", d => d.x || 0)
       .attr("cy", d => d.y || 0);
+      
+    // Update central pulse position if it exists
+    svg.selectAll(".central-pulse")
+      .attr("cx", d => d.isCentral ? d.x : null)
+      .attr("cy", d => d.isCentral ? d.y : null);
     
     // Update link positions
     link.attr("d", (d: any) => {

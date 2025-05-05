@@ -29,5 +29,11 @@ export const MarketFlowCore: React.FC<MarketFlowCoreProps> = ({ data, width, hei
     };
   }, [data, width, height, initializeVisualization, cleanupAnimation]);
   
-  return <svg ref={svgRef} className="w-full h-full" />;
+  return (
+    <svg 
+      ref={svgRef} 
+      className="w-full h-full" 
+      style={{ background: 'linear-gradient(to bottom, #0a0f2c, #1a1a40)' }} 
+    />
+  );
 };

@@ -107,21 +107,62 @@ export const createNodes = (
     }
   });
   
-  // Draw nodes (circles) with glowing effect
+  // Create gradient definitions for each node
+  const defs = svg.append("defs");
+  
+  nodes.forEach(node => {
+    // Normalize the change value to a range of -1 to 1
+    // Assuming typical market changes are within -10% to +10%
+    const normalizedChange = Math.min(Math.max(node.change / 10, -1), 1);
+    
+    // Create unique gradient ID for each node
+    const gradientId = `gradient-${node.id}`;
+    
+    // Create linear gradient
+    const gradient = defs.append("radialGradient")
+      .attr("id", gradientId)
+      .attr("cx", "0.5")
+      .attr("cy", "0.5")
+      .attr("r", "0.5")
+      .attr("fx", "0.5")
+      .attr("fy", "0.5");
+    
+    // Add gradient stops based on normalized change
+    if (normalizedChange >= 0) {
+      // Green gradient for positive change
+      const intensity = Math.floor(normalizedChange * 255);
+      gradient.append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", `rgba(0, ${intensity}, 0, 0.8)`);
+      gradient.append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", "rgba(0, 0, 0, 0.3)");
+    } else {
+      // Red gradient for negative change
+      const intensity = Math.floor(-normalizedChange * 255);
+      gradient.append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", `rgba(${intensity}, 0, 0, 0.8)`);
+      gradient.append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", "rgba(0, 0, 0, 0.3)");
+    }
+  });
+  
+  // Draw nodes (circles) with gradient backgrounds
   const nodeGroup = svg.append("g").attr("class", "nodes");
   
-  // Add glowing effect for planets
-  nodeGroup.selectAll(".glow")
+  // Add background circles with gradient fill
+  nodeGroup.selectAll(".node-background")
     .data(nodes)
     .enter()
     .append("circle")
-    .attr("class", "glow")
+    .attr("class", "node-background")
     .attr("cx", d => d.x || 0)
     .attr("cy", d => d.y || 0)
     .attr("r", d => d.radius * 1.4)
-    .attr("fill", d => d.color)
-    .attr("opacity", 0.2)
-    .attr("filter", "blur(8px)");
+    .attr("fill", d => `url(#gradient-${d.id})`)
+    .attr("opacity", 0.9);
   
   const node = nodeGroup.selectAll(".node")
     .data(nodes)
@@ -157,17 +198,40 @@ export const createNodes = (
     .text(d => (d.change >= 0 ? "+" : "") + d.change + "%");
   
   // Add pulsating effect for central node
-  node.selectAll("circle")
-    .each(function(d: any) {
-      if (!d.isCentral) return;
+  if (centralNode) {
+    const centralPulse = nodeGroup.append("circle")
+      .attr("class", "central-pulse")
+      .attr("cx", centralNode.x)
+      .attr("cy", centralNode.y)
+      .attr("r", centralNode.radius * 1.2)
+      .attr("fill", "none")
+      .attr("stroke", "#F7931A")
+      .attr("stroke-width", 2)
+      .attr("stroke-opacity", 0.5);
       
-      d3.select(this)
-        .append("animate")
-        .attr("attributeName", "r")
-        .attr("values", `${d.radius};${d.radius * 1.05};${d.radius}`)
-        .attr("dur", "3s")
-        .attr("repeatCount", "indefinite");
-    });
+    // Add animation for central node pulse
+    centralPulse
+      .transition()
+      .duration(2000)
+      .attr("r", centralNode.radius * 1.6)
+      .attr("stroke-opacity", 0.1)
+      .transition()
+      .duration(2000)
+      .attr("r", centralNode.radius * 1.2)
+      .attr("stroke-opacity", 0.5)
+      .on("end", function repeat() {
+        d3.select(this)
+          .transition()
+          .duration(2000)
+          .attr("r", centralNode.radius * 1.6)
+          .attr("stroke-opacity", 0.1)
+          .transition()
+          .duration(2000)
+          .attr("r", centralNode.radius * 1.2)
+          .attr("stroke-opacity", 0.5)
+          .on("end", repeat);
+      });
+  }
   
   return nodes;
 };
