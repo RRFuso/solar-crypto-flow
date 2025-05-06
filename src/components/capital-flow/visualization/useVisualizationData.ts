@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
@@ -110,9 +109,6 @@ export const useVisualizationData = ({
       } else {
         node.radius = Math.max(10, node.radius * zoomFactor);
       }
-      
-      // Add flow color information to nodes based on their net flow
-      node.flowColor = node.netFlow > 0 ? "#00ff00" : (node.netFlow < 0 ? "#ff0000" : "#00b5d8");
     });
     
     // Position nodes
@@ -136,13 +132,13 @@ export const useVisualizationData = ({
         }));
       });
     
-    // Store visualization data for rendering - immediately send to the parent component
-    setVisualizationData({ 
+    // Store visualization data for rendering
+    setVisualizationData(prev => ({ 
       nodes: filteredNodes, 
       links: filteredLinks, 
       centralNode,
-      selectedNodeId: null
-    });
+      selectedNodeId: prev.selectedNodeId
+    }));
     
     return () => {
       // Component cleanup

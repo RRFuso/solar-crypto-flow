@@ -37,7 +37,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     createOrbitalVisualization
   } = useVisualizationSetup(flowData, zoomLevel);
   
-  // Initialize visualization data with pre-calculated node flow colors
+  // Initialize visualization data
   useVisualizationData({
     flowData,
     svgRef,
@@ -77,7 +77,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   }
 
   // Only render the visualization components if we have the SVG and data
-  const renderVisualization = svgRef.current && dimensions.width > 0;
+  const renderVisualization = svgRef.current && dimensions.width > 0 && visualizationData.nodes.length > 0;
 
   return (
     <div ref={containerRef} className="w-full h-full" style={{ minHeight: "700px" }}>
