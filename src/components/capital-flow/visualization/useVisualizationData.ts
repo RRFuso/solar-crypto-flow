@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
@@ -93,6 +94,41 @@ export const useVisualizationData = ({
         filteredNodeIds.includes(link.target.id)
       );
     }
+    
+    // Calculate net flow percentage for each node based on links
+    filteredNodes.forEach(node => {
+      // Skip central node
+      if (node.id === centralNode.id) return;
+      
+      // Get all links involving this node
+      const nodeLinks = filteredLinks.filter(
+        link => link.source.id === node.id || link.target.id === node.id
+      );
+      
+      // Calculate net flow
+      let inflow = 0;
+      let outflow = 0;
+      
+      nodeLinks.forEach(link => {
+        if (link.target.id === node.id) {
+          // This is an inflow
+          inflow += Math.abs(link.value || 0);
+        } else if (link.source.id === node.id) {
+          // This is an outflow
+          outflow += Math.abs(link.value || 0);
+        }
+      });
+      
+      // Calculate and store net flow percentage
+      const totalFlow = inflow + outflow;
+      if (totalFlow > 0) {
+        // Set flow percentage between -100 and 100
+        // Positive means net inflow, negative means net outflow
+        node.flowPercentage = ((inflow - outflow) / totalFlow) * 100;
+      } else {
+        node.flowPercentage = 0;
+      }
+    });
     
     // Calculate orbit parameters
     const nonCentralNodes = filteredNodes.filter(n => n.id !== centralNode.id);

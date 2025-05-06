@@ -27,7 +27,7 @@ export class NodeRenderer {
     // Create patterns for logo images
     this.createNodePatterns(svg, nodes);
     
-    // Create node glows (auras)
+    // Create flow-based glow effect (inflow/outflow)
     nodesGroup.selectAll('circle.node-glow')
       .data(nodes)
       .enter()
@@ -36,7 +36,21 @@ export class NodeRenderer {
       .attr('cx', d => d.x)
       .attr('cy', d => d.y)
       .attr('r', d => d.radius * 1.6 * (zoomLevel / 100))
-      .attr('fill', d => d.type === 'central' ? 'rgba(247, 147, 26, 0.3)' : 'rgba(0, 181, 216, 0.3)')
+      .attr('fill', d => {
+        // Color the glow based on flow direction
+        if (d.type === 'central') {
+          return 'rgba(247, 147, 26, 0.3)'; // Bitcoin color
+        }
+        
+        // Check flow direction from node metadata
+        if (d.flowPercentage > 0) {
+          return 'rgba(0, 255, 0, 0.3)'; // Green for inflow
+        } else if (d.flowPercentage < 0) {
+          return 'rgba(255, 0, 0, 0.3)'; // Red for outflow
+        } else {
+          return 'rgba(0, 181, 216, 0.3)'; // Default blue
+        }
+      })
       .attr('filter', 'blur(8px)');
     
     // Create main nodes
@@ -86,7 +100,16 @@ export class NodeRenderer {
         if (selectedNodeId === d.id) {
           return '#ffffff';
         }
-        return d.type === 'central' ? '#F7931A' : '#00b5d8';
+        // Flow-based stroke color
+        if (d.type === 'central') {
+          return '#F7931A'; // Bitcoin color
+        }
+        if (d.flowPercentage > 0) {
+          return '#00ff00'; // Green for inflow
+        } else if (d.flowPercentage < 0) {
+          return '#ff0000'; // Red for outflow
+        }
+        return '#00b5d8'; // Default blue
       })
       .attr('stroke-width', d => selectedNodeId === d.id ? 3 : 2)
       .attr('stroke-opacity', 0.9);
