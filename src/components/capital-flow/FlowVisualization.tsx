@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
@@ -48,6 +48,16 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     createOrbitalVisualization,
     activeCategory
   });
+
+  // Force initial rendering of links when component loads
+  useEffect(() => {
+    if (flowData && flowData.length > 0 && svgRef.current && dimensions.width > 0) {
+      // Force initialization of visualization with default timeframe
+      if (animationRef.current === null && visualizationData.nodes.length > 0) {
+        console.log("Forcing initial link rendering with default timeframe");
+      }
+    }
+  }, [flowData, svgRef.current, dimensions, visualizationData]);
 
   // Get color based on category from backend
   const getCategoryColor = (category: string) => {

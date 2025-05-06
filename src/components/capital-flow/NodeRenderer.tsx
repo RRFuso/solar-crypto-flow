@@ -27,7 +27,7 @@ export class NodeRenderer {
     // Create patterns for logo images
     this.createNodePatterns(svg, nodes);
     
-    // Create node glows (auras)
+    // Create node glows (auras) with color coding based on flow
     nodesGroup.selectAll('circle.node-glow')
       .data(nodes)
       .enter()
@@ -36,7 +36,13 @@ export class NodeRenderer {
       .attr('cx', d => d.x)
       .attr('cy', d => d.y)
       .attr('r', d => d.radius * 1.6 * (zoomLevel / 100))
-      .attr('fill', d => d.type === 'central' ? 'rgba(247, 147, 26, 0.3)' : 'rgba(0, 181, 216, 0.3)')
+      .attr('fill', d => {
+        // Color based on flow direction
+        if (d.type === 'central') return 'rgba(247, 147, 26, 0.3)'; // Bitcoin orange for central
+        if (d.inflow > d.outflow) return 'rgba(0, 255, 0, 0.3)'; // Green for inflow
+        if (d.outflow > d.inflow) return 'rgba(255, 0, 0, 0.3)'; // Red for outflow
+        return 'rgba(0, 181, 216, 0.3)'; // Default blue for neutral
+      })
       .attr('filter', 'blur(8px)');
     
     // Create main nodes
@@ -86,7 +92,11 @@ export class NodeRenderer {
         if (selectedNodeId === d.id) {
           return '#ffffff';
         }
-        return d.type === 'central' ? '#F7931A' : '#00b5d8';
+        // Color based on flow direction
+        if (d.type === 'central') return '#F7931A'; // Bitcoin orange for central
+        if (d.inflow > d.outflow) return '#00ff00'; // Green for inflow
+        if (d.outflow > d.inflow) return '#ff0000'; // Red for outflow
+        return '#00b5d8'; // Default blue for neutral
       })
       .attr('stroke-width', d => selectedNodeId === d.id ? 3 : 2)
       .attr('stroke-opacity', 0.9);
