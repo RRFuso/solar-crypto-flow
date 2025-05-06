@@ -27,7 +27,7 @@ export class NodeRenderer {
     // Create patterns for logo images
     this.createNodePatterns(svg, nodes);
     
-    // Create node glows (auras)
+    // Create node glows (auras) with colors based on flow
     nodesGroup.selectAll('circle.node-glow')
       .data(nodes)
       .enter()
@@ -36,7 +36,13 @@ export class NodeRenderer {
       .attr('cx', d => d.x)
       .attr('cy', d => d.y)
       .attr('r', d => d.radius * 1.6 * (zoomLevel / 100))
-      .attr('fill', d => d.type === 'central' ? 'rgba(247, 147, 26, 0.3)' : 'rgba(0, 181, 216, 0.3)')
+      .attr('fill', d => {
+        // Use flow color if available, otherwise use default colors
+        if (d.flowColor) {
+          return d.type === 'central' ? 'rgba(247, 147, 26, 0.3)' : `${d.flowColor.replace(')', ', 0.3)')}`;
+        }
+        return d.type === 'central' ? 'rgba(247, 147, 26, 0.3)' : 'rgba(0, 181, 216, 0.3)';
+      })
       .attr('filter', 'blur(8px)');
     
     // Create main nodes
@@ -85,6 +91,10 @@ export class NodeRenderer {
         // Highlight the node if it's selected
         if (selectedNodeId === d.id) {
           return '#ffffff';
+        }
+        // Use flow color if available, otherwise use default colors
+        if (d.flowColor) {
+          return d.flowColor;
         }
         return d.type === 'central' ? '#F7931A' : '#00b5d8';
       })
