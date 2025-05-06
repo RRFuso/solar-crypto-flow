@@ -27,6 +27,19 @@ export class NodeRenderer {
     // Create patterns for logo images
     this.createNodePatterns(svg, nodes);
     
+    // Create filter for glow effect
+    const defs = svg.select('defs');
+    if (defs.empty()) {
+      svg.append('defs');
+    }
+    
+    svg.select('defs')
+      .append("filter")
+      .attr("id", "glow-effect")
+      .append("feGaussianBlur")
+      .attr("stdDeviation", "3")
+      .attr("result", "coloredBlur");
+    
     // Create node glows (auras)
     nodesGroup.selectAll('circle.node-glow')
       .data(nodes)
@@ -38,6 +51,21 @@ export class NodeRenderer {
       .attr('r', d => d.radius * 1.6 * (zoomLevel / 100))
       .attr('fill', d => d.type === 'central' ? 'rgba(247, 147, 26, 0.3)' : 'rgba(0, 181, 216, 0.3)')
       .attr('filter', 'blur(8px)');
+    
+    // Add capital flow glow for nodes with positive/negative flow
+    nodesGroup.selectAll('circle.flow-glow')
+      .data(nodes.filter(d => d.flowValue !== 0 && d.flowValue !== undefined))
+      .enter()
+      .append('circle')
+      .attr('class', 'flow-glow')
+      .attr('cx', d => d.x)
+      .attr('cy', d => d.y)
+      .attr('r', d => d.radius * 1.8 * (zoomLevel / 100))
+      .attr('fill', 'none')
+      .attr('stroke', d => d.flowValue && d.flowValue > 0 ? '#00ff00' : '#ff0000')
+      .attr('stroke-width', 8)
+      .attr('stroke-opacity', 0.6)
+      .attr('filter', 'url(#glow-effect)');
     
     // Create main nodes
     const node = nodesGroup.selectAll('g.node')

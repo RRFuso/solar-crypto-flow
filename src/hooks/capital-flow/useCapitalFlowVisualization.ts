@@ -1,3 +1,4 @@
+
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
 import { CapitalFlowNode, CapitalFlowLink } from '@/types/capitalFlow';
@@ -12,6 +13,9 @@ export const useCapitalFlowVisualization = () => {
     const width = containerElement.clientWidth;
     const height = 350;
     const maxFlow = Math.max(...(flowData.map(d => d.value) || [1]));
+    
+    // Clear any previous visualizations to prevent duplicates
+    d3.select(svgElement).selectAll("*").remove();
     
     const svg = d3.select(svgElement)
       .attr("width", width)
@@ -67,7 +71,7 @@ export const useCapitalFlowVisualization = () => {
       });
     });
     
-    // Draw links
+    // Draw links with immediate rendering
     const links: CapitalFlowLink[] = flowData.map(flow => ({
       source: nodes.find(n => n.id === flow.from) as CapitalFlowNode,
       target: nodes.find(n => n.id === flow.to) as CapitalFlowNode,
@@ -105,6 +109,14 @@ export const useCapitalFlowVisualization = () => {
     
     link.attr("marker-end", (d, i) => `url(#arrow-${i})`);
     
+    // Add glow effect to nodes based on flow direction
+    svg.append("defs")
+      .append("filter")
+      .attr("id", "glow")
+      .append("feGaussianBlur")
+      .attr("stdDeviation", "3")
+      .attr("result", "coloredBlur");
+    
     // Animate the flow
     link.each(function(d, i) {
       // Create animated flow effect
@@ -120,7 +132,7 @@ export const useCapitalFlowVisualization = () => {
         .attr("repeatCount", "indefinite");
     });
     
-    // Draw circles for nodes
+    // Draw circles for nodes with glow effect based on flow
     const nodeGroup = svg.append("g").attr("class", "nodes");
     
     const node = nodeGroup.selectAll("g")
@@ -132,6 +144,16 @@ export const useCapitalFlowVisualization = () => {
         .on("start", dragstarted)
         .on("drag", dragged)
         .on("end", dragended));
+    
+    // Add glow effect first (behind the node)
+    node.filter(d => d.value !== 0)
+      .append("circle")
+      .attr("r", d => d.radius * 1.4)
+      .attr("fill", "none")
+      .attr("stroke", d => d.value > 0 ? "#00ff00" : "#ff0000")
+      .attr("stroke-width", 6)
+      .attr("opacity", 0.6)
+      .attr("filter", "url(#glow)");
     
     // Add circles
     node.append("circle")
@@ -151,6 +173,7 @@ export const useCapitalFlowVisualization = () => {
     
     // Add pulsating effect
     node.selectAll("circle")
+      .filter(function() { return !d3.select(this).classed("glow"); }) // Don't animate glow circles
       .append("animate")
       .attr("attributeName", "r")
       .attr("values", d => `${d.radius};${d.radius * 1.05};${d.radius}`)
@@ -218,6 +241,11 @@ export const useCapitalFlowVisualization = () => {
       d.fx = null;
       d.fy = null;
     }
+    
+    // Force at least one simulation tick to render links and nodes initially
+    simulation.tick();
+    simulation.alphaTarget(0.3).restart();
+    setTimeout(() => simulation.alphaTarget(0), 100);
     
     return simulation;
   }, []);

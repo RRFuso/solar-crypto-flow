@@ -3,137 +3,117 @@ import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
 
-type OrbitalLink = {
-  source: OrbitalNode;
-  target: OrbitalNode;
-  value: number;
-  volume?: number;
-  percentage: number;
-};
-
 interface OrbitalAnimationProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   nodes: OrbitalNode[];
   width: number;
   height: number;
-  rotationSpeed?: number; // Add configurable rotation speed
-  updateLinksInRealTime?: boolean; // Add option to update links in real time
+  rotationSpeed?: number;
+  updateLinksInRealTime?: boolean;
 }
 
 export class OrbitalAnimation {
-  private animationRef: number | undefined;
-  
+  private animationId: number | null = null;
+
   constructor(props: OrbitalAnimationProps) {
-    this.startAnimation(props);
+    this.setupAnimation(props);
   }
-  
-  private startAnimation({ svg, nodes, width, height, rotationSpeed = 0.00012, updateLinksInRealTime = true }: OrbitalAnimationProps) {
-    // Add orbital rotation
-    const nonCentralNodes = nodes.filter(node => node.type !== "central");
-    const centralNode = nodes.find(node => node.type === "central");
-    
-    if (!centralNode || nonCentralNodes.length === 0) return;
-    
-    const animateOrbits = () => {
-      nonCentralNodes.forEach((node) => {
-        // Calculate current angle from center
-        const dx = node.x - width/2;
-        const dy = node.y - height/2;
+
+  private setupAnimation({ svg, nodes, width, height, rotationSpeed = 0.00008, updateLinksInRealTime = false }: OrbitalAnimationProps) {
+    // Cancel any existing animation
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+    }
+
+    // Skip animation if no nodes
+    if (!nodes.length) return;
+
+    // Find central node
+    const centralNode = nodes.find(node => node.type === 'central');
+    if (!centralNode) return;
+
+    // Get node elements
+    const nodeElements = svg.selectAll('g.node');
+    const nodeGlowElements = svg.selectAll('circle.node-glow');
+    const flowGlowElements = svg.selectAll('circle.flow-glow');
+
+    // Get link elements if we need to update them
+    const linkElements = updateLinksInRealTime ? svg.selectAll('path.link-path') : null;
+
+    // Animation function
+    const animate = () => {
+      // Update non-central nodes
+      nodes.forEach(node => {
+        if (node.type === 'central') return;
+
+        // Calculate current angle and distance from center
+        const dx = node.x - centralNode.x;
+        const dy = node.y - centralNode.y;
         const angle = Math.atan2(dy, dx) + rotationSpeed;
-        const radius = Math.sqrt(dx*dx + dy*dy);
-        
-        // Update position with rotation
-        node.x = width/2 + Math.cos(angle) * radius;
-        node.y = height/2 + Math.sin(angle) * radius;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Update node position with rotation
+        node.x = centralNode.x + Math.cos(angle) * distance;
+        node.y = centralNode.y + Math.sin(angle) * distance;
       });
-      
+
       // Update node positions
-      svg.selectAll(".node")
-        .attr("transform", d => `translate(${d.x},${d.y})`);
+      nodeElements.data(nodes)
+        .attr('transform', d => `translate(${d.x}, ${d.y})`);
+
+      // Update glow positions
+      nodeGlowElements.data(nodes)
+        .attr('cx', d => d.x)
+        .attr('cy', d => d.y);
       
-      // Update glow positions (synchronize with nodes)
-      svg.selectAll(".node-glow")
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y);
-        
-      // Update pulse circles for central node
-      svg.selectAll(".pulse-circle")
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y);
-      
-      // Update link positions if enabled
-      if (updateLinksInRealTime) {
-        const links = svg.selectAll("path.link-path");
-        if (!links.empty()) {
-          links.attr("d", d => {
-            if (!d || !d.source || !d.target) return "";
-            
-            const sourceX = d.source.x || 0;
-            const sourceY = d.source.y || 0;
-            const targetX = d.target.x || 0;
-            const targetY = d.target.y || 0;
-            
-            // Calculate distance for curve
-            const dx = targetX - sourceX;
-            const dy = targetY - sourceY;
-            const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-            
-            return `M${sourceX},${sourceY} A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
-          });
-          
-          // Update link gradients to follow node positions
-          svg.selectAll("linearGradient")
-            .each(function(d: any) {
-              if (!d || !d.source || !d.target) return;
-              
-              d3.select(this)
-                .attr("x1", d.source.x || 0)
-                .attr("y1", d.source.y || 0)
-                .attr("x2", d.target.x || 0)
-                .attr("y2", d.target.y || 0);
-            });
-          
-          // Update arrowheads position
-          svg.selectAll("marker")
-            .attr("refX", d => {
-              if (!d || !d.target) return 8;
-              // Adjust refX based on target node radius
-              const targetRadius = d.target.radius || 20;
-              return 8 + targetRadius * 0.8;
-            });
-        }
+      // Update flow glow positions
+      flowGlowElements.data(nodes.filter(d => d.flowValue !== 0 && d.flowValue !== undefined))
+        .attr('cx', d => d.x)
+        .attr('cy', d => d.y);
+
+      // Update link positions if needed
+      if (updateLinksInRealTime && linkElements) {
+        linkElements.attr('d', (d: any) => {
+          const source = nodes.find(n => n.id === d.source.id);
+          const target = nodes.find(n => n.id === d.target.id);
+          if (!source || !target) return '';
+
+          // Create curved path
+          const dx = target.x - source.x;
+          const dy = target.y - source.y;
+          const dr = Math.sqrt(dx * dx + dy * dy) * 2;
+
+          return `M${source.x},${source.y}A${dr},${dr} 0 0,1 ${target.x},${target.y}`;
+        });
       }
-      
+
       // Continue animation
-      this.animationRef = requestAnimationFrame(animateOrbits);
+      this.animationId = requestAnimationFrame(animate);
     };
-    
+
     // Start animation
-    this.animationRef = requestAnimationFrame(animateOrbits);
+    this.animationId = requestAnimationFrame(animate);
   }
-  
+
   public cleanup() {
-    if (this.animationRef) {
-      cancelAnimationFrame(this.animationRef);
-      this.animationRef = undefined;
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
     }
   }
 }
 
-// Fix component export for Fast Refresh compatibility
+// Component wrapper for React
 export const OrbitalAnimationComponent = React.memo((props: OrbitalAnimationProps) => {
-  const animationInstanceRef = useRef<OrbitalAnimation | null>(null);
-  
+  const animationRef = useRef<OrbitalAnimation | null>(null);
+
   useEffect(() => {
-    animationInstanceRef.current = new OrbitalAnimation(props);
-    
-    // Cleanup on unmount
+    animationRef.current = new OrbitalAnimation(props);
+
     return () => {
-      if (animationInstanceRef.current) {
-        animationInstanceRef.current.cleanup();
-      }
+      animationRef.current?.cleanup();
     };
   }, [props]);
-  
+
   return null;
 });
