@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
@@ -48,34 +48,6 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     createOrbitalVisualization,
     activeCategory
   });
-
-  // Force initial rendering when component mounts
-  useEffect(() => {
-    if (flowData.length > 0 && svgRef.current && dimensions.width > 0) {
-      // Force a re-render after a short delay to ensure the visualization is created
-      const timer = setTimeout(() => {
-        if (visualizationData.nodes.length === 0) {
-          const result = createOrbitalVisualization(
-            flowData, 
-            svgRef.current, 
-            dimensions.width, 
-            dimensions.height
-          );
-          
-          if (result && result.nodes) {
-            setVisualizationData({
-              nodes: result.nodes,
-              links: result.links || [],
-              centralNode: result.centralNode,
-              selectedNodeId: null
-            });
-          }
-        }
-      }, 50);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [flowData, svgRef.current, dimensions.width, dimensions.height]);
 
   // Get color based on category from backend
   const getCategoryColor = (category: string) => {
