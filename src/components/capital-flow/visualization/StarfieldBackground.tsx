@@ -9,29 +9,15 @@ interface StarfieldBackgroundProps {
 }
 
 /**
- * Creates a lightweight static starfield background for the visualization.
+ * Starfield desativado para melhorar performance.
  */
 export const StarfieldBackground: React.FC<StarfieldBackgroundProps> = ({ svg, width, height }) => {
   useEffect(() => {
-    // Clear existing starfields
+    // Remove qualquer fundo anterior
     svg.selectAll('.starfield').remove();
 
-    const starGroup = svg.append("g").attr("class", "starfield");
-    const numStars = 10; // Reduced for better performance
-
-    for (let i = 0; i < numStars; i++) {
-      const x = Math.random() * width;
-      const y = Math.random() * height;
-      const size = Math.random() * 1.2 + 0.3;
-      const opacity = Math.random() * 0.4 + 0.3;
-
-      starGroup.append("circle")
-        .attr("cx", x)
-        .attr("cy", y)
-        .attr("r", size)
-        .attr("fill", "white")
-        .attr("opacity", opacity);
-    }
+    // Se desejar manter a estrutura para reativar no futuro:
+    svg.append("g").attr("class", "starfield");
 
     return () => {
       svg.selectAll('.starfield').remove();
