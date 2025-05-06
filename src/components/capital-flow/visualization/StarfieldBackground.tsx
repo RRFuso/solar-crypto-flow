@@ -17,7 +17,7 @@ export const StarfieldBackground: React.FC<StarfieldBackgroundProps> = ({ svg, w
     svg.selectAll('.starfield').remove();
 
     const starGroup = svg.append("g").attr("class", "starfield");
-    const numStars = 100; // Reduced for better performance
+    const numStars = 10; // Reduced for better performance
 
     for (let i = 0; i < numStars; i++) {
       const x = Math.random() * width;
