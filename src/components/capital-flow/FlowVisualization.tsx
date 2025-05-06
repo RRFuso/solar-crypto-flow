@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
@@ -37,31 +37,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     createOrbitalVisualization
   } = useVisualizationSetup(flowData, zoomLevel);
   
-  // Initialize visualization data with an immediate trigger
-  useEffect(() => {
-    // Ensure we force an initial render of flow lines by using a default timeframe
-    if (flowData && flowData.length > 0 && svgRef.current && dimensions.width > 0) {
-      // Create visualization directly in the effect to ensure immediate rendering
-      const visualizationResult = createOrbitalVisualization(
-        flowData,
-        svgRef.current,
-        dimensions.width,
-        dimensions.height
-      );
-      
-      // Set the visualization data state with the result
-      if (visualizationResult) {
-        setVisualizationData({
-          nodes: visualizationResult.nodes,
-          links: visualizationResult.links,
-          centralNode: visualizationResult.centralNode,
-          selectedNodeId: null
-        });
-      }
-    }
-  }, [flowData, dimensions, svgRef.current]);
-  
-  // Initialize visualization data with category filtering
+  // Initialize visualization data
   useVisualizationData({
     flowData,
     svgRef,
