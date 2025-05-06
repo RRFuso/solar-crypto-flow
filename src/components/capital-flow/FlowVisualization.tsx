@@ -55,26 +55,9 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
       // Force initialization of visualization with default timeframe
       if (animationRef.current === null && visualizationData.nodes.length > 0) {
         console.log("Forcing initial link rendering with default timeframe");
-        
-        // Ensure links are rendered by manually triggering a render if needed
-        if (visualizationData.links.length > 0 && svgRef.current) {
-          const svg = d3.select(svgRef.current);
-          
-          // If links group doesn't exist or is empty, trigger the link renderer
-          if (svg.select('.links-group').empty() || svg.select('.links-group').selectAll('*').empty()) {
-            console.log("Manually triggering link rendering");
-            
-            // This will force the LinkRendererExtended component to render
-            setVisualizationData(prevData => ({
-              ...prevData,
-              // Adding a timestamp forces the renderer to update
-              lastUpdate: new Date().getTime()
-            }));
-          }
-        }
       }
     }
-  }, [flowData, svgRef.current, dimensions, visualizationData, animationRef]);
+  }, [flowData, svgRef.current, dimensions, visualizationData]);
 
   // Get color based on category from backend
   const getCategoryColor = (category: string) => {

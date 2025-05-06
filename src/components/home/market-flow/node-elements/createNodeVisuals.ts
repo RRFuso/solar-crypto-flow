@@ -5,7 +5,7 @@ export const createNodeVisuals = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   node: d3.Selection<SVGGElement, any, SVGGElement, unknown>
 ) => {
-  // Add color-coded glowing effect behind nodes based on flow direction
+  // Add glowing effect behind nodes with color coding based on flow
   node.append("circle")
     .attr("r", d => d.radius * 1.4)
     .attr("fill", d => {
