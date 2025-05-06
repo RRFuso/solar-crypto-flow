@@ -31,17 +31,7 @@ export const StarfieldBackground: React.FC<StarfieldBackgroundProps> = ({ svg, w
         .attr("r", size)
         .attr("fill", "white")
         .attr("opacity", opacity);
-        
-      // Add twinkling effect to some stars
-      if (Math.random() > 0.7) {
-        star.append("animate")
-          .attr("attributeName", "opacity")
-          .attr("values", `${opacity};${opacity * 0.5};${opacity}`)
-          .attr("dur", `${2 + Math.random() * 4}s`)
-          .attr("repeatCount", "indefinite");
-      }
-    }
-    
+     
     // Add a few distant "galaxies" (blurred star clusters)
     for (let i = 0; i < 4; i++) {
       const x = Math.random() * width;
