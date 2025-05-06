@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react'; 
+import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 
 interface StarfieldBackgroundProps {
@@ -17,7 +17,7 @@ export const StarfieldBackground: React.FC<StarfieldBackgroundProps> = ({ svg, w
     svg.selectAll('.starfield').remove();
     
     const starGroup = svg.append("g").attr("class", "starfield");
-    const numStars = 0; // Increased stars for better background effect
+    const numStars = 250; // Increased stars for better background effect
     
     for (let i = 0; i < numStars; i++) {
       const x = Math.random() * width;
