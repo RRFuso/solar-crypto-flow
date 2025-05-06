@@ -16,7 +16,7 @@ export const useCapitalFlowVisualization = () => {
     const svg = d3.select(svgElement)
       .attr("width", width)
       .attr("height", height)
-      .attr("viewBox", `0 0 ${width} ${height}`)
+      .attr("viewBox", `0 0 ${width} ${height}`) 
       .attr("style", "max-width: 100%; height: auto;");
     
     // Create unique nodes for all cryptos in the flows
