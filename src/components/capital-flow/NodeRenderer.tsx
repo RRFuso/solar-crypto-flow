@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
@@ -38,8 +39,8 @@ export class NodeRenderer {
       .attr('fill', d => {
         // Color based on flow direction
         if (d.type === 'central') return 'rgba(247, 147, 26, 0.3)'; // Bitcoin orange for central
-        if (d.inflow > d.outflow) return 'rgba(0, 255, 204, 0.3)'; // Green for inflow (#00ffcc)
-        if (d.outflow > d.inflow) return 'rgba(255, 0, 102, 0.3)'; // Red for outflow (#ff0066)
+        if (d.inflow > d.outflow) return 'rgba(0, 255, 0, 0.3)'; // Green for inflow
+        if (d.outflow > d.inflow) return 'rgba(255, 0, 0, 0.3)'; // Red for outflow
         return 'rgba(0, 181, 216, 0.3)'; // Default blue for neutral
       })
       .attr('filter', 'blur(8px)');
@@ -94,7 +95,7 @@ export class NodeRenderer {
           .attr('x', 0)
           .attr('y', 20)
           .attr('text-anchor', 'middle')
-          .attr('fill', d.inflow > d.outflow ? '#00ffcc' : d.outflow > d.inflow ? '#ff0066' : '#ffffff')
+          .attr('fill', d.inflow > d.outflow ? '#4ade80' : d.outflow > d.inflow ? '#f43f5e' : '#ffffff')
           .text(flowText);
         
         // Highlight this node on hover
@@ -128,7 +129,7 @@ export class NodeRenderer {
         document.dispatchEvent(clickEvent);
       });
     
-    // Add circle with pattern fill and drop shadow
+    // Add circle with pattern fill
     node.append('circle')
       .attr('class', 'node-circle')
       .attr('r', d => d.radius * (zoomLevel / 100))
@@ -140,19 +141,12 @@ export class NodeRenderer {
         }
         // Color based on flow direction
         if (d.type === 'central') return '#F7931A'; // Bitcoin orange for central
-        if (d.inflow > d.outflow) return '#00ffcc'; // Green for inflow
-        if (d.outflow > d.inflow) return '#ff0066'; // Red for outflow
+        if (d.inflow > d.outflow) return '#00ff00'; // Green for inflow
+        if (d.outflow > d.inflow) return '#ff0000'; // Red for outflow
         return '#00b5d8'; // Default blue for neutral
       })
       .attr('stroke-width', d => selectedNodeId === d.id ? 3 : 2)
-      .attr('stroke-opacity', 0.9)
-      .attr('filter', d => {
-        // Drop shadow filter based on flow direction
-        if (d.type === 'central') return 'drop-shadow(0 0 8px rgba(247, 147, 26, 0.7))'; // Orange glow for central
-        if (d.inflow > d.outflow) return 'drop-shadow(0 0 8px rgba(0, 255, 204, 0.7))'; // Green glow
-        if (d.outflow > d.inflow) return 'drop-shadow(0 0 8px rgba(255, 0, 102, 0.7))'; // Red glow
-        return 'drop-shadow(0 0 8px rgba(0, 181, 216, 0.7))'; // Blue glow for neutral
-      });
+      .attr('stroke-opacity', 0.9);
     
     // Add node labels
     node.append('text')
@@ -162,6 +156,41 @@ export class NodeRenderer {
       .attr('font-size', d => Math.max(10, Math.min(14, d.radius * 0.4) * (zoomLevel / 100)))
       .attr('font-weight', 'bold')
       .text(d => d.id);
+    
+    // Add pulse animation to central node
+    if (centralNode) {
+      const pulseNode = node.filter(d => d.id === centralNode.id);
+      
+      pulseNode.append('circle')
+        .attr('class', 'pulse-circle')
+        .attr('r', centralNode.radius * 1.2 * (zoomLevel / 100))
+        .attr('fill', 'none')
+        .attr('stroke', '#F7931A')
+        .attr('stroke-width', 2)
+        .attr('stroke-opacity', 0.5)
+        .call(selection => {
+          selection.transition()
+            .attr('stroke-opacity', 0.7)
+            .attr('r', d => d.radius * 1.2 * (zoomLevel / 100))
+            .duration(2000)
+            .transition()
+            .attr('stroke-opacity', 0.1)
+            .attr('r', d => d.radius * 1.6 * (zoomLevel / 100))
+            .duration(2000)
+            .on('end', function repeat() {
+              d3.select(this)
+                .transition()
+                .attr('stroke-opacity', 0.7)
+                .attr('r', d => d.radius * 1.2 * (zoomLevel / 100))
+                .duration(2000)
+                .transition()
+                .attr('stroke-opacity', 0.1)
+                .attr('r', d => d.radius * 1.6 * (zoomLevel / 100))
+                .duration(2000)
+                .on('end', repeat);
+            });
+        });
+    }
   }
   
   private createNodePatterns(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, nodes: OrbitalNode[]) {

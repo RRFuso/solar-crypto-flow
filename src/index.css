@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -86,4 +87,23 @@
 .link-path {
   stroke-dasharray: 8, 4;
   animation: flowDash 15s linear infinite;
+}
+
+.pulse-circle {
+  animation: pulse 2.5s ease-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    r: 20;
+    stroke-opacity: 0.7;
+  }
+  70% {
+    r: 35;
+    stroke-opacity: 0.1;
+  }
+  100% {
+    r: 20;
+    stroke-opacity: 0.7;
+  }
 }
