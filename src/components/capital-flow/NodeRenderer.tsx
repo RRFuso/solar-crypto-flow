@@ -54,6 +54,50 @@ export class NodeRenderer {
       .attr('transform', d => `translate(${d.x},${d.y})`)
       .attr('data-id', d => d.id)
       .on('mouseenter', (event, d) => {
+        // Show tooltip on hover
+        const tooltip = svg.append('g')
+          .attr('class', 'node-tooltip')
+          .attr('transform', `translate(${d.x},${d.y - d.radius - 60})`);
+        
+        tooltip.append('rect')
+          .attr('rx', 5)
+          .attr('ry', 5)
+          .attr('x', -80)
+          .attr('y', -40)
+          .attr('width', 160)
+          .attr('height', 55)
+          .attr('fill', 'rgba(0, 0, 0, 0.8)')
+          .attr('stroke', d.type === 'central' ? '#F7931A' : '#ffffff')
+          .attr('stroke-width', 1);
+        
+        tooltip.append('text')
+          .attr('x', 0)
+          .attr('y', -20)
+          .attr('text-anchor', 'middle')
+          .attr('fill', 'white')
+          .attr('font-weight', 'bold')
+          .text(d.name || d.id);
+        
+        tooltip.append('text')
+          .attr('x', 0)
+          .attr('y', 0)
+          .attr('text-anchor', 'middle')
+          .attr('fill', 'white')
+          .text(`Value: ${d.value ? d.value.toLocaleString() : 'N/A'}`);
+        
+        const flowText = d.inflow > d.outflow 
+          ? `Net Inflow: +${(d.inflow - d.outflow).toLocaleString()}`
+          : d.outflow > d.inflow
+          ? `Net Outflow: -${(d.outflow - d.inflow).toLocaleString()}`
+          : 'Flow: Neutral';
+        
+        tooltip.append('text')
+          .attr('x', 0)
+          .attr('y', 20)
+          .attr('text-anchor', 'middle')
+          .attr('fill', d.inflow > d.outflow ? '#4ade80' : d.outflow > d.inflow ? '#f43f5e' : '#ffffff')
+          .text(flowText);
+        
         // Highlight this node on hover
         d3.select(event.currentTarget)
           .select('circle.node-circle')
@@ -62,6 +106,9 @@ export class NodeRenderer {
           .attr('stroke-width', 3);
       })
       .on('mouseleave', (event, d) => {
+        // Remove tooltip
+        svg.selectAll('.node-tooltip').remove();
+        
         // Return to normal state if not selected
         if (selectedNodeId !== d.id) {
           d3.select(event.currentTarget)
@@ -186,6 +233,7 @@ export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
     // Cleanup on unmount
     return () => {
       props.svg.selectAll('.nodes-group').remove();
+      props.svg.selectAll('.node-tooltip').remove();
     };
   }, [props]);
   

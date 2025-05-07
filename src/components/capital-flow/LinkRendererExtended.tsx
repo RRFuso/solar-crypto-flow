@@ -3,6 +3,8 @@ import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
 import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
+import { addFlowParticles } from './link-renderer/ParticleAnimation';
+import { createLinkTooltip, removeLinkTooltip } from './link-renderer/LinkTooltip';
 
 export interface LinkRendererExtendedProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -64,41 +66,13 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
       categoryColor: link.data?.category ? getColorForFlow(link.data.category) : null
     }));
     
-    // Create tooltip handlers
+    // Handle mouse events
     const handleMouseOver = (event: MouseEvent, linkData: any) => {
-      // Show tooltip with flow information
-      const tooltip = svg.append("g")
-        .attr("class", "flow-tooltip")
-        .attr("transform", `translate(${event.offsetX + 10},${event.offsetY - 10})`);
-        
-      tooltip.append("rect")
-        .attr("rx", 5)
-        .attr("ry", 5)
-        .attr("width", 180)
-        .attr("height", 80)
-        .attr("fill", "rgba(0, 0, 0, 0.8)");
-        
-      tooltip.append("text")
-        .attr("x", 10)
-        .attr("y", 20)
-        .attr("fill", "white")
-        .text(`From: ${linkData.source.id} → To: ${linkData.target.id}`);
-        
-      tooltip.append("text")
-        .attr("x", 10)
-        .attr("y", 40)
-        .attr("fill", "white")
-        .text(`Value: ${(linkData.data?.value || 0).toLocaleString()}`);
-        
-      tooltip.append("text")
-        .attr("x", 10)
-        .attr("y", 60)
-        .attr("fill", linkData.percentage > 0 ? "#4ade80" : "#ff3366")
-        .text(`Flow: ${linkData.data?.category || 'Unknown'}`);
+      createLinkTooltip(svg, event, linkData);
     };
     
     const handleMouseOut = () => {
-      svg.selectAll(".flow-tooltip").remove();
+      removeLinkTooltip(svg);
     };
 
     // Apply link styling with dashed, animated lines
@@ -106,6 +80,9 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
     
     // Create arrowheads for directional flow
     createArrowheads(svg, processedLinks);
+    
+    // Add animated flow particles
+    addFlowParticles(svg, linkGroup, processedLinks, selectedNodeId);
     
     // Set up animation for link position updates if nodes are moving
     if (animateWithOrbit) {
@@ -135,7 +112,7 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
     // Cleanup function
     return () => {
       svg.selectAll(".flow-links").remove();
-      svg.selectAll(".flow-tooltip").remove();
+      svg.selectAll(".particles-group").remove();
     };
   }, [svg, links, selectedNodeId, animateWithOrbit, getCategoryColor]);
 

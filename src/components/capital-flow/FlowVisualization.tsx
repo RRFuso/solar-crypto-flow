@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
@@ -37,6 +37,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     createOrbitalVisualization
   } = useVisualizationSetup(flowData, zoomLevel);
   
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  
   // Initialize visualization data
   useVisualizationData({
     flowData,
@@ -48,6 +50,30 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     createOrbitalVisualization,
     activeCategory
   });
+
+  // Listen for node click events to update selected node
+  useEffect(() => {
+    const handleNodeClick = (event: CustomEvent) => {
+      const nodeId = event.detail.nodeId;
+      
+      // Toggle selection if clicking the same node, otherwise select the new node
+      setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
+      
+      // Update visualization data with new selected node
+      setVisualizationData(prevData => ({
+        ...prevData,
+        selectedNodeId: prevData.selectedNodeId === nodeId ? null : nodeId
+      }));
+    };
+    
+    // Add event listener
+    document.addEventListener('node-click', handleNodeClick as EventListener);
+    
+    // Remove event listener on cleanup
+    return () => {
+      document.removeEventListener('node-click', handleNodeClick as EventListener);
+    };
+  }, [setVisualizationData]);
 
   // Force initial rendering of links when component loads
   useEffect(() => {
@@ -61,7 +87,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
           const svg = d3.select(svgRef.current);
           
           // If links group doesn't exist or is empty, trigger the link renderer
-          if (svg.select('.links-group').empty() || svg.select('.links-group').selectAll('*').empty()) {
+          if (svg.select('.flow-links').empty() || svg.select('.flow-links').selectAll('*').empty()) {
             console.log("Manually triggering link rendering");
             
             // This will force the LinkRendererExtended component to render
@@ -74,7 +100,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
         }
       }
     }
-  }, [flowData, svgRef.current, dimensions, visualizationData, animationRef]);
+  }, [flowData, dimensions, visualizationData, animationRef]);
 
   // Get color based on category from backend
   const getCategoryColor = (category: string) => {
