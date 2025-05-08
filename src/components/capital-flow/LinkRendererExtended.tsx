@@ -59,15 +59,14 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
     };
 
     const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
-
     createArrowheads(svg, processedLinks);
 
-    // === FLOW PARTICLE ANIMATION WITH COLOR TRANSITION ===
     const particlesGroup = linkGroup.append("g").attr("class", "particles-group");
 
-    processedLinks.forEach((link, i) => {
-      const path = particlesGroup
+    const particles = processedLinks.map((link, i) => {
+      const path = linkGroup
         .append("path")
+        .attr("id", `link-path-${i}`)
         .attr("d", () => {
           const dx = link.target.x - link.source.x;
           const dy = link.target.y - link.source.y;
@@ -77,36 +76,28 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
         .attr("fill", "none")
         .attr("stroke", "none");
 
-      const totalLength = path.node()?.getTotalLength() || 0;
-
       const circle = particlesGroup.append("circle")
         .attr("r", 3)
-        .attr("opacity", 0.8);
+        .attr("opacity", 0.8)
+        .attr("fill", "red");
 
-      function animateParticle() {
-        circle
-          .transition()
-          .duration(4000)
-          .ease(d3.easeLinear)
-          .attrTween("transform", () => {
-            return (t: number) => {
-              const point = path.node()?.getPointAtLength(t * totalLength);
-              if (!point) return '';
-              return `translate(${point.x},${point.y})`;
-            };
-          })
-          .attrTween("fill", () => {
-            return (t: number) => {
-              const r = Math.round(255 * (1 - t));
-              const g = Math.round(255 * t);
-              return `rgb(${r},${g},0)`; // red → green
-            };
-          })
-          .on("end", animateParticle);
-      }
-
-      animateParticle();
+      return { link, path, circle, t: 0, speed: 0.005 + Math.random() * 0.005 };
     });
+
+    const animateParticles = () => {
+      particles.forEach(p => {
+        p.t = (p.t + p.speed) % 1;
+        const totalLength = p.path.node()?.getTotalLength() || 0;
+        const point = p.path.node()?.getPointAtLength(p.t * totalLength);
+        if (!point) return;
+        p.circle.attr("transform", `translate(${point.x},${point.y})`);
+        const color = d3.interpolateRgb("red", "green")(p.t);
+        p.circle.attr("fill", color);
+      });
+      requestAnimationFrame(animateParticles);
+    };
+
+    animateParticles();
 
     if (animateWithOrbit) {
       const updateLinks = () => {
@@ -116,16 +107,14 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
           const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
           return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
         });
-
-        svg.selectAll("linearGradient")
-          .attr("x1", (d: any) => d?.source?.x || 0)
-          .attr("y1", (d: any) => d?.source?.y || 0)
-          .attr("x2", (d: any) => d?.target?.x || 0)
-          .attr("y2", (d: any) => d?.target?.y || 0);
-
+        particles.forEach(p => {
+          const dx = p.link.target.x - p.link.source.x;
+          const dy = p.link.target.y - p.link.source.y;
+          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
+          p.path.attr("d", `M${p.link.source.x},${p.link.source.y}A${dr},${dr} 0 0,1 ${p.link.target.x},${p.link.target.y}`);
+        });
         requestAnimationFrame(updateLinks);
       };
-
       requestAnimationFrame(updateLinks);
     }
 
