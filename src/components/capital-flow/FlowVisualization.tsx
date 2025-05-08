@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import * as d3 from 'd3'; 
+import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
 import { OrbitLayersComponent } from './OrbitLayers';
@@ -19,8 +19,8 @@ interface FlowVisualizationProps {
   activeCategory?: string;
 }
 
-export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
-  flowData,
+export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
+  flowData, 
   zoomLevel = 40,
   predictions = [],
   chartTimeframe = '4h',
@@ -38,6 +38,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
+  // Initialize visualization data
   useVisualizationData({
     flowData,
     svgRef,
@@ -49,32 +50,41 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     activeCategory
   });
 
-  // Atualiza visualização ao clicar em uma cripto
+  // Listen for node click events to update selected node
   useEffect(() => {
     const handleNodeClick = (event: CustomEvent) => {
       const nodeId = event.detail.nodeId;
       setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
-      setVisualizationData(prev => ({
-        ...prev,
-        selectedNodeId: prev.selectedNodeId === nodeId ? null : nodeId
+      setVisualizationData(prevData => ({
+        ...prevData,
+        selectedNodeId: prevData.selectedNodeId === nodeId ? null : nodeId
       }));
     };
 
     document.addEventListener('node-click', handleNodeClick as EventListener);
-    return () => document.removeEventListener('node-click', handleNodeClick as EventListener);
+    return () => {
+      document.removeEventListener('node-click', handleNodeClick as EventListener);
+    };
   }, [setVisualizationData]);
 
-  // Garante que links sejam renderizados ao carregar
+  // Force initial rendering of links
   useEffect(() => {
     if (flowData && flowData.length > 0 && svgRef.current && dimensions.width > 0) {
-      if (animationRef.current === null && visualizationData.nodes.length > 0) {
-        setVisualizationData(prev => ({
-          ...prev,
-          lastUpdate: Date.now()
-        }));
-      }
+      setTimeout(() => {
+        if (animationRef.current === null && visualizationData.nodes.length > 0) {
+          if (visualizationData.links.length > 0 && svgRef.current) {
+            const svg = d3.select(svgRef.current);
+            if (svg.select('.flow-links').empty() || svg.select('.flow-links').selectAll('*').empty()) {
+              setVisualizationData(prevData => ({
+                ...prevData,
+                lastUpdate: new Date().getTime()
+              }));
+            }
+          }
+        }
+      }, 100);
     }
-  }, [flowData, dimensions, visualizationData.nodes, animationRef]);
+  }, [flowData, dimensions, visualizationData, animationRef]);
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -83,6 +93,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
       case "🧱 Acum.": return "#FFCC00";
       case "🔁 Rev.": return "#00CCFF";
       case "⚠️ Alert": return "#FF9900";
+      case "Neutro":
       default: return "#8A9196";
     }
   };
@@ -99,17 +110,24 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
 
   return (
     <div ref={containerRef} className="w-full h-full" style={{ minHeight: "700px" }}>
-      <svg ref={svgRef} className="w-full h-full" />
+      <svg ref={svgRef} className="w-full h-full">
+        <defs>
+          <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style={{ stopColor: '#ff3366', stopOpacity: 1 }} />
+            <stop offset="100%" style={{ stopColor: '#00ff88', stopOpacity: 1 }} />
+          </linearGradient>
+        </defs>
+      </svg>
 
       {renderVisualization && svgRef.current && (
         <>
-          <OrbitLayersComponent
+          <OrbitLayersComponent 
             svg={d3.select(svgRef.current)}
             width={dimensions.width}
             height={dimensions.height}
             orbitLayers={8}
             baseRadius={34.5 * (zoomLevel / 100) * 1.15}
-            extendFullScreen
+            extendFullScreen={true}
           />
 
           <LinkRendererExtended
@@ -117,30 +135,25 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             links={visualizationData.links}
             selectedNodeId={visualizationData.selectedNodeId}
             predictions={predictions}
-            animateWithOrbit
+            animateWithOrbit={true}
             getCategoryColor={getCategoryColor}
           />
 
-          <NodeRendererComponent
+          <NodeRendererComponent 
             svg={d3.select(svgRef.current)}
-            nodes={visualizationData.nodes.map(node => ({
-              ...node,
-              glowColor: node.flowCategory === "🚀 Alta" ? "rgba(0,255,136,0.6)" :
-                         node.flowCategory === "🏃 Fuga" ? "rgba(255,51,102,0.6)" : 
-                         "rgba(0,187,255,0.3)"
-            }))}
+            nodes={visualizationData.nodes}
             centralNode={visualizationData.centralNode}
             selectedNodeId={visualizationData.selectedNodeId}
             zoomLevel={zoomLevel * 1.25}
           />
 
-          <OrbitalAnimationComponent
+          <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
             nodes={visualizationData.nodes}
             width={dimensions.width}
             height={dimensions.height}
             rotationSpeed={0.00012}
-            updateLinksInRealTime
+            updateLinksInRealTime={true}
           />
 
           {predictions && predictions.length > 0 && (
