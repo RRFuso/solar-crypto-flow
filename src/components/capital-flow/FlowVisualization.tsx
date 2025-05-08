@@ -1,30 +1,23 @@
 
-import React, { useEffect, useState } from 'react';
-import * as d3 from 'd3'; 
+import React, { useEffect } from 'react';
+import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
-import { Prediction } from '@/lib/aiModel';
 import { OrbitLayersComponent } from './OrbitLayers';
-import { LinkRendererExtended } from './LinkRendererExtended';
+import { LinkRendererComponent } from './LinkRenderer';
 import { NodeRendererComponent } from './NodeRenderer';
 import { OrbitalAnimationComponent } from './OrbitalAnimation';
-import PredictionOrbitalOverlay from '../ai/PredictionOrbitalOverlay';
+import { StarfieldBackground } from './visualization/StarfieldBackground';
 import { useVisualizationSetup } from './visualization/useVisualizationSetup';
 import { useVisualizationData } from './visualization/useVisualizationData';
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
   zoomLevel?: number;
-  predictions?: Prediction[];
-  chartTimeframe?: string;
-  activeCategory?: string;
 }
 
 export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   flowData,
-  zoomLevel = 40,
-  predictions = [],
-  chartTimeframe = '4h',
-  activeCategory = 'all'
+  zoomLevel = 70
 }) => {
   const {
     svgRef,
@@ -35,57 +28,17 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     animationRef,
     createOrbitalVisualization
   } = useVisualizationSetup(flowData, zoomLevel);
-
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-
+  
+  // Initialize visualization data
   useVisualizationData({
     flowData,
     svgRef,
     dimensions,
-    zoomLevel: zoomLevel * 1.15,
+    zoomLevel,
     setVisualizationData,
     animationRef,
-    createOrbitalVisualization,
-    activeCategory
+    createOrbitalVisualization
   });
-
-  // Atualiza visualização ao clicar em uma cripto
-  useEffect(() => {
-    const handleNodeClick = (event: CustomEvent) => {
-      const nodeId = event.detail.nodeId;
-      setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
-      setVisualizationData(prev => ({
-        ...prev,
-        selectedNodeId: prev.selectedNodeId === nodeId ? null : nodeId
-      }));
-    };
-
-    document.addEventListener('node-click', handleNodeClick as EventListener);
-    return () => document.removeEventListener('node-click', handleNodeClick as EventListener);
-  }, [setVisualizationData]);
-
-  // Garante que links sejam renderizados ao carregar
-  useEffect(() => {
-    if (flowData && flowData.length > 0 && svgRef.current && dimensions.width > 0) {
-      if (animationRef.current === null && visualizationData.nodes.length > 0) {
-        setVisualizationData(prev => ({
-          ...prev,
-          lastUpdate: Date.now()
-        }));
-      }
-    }
-  }, [flowData, dimensions, visualizationData.nodes, animationRef]);
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "🚀 Alta": return "#00FF88";
-      case "🏃 Fuga": return "#FF3366";
-      case "🧱 Acum.": return "#FFCC00";
-      case "🔁 Rev.": return "#00CCFF";
-      case "⚠️ Alert": return "#FF9900";
-      default: return "#8A9196";
-    }
-  };
 
   if (!flowData || flowData.length === 0) {
     return (
@@ -95,63 +48,73 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     );
   }
 
+  // Apply static glow (drop-shadow) and remove animated halos
+  useEffect(() => {
+    if (svgRef.current && visualizationData.nodes.length > 0 && visualizationData.links.length > 0) {
+      const svg = d3.select(svgRef.current);
+      // Remove any existing animated halos/circles (if they exist)
+      svg.selectAll('circle.halo').remove();
+      svg.selectAll('circle.pulse').remove();
+      // Apply drop shadows based on flow direction per node
+      const centralId = visualizationData.centralNode?.id;
+      visualizationData.nodes.forEach(node => {
+        if (node.id === centralId) return; // skip central node
+        const hasInflow = visualizationData.links.some(
+          link => link.target.id === node.id && link.source.id === centralId
+        );
+        const hasOutflow = visualizationData.links.some(
+          link => link.source.id === node.id && link.target.id === centralId
+        );
+        let color = '#0000FF'; // default blue for neutral
+        if (hasInflow) color = '#00FF00';
+        else if (hasOutflow) color = '#FF0000';
+        // Apply CSS drop-shadow filter on the node element (assuming ID equals node.id)
+        svg.select(`#${node.id}`).style('filter', `drop-shadow(0 0 8px ${color})`);
+      });
+    }
+  }, [visualizationData]);
+
+  // Only render the visualization components if we have the SVG and data
   const renderVisualization = svgRef.current && dimensions.width > 0 && visualizationData.nodes.length > 0;
 
   return (
     <div ref={containerRef} className="w-full h-full" style={{ minHeight: "700px" }}>
       <svg ref={svgRef} className="w-full h-full" />
-
       {renderVisualization && svgRef.current && (
         <>
-          <OrbitLayersComponent
+          {/* Add starfield background */}
+          <StarfieldBackground 
+            svg={d3.select(svgRef.current)}
+            width={dimensions.width}
+            height={dimensions.height}
+          />
+          
+          {/* Render orbital visualization components */}
+          <OrbitLayersComponent 
             svg={d3.select(svgRef.current)}
             width={dimensions.width}
             height={dimensions.height}
             orbitLayers={8}
-            baseRadius={34.5 * (zoomLevel / 100) * 1.15}
-            extendFullScreen
+            baseRadius={30 * (zoomLevel / 100)} // Apply zoom to orbit radius
+            extendFullScreen={true} // Extend orbit lines to full screen
           />
-
-          <LinkRendererExtended
+          <LinkRendererComponent 
             svg={d3.select(svgRef.current)}
             links={visualizationData.links}
             selectedNodeId={visualizationData.selectedNodeId}
-            predictions={predictions}
-            animateWithOrbit
-            getCategoryColor={getCategoryColor}
           />
-
-          <NodeRendererComponent
+          <NodeRendererComponent 
             svg={d3.select(svgRef.current)}
-            nodes={visualizationData.nodes.map(node => ({
-              ...node,
-              glowColor: node.flowCategory === "🚀 Alta" ? "rgba(0,255,136,0.6)" :
-                         node.flowCategory === "🏃 Fuga" ? "rgba(255,51,102,0.6)" : 
-                         "rgba(0,187,255,0.3)"
-            }))}
+            nodes={visualizationData.nodes}
             centralNode={visualizationData.centralNode}
             selectedNodeId={visualizationData.selectedNodeId}
-            zoomLevel={zoomLevel * 1.25}
           />
-
-          <OrbitalAnimationComponent
+          <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
             nodes={visualizationData.nodes}
             width={dimensions.width}
             height={dimensions.height}
-            rotationSpeed={0.00012}
-            updateLinksInRealTime
           />
-
-          {predictions && predictions.length > 0 && (
-            <PredictionOrbitalOverlay
-              svg={d3.select(svgRef.current)}
-              nodes={visualizationData.nodes}
-              updateInterval={600000}
-              predictions={predictions}
-              chartTimeframe={chartTimeframe}
-            />
-          )}
         </>
       )}
     </div>
