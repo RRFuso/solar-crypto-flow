@@ -5,7 +5,7 @@ import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
 import { OrbitLayersComponent } from './OrbitLayers';
 import { LinkRendererExtended } from './LinkRendererExtended';
-import { NodeRendererComponent } from './NodeRenderer';
+import { NodeRendererComponent } from './NodeRenderer'; 
 import { OrbitalAnimationComponent } from './OrbitalAnimation';
 import PredictionOrbitalOverlay from '../ai/PredictionOrbitalOverlay';
 import { useVisualizationSetup } from './visualization/useVisualizationSetup';
