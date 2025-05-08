@@ -25,22 +25,22 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
   const getColorForFlow = (category: string) => {
     if (getCategoryColor) return getCategoryColor(category);
     switch (category) {
-      case "🚀 Alta": return "#00FF88";
-      case "🏃 Fuga": return "#FF3366";
-      case "🧱 Acum.": return "#FFCC00";
-      case "🔁 Rev.": return "#00CCFF";
-      case "⚠️ Alert": return "#FF9900";
-      default: return "#8A9196";
+      case '🚀 Alta': return '#00FF88';
+      case '🏃 Fuga': return '#FF3366';
+      case '🧱 Acum.': return '#FFCC00';
+      case '🔁 Rev.': return '#00CCFF';
+      case '⚠️ Alert': return '#FF9900';
+      default: return '#8A9196';
     }
   };
 
   useEffect(() => {
-    if (!svg || !links || links.length === 0) return;
+    if (!svg || !links.length) return;
 
-    svg.selectAll(".flow-links").remove();
-    svg.selectAll(".particles-group").remove();
+    svg.selectAll('.flow-links').remove();
+    svg.selectAll('.particles-group').remove();
 
-    const linkGroup = svg.append("g").attr("class", "flow-links");
+    const linkGroup = svg.append('g').attr('class', 'flow-links');
 
     const processedLinks = links.map(link => ({
       ...link,
@@ -59,71 +59,72 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
     const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
     createArrowheads(svg, processedLinks);
 
-    const particlesGroup = linkGroup.append("g").attr("class", "particles-group");
+    const particlesGroup = linkGroup.append('g').attr('class', 'particles-group');
 
-    const particleElements = processedLinks.map((link) => {
-      const path = linkGroup.append("path")
-        .attr("fill", "none")
-        .attr("stroke", "none")
-        .attr("class", `path-${link.source.id}-${link.target.id}`);
+    const particles = processedLinks.map((link, i) => {
+      const path = linkGroup
+        .append('path')
+        .attr('class', `link-path-${i}`)
+        .attr('fill', 'none')
+        .attr('stroke', 'none');
 
-      const particle = particlesGroup.append("circle")
-        .attr("r", 3)
-        .attr("opacity", 0.9);
+      const circle = particlesGroup.append('circle')
+        .attr('r', 3)
+        .attr('opacity', 0.8)
+        .attr('class', `particle-${i}`);
 
-      return { link, path, particle, offset: Math.random() };
+      return { link, path, circle };
     });
 
-    const updateAnimation = () => {
-      particleElements.forEach(({ link, path, particle, offset }) => {
+    const animateParticles = () => {
+      particles.forEach(({ link, path, circle }, index) => {
         const dx = link.target.x - link.source.x;
         const dy = link.target.y - link.source.y;
         const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-
         const d = `M${link.source.x},${link.source.y}A${dr},${dr} 0 0,1 ${link.target.x},${link.target.y}`;
-        path.attr("d", d);
+
+        path.attr('d', d);
 
         const totalLength = path.node()?.getTotalLength() || 0;
-        const now = Date.now();
-        const speed = 4000; // 4s loop
-        const t = ((now % speed) / speed + offset) % 1;
-
+        const t = ((Date.now() % 4000) / 4000);
         const point = path.node()?.getPointAtLength(t * totalLength);
+
         if (point) {
-          particle.attr("transform", `translate(${point.x},${point.y})`);
-          const color = d3.interpolateRgb("red", "lime")(t);
-          particle.attr("fill", color);
+          circle
+            .attr('transform', `translate(${point.x},${point.y})`)
+            .attr('fill', () => {
+              const r = Math.round(255 * (1 - t));
+              const g = Math.round(255 * t);
+              return `rgb(${r},${g},0)`;
+            });
         }
       });
-
-      requestAnimationFrame(updateAnimation);
     };
 
-    requestAnimationFrame(updateAnimation);
-
     if (animateWithOrbit) {
-      const updateLinks = () => {
-        link.attr("d", (d: any) => {
+      const update = () => {
+        link.attr('d', (d: any) => {
           const dx = d.target.x - d.source.x;
           const dy = d.target.y - d.source.y;
           const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
           return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
         });
 
-        svg.selectAll("linearGradient")
-          .attr("x1", (d: any) => d?.source?.x || 0)
-          .attr("y1", (d: any) => d?.source?.y || 0)
-          .attr("x2", (d: any) => d?.target?.x || 0)
-          .attr("y2", (d: any) => d?.target?.y || 0);
+        svg.selectAll('linearGradient')
+          .attr('x1', (d: any) => d?.source?.x || 0)
+          .attr('y1', (d: any) => d?.source?.y || 0)
+          .attr('x2', (d: any) => d?.target?.x || 0)
+          .attr('y2', (d: any) => d?.target?.y || 0);
 
-        requestAnimationFrame(updateLinks);
+        animateParticles();
+        requestAnimationFrame(update);
       };
-      requestAnimationFrame(updateLinks);
+      requestAnimationFrame(update);
     }
 
     return () => {
-      svg.selectAll(".flow-links").remove();
-      svg.selectAll(".particles-group").remove();
+      svg.selectAll('.flow-links').remove();
+      svg.selectAll('.particles-group').remove();
     };
   }, [svg, links, selectedNodeId, animateWithOrbit, getCategoryColor]);
 
