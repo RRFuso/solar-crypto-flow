@@ -2,49 +2,59 @@
 import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
+import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
 
 interface PredictionOrbitalOverlayProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   nodes: any[];
+  updateInterval?: number;
   predictions?: Prediction[];
   chartTimeframe?: string;
 }
 
-export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> = ({
+const normalizeSymbol = (symbol: string) =>
+  symbol.replace(/[-_]?USDT$/i, '').replace(/[-_]?USD$/i, '');
+
+const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> = ({
   svg,
   nodes,
   predictions = [],
+  chartTimeframe = '4h',
 }) => {
   const [predictionMap, setPredictionMap] = useState<Map<string, Prediction>>(new Map());
 
   useEffect(() => {
-    if (!predictions || predictions.length === 0) return;
     const map = new Map<string, Prediction>();
-    predictions.forEach(p => map.set(p.symbol, p));
+    predictions.forEach((p) => {
+      const key = normalizeSymbol(p.symbol);
+      map.set(key, p);
+    });
     setPredictionMap(map);
   }, [predictions]);
 
   useEffect(() => {
-    if (!svg || predictionMap.size === 0) return;
+    if (!svg || nodes.length === 0 || predictionMap.size === 0) return;
 
-    svg.selectAll('.prediction-pulse-group').remove();
+    // Remove previous
+    svg.selectAll('.prediction-pulse').remove();
 
-    const pulseLayer = svg.append('g').attr('class', 'prediction-pulse-group');
+    // Create group
+    const overlayGroup = svg.append('g').attr('class', 'prediction-overlay');
 
-    // Inicializar grupos de pulso com base nas previsões
-    nodes.forEach(node => {
-      const prediction = predictionMap.get(node.id);
+    nodes.forEach((node) => {
+      const cleanId = normalizeSymbol(node.id);
+      const prediction = predictionMap.get(cleanId);
+
       if (!prediction || prediction.confidence < 0.6) return;
 
       const color = prediction.bullish
         ? `rgba(0, 255, 128, ${prediction.confidence * 0.7})`
         : `rgba(255, 50, 50, ${prediction.confidence * 0.7})`;
 
-      const group = pulseLayer.append('g')
+      const pulse = overlayGroup
+        .append('circle')
         .attr('class', 'prediction-pulse')
-        .attr('data-id', node.id); // referenciado por id para atualização
-
-      const circle = group.append('circle')
+        .datum(node)
         .attr('r', node.radius * 1.2)
         .attr('fill', 'none')
         .attr('stroke', color)
@@ -52,38 +62,34 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
         .attr('opacity', 0.7)
         .attr('pointer-events', 'none');
 
-      circle.append('animate')
+      // Animate radius
+      pulse.append('animate')
         .attr('attributeName', 'r')
         .attr('values', `${node.radius * 1.2};${node.radius * 1.8};${node.radius * 1.2}`)
         .attr('dur', prediction.bullish ? '3s' : '4s')
         .attr('repeatCount', 'indefinite');
 
-      circle.append('animate')
+      // Animate opacity
+      pulse.append('animate')
         .attr('attributeName', 'opacity')
         .attr('values', '0.7;0.2;0.7')
         .attr('dur', prediction.bullish ? '3s' : '4s')
         .attr('repeatCount', 'indefinite');
     });
 
-    // Loop de animação para atualizar posição dos grupos
-    const animate = () => {
-      pulseLayer.selectAll<SVGGElement, unknown>('.prediction-pulse')
-        .each(function () {
-          const group = d3.select(this);
-          const id = group.attr('data-id');
-          const node = nodes.find(n => n.id === id);
-          if (node) {
-            group.attr('transform', `translate(${node.x}, ${node.y})`);
-          }
-        });
+    // Sync position with orbital movement
+    const syncPulsePositions = () => {
+      svg.selectAll<SVGCircleElement, any>('circle.prediction-pulse')
+        .attr('cx', (d) => d.x)
+        .attr('cy', (d) => d.y);
 
-      requestAnimationFrame(animate);
+      requestAnimationFrame(syncPulsePositions);
     };
 
-    requestAnimationFrame(animate);
+    syncPulsePositions();
 
     return () => {
-      svg.selectAll('.prediction-pulse-group').remove();
+      svg.selectAll('.prediction-pulse').remove();
     };
   }, [svg, predictionMap, nodes]);
 
