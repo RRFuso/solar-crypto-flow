@@ -1,11 +1,12 @@
-
 import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
-import { Prediction } from '@/lib/aiModel';
+import { Prediction } from '@/lib/aiModel'; 
+import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
 
 interface PredictionOrbitalOverlayProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   nodes: any[];
+  updateInterval?: number;
   predictions?: Prediction[];
   chartTimeframe?: string;
 }
@@ -13,77 +14,70 @@ interface PredictionOrbitalOverlayProps {
 export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> = ({
   svg,
   nodes,
+  updateInterval = 600000,
   predictions = [],
+  chartTimeframe = '4h'
 }) => {
   const [predictionMap, setPredictionMap] = useState<Map<string, Prediction>>(new Map());
 
   useEffect(() => {
     if (!predictions || predictions.length === 0) return;
-    const map = new Map<string, Prediction>();
-    predictions.forEach(p => map.set(p.symbol, p));
-    setPredictionMap(map);
+
+    const newMap = new Map<string, Prediction>();
+    predictions.forEach(p => newMap.set(p.symbol, p));
+    setPredictionMap(newMap);
   }, [predictions]);
 
   useEffect(() => {
-    if (!svg || predictionMap.size === 0) return;
+    if (!svg || !predictionMap || predictionMap.size === 0 || !nodes) return;
 
-    svg.selectAll('.prediction-pulse-group').remove();
+    svg.selectAll('.prediction-pulse').remove();
 
-    const pulseLayer = svg.append('g').attr('class', 'prediction-pulse-group');
+    const pulseGroup = svg.append('g').attr('class', 'prediction-pulse-group');
 
-    // Inicializar grupos de pulso com base nas previsões
     nodes.forEach(node => {
       const prediction = predictionMap.get(node.id);
       if (!prediction || prediction.confidence < 0.6) return;
 
       const color = prediction.bullish
-        ? `rgba(0, 255, 128, ${prediction.confidence * 0.7})`
-        : `rgba(255, 50, 50, ${prediction.confidence * 0.7})`;
+        ? `rgba(0,255,128,${prediction.confidence * 0.7})`
+        : `rgba(255,50,50,${prediction.confidence * 0.7})`;
 
-      const group = pulseLayer.append('g')
+      const pulse = pulseGroup.append('circle')
+        .datum(node) // bind node data to update it in animation
         .attr('class', 'prediction-pulse')
-        .attr('data-id', node.id); // referenciado por id para atualização
-
-      const circle = group.append('circle')
         .attr('r', node.radius * 1.2)
         .attr('fill', 'none')
         .attr('stroke', color)
-        .attr('stroke-width', 2)
+        .attr('stroke-width', 3)
         .attr('opacity', 0.7)
         .attr('pointer-events', 'none');
 
-      circle.append('animate')
+      pulse.append('animate')
         .attr('attributeName', 'r')
         .attr('values', `${node.radius * 1.2};${node.radius * 1.8};${node.radius * 1.2}`)
         .attr('dur', prediction.bullish ? '3s' : '4s')
         .attr('repeatCount', 'indefinite');
 
-      circle.append('animate')
+      pulse.append('animate')
         .attr('attributeName', 'opacity')
-        .attr('values', '0.7;0.2;0.7')
+        .attr('values', `0.7;0.3;0.7`)
         .attr('dur', prediction.bullish ? '3s' : '4s')
         .attr('repeatCount', 'indefinite');
     });
 
-    // Loop de animação para atualizar posição dos grupos
-    const animate = () => {
-      pulseLayer.selectAll<SVGGElement, unknown>('.prediction-pulse')
-        .each(function () {
-          const group = d3.select(this);
-          const id = group.attr('data-id');
-          const node = nodes.find(n => n.id === id);
-          if (node) {
-            group.attr('transform', `translate(${node.x}, ${node.y})`);
-          }
-        });
+    const updatePositions = () => {
+      svg.selectAll('.prediction-pulse')
+        .attr('cx', function (d: any) { return d.x; })
+        .attr('cy', function (d: any) { return d.y; });
 
-      requestAnimationFrame(animate);
+      requestAnimationFrame(updatePositions);
     };
 
-    requestAnimationFrame(animate);
+    updatePositions();
 
     return () => {
-      svg.selectAll('.prediction-pulse-group').remove();
+      svg.selectAll('.prediction-pulse').remove();
     };
   }, [svg, predictionMap, nodes]);
 
