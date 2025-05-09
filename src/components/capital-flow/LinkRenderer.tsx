@@ -1,161 +1,158 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import * as d3 from 'd3';
-import { FlowData } from '@/types/crypto';
+import { createLinkTooltip, removeLinkTooltip } from './link-renderer/LinkTooltip';
+import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
+import { addFlowParticles } from './link-renderer/ParticleAnimation';
 import { Prediction } from '@/lib/aiModel';
-import { OrbitLayersComponent } from './OrbitLayers';
-import { LinkRendererExtended } from './LinkRendererExtended';
-import { NodeRendererComponent } from './NodeRenderer';
-import { OrbitalAnimationComponent } from './OrbitalAnimation';
-import PredictionOrbitalOverlay from '../ai/PredictionOrbitalOverlay';
-import { useVisualizationSetup } from './visualization/useVisualizationSetup';
-import { useVisualizationData } from './visualization/useVisualizationData';
 
-interface FlowVisualizationProps {
-  flowData: FlowData[];
-  zoomLevel?: number;
+interface LinkRendererProps {
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  links: any[];
+  selectedNodeId?: string | null;
   predictions?: Prediction[];
-  chartTimeframe?: string;
-  activeCategory?: string;
+  animateWithOrbit?: boolean; // New prop to control orbital animation
 }
 
-export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
-  flowData,
-  zoomLevel = 40,
-  predictions = [],
-  chartTimeframe = '4h',
-  activeCategory = 'all'
-}) => {
-  const {
-    svgRef,
-    containerRef,
-    dimensions,
-    visualizationData,
-    setVisualizationData,
-    animationRef,
-    createOrbitalVisualization
-  } = useVisualizationSetup(flowData, zoomLevel);
-
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-
-  // Inicializa a visualização com os dados
-  useVisualizationData({
-    flowData,
-    svgRef,
-    dimensions,
-    zoomLevel: zoomLevel * 1.15,
-    setVisualizationData,
-    animationRef,
-    createOrbitalVisualization,
-    activeCategory
-  });
-
-  // Escuta eventos de clique em nós
-  useEffect(() => {
-    const handleNodeClick = (event: CustomEvent) => {
-      const nodeId = event.detail.nodeId;
-      setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
-      setVisualizationData(prev => ({
-        ...prev,
-        selectedNodeId: prev.selectedNodeId === nodeId ? null : nodeId
-      }));
-    };
-
-    document.addEventListener('node-click', handleNodeClick as EventListener);
-    return () => document.removeEventListener('node-click', handleNodeClick as EventListener);
-  }, [setVisualizationData]);
-
-  // Força renderização inicial de links
-  useEffect(() => {
-    if (flowData && flowData.length > 0 && svgRef.current && dimensions.width > 0) {
-      if (animationRef.current === null && visualizationData.nodes.length > 0) {
-        setVisualizationData(prev => ({
-          ...prev,
-          lastUpdate: Date.now()
-        }));
-      }
-    }
-  }, [flowData, dimensions, visualizationData.nodes, animationRef]);
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "🚀 Alta": return "#00FF88";
-      case "🏃 Fuga": return "#FF3366";
-      case "🧱 Acum.": return "#FFCC00";
-      case "🔁 Rev.": return "#00CCFF";
-      case "⚠️ Alert": return "#FF9900";
-      default: return "#8A9196";
-    }
-  };
-
-  if (!flowData || flowData.length === 0) {
-    return (
-      <div ref={containerRef} className="w-full h-full flex items-center justify-center" style={{ minHeight: "700px" }}>
-        <p className="text-gray-400">No flow data available</p>
-      </div>
-    );
+export class LinkRenderer {
+  private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  private links: any[];
+  private animationFrameId: number | null = null;
+  
+  constructor(props: LinkRendererProps) {
+    this.svg = props.svg;
+    this.links = props.links;
+    this.renderLinks(props);
   }
+  
+  private renderLinks({ svg, links, selectedNodeId, predictions = [], animateWithOrbit = false }: LinkRendererProps) {
+    // Clear any existing links first
+    svg.selectAll('.links-group').remove();
+    
+    // Create links group
+    const linkGroup = svg.append("g").attr("class", "links-group");
+    
+    // Handle link hover events
+    const handleMouseOver = (event: MouseEvent, linkData: any) => {
+      createLinkTooltip(svg, event, linkData);
+    };
+    
+    const handleMouseOut = (event: MouseEvent, linkData: any) => {
+      removeLinkTooltip(svg);
+    };
+    
+    // Process links for visualization with prediction data
+    const processedLinks = links.map(link => {
+      // Find predictions for the source and target nodes
+      const sourcePrediction = predictions?.find(p => p.symbol === link.source.id);
+      const targetPrediction = predictions?.find(p => p.symbol === link.target.id);
+      
+      // Determine if this link should be colored based on predictions
+      let predictionColor = null;
+      
+      // Color based on source prediction if it has high confidence
+      if (sourcePrediction && sourcePrediction.confidence >= 0.6) {
+        predictionColor = sourcePrediction.bullish ? "#00ff80" : "#ff3232"; // Neon green or neon red
+      }
+      // If target has higher confidence, use that
+      if (targetPrediction && targetPrediction.confidence >= 0.6) {
+        if (!predictionColor || targetPrediction.confidence > (sourcePrediction?.confidence || 0)) {
+          predictionColor = targetPrediction.bullish ? "#00ff80" : "#ff3232";
+        }
+      }
+      
+      return {
+        ...link,
+        markerId: `marker-${link.source.id}-${link.target.id}`,
+        predictionColor,
+        isHighlighted: selectedNodeId ? (link.source.id === selectedNodeId || link.target.id === selectedNodeId) : true
+      };
+    });
+    
+    // Draw links with curved paths and hover effects
+    const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
+    
+    // Create arrowheads for directional flow
+    createArrowheads(svg, processedLinks);
+    
+    // Apply the markers to links
+    link.attr("marker-end", d => `url(#${d.markerId})`);
+    
+    // Add animated particles for flow visualization
+    addFlowParticles(svg, linkGroup, processedLinks, selectedNodeId);
+    
+    // If orbital animation is enabled, update link positions in real-time
+    if (animateWithOrbit) {
+      this.setupLinkUpdates(linkGroup, processedLinks, selectedNodeId);
+    }
+  }
+  
+  // New method to update link positions with orbital movements
+  private setupLinkUpdates(linkGroup: d3.Selection<SVGGElement, unknown, null, undefined>, links: any[], selectedNodeId: string | null) {
+    // Cancel any existing animation
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
+    
+    const updateLinksPosition = () => {
+      // Update each link path
+      this.svg.selectAll("path.link-path")
+        .attr("d", (d: any) => {
+          const dx = d.target.x - d.source.x;
+          const dy = d.target.y - d.source.y;
+          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
+          return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+        })
+        .attr("opacity", (d: any) => {
+          if (selectedNodeId) {
+            return d.source.id === selectedNodeId || d.target.id === selectedNodeId ? 0.9 : 0.15;
+          }
+          return d.predictionColor ? 0.9 : 0.6;
+        });
+      
+      // Update link gradients
+      this.svg.selectAll("linearGradient")
+        .attr("x1", (d: any) => d?.source?.x || 0)
+        .attr("y1", (d: any) => d?.source?.y || 0)
+        .attr("x2", (d: any) => d?.target?.x || 0)
+        .attr("y2", (d: any) => d?.target?.y || 0);
+      
+      // Update arrowheads position
+      this.svg.selectAll("marker")
+        .attr("refX", (d: any) => {
+          // Adjust refX based on target node radius
+          return 8 + (d?.target?.radius || 20) * 0.8;
+        });
+      
+      // Continue animation
+      this.animationFrameId = requestAnimationFrame(updateLinksPosition);
+    };
+    
+    // Start animation
+    this.animationFrameId = requestAnimationFrame(updateLinksPosition);
+  }
+  
+  public cleanup() {
+    // Cancel any active animation frame
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+  }
+}
 
-  const renderVisualization = svgRef.current && dimensions.width > 0 && visualizationData.nodes.length > 0;
-
-  return (
-    <div ref={containerRef} className="w-full h-full" style={{ minHeight: "700px" }}>
-      <svg ref={svgRef} className="w-full h-full" />
-
-      {renderVisualization && svgRef.current && (
-        <>
-          <OrbitLayersComponent
-            svg={d3.select(svgRef.current)}
-            width={dimensions.width}
-            height={dimensions.height}
-            orbitLayers={8}
-            baseRadius={34.5 * (zoomLevel / 100) * 1.15}
-            extendFullScreen
-          />
-
-          <LinkRendererExtended
-            svg={d3.select(svgRef.current)}
-            links={visualizationData.links}
-            selectedNodeId={visualizationData.selectedNodeId}
-            predictions={predictions}
-            animateWithOrbit
-            getCategoryColor={getCategoryColor}
-          />
-
-          <NodeRendererComponent
-            svg={d3.select(svgRef.current)}
-            nodes={visualizationData.nodes.map(node => ({
-              ...node,
-              glowColor:
-                node.flowCategory === "🚀 Alta" ? "rgba(0,255,136,0.6)" :
-                node.flowCategory === "🏃 Fuga" ? "rgba(255,51,102,0.6)" :
-                "rgba(0,187,255,0.3)" // padrão neutro
-            }))}
-            centralNode={visualizationData.centralNode}
-            selectedNodeId={visualizationData.selectedNodeId}
-            zoomLevel={zoomLevel * 1.25}
-          />
-
-          <OrbitalAnimationComponent
-            svg={d3.select(svgRef.current)}
-            nodes={visualizationData.nodes}
-            width={dimensions.width}
-            height={dimensions.height}
-            rotationSpeed={0.00012}
-            updateLinksInRealTime
-          />
-
-          {predictions && predictions.length > 0 && (
-            <PredictionOrbitalOverlay
-              svg={d3.select(svgRef.current)}
-              nodes={visualizationData.nodes}
-              updateInterval={600000}
-              predictions={predictions}
-              chartTimeframe={chartTimeframe}
-            />
-          )}
-        </>
-      )}
-    </div>
-  );
-};
+// Fix component export for Fast Refresh compatibility
+export const LinkRendererComponent = React.memo((props: LinkRendererProps) => {
+  useEffect(() => {
+    const renderer = new LinkRenderer(props);
+    
+    // Cleanup on unmount or when props change
+    return () => {
+      renderer.cleanup();
+      props.svg.selectAll(".links-group").remove();
+      props.svg.selectAll("defs").remove();
+    };
+  }, [props]);
+  
+  return null;
+});
