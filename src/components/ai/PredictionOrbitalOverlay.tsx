@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
-import { Prediction } from '@/lib/aiModel'; 
-import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
+import { Prediction } from '@/lib/aiModel';
 
 interface PredictionOrbitalOverlayProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -30,14 +29,14 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
   useEffect(() => {
     if (!svg || predictionMap.size === 0) return;
 
-    svg.selectAll('.prediction-pulse').remove();
+    svg.selectAll('.prediction-pulse-group').remove();
 
-    const pulseGroup = svg.append('g').attr('class', 'prediction-pulse');
+    const pulseGroup = svg.append('g').attr('class', 'prediction-pulse-group');
 
-    const activeNodes = nodes.filter((n) => predictionMap.has(n.id));
-    const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+    const pulseMap = new Map<string, d3.Selection<SVGCircleElement, unknown, null, undefined>>();
 
-    activeNodes.forEach((node) => {
+    // Criar os círculos de pulso uma vez
+    nodes.forEach((node) => {
       const prediction = predictionMap.get(node.id);
       if (!prediction || prediction.confidence < 0.6) return;
 
@@ -47,7 +46,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
 
       const pulse = pulseGroup
         .append('circle')
-        .datum(node) // bind data for dynamic updates
+        .attr('class', 'prediction-pulse')
         .attr('r', node.radius * 1.2)
         .attr('fill', 'none')
         .attr('stroke', color)
@@ -55,6 +54,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
         .attr('opacity', 0.7)
         .attr('pointer-events', 'none');
 
+      // SVG-based animation
       pulse.append('animate')
         .attr('attributeName', 'r')
         .attr('values', `${node.radius * 1.2};${node.radius * 1.8};${node.radius * 1.2}`)
@@ -66,13 +66,20 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
         .attr('values', '0.7;0.3;0.7')
         .attr('dur', prediction.bullish ? '3s' : '4s')
         .attr('repeatCount', 'indefinite');
+
+      pulseMap.set(node.id, pulse);
     });
 
-    // Sync pulse position with orbiting nodes
+    // Atualizar a posição de cada pulse sincronizada com os nós orbitais
     const animate = () => {
-      pulseGroup.selectAll('circle')
-        .attr('cx', (d: any) => d.x)
-        .attr('cy', (d: any) => d.y);
+      pulseMap.forEach((circle, id) => {
+        const updatedNode = nodes.find((n) => n.id === id);
+        if (updatedNode) {
+          circle
+            .attr('cx', updatedNode.x)
+            .attr('cy', updatedNode.y);
+        }
+      });
 
       requestAnimationFrame(animate);
     };
@@ -80,7 +87,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
     requestAnimationFrame(animate);
 
     return () => {
-      svg.selectAll('.prediction-pulse').remove();
+      svg.selectAll('.prediction-pulse-group').remove();
     };
   }, [svg, predictionMap, nodes]);
 
