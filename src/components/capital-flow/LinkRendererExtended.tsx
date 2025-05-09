@@ -38,17 +38,21 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
   useEffect(() => {
     if (!svg || !links || links.length === 0) return;
 
+    // Clear previous links and particles
     svg.selectAll(".flow-links").remove();
     svg.selectAll(".particles-group").remove();
 
+    // Create link group
     const linkGroup = svg.append("g").attr("class", "flow-links");
 
+    // Process links and add category colors
     const processedLinks = links.map(link => ({
       ...link,
       markerId: `marker-${link.source.id}-${link.target.id}`,
       categoryColor: link.data?.category ? getColorForFlow(link.data.category) : null
     }));
 
+    // Handle mouse hover events for tooltips
     const handleMouseOver = (event: MouseEvent, linkData: any) => {
       createLinkTooltip(svg, event, linkData);
     };
@@ -57,13 +61,16 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
       removeLinkTooltip(svg);
     };
 
+    // Apply link styling with dashed lines
     const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
 
+    // Create arrowheads for the links
     createArrowheads(svg, processedLinks);
 
-    // === FLOW PARTICLE ANIMATION WITH COLOR TRANSITION ===
+    // === FLOW PARTICLE ANIMATION WITH DYNAMIC POSITION UPDATE ===
     const particlesGroup = linkGroup.append("g").attr("class", "particles-group");
 
+    // Create the animation for each link
     processedLinks.forEach((link, i) => {
       const path = particlesGroup
         .append("path")
@@ -78,10 +85,12 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
 
       const totalLength = path.node()?.getTotalLength() || 0;
 
+      // Create circle for flow particle
       const circle = particlesGroup.append("circle")
         .attr("r", 3)
         .attr("opacity", 0.8);
 
+      // Animate particle along the path with color transition
       function animateParticle() {
         circle
           .transition()
@@ -107,8 +116,10 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
       animateParticle();
     });
 
+    // === Handle dynamic update of links based on orbital movement ===
     if (animateWithOrbit) {
       const updateLinks = () => {
+        // Update path positions based on current node positions
         link.attr("d", (d: any) => {
           const dx = d.target.x - d.source.x;
           const dy = d.target.y - d.source.y;
@@ -125,9 +136,11 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
         requestAnimationFrame(updateLinks);
       };
 
+      // Start the animation loop
       requestAnimationFrame(updateLinks);
     }
 
+    // Cleanup function to remove the links and particles
     return () => {
       svg.selectAll(".flow-links").remove();
       svg.selectAll(".particles-group").remove();
