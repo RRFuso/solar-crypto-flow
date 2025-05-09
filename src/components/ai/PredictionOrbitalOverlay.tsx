@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
-import { Prediction } from '@/lib/aiModel';
+import { Prediction } from '@/lib/aiModel'; 
 import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
 
 interface PredictionOrbitalOverlayProps {
