@@ -2,117 +2,89 @@ import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
 import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 interface PredictionOrbitalOverlayProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   nodes: any[];
+  updateInterval?: number;
   predictions?: Prediction[];
   chartTimeframe?: string;
-}
-
-interface StrategyData {
-  symbol: string;
-  name: string;
-  entry: string;
-  stopLoss: string;
-  takeProfit1: string;
-  takeProfit2: string;
-  risk: string;
-  reward: string;
-  timeframe: string;
-  direction: 'bullish' | 'bearish';
-  overview: string;
 }
 
 export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> = ({
   svg,
   nodes,
+  updateInterval = 600000,
   predictions = [],
-  chartTimeframe = '4h'
+  chartTimeframe = '4h',
 }) => {
-  const [selectedStrategy, setSelectedStrategy] = useState<StrategyData | null>(null);
+  const [predictionMap, setPredictionMap] = useState<Map<string, Prediction>>(new Map());
 
   useEffect(() => {
-    if (!svg || !nodes || predictions.length === 0) return;
+    if (!predictions || predictions.length === 0) return;
+    const map = new Map<string, Prediction>();
+    predictions.forEach((p) => map.set(p.symbol, p));
+    setPredictionMap(map);
+  }, [predictions]);
 
-    // Limpa anéis anteriores
+  useEffect(() => {
+    if (!svg || predictionMap.size === 0) return;
+
     svg.selectAll('.prediction-pulse').remove();
 
-    const group = svg.append('g').attr('class', 'prediction-pulse-group');
+    const pulseGroup = svg.append('g').attr('class', 'prediction-pulse');
 
-    predictions.forEach(pred => {
-      const node = nodes.find(n => n.id === pred.symbol);
-      if (!node || typeof node.x !== 'number' || typeof node.y !== 'number') return;
-      if (pred.confidence < 0.6) return;
+    const activeNodes = nodes.filter((n) => predictionMap.has(n.id));
+    const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
-      const color = pred.bullish
-        ? `rgba(0, 255, 128, ${pred.confidence * 0.7})`
-        : `rgba(255, 50, 50, ${pred.confidence * 0.7})`;
+    activeNodes.forEach((node) => {
+      const prediction = predictionMap.get(node.id);
+      if (!prediction || prediction.confidence < 0.6) return;
 
-      // Anel fixo, que será reposicionado em cada frame
-      const ring = group.append('circle')
-        .attr('class', 'prediction-pulse')
-        .attr('r', node.radius * 1.5)
+      const color = prediction.bullish
+        ? `rgba(0, 255, 128, ${prediction.confidence * 0.7})`
+        : `rgba(255, 50, 50, ${prediction.confidence * 0.7})`;
+
+      const pulse = pulseGroup
+        .append('circle')
+        .datum(node) // bind data for dynamic updates
+        .attr('r', node.radius * 1.2)
+        .attr('fill', 'none')
         .attr('stroke', color)
         .attr('stroke-width', 2)
-        .attr('fill', 'none')
-        .attr('opacity', 0.6)
+        .attr('opacity', 0.7)
         .attr('pointer-events', 'none');
 
-      // Identificador do nó para sync
-      (ring as any).__cryptoId = pred.symbol;
+      pulse.append('animate')
+        .attr('attributeName', 'r')
+        .attr('values', `${node.radius * 1.2};${node.radius * 1.8};${node.radius * 1.2}`)
+        .attr('dur', prediction.bullish ? '3s' : '4s')
+        .attr('repeatCount', 'indefinite');
+
+      pulse.append('animate')
+        .attr('attributeName', 'opacity')
+        .attr('values', '0.7;0.3;0.7')
+        .attr('dur', prediction.bullish ? '3s' : '4s')
+        .attr('repeatCount', 'indefinite');
     });
 
-    // Atualiza posição dos anéis com o giro das criptos
-    function updateRingPositions() {
-      svg.selectAll('.prediction-pulse').each(function () {
-        const ring = d3.select(this);
-        const symbol = (ring as any).__cryptoId;
-        const node = nodes.find(n => n.id === symbol);
-        if (!node) return;
-        ring.attr('cx', node.x).attr('cy', node.y);
-      });
+    // Sync pulse position with orbiting nodes
+    const animate = () => {
+      pulseGroup.selectAll('circle')
+        .attr('cx', (d: any) => d.x)
+        .attr('cy', (d: any) => d.y);
 
-      requestAnimationFrame(updateRingPositions);
-    }
+      requestAnimationFrame(animate);
+    };
 
-    requestAnimationFrame(updateRingPositions);
+    requestAnimationFrame(animate);
 
     return () => {
-      svg.selectAll('.prediction-pulse-group').remove();
+      svg.selectAll('.prediction-pulse').remove();
     };
-  }, [svg, nodes, predictions]);
+  }, [svg, predictionMap, nodes]);
 
-  return (
-    <Dialog open={!!selectedStrategy} onOpenChange={(open) => !open && setSelectedStrategy(null)}>
-      <DialogContent className="bg-gray-900 border-gray-700 text-white">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <img
-              src={selectedStrategy ? getCryptoLogoUrl(selectedStrategy.symbol) : ''}
-              className="w-6 h-6 rounded-full"
-              onError={(e) => {
-                (e.target as HTMLImageElement).onerror = null;
-                (e.target as HTMLImageElement).src = 'https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg';
-              }}
-            />
-            {selectedStrategy?.name} ({selectedStrategy?.symbol}) Strategy
-          </DialogTitle>
-          <DialogDescription className="text-gray-400">
-            Trading strategy for {selectedStrategy?.timeframe} timeframe
-          </DialogDescription>
-        </DialogHeader>
-        {/* Resto do modal aqui, removido para foco no visual */}
-      </DialogContent>
-    </Dialog>
-  );
+  return null;
 };
 
 export default PredictionOrbitalOverlay;
