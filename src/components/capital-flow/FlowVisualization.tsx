@@ -38,7 +38,6 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  // Inicializa a visualização com os dados
   useVisualizationData({
     flowData,
     svgRef,
@@ -50,7 +49,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     activeCategory
   });
 
-  // Escuta eventos de clique em nós
+  // Atualiza visualização ao clicar em uma cripto
   useEffect(() => {
     const handleNodeClick = (event: CustomEvent) => {
       const nodeId = event.detail.nodeId;
@@ -65,7 +64,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     return () => document.removeEventListener('node-click', handleNodeClick as EventListener);
   }, [setVisualizationData]);
 
-  // Força renderização inicial de links
+  // Garante que links sejam renderizados ao carregar
   useEffect(() => {
     if (flowData && flowData.length > 0 && svgRef.current && dimensions.width > 0) {
       if (animationRef.current === null && visualizationData.nodes.length > 0) {
@@ -126,10 +125,9 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             svg={d3.select(svgRef.current)}
             nodes={visualizationData.nodes.map(node => ({
               ...node,
-              glowColor:
-                node.flowCategory === "🚀 Alta" ? "rgba(0,255,136,0.6)" :
-                node.flowCategory === "🏃 Fuga" ? "rgba(255,51,102,0.6)" :
-                "rgba(0,187,255,0.3)" // padrão neutro
+              glowColor: node.flowCategory === "🚀 Alta" ? "rgba(0,255,136,0.6)" :
+                         node.flowCategory === "🏃 Fuga" ? "rgba(255,51,102,0.6)" : 
+                         "rgba(0,187,255,0.3)"
             }))}
             centralNode={visualizationData.centralNode}
             selectedNodeId={visualizationData.selectedNodeId}
