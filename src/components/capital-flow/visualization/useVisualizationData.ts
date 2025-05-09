@@ -1,152 +1,105 @@
-import { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
-import { FlowData } from '@/types/crypto';
-import { calculateNodePositions, OrbitalNode } from '../NodePlacement';
+import { Prediction } from '@/lib/aiModel';
+import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
 
-interface UseVisualizationDataProps {
-  flowData: FlowData[];
-  svgRef: React.RefObject<SVGSVGElement>;
-  dimensions: { width: number, height: number };
-  zoomLevel: number;
-  setVisualizationData: React.Dispatch<React.SetStateAction<{
-    nodes: OrbitalNode[];
-    links: any[];
-    centralNode: OrbitalNode | null;
-    selectedNodeId: string | null;
-  }>>;
-  animationRef: React.MutableRefObject<any | null>;
-  createOrbitalVisualization: (
-    flowData: FlowData[],
-    svgElement: SVGSVGElement,
-    width: number,
-    height: number
-  ) => any;
-  activeCategory?: string;
+interface PredictionOrbitalOverlayProps {
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  nodes: any[];
+  updateInterval?: number;
+  predictions?: Prediction[];
+  chartTimeframe?: string;
 }
 
-export const useVisualizationData = ({
-  flowData,
-  svgRef,
-  dimensions,
-  zoomLevel,
-  setVisualizationData,
-  animationRef,
-  createOrbitalVisualization,
-  activeCategory = 'all'
-}: UseVisualizationDataProps) => {
+interface StrategyData {
+  symbol: string;
+  name: string;
+  entry: string;
+  stopLoss: string;
+  takeProfit1: string;
+  takeProfit2: string;
+  risk: string;
+  reward: string;
+  timeframe: string;
+  direction: 'bullish' | 'bearish';
+  overview: string;
+}
+
+const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> = ({
+  svg,
+  nodes,
+  predictions = [],
+  chartTimeframe = '4h',
+}) => {
+  const [selectedStrategy, setSelectedStrategy] = useState<StrategyData | null>(null);
+
+  // Normaliza símbolo para remover USDT/USD
+  const normalizeSymbol = (symbol: string) =>
+    symbol.replace(/[-_]?USDT$/i, '').replace(/[-_]?USD$/i, '');
+
   useEffect(() => {
-    // Only proceed if we have data, an SVG element, and dimensions
-    if (!flowData || flowData.length === 0 || !svgRef.current || !dimensions.width) return;
-    
-    // Clean up previous animation
-    if (animationRef.current) {
-      try {
-        if (typeof animationRef.current.cleanup === 'function') {
-          animationRef.current.cleanup();
-        }
-      } catch (e) {
-        console.error("Error cleaning up animation:", e);
-      }
-      animationRef.current = null;
-    }
-    
-    // Clear previous SVG content
-    d3.select(svgRef.current).selectAll("*").remove();
-    
-    const width = dimensions.width;
-    const height = dimensions.height;
-    
-    // Initialize visualization immediately with the default timeframe
-    console.log("Initializing visualization with default timeframe");
-    const { svg, nodes, links, centralNode } = createOrbitalVisualization(
-      flowData, 
-      svgRef.current, 
-      width,
-      height
-    );
-    
-    // Ensure we have nodes and links
-    if (nodes.length === 0) {
-      console.error("No nodes created from flow data");
-      return;
-    }
-    
-    // Apply category filtering
-    let filteredNodes = nodes;
-    let filteredLinks = links;
-    
-    if (activeCategory !== 'all') {
-      // Filter nodes by category
-      filteredNodes = nodes.filter(node => {
-        // Keep central node
-        if (node.id === centralNode.id) return true;
-        
-        // Check if node has this category
-        return node.category === activeCategory || 
-               (node.categories && node.categories.includes(activeCategory));
-      });
-      
-      // Get IDs of filtered nodes
-      const filteredNodeIds = filteredNodes.map(node => node.id);
-      
-      // Filter links to only include connections between filtered nodes
-      filteredLinks = links.filter(link => 
-        filteredNodeIds.includes(link.source.id) && 
-        filteredNodeIds.includes(link.target.id)
-      );
-    }
-    
-    // Calculate orbit parameters
-    const nonCentralNodes = filteredNodes.filter(n => n.id !== centralNode.id);
-    const orbitLayers = Math.min(10, Math.ceil(nonCentralNodes.length / 10));
-    
-    // Apply zoom scale by modifying the base radius and scale factors
-    const zoomFactor = zoomLevel / 100;
-    const baseRadius = Math.min(width, height) * 0.25 / orbitLayers * zoomFactor;
-    
-    // Manually scale down node radii
-    filteredNodes.forEach(node => {
-      if (node.id === 'BTC') {
-        node.radius = Math.max(30, node.radius * zoomFactor);
-      } else {
-        node.radius = Math.max(10, node.radius * zoomFactor);
-      }
+    if (!svg || predictions.length === 0 || nodes.length === 0) return;
+
+    // Limpa previsões anteriores
+    svg.selectAll('.prediction-pulse').remove();
+
+    const overlayGroup = svg.append('g').attr('class', 'prediction-overlay');
+
+    const predictionMap = new Map<string, Prediction>();
+    predictions.forEach((p) => {
+      predictionMap.set(normalizeSymbol(p.symbol), p);
     });
-    
-    // Position nodes
-    const nodePositionsProps = { 
-      nodes: filteredNodes, 
-      centralNode, 
-      width, 
-      height, 
-      orbitLayers, 
-      baseRadius 
+
+    nodes.forEach((node: any) => {
+      const cleanId = normalizeSymbol(node.id);
+      const prediction = predictionMap.get(cleanId);
+
+      if (!prediction || prediction.confidence < 0.6) return;
+
+      const color = prediction.bullish
+        ? `rgba(0, 255, 128, ${prediction.confidence * 0.7})`
+        : `rgba(255, 50, 50, ${prediction.confidence * 0.7})`;
+
+      const pulse = overlayGroup
+        .append('circle')
+        .attr('class', 'prediction-pulse')
+        .datum(node) // Vincula o nó ao círculo
+        .attr('r', node.radius * 1.2)
+        .attr('fill', 'none')
+        .attr('stroke', color)
+        .attr('stroke-width', 2)
+        .attr('opacity', 0.8)
+        .attr('pointer-events', 'none');
+
+      // Animações SVG
+      pulse.append('animate')
+        .attr('attributeName', 'r')
+        .attr('values', `${node.radius * 1.2};${node.radius * 1.8};${node.radius * 1.2}`)
+        .attr('dur', prediction.bullish ? '3s' : '4s')
+        .attr('repeatCount', 'indefinite');
+
+      pulse.append('animate')
+        .attr('attributeName', 'opacity')
+        .attr('values', '0.8;0.2;0.8')
+        .attr('dur', prediction.bullish ? '3s' : '4s')
+        .attr('repeatCount', 'indefinite');
+    });
+
+    // Atualização contínua da posição dos aneis conforme os nós orbitam
+    const updatePositions = () => {
+      svg.selectAll<SVGCircleElement, any>('circle.prediction-pulse')
+        .attr('cx', (d) => d.x)
+        .attr('cy', (d) => d.y);
+      requestAnimationFrame(updatePositions);
     };
-    calculateNodePositions(nodePositionsProps);
-    
-    // Add click handlers to highlight connections
-    svg.selectAll(".node")
-      .on("click", function(event, d) {
-        // Toggle selection state
-        setVisualizationData(prev => ({ 
-          ...prev, 
-          selectedNodeId: prev.selectedNodeId === d.id ? null : d.id 
-        }));
-      });
-    
-    // Store visualization data for rendering
-    setVisualizationData({ 
-      nodes: filteredNodes, 
-      links: filteredLinks, 
-      centralNode,
-      selectedNodeId: null
-    });
-    
+    updatePositions();
+
     return () => {
-      // Component cleanup
-      if (svgRef.current) {
-        d3.select(svgRef.current).selectAll("*").remove();
-      }
+      svg.selectAll('.prediction-pulse').remove();
     };
-  }, [flowData, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory]);
+  }, [svg, predictions, nodes]);
+
+  return null;
 };
+
+export default PredictionOrbitalOverlay;
