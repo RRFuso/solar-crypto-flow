@@ -27,7 +27,14 @@ export class OrbitalAnimation {
     this.startAnimation(props);
   }
 
-  private startAnimation({ svg, nodes, width, height, rotationSpeed = 0.00012, updateLinksInRealTime = true }: OrbitalAnimationProps) {
+  private startAnimation({
+    svg,
+    nodes,
+    width,
+    height,
+    rotationSpeed = 0.00012,
+    updateLinksInRealTime = true
+  }: OrbitalAnimationProps) {
     const nonCentralNodes = nodes.filter(node => node.type !== "central");
 
     if (nonCentralNodes.length === 0) return;
@@ -43,7 +50,7 @@ export class OrbitalAnimation {
         node.y = height / 2 + Math.sin(angle) * radius;
       });
 
-      // ✅ Corrigido: atualiza corretamente a posição dos grupos de nós
+      // Atualiza os nós orbitais
       svg.selectAll<SVGGElement, OrbitalNode>(".node-group")
         .attr("transform", d => `translate(${d.x},${d.y})`);
 
@@ -51,10 +58,20 @@ export class OrbitalAnimation {
         .attr("cx", d => d.x)
         .attr("cy", d => d.y);
 
-      // Atualiza pulsos centrais se existirem
       svg.selectAll(".pulse-circle")
         .attr("cx", d => d.x)
         .attr("cy", d => d.y);
+
+      // ✅ Atualiza os aneis de previsão para seguirem a rotação
+      svg.selectAll<SVGCircleElement, any>(".prediction-pulse")
+        .each(function () {
+          const circle = d3.select(this);
+          const nodeId = circle.attr("data-id");
+          const node = nonCentralNodes.find(n => n.id === nodeId);
+          if (node) {
+            circle.attr("cx", node.x).attr("cy", node.y);
+          }
+        });
 
       if (updateLinksInRealTime) {
         svg.selectAll("path.link-path")
