@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
@@ -5,7 +6,6 @@ import { Prediction } from '@/lib/aiModel';
 interface PredictionOrbitalOverlayProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   nodes: any[];
-  updateInterval?: number;
   predictions?: Prediction[];
   chartTimeframe?: string;
 }
@@ -13,16 +13,14 @@ interface PredictionOrbitalOverlayProps {
 export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> = ({
   svg,
   nodes,
-  updateInterval = 600000,
   predictions = [],
-  chartTimeframe = '4h',
 }) => {
   const [predictionMap, setPredictionMap] = useState<Map<string, Prediction>>(new Map());
 
   useEffect(() => {
     if (!predictions || predictions.length === 0) return;
     const map = new Map<string, Prediction>();
-    predictions.forEach((p) => map.set(p.symbol, p));
+    predictions.forEach(p => map.set(p.symbol, p));
     setPredictionMap(map);
   }, [predictions]);
 
@@ -31,12 +29,10 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
 
     svg.selectAll('.prediction-pulse-group').remove();
 
-    const pulseGroup = svg.append('g').attr('class', 'prediction-pulse-group');
+    const pulseLayer = svg.append('g').attr('class', 'prediction-pulse-group');
 
-    const pulseMap = new Map<string, d3.Selection<SVGCircleElement, unknown, null, undefined>>();
-
-    // Criar os círculos de pulso uma vez
-    nodes.forEach((node) => {
+    // Inicializar grupos de pulso com base nas previsões
+    nodes.forEach(node => {
       const prediction = predictionMap.get(node.id);
       if (!prediction || prediction.confidence < 0.6) return;
 
@@ -44,9 +40,11 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
         ? `rgba(0, 255, 128, ${prediction.confidence * 0.7})`
         : `rgba(255, 50, 50, ${prediction.confidence * 0.7})`;
 
-      const pulse = pulseGroup
-        .append('circle')
+      const group = pulseLayer.append('g')
         .attr('class', 'prediction-pulse')
+        .attr('data-id', node.id); // referenciado por id para atualização
+
+      const circle = group.append('circle')
         .attr('r', node.radius * 1.2)
         .attr('fill', 'none')
         .attr('stroke', color)
@@ -54,32 +52,30 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
         .attr('opacity', 0.7)
         .attr('pointer-events', 'none');
 
-      // SVG-based animation
-      pulse.append('animate')
+      circle.append('animate')
         .attr('attributeName', 'r')
         .attr('values', `${node.radius * 1.2};${node.radius * 1.8};${node.radius * 1.2}`)
         .attr('dur', prediction.bullish ? '3s' : '4s')
         .attr('repeatCount', 'indefinite');
 
-      pulse.append('animate')
+      circle.append('animate')
         .attr('attributeName', 'opacity')
-        .attr('values', '0.7;0.3;0.7')
+        .attr('values', '0.7;0.2;0.7')
         .attr('dur', prediction.bullish ? '3s' : '4s')
         .attr('repeatCount', 'indefinite');
-
-      pulseMap.set(node.id, pulse);
     });
 
-    // Atualizar a posição de cada pulse sincronizada com os nós orbitais
+    // Loop de animação para atualizar posição dos grupos
     const animate = () => {
-      pulseMap.forEach((circle, id) => {
-        const updatedNode = nodes.find((n) => n.id === id);
-        if (updatedNode) {
-          circle
-            .attr('cx', updatedNode.x)
-            .attr('cy', updatedNode.y);
-        }
-      });
+      pulseLayer.selectAll<SVGGElement, unknown>('.prediction-pulse')
+        .each(function () {
+          const group = d3.select(this);
+          const id = group.attr('data-id');
+          const node = nodes.find(n => n.id === id);
+          if (node) {
+            group.attr('transform', `translate(${node.x}, ${node.y})`);
+          }
+        });
 
       requestAnimationFrame(animate);
     };
