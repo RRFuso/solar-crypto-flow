@@ -1,64 +1,93 @@
 
-useEffect(() => {
-  if (!svg || predictionMap.size === 0 || !nodes || nodes.length === 0) return;
+import React, { useEffect, useState } from 'react';
+import * as d3 from 'd3';
+import { Prediction } from '@/lib/aiModel';
 
-  svg.selectAll('.prediction-pulse-group').remove();
-  const group = svg.append('g').attr('class', 'prediction-pulse-group');
+interface PredictionOrbitalOverlayProps {
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  nodes: any[];
+  predictions?: Prediction[];
+  chartTimeframe?: string;
+}
 
-  const pulses = group
-    .selectAll('g.pulse-node')
-    .data(nodes.filter(n => predictionMap.has(n.id)))
-    .enter()
-    .append('g')
-    .attr('class', 'pulse-node')
-    .attr('data-id', d => d.id);
+export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> = ({
+  svg,
+  nodes,
+  predictions = [],
+}) => {
+  const [predictionMap, setPredictionMap] = useState<Map<string, Prediction>>(new Map());
 
-  pulses.each(function (d) {
-    const prediction = predictionMap.get(d.id);
-    if (!prediction || prediction.confidence < 0.6) return;
+  useEffect(() => {
+    if (!predictions || predictions.length === 0) return;
+    const map = new Map<string, Prediction>();
+    predictions.forEach(p => map.set(p.symbol, p));
+    setPredictionMap(map);
+  }, [predictions]);
 
-    const color = prediction.bullish
-      ? `rgba(0, 255, 128, ${prediction.confidence * 0.7})`
-      : `rgba(255, 50, 50, ${prediction.confidence * 0.7})`;
+  useEffect(() => {
+    if (!svg || predictionMap.size === 0) return;
 
-    d3.select(this)
-      .append('circle')
-      .attr('class', 'prediction-pulse')
-      .attr('r', d.radius * 1.2)
-      .attr('fill', 'none')
-      .attr('stroke', color)
-      .attr('stroke-width', 3)
-      .attr('opacity', 0.7)
-      .attr('pointer-events', 'none')
-      .append('animate')
-      .attr('attributeName', 'r')
-      .attr('values', `${d.radius * 1.2};${d.radius * 1.8};${d.radius * 1.2}`)
-      .attr('dur', prediction.bullish ? '3s' : '4s')
-      .attr('repeatCount', 'indefinite');
-
-    d3.select(this)
-      .select('circle')
-      .append('animate')
-      .attr('attributeName', 'opacity')
-      .attr('values', '0.7;0.3;0.7')
-      .attr('dur', prediction.bullish ? '3s' : '4s')
-      .attr('repeatCount', 'indefinite');
-  });
-
-  // Atualiza posição dinamicamente com base no objeto mutável de `nodes`
-  const animate = () => {
-    group.selectAll('g.pulse-node')
-      .each(function (d: any) {
-        if (d && typeof d.x === 'number' && typeof d.y === 'number') {
-          d3.select(this).attr('transform', `translate(${d.x},${d.y})`);
-        }
-      });
-    requestAnimationFrame(animate);
-  };
-
-  requestAnimationFrame(animate);
-
-  return () => {
     svg.selectAll('.prediction-pulse-group').remove();
-  };
-}, [svg, predictionMap]);
+
+    const pulseLayer = svg.append('g').attr('class', 'prediction-pulse-group');
+
+    // Inicializar grupos de pulso com base nas previsões
+    nodes.forEach(node => {
+      const prediction = predictionMap.get(node.id);
+      if (!prediction || prediction.confidence < 0.6) return;
+
+      const color = prediction.bullish
+        ? `rgba(0, 255, 128, ${prediction.confidence * 0.7})`
+        : `rgba(255, 50, 50, ${prediction.confidence * 0.7})`;
+
+      const group = pulseLayer.append('g')
+        .attr('class', 'prediction-pulse')
+        .attr('data-id', node.id); // referenciado por id para atualização
+
+      const circle = group.append('circle')
+        .attr('r', node.radius * 1.2)
+        .attr('fill', 'none')
+        .attr('stroke', color)
+        .attr('stroke-width', 2)
+        .attr('opacity', 0.7)
+        .attr('pointer-events', 'none');
+
+      circle.append('animate')
+        .attr('attributeName', 'r')
+        .attr('values', `${node.radius * 1.2};${node.radius * 1.8};${node.radius * 1.2}`)
+        .attr('dur', prediction.bullish ? '3s' : '4s')
+        .attr('repeatCount', 'indefinite');
+
+      circle.append('animate')
+        .attr('attributeName', 'opacity')
+        .attr('values', '0.7;0.2;0.7')
+        .attr('dur', prediction.bullish ? '3s' : '4s')
+        .attr('repeatCount', 'indefinite');
+    });
+
+    // Loop de animação para atualizar posição dos grupos
+    const animate = () => {
+      pulseLayer.selectAll<SVGGElement, unknown>('.prediction-pulse')
+        .each(function () {
+          const group = d3.select(this);
+          const id = group.attr('data-id');
+          const node = nodes.find(n => n.id === id);
+          if (node) {
+            group.attr('transform', `translate(${node.x}, ${node.y})`);
+          }
+        });
+
+      requestAnimationFrame(animate);
+    };
+
+    requestAnimationFrame(animate);
+
+    return () => {
+      svg.selectAll('.prediction-pulse-group').remove();
+    };
+  }, [svg, predictionMap, nodes]);
+
+  return null;
+};
+
+export default PredictionOrbitalOverlay;
