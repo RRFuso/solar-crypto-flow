@@ -11,11 +11,11 @@ export const createLinkPaths = (props: LinkPathsProps) => {
   const { svg, links } = props;
 
   // Add global glow filter
-  svg.append("defs")
-    .append("filter")
+  const defs = svg.append("defs");
+  defs.append("filter")
     .attr("id", "glow")
     .append("feGaussianBlur")
-    .attr("stdDeviation", "3.5")
+    .attr("stdDeviation", "2.5")
     .attr("result", "coloredBlur");
   
   // Create gradients and markers for each link
@@ -23,12 +23,11 @@ export const createLinkPaths = (props: LinkPathsProps) => {
     const markerId = `arrow-${i}`;
     const gradientId = `link-gradient-${i}`;
     
-    // Create gradient for color transition
+    // Create gradient for color transition - red to green for outflows, green to red for inflows
     const startColor = link.percentage > 0 ? "#ff3366" : "#4ade80"; // Red to Green
     const endColor = link.percentage > 0 ? "#4ade80" : "#ff3366"; // Green to Red
     
-    const gradient = svg.append("defs")
-      .append("linearGradient")
+    const gradient = defs.append("linearGradient")
       .attr("id", gradientId)
       .attr("gradientUnits", "userSpaceOnUse")
       .attr("x1", link.source.x)
@@ -46,8 +45,8 @@ export const createLinkPaths = (props: LinkPathsProps) => {
       .attr("stop-color", endColor)
       .attr("stop-opacity", 0.9);
     
-    svg.append("defs")
-      .append("marker")
+    // Create arrowhead markers
+    defs.append("marker")
       .attr("id", markerId)
       .attr("viewBox", "0 -5 10 10")
       .attr("refX", 20)
@@ -71,18 +70,21 @@ export const createLinkPaths = (props: LinkPathsProps) => {
     .attr("stroke", (d, i) => `url(#link-gradient-${i})`)
     .attr("stroke-width", d => 2 + Math.min(8, Math.sqrt(Math.abs(d.value)) / 3)) // Thickness based on volume
     .attr("fill", "none")
-    .attr("stroke-dasharray", "6,4") // Dashed pattern
-    .attr("opacity", 0.8) // Higher opacity for better visibility
+    .attr("stroke-dasharray", "8,4") // Dashed pattern
+    .attr("opacity", 0.85) // Higher opacity for better visibility
     .attr("marker-end", (d, i) => `url(#arrow-${i})`)
-    .attr("filter", "url(#glow)")
-    .style("animation", "flowDash 20s linear infinite"); // Add flow animation
+    .attr("filter", "url(#glow)");
   
   return link;
 };
 
 // Update link paths based on node positions with enhanced curves
 export const updateLinkPaths = (link: d3.Selection<SVGPathElement, any, SVGGElement, unknown>) => {
+  if (!link) return; // Guard against null
+  
   link.attr("d", (d: any) => {
+    if (!d || !d.source || !d.target) return "";
+    
     const sourceX = d.source.x || 0;
     const sourceY = d.source.y || 0;
     const targetX = d.target.x || 0;
@@ -108,10 +110,15 @@ export const updateLinkPaths = (link: d3.Selection<SVGPathElement, any, SVGGElem
   
   // Update gradients positions
   link.each(function(d: any, i: number) {
-    d3.select(`#link-gradient-${i}`)
-      .attr("x1", d.source.x)
-      .attr("y1", d.source.y)
-      .attr("x2", d.target.x)
-      .attr("y2", d.target.y);
+    if (!d || !d.source || !d.target) return;
+    
+    const gradient = d3.select(`#link-gradient-${i}`);
+    if (!gradient.empty()) {
+      gradient
+        .attr("x1", d.source.x)
+        .attr("y1", d.source.y)
+        .attr("x2", d.target.x)
+        .attr("y2", d.target.y);
+    }
   });
 };

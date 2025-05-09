@@ -49,7 +49,7 @@ export const useLinks = () => {
       .attr("fill", "none")
       .attr("stroke", (d, i) => `url(#flow-gradient-${i})`)
       .attr("stroke-width", d => 2 + Math.min(8, (d.value / 1000000000) * 5))
-      .attr("stroke-dasharray", "10,10") // Dashed line
+      .attr("stroke-dasharray", "5,5") // Dashed line
       .attr("opacity", 0.7)
       .attr("d", d => {
         const dx = d.target.x - d.source.x;
@@ -84,7 +84,11 @@ export const useLinks = () => {
   const updateLinkPaths = (
     link: d3.Selection<SVGPathElement, NarrativeLink, SVGGElement, unknown>
   ) => {
+    if (!link) return;
+    
     link.attr("d", d => {
+      if (!d || !d.source || !d.target) return "";
+      
       const dx = d.target.x - d.source.x;
       const dy = d.target.y - d.source.y;
       const dr = Math.sqrt(dx * dx + dy * dy) * 2; // Curved path
@@ -93,11 +97,16 @@ export const useLinks = () => {
     
     // Update gradient positions
     link.each(function(d, i) {
-      d3.select(`#flow-gradient-${i}`)
-        .attr("x1", d.source.x)
-        .attr("y1", d.source.y)
-        .attr("x2", d.target.x)
-        .attr("y2", d.target.y);
+      if (!d || !d.source || !d.target) return;
+      
+      const gradient = d3.select(`#flow-gradient-${i}`);
+      if (!gradient.empty()) {
+        gradient
+          .attr("x1", d.source.x)
+          .attr("y1", d.source.y)
+          .attr("x2", d.target.x)
+          .attr("y2", d.target.y);
+      }
     });
   };
 
