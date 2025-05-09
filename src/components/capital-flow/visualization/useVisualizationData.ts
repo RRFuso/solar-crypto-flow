@@ -35,7 +35,6 @@ export const useVisualizationData = ({
   activeCategory = 'all'
 }: UseVisualizationDataProps) => {
   useEffect(() => {
-    // Only proceed if we have data, an SVG element, and dimensions
     if (!flowData || flowData.length === 0 || !svgRef.current || !dimensions.width) return;
     
     // Clean up previous animation
@@ -56,8 +55,7 @@ export const useVisualizationData = ({
     const width = dimensions.width;
     const height = dimensions.height;
     
-    // Initialize visualization immediately with the default timeframe
-    console.log("Initializing visualization with default timeframe");
+    // Initialize visualization
     const { svg, nodes, links, centralNode } = createOrbitalVisualization(
       flowData, 
       svgRef.current, 
@@ -135,18 +133,16 @@ export const useVisualizationData = ({
       });
     
     // Store visualization data for rendering
-    setVisualizationData({ 
+    setVisualizationData(prev => ({ 
       nodes: filteredNodes, 
       links: filteredLinks, 
       centralNode,
-      selectedNodeId: null
-    });
+      selectedNodeId: prev.selectedNodeId
+    }));
     
     return () => {
       // Component cleanup
-      if (svgRef.current) {
-        d3.select(svgRef.current).selectAll("*").remove();
-      }
+      d3.select(svgRef.current).selectAll("*").remove();
     };
   }, [flowData, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory]);
 };

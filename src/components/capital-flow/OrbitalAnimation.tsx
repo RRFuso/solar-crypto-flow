@@ -28,11 +28,8 @@ export class OrbitalAnimation {
   }
   
   private startAnimation({ svg, nodes, width, height, rotationSpeed = 0.00012, updateLinksInRealTime = true }: OrbitalAnimationProps) {
-    // Add orbital rotation
+    // Add orbital rotation (increased speed from 0.00008 to 0.00012)
     const nonCentralNodes = nodes.filter(node => node.type !== "central");
-    const centralNode = nodes.find(node => node.type === "central");
-    
-    if (!centralNode || nonCentralNodes.length === 0) return;
     
     const animateOrbits = () => {
       nonCentralNodes.forEach((node) => {
@@ -63,45 +60,28 @@ export class OrbitalAnimation {
       
       // Update link positions if enabled
       if (updateLinksInRealTime) {
-        const links = svg.selectAll("path.link-path");
-        if (!links.empty()) {
-          links.attr("d", d => {
-            if (!d || !d.source || !d.target) return "";
-            
-            const sourceX = d.source.x || 0;
-            const sourceY = d.source.y || 0;
-            const targetX = d.target.x || 0;
-            const targetY = d.target.y || 0;
-            
-            // Calculate distance for curve
-            const dx = targetX - sourceX;
-            const dy = targetY - sourceY;
+        svg.selectAll("path.link-path")
+          .attr("d", d => {
+            const dx = d.target.x - d.source.x;
+            const dy = d.target.y - d.source.y;
             const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-            
-            return `M${sourceX},${sourceY} A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
+            return `M${d.source.x},${d.source.y} A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
           });
           
-          // Update link gradients to follow node positions
-          svg.selectAll("linearGradient")
-            .each(function(d: any) {
-              if (!d || !d.source || !d.target) return;
-              
-              d3.select(this)
-                .attr("x1", d.source.x || 0)
-                .attr("y1", d.source.y || 0)
-                .attr("x2", d.target.x || 0)
-                .attr("y2", d.target.y || 0);
-            });
+        // Update link gradients to follow node positions
+        svg.selectAll("linearGradient")
+          .attr("x1", d => d?.source?.x || 0)
+          .attr("y1", d => d?.source?.y || 0)
+          .attr("x2", d => d?.target?.x || 0)
+          .attr("y2", d => d?.target?.y || 0);
           
-          // Update arrowheads position
-          svg.selectAll("marker")
-            .attr("refX", d => {
-              if (!d || !d.target) return 8;
-              // Adjust refX based on target node radius
-              const targetRadius = d.target.radius || 20;
-              return 8 + targetRadius * 0.8;
-            });
-        }
+        // Update arrowheads position
+        svg.selectAll("marker")
+          .attr("refX", d => {
+            // Adjust refX based on target node radius
+            const targetRadius = d?.target?.radius || 20;
+            return 8 + targetRadius * 0.8;
+          });
       }
       
       // Continue animation

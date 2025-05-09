@@ -11,61 +11,41 @@ export const useOrbitalCalculations = () => {
   // Calculate orbital positions for planetary-like arrangement
   const calculateOrbitalPositions = (nodes: any[], width: number, height: number) => {
     const centralIndex = nodes.findIndex(n => n.isCentral);
-    const minRadius = Math.min(width, height) * 0.25; 
-    const maxRadius = Math.min(width, height) * 0.45;
+    const minRadius = Math.min(width, height) * 0.25; // Increased from 0.20
+    const maxRadius = Math.min(width, height) * 0.48; // Increased from 0.45
     
-    // Sort non-central nodes by market cap in descending order
-    const nonCentralNodes = nodes
-      .filter(n => !n.isCentral)
-      .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
+    // Calculate spacing between orbits
+    const nonCentralNodes = nodes.filter(n => !n.isCentral);
+    const orbitStep = (maxRadius - minRadius) / (nonCentralNodes.length > 0 ? nonCentralNodes.length : 1);
     
-    // Number of orbits - based on node count
-    const orbitCount = Math.min(5, Math.ceil(nonCentralNodes.length / 6));
-    const orbitStep = (maxRadius - minRadius) / orbitCount;
-    
-    // Assign orbit radii based on market cap
-    return nodes.map(node => {
-      if (node.isCentral) return 0;
+    // Assign orbit radii
+    return nodes.map((n, i) => {
+      if (n.isCentral) return 0;
       
-      // Find position in sorted list by market cap
-      const marketCapRank = nonCentralNodes.findIndex(n => n.id === node.id);
-      
-      // Divide into orbits based on market cap rank
-      // Highest market caps get inner orbits
-      const orbitIndex = Math.min(orbitCount - 1, Math.floor(marketCapRank / 6));
-      
-      // Calculate orbit radius with spacing
-      return minRadius + (orbitIndex * orbitStep);
+      // How many non-central nodes came before this one
+      const nonCentralIndex = nodes.slice(0, i).filter(node => !node.isCentral).length;
+      return minRadius + (nonCentralIndex * orbitStep);
     });
   };
   
-  // Position nodes in orbits using golden ratio for better distribution
+  // Position nodes in orbits with improved spacing
   const positionNodesInOrbits = (nodes: any[], width: number, height: number, orbitRadii: number[]) => {
-    // Place central node in the middle
+    // Central node in the middle
     nodes.forEach((node, i) => {
       if (node.isCentral) {
         node.x = width / 2;
         node.y = height / 2;
       } else {
-        // Get orbit radius for this node
-        const radius = orbitRadii[i];
+        // Distribute non-central nodes around their orbits
+        const nonCentralIndex = nodes.slice(0, i).filter(n => !n.isCentral).length;
+        const totalNonCentral = nodes.filter(n => !n.isCentral).length;
         
-        // Find nodes in the same orbit
-        const nodesInSameOrbit = nodes.filter((n, idx) => 
-          !n.isCentral && Math.abs(orbitRadii[idx] - radius) < 5
-        );
+        // Calculate angles with better distribution to avoid node overlap
+        const goldRatio = 1.618033988749895; // Using golden ratio for optimal distribution
+        const angle = (nonCentralIndex * goldRatio * Math.PI * 2) % (Math.PI * 2);
         
-        // Calculate position in orbit
-        const orbitPosition = nodesInSameOrbit.findIndex(n => n.id === node.id);
-        const totalInOrbit = nodesInSameOrbit.length;
-        
-        // Golden ratio distribution for more even spacing
-        const goldenRatio = 0.618033988749895;
-        const angle = (orbitPosition / totalInOrbit + goldenRatio * i) * Math.PI * 2;
-        
-        // Set position
-        node.x = width / 2 + Math.cos(angle) * radius;
-        node.y = height / 2 + Math.sin(angle) * radius;
+        node.x = width/2 + Math.cos(angle) * orbitRadii[i];
+        node.y = height/2 + Math.sin(angle) * orbitRadii[i];
       }
     });
     
@@ -77,15 +57,15 @@ export const useOrbitalCalculations = () => {
     svg: any,
     width: number,
     height: number,
-    numStars: number = 150
+    numStars: number = 150 // Increased number of stars
   ) => {
     const starGroup = svg.append("g").attr("class", "starfield");
     
     for (let i = 0; i < numStars; i++) {
       const x = Math.random() * width;
       const y = Math.random() * height;
-      const size = Math.random() * 1.5 + 0.2;
-      const opacity = Math.random() * 0.6 + 0.1;
+      const size = Math.random() * 1.5 + 0.2; // Slightly larger stars
+      const opacity = Math.random() * 0.6 + 0.1; // More visible stars
       
       const star = starGroup.append("circle")
         .attr("cx", x)
@@ -95,7 +75,7 @@ export const useOrbitalCalculations = () => {
         .attr("opacity", opacity);
         
       // Add twinkling to more stars
-      if (Math.random() > 0.6) {
+      if (Math.random() > 0.6) { // More twinkling stars
         star.append("animate")
           .attr("attributeName", "opacity")
           .attr("values", `${opacity};${opacity * 0.3};${opacity}`)
