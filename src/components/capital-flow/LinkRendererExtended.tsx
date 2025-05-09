@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
 import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
+import { createLinkTooltip, removeLinkTooltip } from './link-renderer/LinkTooltip';
 
 export interface LinkRendererExtendedProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -13,7 +14,6 @@ export interface LinkRendererExtendedProps {
   getCategoryColor?: (category: string) => string;
 }
 
-// This is a wrapper component to extend the LinkRendererComponent with additional props
 export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
   svg,
   links,
@@ -22,120 +22,105 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
   animateWithOrbit = false,
   getCategoryColor
 }) => {
-  // Get color based on category from backend
   const getColorForFlow = (category: string) => {
     if (getCategoryColor) {
       return getCategoryColor(category);
     }
-    
-    // Default color logic
     switch (category) {
-      case "🚀 Alta":
-        return "#00FF88"; // Bright green
-      case "🏃 Fuga":
-        return "#FF3366"; // Bright red
-      case "🧱 Acum.":
-        return "#FFCC00"; // Yellow
-      case "🔁 Rev.":
-        return "#00CCFF"; // Bright blue
-      case "⚠️ Alert":
-        return "#FF9900"; // Orange
-      case "Neutro":
-      default:
-        return "#8A9196"; // Neutral gray
+      case "🚀 Alta": return "#00FF88";
+      case "🏃 Fuga": return "#FF3366";
+      case "🧱 Acum.": return "#FFCC00";
+      case "🔁 Rev.": return "#00CCFF";
+      case "⚠️ Alert": return "#FF9900";
+      default: return "#8A9196";
     }
   };
-  
+
   useEffect(() => {
     if (!svg || !links || links.length === 0) return;
 
-    // Clear previous links
     svg.selectAll(".flow-links").remove();
+    svg.selectAll(".particles-group").remove();
 
-    // Create links with styling based on flow properties
-    const linkGroup = svg
-      .append("g")
-      .attr("class", "flow-links");
+    const linkGroup = svg.append("g").attr("class", "flow-links");
 
-    // Process links to add required properties
     const processedLinks = links.map(link => ({
       ...link,
       markerId: `marker-${link.source.id}-${link.target.id}`,
       categoryColor: link.data?.category ? getColorForFlow(link.data.category) : null
     }));
-    
-    // Create tooltip handlers
+
     const handleMouseOver = (event: MouseEvent, linkData: any) => {
-      // Show tooltip with flow information
-      const tooltip = svg.append("g")
-        .attr("class", "flow-tooltip")
-        .attr("transform", `translate(${event.offsetX + 10},${event.offsetY - 10})`);
-        
-      tooltip.append("rect")
-        .attr("rx", 5)
-        .attr("ry", 5)
-        .attr("width", 180)
-        .attr("height", 80)
-        .attr("fill", "rgba(0, 0, 0, 0.8)");
-        
-      tooltip.append("text")
-        .attr("x", 10)
-        .attr("y", 20)
-        .attr("fill", "white")
-        .text(`From: ${linkData.source.id} → To: ${linkData.target.id}`);
-        
-      tooltip.append("text")
-        .attr("x", 10)
-        .attr("y", 40)
-        .attr("fill", "white")
-        .text(`Value: ${(linkData.data?.value || 0).toLocaleString()}`);
-        
-      tooltip.append("text")
-        .attr("x", 10)
-        .attr("y", 60)
-        .attr("fill", linkData.percentage > 0 ? "#4ade80" : "#ff3366")
-        .text(`Flow: ${linkData.data?.category || 'Unknown'}`);
-    };
-    
-    const handleMouseOut = () => {
-      svg.selectAll(".flow-tooltip").remove();
+      createLinkTooltip(svg, event, linkData);
     };
 
-    // Apply link styling with dashed, animated lines
+    const handleMouseOut = () => {
+      removeLinkTooltip(svg);
+    };
+
     const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
-    
-    // Create arrowheads for directional flow
     createArrowheads(svg, processedLinks);
-    
-    // Set up animation for link position updates if nodes are moving
+
+    const particlesGroup = linkGroup.append("g").attr("class", "particles-group");
+
+    const particles = processedLinks.map((link, i) => {
+      const path = linkGroup
+        .append("path")
+        .attr("id", `link-path-${i}`)
+        .attr("d", () => {
+          const dx = link.target.x - link.source.x;
+          const dy = link.target.y - link.source.y;
+          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
+          return `M${link.source.x},${link.source.y}A${dr},${dr} 0 0,1 ${link.target.x},${link.target.y}`;
+        })
+        .attr("fill", "none")
+        .attr("stroke", "none");
+
+      const circle = particlesGroup.append("circle")
+        .attr("r", 3)
+        .attr("opacity", 0.8)
+        .attr("fill", "red");
+
+      return { link, path, circle, t: 0, speed: 0.005 + Math.random() * 0.005 };
+    });
+
+    const animateParticles = () => {
+      particles.forEach(p => {
+        p.t = (p.t + p.speed) % 1;
+        const totalLength = p.path.node()?.getTotalLength() || 0;
+        const point = p.path.node()?.getPointAtLength(p.t * totalLength);
+        if (!point) return;
+        p.circle.attr("transform", `translate(${point.x},${point.y})`);
+        const color = d3.interpolateRgb("red", "green")(p.t);
+        p.circle.attr("fill", color);
+      });
+      requestAnimationFrame(animateParticles);
+    };
+
+    animateParticles();
+
     if (animateWithOrbit) {
       const updateLinks = () => {
-        // Update path positions based on current node positions
         link.attr("d", (d: any) => {
           const dx = d.target.x - d.source.x;
           const dy = d.target.y - d.source.y;
           const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
           return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
         });
-        
-        // Update gradient positions
-        svg.selectAll("linearGradient")
-          .attr("x1", (d: any) => d?.source?.x || 0)
-          .attr("y1", (d: any) => d?.source?.y || 0)
-          .attr("x2", (d: any) => d?.target?.x || 0)
-          .attr("y2", (d: any) => d?.target?.y || 0);
-          
+        particles.forEach(p => {
+          const dx = p.link.target.x - p.link.source.x;
+          const dy = p.link.target.y - p.link.source.y;
+          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
+          p.path.attr("d", `M${p.link.source.x},${p.link.source.y}A${dr},${dr} 0 0,1 ${p.link.target.x},${p.link.target.y}`);
+        });
         requestAnimationFrame(updateLinks);
       };
-      
-      // Start the animation loop
       requestAnimationFrame(updateLinks);
     }
-    
-    // Cleanup function
+
     return () => {
       svg.selectAll(".flow-links").remove();
-      svg.selectAll(".flow-tooltip").remove();
+      svg.selectAll(".particles-group").remove();
     };
   }, [svg, links, selectedNodeId, animateWithOrbit, getCategoryColor]);
 

@@ -111,11 +111,6 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
         .attr("cx", d => d.x || 0)
         .attr("cy", d => d.y || 0);
       
-      // Update pulse circles
-      svg.selectAll(".pulse-circle")
-        .attr("cx", d => d.x || 0)
-        .attr("cy", d => d.y || 0);
-      
       // Update link positions with animations
       updateLinkPaths(link);
       

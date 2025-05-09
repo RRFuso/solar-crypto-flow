@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
@@ -39,8 +38,8 @@ export class NodeRenderer {
       .attr('fill', d => {
         // Color based on flow direction
         if (d.type === 'central') return 'rgba(247, 147, 26, 0.3)'; // Bitcoin orange for central
-        if (d.inflow > d.outflow) return 'rgba(0, 255, 0, 0.3)'; // Green for inflow
-        if (d.outflow > d.inflow) return 'rgba(255, 0, 0, 0.3)'; // Red for outflow
+        if (d.inflow > d.outflow) return 'rgba(0, 255, 204, 0.3)'; // Green for inflow (#00ffcc)
+        if (d.outflow > d.inflow) return 'rgba(255, 0, 102, 0.3)'; // Red for outflow (#ff0066)
         return 'rgba(0, 181, 216, 0.3)'; // Default blue for neutral
       })
       .attr('filter', 'blur(8px)');
@@ -54,6 +53,50 @@ export class NodeRenderer {
       .attr('transform', d => `translate(${d.x},${d.y})`)
       .attr('data-id', d => d.id)
       .on('mouseenter', (event, d) => {
+        // Show tooltip on hover
+        const tooltip = svg.append('g')
+          .attr('class', 'node-tooltip')
+          .attr('transform', `translate(${d.x},${d.y - d.radius - 60})`);
+        
+        tooltip.append('rect')
+          .attr('rx', 5)
+          .attr('ry', 5)
+          .attr('x', -80)
+          .attr('y', -40)
+          .attr('width', 160)
+          .attr('height', 55)
+          .attr('fill', 'rgba(0, 0, 0, 0.8)')
+          .attr('stroke', d.type === 'central' ? '#F7931A' : '#ffffff')
+          .attr('stroke-width', 1);
+        
+        tooltip.append('text')
+          .attr('x', 0)
+          .attr('y', -20)
+          .attr('text-anchor', 'middle')
+          .attr('fill', 'white')
+          .attr('font-weight', 'bold')
+          .text(d.name || d.id);
+        
+        tooltip.append('text')
+          .attr('x', 0)
+          .attr('y', 0)
+          .attr('text-anchor', 'middle')
+          .attr('fill', 'white')
+          .text(`Value: ${d.value ? d.value.toLocaleString() : 'N/A'}`);
+        
+        const flowText = d.inflow > d.outflow 
+          ? `Net Inflow: +${(d.inflow - d.outflow).toLocaleString()}`
+          : d.outflow > d.inflow
+          ? `Net Outflow: -${(d.outflow - d.inflow).toLocaleString()}`
+          : 'Flow: Neutral';
+        
+        tooltip.append('text')
+          .attr('x', 0)
+          .attr('y', 20)
+          .attr('text-anchor', 'middle')
+          .attr('fill', d.inflow > d.outflow ? '#00ffcc' : d.outflow > d.inflow ? '#ff0066' : '#ffffff')
+          .text(flowText);
+        
         // Highlight this node on hover
         d3.select(event.currentTarget)
           .select('circle.node-circle')
@@ -62,6 +105,9 @@ export class NodeRenderer {
           .attr('stroke-width', 3);
       })
       .on('mouseleave', (event, d) => {
+        // Remove tooltip
+        svg.selectAll('.node-tooltip').remove();
+        
         // Return to normal state if not selected
         if (selectedNodeId !== d.id) {
           d3.select(event.currentTarget)
@@ -82,7 +128,7 @@ export class NodeRenderer {
         document.dispatchEvent(clickEvent);
       });
     
-    // Add circle with pattern fill
+    // Add circle with pattern fill and drop shadow
     node.append('circle')
       .attr('class', 'node-circle')
       .attr('r', d => d.radius * (zoomLevel / 100))
@@ -94,12 +140,19 @@ export class NodeRenderer {
         }
         // Color based on flow direction
         if (d.type === 'central') return '#F7931A'; // Bitcoin orange for central
-        if (d.inflow > d.outflow) return '#00ff00'; // Green for inflow
-        if (d.outflow > d.inflow) return '#ff0000'; // Red for outflow
+        if (d.inflow > d.outflow) return '#00ffcc'; // Green for inflow
+        if (d.outflow > d.inflow) return '#ff0066'; // Red for outflow
         return '#00b5d8'; // Default blue for neutral
       })
       .attr('stroke-width', d => selectedNodeId === d.id ? 3 : 2)
-      .attr('stroke-opacity', 0.9);
+      .attr('stroke-opacity', 0.9)
+      .attr('filter', d => {
+        // Drop shadow filter based on flow direction
+        if (d.type === 'central') return 'drop-shadow(0 0 8px rgba(247, 147, 26, 0.7))'; // Orange glow for central
+        if (d.inflow > d.outflow) return 'drop-shadow(0 0 8px rgba(0, 255, 204, 0.7))'; // Green glow
+        if (d.outflow > d.inflow) return 'drop-shadow(0 0 8px rgba(255, 0, 102, 0.7))'; // Red glow
+        return 'drop-shadow(0 0 8px rgba(0, 181, 216, 0.7))'; // Blue glow for neutral
+      });
     
     // Add node labels
     node.append('text')
@@ -109,41 +162,6 @@ export class NodeRenderer {
       .attr('font-size', d => Math.max(10, Math.min(14, d.radius * 0.4) * (zoomLevel / 100)))
       .attr('font-weight', 'bold')
       .text(d => d.id);
-    
-    // Add pulse animation to central node
-    if (centralNode) {
-      const pulseNode = node.filter(d => d.id === centralNode.id);
-      
-      pulseNode.append('circle')
-        .attr('class', 'pulse-circle')
-        .attr('r', centralNode.radius * 1.2 * (zoomLevel / 100))
-        .attr('fill', 'none')
-        .attr('stroke', '#F7931A')
-        .attr('stroke-width', 2)
-        .attr('stroke-opacity', 0.5)
-        .call(selection => {
-          selection.transition()
-            .attr('stroke-opacity', 0.7)
-            .attr('r', d => d.radius * 1.2 * (zoomLevel / 100))
-            .duration(2000)
-            .transition()
-            .attr('stroke-opacity', 0.1)
-            .attr('r', d => d.radius * 1.6 * (zoomLevel / 100))
-            .duration(2000)
-            .on('end', function repeat() {
-              d3.select(this)
-                .transition()
-                .attr('stroke-opacity', 0.7)
-                .attr('r', d => d.radius * 1.2 * (zoomLevel / 100))
-                .duration(2000)
-                .transition()
-                .attr('stroke-opacity', 0.1)
-                .attr('r', d => d.radius * 1.6 * (zoomLevel / 100))
-                .duration(2000)
-                .on('end', repeat);
-            });
-        });
-    }
   }
   
   private createNodePatterns(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, nodes: OrbitalNode[]) {
@@ -186,6 +204,7 @@ export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
     // Cleanup on unmount
     return () => {
       props.svg.selectAll('.nodes-group').remove();
+      props.svg.selectAll('.node-tooltip').remove();
     };
   }, [props]);
   
