@@ -1,125 +1,194 @@
-import React, { useEffect } from 'react';
-import * as d3 from 'd3';
-import { Prediction } from '@/lib/aiModel';
-import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
-import { createLinkTooltip, removeLinkTooltip } from './link-renderer/LinkTooltip';
 
-export interface LinkRendererExtendedProps {
-  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  links: any[];
-  selectedNodeId: string | null;
-  predictions: Prediction[];
-  animateWithOrbit?: boolean;
-  getCategoryColor?: (category: string) => string;
+import React, { useEffect, useState } from 'react';
+import * as d3 from 'd3';
+import { FlowData } from '@/types/crypto';
+import { Prediction } from '@/lib/aiModel';
+import { OrbitLayersComponent } from './OrbitLayers';
+import { LinkRendererExtended } from './LinkRendererExtended';
+import { NodeRendererComponent } from './NodeRenderer';
+import { OrbitalAnimationComponent } from './OrbitalAnimation';
+import { StarfieldBackground } from './visualization/StarfieldBackground';
+import PredictionOrbitalOverlay from '../ai/PredictionOrbitalOverlay';
+import { useVisualizationSetup } from './visualization/useVisualizationSetup';
+import { useVisualizationData } from './visualization/useVisualizationData';
+
+interface FlowVisualizationProps {
+  flowData: FlowData[];
+  zoomLevel?: number;
+  predictions?: Prediction[];
+  chartTimeframe?: string;
+  activeCategory?: string;
 }
 
-export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
-  svg,
-  links,
-  selectedNodeId,
-  predictions,
-  animateWithOrbit = false,
-  getCategoryColor
+export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
+  flowData, 
+  zoomLevel = 40,
+  predictions = [],
+  chartTimeframe = '4h',
+  activeCategory = 'all'
 }) => {
-  const getColorForFlow = (category: string) => {
-    if (getCategoryColor) {
-      return getCategoryColor(category);
+  const {
+    svgRef,
+    containerRef,
+    dimensions,
+    visualizationData,
+    setVisualizationData,
+    animationRef,
+    createOrbitalVisualization
+  } = useVisualizationSetup(flowData, zoomLevel);
+  
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  
+  // Initialize visualization data
+  useVisualizationData({
+    flowData,
+    svgRef,
+    dimensions,
+    zoomLevel: zoomLevel * 1.15, // Increase node size by 15%
+    setVisualizationData,
+    animationRef,
+    createOrbitalVisualization,
+    activeCategory
+  });
+
+  // Listen for node click events to update selected node
+  useEffect(() => {
+    const handleNodeClick = (event: CustomEvent) => {
+      const nodeId = event.detail.nodeId;
+      
+      // Toggle selection if clicking the same node, otherwise select the new node
+      setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
+      
+      // Update visualization data with new selected node
+      setVisualizationData(prevData => ({
+        ...prevData,
+        selectedNodeId: prevData.selectedNodeId === nodeId ? null : nodeId
+      }));
+    };
+    
+    // Add event listener
+    document.addEventListener('node-click', handleNodeClick as EventListener);
+    
+    // Remove event listener on cleanup
+    return () => {
+      document.removeEventListener('node-click', handleNodeClick as EventListener);
+    };
+  }, [setVisualizationData]);
+
+  // Force initial rendering of links when component loads
+  useEffect(() => {
+    if (flowData && flowData.length > 0 && svgRef.current && dimensions.width > 0) {
+      // Force initialization of visualization with default timeframe
+      if (animationRef.current === null && visualizationData.nodes.length > 0) {
+        console.log("Forcing initial link rendering with default timeframe");
+        
+        // Ensure links are rendered by manually triggering a render if needed
+        if (visualizationData.links.length > 0 && svgRef.current) {
+          const svg = d3.select(svgRef.current);
+          
+          // If links group doesn't exist or is empty, trigger the link renderer
+          if (svg.select('.flow-links').empty() || svg.select('.flow-links').selectAll('*').empty()) {
+            console.log("Manually triggering link rendering");
+            
+            // This will force the LinkRendererExtended component to render
+            setVisualizationData(prevData => ({
+              ...prevData,
+              // Adding a timestamp forces the renderer to update
+              lastUpdate: new Date().getTime()
+            }));
+          }
+        }
+      }
     }
+  }, [flowData, dimensions, visualizationData, animationRef]);
+
+  // Get color based on category from backend
+  const getCategoryColor = (category: string) => {
     switch (category) {
-      case "🚀 Alta": return "#00FF88";
-      case "🏃 Fuga": return "#FF3366";
-      case "🧱 Acum.": return "#FFCC00";
-      case "🔁 Rev.": return "#00CCFF";
-      case "⚠️ Alert": return "#FF9900";
-      default: return "#8A9196";
+      case "🚀 Alta":
+        return "#00FF88"; // Bright green
+      case "🏃 Fuga":
+        return "#FF3366"; // Bright red
+      case "🧱 Acum.":
+        return "#FFCC00"; // Yellow
+      case "🔁 Rev.":
+        return "#00CCFF"; // Bright blue
+      case "⚠️ Alert":
+        return "#FF9900"; // Orange
+      case "Neutro":
+      default:
+        return "#8A9196"; // Neutral gray
     }
   };
 
-  useEffect(() => {
-    if (!svg || !links || links.length === 0) return;
+  if (!flowData || flowData.length === 0) {
+    return (
+      <div ref={containerRef} className="w-full h-full flex items-center justify-center" style={{ minHeight: "700px" }}>
+        <p className="text-gray-400">No flow data available</p>
+      </div>
+    );
+  }
 
-    svg.selectAll(".flow-links").remove();
-    svg.selectAll(".particles-group").remove();
+  // Only render the visualization components if we have the SVG and data
+  const renderVisualization = svgRef.current && dimensions.width > 0 && visualizationData.nodes.length > 0;
 
-    const linkGroup = svg.append("g").attr("class", "flow-links");
-
-    const processedLinks = links.map(link => ({
-      ...link,
-      markerId: `marker-${link.source.id}-${link.target.id}`,
-      categoryColor: link.data?.category ? getColorForFlow(link.data.category) : null
-    }));
-
-    const handleMouseOver = (event: MouseEvent, linkData: any) => {
-      createLinkTooltip(svg, event, linkData);
-    };
-
-    const handleMouseOut = () => {
-      removeLinkTooltip(svg);
-    };
-
-    const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
-
-    createArrowheads(svg, processedLinks);
-
-    const particlesGroup = linkGroup.append("g").attr("class", "particles-group");
-
-    const particles = processedLinks.map((link) => {
-      const path = particlesGroup
-        .append("path")
-        .attr("fill", "none")
-        .attr("stroke", "none")
-        .datum(link);
-
-      const circle = particlesGroup.append("circle")
-        .attr("r", 3)
-        .attr("opacity", 0.8)
-        .datum(link);
-
-      return { link, path, circle };
-    });
-
-    if (animateWithOrbit) {
-      const updateLinks = () => {
-        link.attr("d", (d: any) => {
-          const dx = d.target.x - d.source.x;
-          const dy = d.target.y - d.source.y;
-          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-          return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-        });
-
-        particles.forEach(({ link, path, circle }) => {
-          const dx = link.target.x - link.source.x;
-          const dy = link.target.y - link.source.y;
-          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-          const newPath = `M${link.source.x},${link.source.y}A${dr},${dr} 0 0,1 ${link.target.x},${link.target.y}`;
-          path.attr("d", newPath);
-
-          const totalLength = path.node()?.getTotalLength() || 0;
-          const now = Date.now();
-          const t = (now % 4000) / 4000;
-          const point = path.node()?.getPointAtLength(t * totalLength);
-
-          if (point) {
-            circle.attr("transform", `translate(${point.x},${point.y})`);
-            const r = Math.round(255 * (1 - t));
-            const g = Math.round(255 * t);
-            circle.attr("fill", `rgb(${r},${g},0)`);
-          }
-        });
-
-        requestAnimationFrame(updateLinks);
-      };
-
-      requestAnimationFrame(updateLinks);
-    }
-
-    return () => {
-      svg.selectAll(".flow-links").remove();
-      svg.selectAll(".particles-group").remove();
-    };
-  }, [svg, links, selectedNodeId, animateWithOrbit, getCategoryColor]);
-
-  return null;
+  return (
+    <div ref={containerRef} className="w-full h-full" style={{ minHeight: "700px" }}>
+      <svg ref={svgRef} className="w-full h-full" />
+      {renderVisualization && svgRef.current && (
+        <>
+          {/* Add starfield background */}
+          <StarfieldBackground 
+            svg={d3.select(svgRef.current)}
+            width={dimensions.width}
+            height={dimensions.height}
+          />
+          
+          {/* Render orbital visualization components */}
+          <OrbitLayersComponent 
+            svg={d3.select(svgRef.current)}
+            width={dimensions.width}
+            height={dimensions.height}
+            orbitLayers={8}
+            baseRadius={34.5 * (zoomLevel / 100) * 1.15} // Increase orbital radius by 15%
+            extendFullScreen={true} // Extend orbit lines to full screen
+          />
+          <LinkRendererExtended
+            svg={d3.select(svgRef.current)}
+            links={visualizationData.links}
+            selectedNodeId={visualizationData.selectedNodeId}
+            predictions={predictions}
+            animateWithOrbit={true} // Enable orbital animation for links
+            getCategoryColor={getCategoryColor} // Pass the color function
+          />
+          <NodeRendererComponent 
+            svg={d3.select(svgRef.current)}
+            nodes={visualizationData.nodes}
+            centralNode={visualizationData.centralNode}
+            selectedNodeId={visualizationData.selectedNodeId}
+            zoomLevel={zoomLevel * 1.25} // Increase node size by 25%
+          />
+          <OrbitalAnimationComponent 
+            svg={d3.select(svgRef.current)}
+            nodes={visualizationData.nodes}
+            width={dimensions.width}
+            height={dimensions.height}
+            rotationSpeed={0.00012} // Faster rotation (increased from 0.00004)
+            updateLinksInRealTime={true} // Update links with orbital movement
+          />
+          
+          {/* Add AI predictions overlay */}
+          {predictions && predictions.length > 0 && (
+            <PredictionOrbitalOverlay
+              svg={d3.select(svgRef.current)}
+              nodes={visualizationData.nodes}
+              updateInterval={600000} // Update every 10 minutes
+              predictions={predictions}
+              chartTimeframe={chartTimeframe}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
 };
-
-export default LinkRendererExtended;
