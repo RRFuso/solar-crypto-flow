@@ -12,6 +12,14 @@ export const FlowLegend: React.FC = () => {
         <div className="w-3 h-3 rounded-full bg-neon-red"></div>
         <span>Capital Outflow</span>
       </div>
-         </div>
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 rounded-full bg-[#F7931A]"></div>
+        <span>Bitcoin</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 rounded-full bg-neon-blue"></div>
+        <span>Large Caps</span>
+      </div>
+    </div>
   );
 };
