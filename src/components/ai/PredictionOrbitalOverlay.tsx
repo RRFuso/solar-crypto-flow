@@ -1,61 +1,95 @@
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
 
 interface PredictionOrbitalOverlayProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   nodes: any[];
-  predictions: Prediction[];
+  updateInterval?: number;
+  predictions?: Prediction[];
   chartTimeframe?: string;
 }
 
-const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> = ({
+export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> = ({
   svg,
   nodes,
-  predictions
+  updateInterval = 600000,
+  predictions = [],
+  chartTimeframe = '4h',
 }) => {
+  const [predictionMap, setPredictionMap] = useState<Map<string, Prediction>>(new Map());
+
   useEffect(() => {
-    if (!svg || predictions.length === 0 || nodes.length === 0) return;
+    if (!predictions || predictions.length === 0) return;
+    const map = new Map<string, Prediction>();
+    predictions.forEach((p) => map.set(p.symbol, p));
+    setPredictionMap(map);
+  }, [predictions]);
 
-    // Remove old prediction pulses
-    svg.selectAll('.prediction-pulse').remove();
+  useEffect(() => {
+    if (!svg || predictionMap.size === 0) return;
 
-    // Apply pulses inside the .node-group elements
-    predictions.forEach(prediction => {
-      const node = nodes.find(n => n.id === prediction.symbol);
-      if (!node || prediction.confidence < 0.6) return;
+    svg.selectAll('.prediction-pulse-group').remove();
 
-      const color = prediction.bullish 
-        ? `rgba(0,255,128,${prediction.confidence * 0.7})` 
-        : `rgba(255,50,50,${prediction.confidence * 0.7})`;
+    const pulseGroup = svg.append('g').attr('class', 'prediction-pulse-group');
 
-      const nodeGroup = svg.selectAll(`.node-group[data-id='${node.id}']`);
+    const pulseMap = new Map<string, d3.Selection<SVGCircleElement, unknown, null, undefined>>();
 
-      if (!nodeGroup.empty()) {
-        const pulse = nodeGroup
-          .append('circle')
-          .attr('class', 'prediction-pulse')
-          .attr('r', node.radius * 1.8)
-          .attr('fill', 'none')
-          .attr('stroke', color)
-          .attr('stroke-width', 2)
-          .attr('pointer-events', 'none');
+    // Criar os círculos de pulso uma vez
+    nodes.forEach((node) => {
+      const prediction = predictionMap.get(node.id);
+      if (!prediction || prediction.confidence < 0.6) return;
 
-        pulse.append('animate')
-          .attr('attributeName', 'r')
-          .attr('values', `${node.radius * 1.2};${node.radius * 1.8};${node.radius * 1.2}`)
-          .attr('dur', prediction.bullish ? '3s' : '4s')
-          .attr('repeatCount', 'indefinite');
+      const color = prediction.bullish
+        ? `rgba(0, 255, 128, ${prediction.confidence * 0.7})`
+        : `rgba(255, 50, 50, ${prediction.confidence * 0.7})`;
 
-        pulse.append('animate')
-          .attr('attributeName', 'opacity')
-          .attr('values', `0.7;0.3;0.7`)
-          .attr('dur', prediction.bullish ? '3s' : '4s')
-          .attr('repeatCount', 'indefinite');
-      }
+      const pulse = pulseGroup
+        .append('circle')
+        .attr('class', 'prediction-pulse')
+        .attr('r', node.radius * 1.2)
+        .attr('fill', 'none')
+        .attr('stroke', color)
+        .attr('stroke-width', 2)
+        .attr('opacity', 0.7)
+        .attr('pointer-events', 'none');
+
+      // SVG-based animation
+      pulse.append('animate')
+        .attr('attributeName', 'r')
+        .attr('values', `${node.radius * 1.2};${node.radius * 1.8};${node.radius * 1.2}`)
+        .attr('dur', prediction.bullish ? '3s' : '4s')
+        .attr('repeatCount', 'indefinite');
+
+      pulse.append('animate')
+        .attr('attributeName', 'opacity')
+        .attr('values', '0.7;0.3;0.7')
+        .attr('dur', prediction.bullish ? '3s' : '4s')
+        .attr('repeatCount', 'indefinite');
+
+      pulseMap.set(node.id, pulse);
     });
-  }, [svg, predictions, nodes]);
+
+    // Atualizar a posição de cada pulse sincronizada com os nós orbitais
+    const animate = () => {
+      pulseMap.forEach((circle, id) => {
+        const updatedNode = nodes.find((n) => n.id === id);
+        if (updatedNode) {
+          circle
+            .attr('cx', updatedNode.x)
+            .attr('cy', updatedNode.y);
+        }
+      });
+
+      requestAnimationFrame(animate);
+    };
+
+    requestAnimationFrame(animate);
+
+    return () => {
+      svg.selectAll('.prediction-pulse-group').remove();
+    };
+  }, [svg, predictionMap, nodes]);
 
   return null;
 };
