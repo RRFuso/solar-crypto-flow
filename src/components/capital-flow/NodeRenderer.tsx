@@ -8,6 +8,9 @@ interface NodeData {
   totalValue: number;
   inflow: number;
   outflow: number;
+  x: number;
+  y: number;
+  radius: number;
 }
 
 interface NodeRendererProps {
@@ -26,10 +29,8 @@ export const NodeRendererComponent: React.FC<NodeRendererProps> = ({
   useEffect(() => {
     if (!svg) return;
 
-    // Remove any existing tooltip to avoid duplicates
     d3.select('body').select('.tooltip').remove();
 
-    // Create tooltip div (hidden by default)
     const tooltip = d3.select('body')
       .append('div')
       .attr('class', 'tooltip')
@@ -41,13 +42,10 @@ export const NodeRendererComponent: React.FC<NodeRendererProps> = ({
       .style('pointer-events', 'none')
       .style('display', 'none');
 
-    // Ensure <defs> exists for filters
     let defs = svg.select('defs');
-    if (defs.empty()) {
-      defs = svg.append('defs');
-    }
-    // Helper to create/update glow filter
-    function setGlowFilter(id: string, color: string) {
+    if (defs.empty()) defs = svg.append('defs');
+
+    const setGlowFilter = (id: string, color: string) => {
       let filter = defs.select(`#${id}`);
       if (filter.empty()) {
         filter = defs.append('filter')
@@ -63,47 +61,48 @@ export const NodeRendererComponent: React.FC<NodeRendererProps> = ({
           .attr('flood-color', color)
           .attr('flood-opacity', 0.8);
       } else {
-        filter.select('feDropShadow')
-          .attr('flood-color', color);
+        filter.select('feDropShadow').attr('flood-color', color);
       }
-    }
+    };
+
     setGlowFilter('glow-green', 'lime');
     setGlowFilter('glow-red', 'red');
     setGlowFilter('glow-blue', 'deepskyblue');
 
-    // Central node rendering (at center, updated in OrbitalAnimation)
     const centralGroup = svg.selectAll<SVGGElement, NodeData>('.central-group')
       .data([centralNode]);
+
     const centralGroupEnter = centralGroup.enter()
       .append('g')
-      .attr('class', 'central-group');
-    // Draw central circle
+      .attr('class', 'central-group')
+      .attr('transform', `translate(${centralNode.x},${centralNode.y})`);
+
     centralGroupEnter.append('circle')
       .attr('r', 15)
       .attr('fill', 'gold')
       .attr('stroke', '#fff')
-      .attr('stroke-width', 2)
-      .attr('cx', 0)
-      .attr('cy', 0);
-    // Draw central text
+      .attr('stroke-width', 2);
+
     centralGroupEnter.append('text')
       .attr('text-anchor', 'middle')
       .attr('dy', 40)
       .attr('fill', '#fff')
       .style('font-size', '14px')
       .text(centralNode.symbol);
+
     centralGroup.exit().remove();
 
-    // Node groups for other cryptos
     const nodeGroups = svg.selectAll<SVGGElement, NodeData>('.node-group')
       .data(nodes, (d: any) => d.id);
+
     const nodeGroupEnter = nodeGroups.enter()
       .append('g')
       .attr('class', 'node-group')
       .attr('data-id', d => d.id)
+      .attr('transform', d => `translate(${d.x},${d.y})`) // ✅ Importante
       .on('mouseover', (event, d) => {
-        const flowColor = d.inflow > d.outflow ? 'Verde' 
-                         : d.outflow > d.inflow ? 'Vermelho' : 'Azul';
+        const flowColor = d.inflow > d.outflow ? 'Verde'
+          : d.outflow > d.inflow ? 'Vermelho' : 'Azul';
         tooltip.html(`
           <strong>${d.name} (${d.symbol})</strong><br/>
           Valor Total: ${d.totalValue}<br/>
@@ -115,18 +114,15 @@ export const NodeRendererComponent: React.FC<NodeRendererProps> = ({
       })
       .on('mousemove', (event) => {
         tooltip.style('left', (event.pageX + 10) + 'px')
-               .style('top', (event.pageY + 10) + 'px');
+          .style('top', (event.pageY + 10) + 'px');
       })
       .on('mouseout', () => {
         tooltip.style('display', 'none');
       });
 
-    // Append circle for each node
     nodeGroupEnter.append('circle')
       .attr('class', 'node-circle')
-      .attr('r', 10)
-      .attr('cx', 0)
-      .attr('cy', 0)
+      .attr('r', d => d.radius || 10)
       .attr('fill', '#fff')
       .attr('filter', d => {
         if (d.inflow > d.outflow) return 'url(#glow-green)';
@@ -134,7 +130,6 @@ export const NodeRendererComponent: React.FC<NodeRendererProps> = ({
         return 'url(#glow-blue)';
       });
 
-    // Append text for each node
     nodeGroupEnter.append('text')
       .attr('text-anchor', 'middle')
       .attr('dy', 25)
@@ -142,7 +137,6 @@ export const NodeRendererComponent: React.FC<NodeRendererProps> = ({
       .style('font-size', '12px')
       .text(d => d.symbol);
 
-    // Clean up any old nodes
     nodeGroups.exit().remove();
   }, [svg, nodes, centralNode, selectedNodeId]);
 
