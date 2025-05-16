@@ -1,8 +1,11 @@
-
-import React, { useState } from 'react';    
-import { Prediction } from '@/lib/aiModel'; 
+import React, { useState } from 'react';
+import { Prediction } from '@/lib/aiModel';
 import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
-import { ArrowUpRight, ArrowDownRight, Search } from 'lucide-react'; 
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Search
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -29,258 +32,166 @@ interface StrategyData {
   timeframe: string;
   direction: 'bullish' | 'bearish';
   overview: string;
+  indicators: string[];
 }
 
 const AIWatchlist: React.FC<AIWatchlistProps> = ({ predictions, maxItems = 5, chartTimeframe = '4h' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyData | null>(null);
 
-  // Sort by confidence level (highest first)
-  const sortedPredictions = [...predictions]
-    .sort((a, b) => b.confidence - a.confidence);
-    
-  // Apply search filter if there is a search term
-  const filteredPredictions = searchTerm 
-    ? sortedPredictions.filter(p => 
+  const sorted = [...predictions].sort((a, b) => b.confidence - a.confidence);
+
+  const filtered = searchTerm
+    ? sorted.filter(p =>
         p.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (p.name && p.name.toLowerCase().includes(searchTerm.toLowerCase()))
       )
-    : sortedPredictions;
-      
-  // Split predictions into bullish and bearish
-  const bullishPredictions = filteredPredictions
-    .filter(p => p.bullish)
-    .slice(0, maxItems);
-    
-  const bearishPredictions = filteredPredictions
-    .filter(p => !p.bullish)
-    .slice(0, maxItems);
-  
-  // Generate strategy data for a given symbol
-  const showStrategyModal = (prediction: Prediction) => {
-    // Use current price to generate mock strategy data
-    const currentPrice = parseFloat(prediction.price || "0");
-    
-    // Create mock strategy based on bullish/bearish prediction
-    if (prediction.bullish) {
-      // Bullish strategy
-      const stopLossPercent = 3 + Math.random() * 2; // 3-5% stop loss
-      const takeProfitPercent1 = 5 + Math.random() * 5; // 5-10% take profit 1
-      const takeProfitPercent2 = takeProfitPercent1 + 5 + Math.random() * 10; // 10-20% take profit 2
-      
-      const stopLoss = currentPrice * (1 - stopLossPercent / 100);
-      const takeProfit1 = currentPrice * (1 + takeProfitPercent1 / 100);
-      const takeProfit2 = currentPrice * (1 + takeProfitPercent2 / 100);
-      
-      setSelectedStrategy({
-        symbol: prediction.symbol,
-        name: prediction.name || prediction.symbol,
-        entry: currentPrice.toFixed(2),
-        stopLoss: stopLoss.toFixed(2),
-        takeProfit1: takeProfit1.toFixed(2),
-        takeProfit2: takeProfit2.toFixed(2),
-        risk: `${stopLossPercent.toFixed(1)}%`,
-        reward: `${takeProfitPercent2.toFixed(1)}%`,
-        timeframe: chartTimeframe,
-        direction: 'bullish',
-        overview: `Based on ${prediction.factors.join(", ")}, ${prediction.symbol} is showing strong bullish potential in the ${chartTimeframe} timeframe. Entry around ${currentPrice.toFixed(2)} with a ${stopLossPercent.toFixed(1)}% stop loss and targets at ${takeProfitPercent1.toFixed(1)}% and ${takeProfitPercent2.toFixed(1)}%.`
-      });
-    } else {
-      // Bearish strategy
-      const stopLossPercent = 3 + Math.random() * 2; // 3-5% stop loss
-      const takeProfitPercent1 = 5 + Math.random() * 5; // 5-10% take profit 1
-      const takeProfitPercent2 = takeProfitPercent1 + 5 + Math.random() * 10; // 10-20% take profit 2
-      
-      const stopLoss = currentPrice * (1 + stopLossPercent / 100);
-      const takeProfit1 = currentPrice * (1 - takeProfitPercent1 / 100);
-      const takeProfit2 = currentPrice * (1 - takeProfitPercent2 / 100);
-      
-      setSelectedStrategy({
-        symbol: prediction.symbol,
-        name: prediction.name || prediction.symbol,
-        entry: currentPrice.toFixed(2),
-        stopLoss: stopLoss.toFixed(2),
-        takeProfit1: takeProfit1.toFixed(2),
-        takeProfit2: takeProfit2.toFixed(2),
-        risk: `${stopLossPercent.toFixed(1)}%`,
-        reward: `${takeProfitPercent2.toFixed(1)}%`,
-        timeframe: chartTimeframe,
-        direction: 'bearish',
-        overview: `Based on ${prediction.factors.join(", ")}, ${prediction.symbol} is showing bearish signals in the ${chartTimeframe} timeframe. Short entry around ${currentPrice.toFixed(2)} with a ${stopLossPercent.toFixed(1)}% stop loss and targets at ${takeProfitPercent1.toFixed(1)}% and ${takeProfitPercent2.toFixed(1)}% to the downside.`
-      });
-    }
+    : sorted;
+
+  const bullish = filtered.filter(p => p.bullish).slice(0, maxItems);
+  const bearish = filtered.filter(p => !p.bullish).slice(0, maxItems);
+
+  const generateIndicators = (p: Prediction): string[] => {
+    const indicators: string[] = [];
+
+    if (p.confidence >= 0.85) indicators.push('🔥 Volume Anômalo');
+    if (p.factors.some(f => /RSI/i.test(f))) indicators.push('RSI Divergência');
+    if (p.factors.some(f => /MACD/i.test(f))) indicators.push('MACD Cruzamento');
+    if (p.factors.some(f => /fibonacci/i)) indicators.push('Fibonacci Retração');
+    if (p.factors.some(f => /support|resistance/i)) indicators.push('Nível de Suporte/Resistência');
+
+    return indicators.length ? indicators : ['Análise Preditiva'];
   };
 
-  // Render prediction card
-  const renderPredictionCard = (prediction: Prediction) => (
-    <div 
-      key={prediction.symbol} 
-      className={`p-2 rounded-md hover:bg-white/5 transition-colors ${
-        prediction.confidence >= 0.8 ? (prediction.bullish ? 'bg-green-900/20' : 'bg-red-900/20') : ''
-      }`}
-    >
+  const showStrategy = (p: Prediction) => {
+    const price = parseFloat(p.price || "0") || 1;
+    const indicators = generateIndicators(p);
+
+    const stopPercent = 3 + Math.random() * 2;
+    const tp1 = 5 + Math.random() * 5;
+    const tp2 = tp1 + 5 + Math.random() * 10;
+
+    const direction = p.bullish ? 'bullish' : 'bearish';
+    const stopLoss = p.bullish
+      ? price * (1 - stopPercent / 100)
+      : price * (1 + stopPercent / 100);
+    const takeProfit1 = p.bullish
+      ? price * (1 + tp1 / 100)
+      : price * (1 - tp1 / 100);
+    const takeProfit2 = p.bullish
+      ? price * (1 + tp2 / 100)
+      : price * (1 - tp2 / 100);
+
+    const overview = `${p.symbol} apresenta sinal ${direction === 'bullish' ? 'de alta' : 'de baixa'} com base em ${indicators.join(', ')}. Entrada sugerida em $${price.toFixed(2)} com stop de ${stopPercent.toFixed(1)}% e alvos de ${tp1.toFixed(1)}% e ${tp2.toFixed(1)}%.`;
+
+    setSelectedStrategy({
+      symbol: p.symbol,
+      name: p.name || p.symbol,
+      entry: price.toFixed(2),
+      stopLoss: stopLoss.toFixed(2),
+      takeProfit1: takeProfit1.toFixed(2),
+      takeProfit2: takeProfit2.toFixed(2),
+      risk: `${stopPercent.toFixed(1)}%`,
+      reward: `${tp2.toFixed(1)}%`,
+      timeframe: chartTimeframe,
+      direction,
+      overview,
+      indicators,
+    });
+  };
+
+  const renderCard = (p: Prediction) => (
+    <div key={p.symbol} className="p-2 rounded-md bg-gray-800 hover:bg-gray-700 transition-colors">
       <div className="flex items-center gap-2">
-        <img 
-          src={getCryptoLogoUrl(prediction.symbol)} 
-          alt={prediction.symbol} 
+        <img
+          src={getCryptoLogoUrl(p.symbol)}
+          alt={p.symbol}
           className="w-6 h-6 rounded-full"
-          onError={(e) => {
-            (e.target as HTMLImageElement).onerror = null;
-            (e.target as HTMLImageElement).src = 'https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg';
-          }}
         />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-white text-xs">{prediction.symbol}</span>
-            <span 
-              className={`flex items-center text-xs ${
-                prediction.bullish ? 'text-green-500' : 'text-red-500'
-              }`}
-            >
-              {prediction.bullish ? (
-                <ArrowUpRight className="h-3 w-3 mr-1" />
-              ) : (
-                <ArrowDownRight className="h-3 w-3 mr-1" />
-              )}
-              {Math.round(prediction.confidence * 100)}%
+        <div className="flex-1">
+          <div className="flex justify-between text-sm text-white">
+            <span>{p.symbol}</span>
+            <span className={p.bullish ? 'text-green-400' : 'text-red-400'}>
+              {p.bullish ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+              {Math.round(p.confidence * 100)}%
             </span>
           </div>
-          <div className="flex items-center justify-between text-xs text-white/60">
-            <span className="truncate text-[10px]">{prediction.factors[0]}</span>
-            {prediction.confidence >= 0.6 && (
-              <button 
-                className="ml-1 px-1 py-0.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded text-[10px] transition-colors"
-                onClick={() => showStrategyModal(prediction)}
-              >
-                🔍 View
-              </button>
-            )}
-          </div>
+          <div className="text-xs text-gray-400 truncate">{p.factors[0]}</div>
         </div>
+        {p.confidence >= 0.6 && (
+          <button onClick={() => showStrategy(p)} className="text-blue-400 text-xs hover:underline">
+            Ver Estratégia
+          </button>
+        )}
       </div>
     </div>
   );
 
   return (
-    <div className="bg-black/50 border border-white/10 rounded-xl overflow-hidden flex flex-col h-full">
-      <div className="p-4 border-b border-white/10 bg-black/30">
-        <h3 className="text-lg font-semibold text-white flex items-center">
-          <span className="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
-            AI Signal Watchlist
-          </span>
-          <span className="ml-auto text-xs text-white/50">{chartTimeframe}</span>
-        </h3>
-        
-        <div className="mt-2 relative">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search symbol..."
-            className="w-full bg-black/30 border border-white/10 rounded-md p-2 pl-8 text-sm text-white/80 focus:outline-none focus:ring-1 focus:ring-white/20"
-          />
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-white/50" />
+    <div className="bg-black border border-gray-700 rounded-lg p-4 space-y-4">
+      <div>
+        <h2 className="text-white text-lg font-semibold">📈 AI Watchlist</h2>
+        <input
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="🔍 Buscar ativo"
+          className="mt-2 w-full p-2 bg-gray-900 border border-gray-700 rounded text-white text-sm"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <h3 className="text-green-400 text-sm mb-2">🐂 Bullish</h3>
+          {bullish.length ? bullish.map(renderCard) : <p className="text-gray-500 text-xs">Nenhum sinal</p>}
+        </div>
+        <div>
+          <h3 className="text-red-400 text-sm mb-2">🐻 Bearish</h3>
+          {bearish.length ? bearish.map(renderCard) : <p className="text-gray-500 text-xs">Nenhum sinal</p>}
         </div>
       </div>
-      
-      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-        {filteredPredictions.length === 0 ? (
-          <div className="p-4 text-center text-white/50 text-sm">
-            No signals detected
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-1 p-1">
-            {/* Bull Signals Column */}
-            <div className="space-y-1">
-              <div className="text-center py-1 bg-green-900/20 rounded-md">
-                <h4 className="text-xs font-medium text-green-400">🐂 Bull Signals</h4>
-              </div>
-              <div className="space-y-1">
-                {bullishPredictions.length > 0 ? 
-                  bullishPredictions.map(renderPredictionCard) : 
-                  <div className="text-center text-xs text-white/30 py-2">No bullish signals</div>
-                }
+
+      {selectedStrategy && (
+        <Dialog open={!!selectedStrategy} onOpenChange={() => setSelectedStrategy(null)}>
+          <DialogContent className="bg-gray-900 border-gray-700 text-white">
+            <DialogHeader>
+              <DialogTitle>
+                Estratégia: {selectedStrategy.name} ({selectedStrategy.symbol})
+              </DialogTitle>
+              <DialogDescription>
+                Baseado em {selectedStrategy.timeframe} timeframe
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-gray-300">{selectedStrategy.overview}</p>
+              <ul className="list-disc list-inside text-xs text-gray-400">
+                {selectedStrategy.indicators.map((i, idx) => (
+                  <li key={idx}>{i}</li>
+                ))}
+              </ul>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="text-green-400 text-sm">
+                  Entrada: <span className="font-mono">${selectedStrategy.entry}</span>
+                </div>
+                <div className="text-red-400 text-sm">
+                  Stop: <span className="font-mono">${selectedStrategy.stopLoss}</span>
+                </div>
+                <div className="text-green-300 text-sm">
+                  TP1: <span className="font-mono">${selectedStrategy.takeProfit1}</span>
+                </div>
+                <div className="text-green-300 text-sm">
+                  TP2: <span className="font-mono">${selectedStrategy.takeProfit2}</span>
+                </div>
+                <div className="text-yellow-400 text-xs">
+                  Risco: {selectedStrategy.risk}
+                </div>
+                <div className="text-yellow-400 text-xs">
+                  Retorno: {selectedStrategy.reward}
+                </div>
               </div>
             </div>
-            
-            {/* Bear Signals Column */}
-            <div className="space-y-1">
-              <div className="text-center py-1 bg-red-900/20 rounded-md">
-                <h4 className="text-xs font-medium text-red-400">🐻 Bear Signals</h4>
-              </div>
-              <div className="space-y-1">
-                {bearishPredictions.length > 0 ? 
-                  bearishPredictions.map(renderPredictionCard) : 
-                  <div className="text-center text-xs text-white/30 py-2">No bearish signals</div>
-                }
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-      
-      {/* Strategy Dialog */}
-      <Dialog open={!!selectedStrategy} onOpenChange={(open) => !open && setSelectedStrategy(null)}>
-        <DialogContent className="bg-gray-900 border-gray-700 text-white">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <img 
-                src={selectedStrategy ? getCryptoLogoUrl(selectedStrategy.symbol) : ''} 
-                className="w-6 h-6 rounded-full"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).onerror = null;
-                  (e.target as HTMLImageElement).src = 'https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg';
-                }}
-              />
-              {selectedStrategy?.name} ({selectedStrategy?.symbol}) Strategy
-            </DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Trading strategy for {selectedStrategy?.timeframe} timeframe
-            </DialogDescription>
-          </DialogHeader>
-          {selectedStrategy && (
-            <div className="space-y-4">
-              <div className="p-4 bg-gray-800/50 rounded-lg">
-                <p className="text-sm leading-relaxed text-gray-300">{selectedStrategy.overview}</p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className={`p-3 rounded-lg flex flex-col ${selectedStrategy.direction === 'bullish' ? 'bg-green-900/20' : 'bg-red-900/20'}`}>
-                  <span className="text-xs text-gray-400">Direction</span>
-                  <span className={`text-lg font-bold ${selectedStrategy.direction === 'bullish' ? 'text-green-400' : 'text-red-400'}`}>
-                    {selectedStrategy.direction === 'bullish' ? '🚀 Long' : '🔻 Short'}
-                  </span>
-                </div>
-                <div className="p-3 bg-gray-800/50 rounded-lg flex flex-col">
-                  <span className="text-xs text-gray-400">Entry Price</span>
-                  <span className="text-lg font-bold">${selectedStrategy.entry}</span>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4">
-                <div className="p-3 bg-red-900/20 rounded-lg flex flex-col">
-                  <span className="text-xs text-gray-400">Stop Loss</span>
-                  <span className="text-lg font-bold text-red-400">${selectedStrategy.stopLoss}</span>
-                  <span className="text-xs text-red-500/70">Risk: {selectedStrategy.risk}</span>
-                </div>
-                <div className="p-3 bg-green-900/20 rounded-lg flex flex-col">
-                  <span className="text-xs text-gray-400">Take Profit 1</span>
-                  <span className="text-lg font-bold text-green-400">${selectedStrategy.takeProfit1}</span>
-                </div>
-                <div className="p-3 bg-green-900/20 rounded-lg flex flex-col">
-                  <span className="text-xs text-gray-400">Take Profit 2</span>
-                  <span className="text-lg font-bold text-green-400">${selectedStrategy.takeProfit2}</span>
-                  <span className="text-xs text-green-500/70">Reward: {selectedStrategy.reward}</span>
-                </div>
-              </div>
-              
-              <div className="pt-2 text-center text-xs text-gray-500">
-                This is a simulated trading strategy for educational purposes only. Not financial advice.
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
