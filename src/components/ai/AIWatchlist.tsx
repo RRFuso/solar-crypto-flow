@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Prediction } from '@/lib/aiModel';
 import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
