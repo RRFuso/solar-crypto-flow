@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
-import { calculateNodePositions, OrbitalNode } from '../components/capital-flow/NodePlacement';
+import { calculateNodePositions, OrbitalNode } from '../NodePlacement';
 
 interface UseVisualizationDataProps {
   flowData: FlowData[];
@@ -35,60 +35,118 @@ export const useVisualizationData = ({
   activeCategory = 'all'
 }: UseVisualizationDataProps) => {
   useEffect(() => {
-    if (!flowData.length || !svgRef.current || !dimensions.width) return;
-
-    if (animationRef.current?.cleanup) {
-      animationRef.current.cleanup();
+    // Only proceed if we have data, an SVG element, and dimensions
+    if (!flowData || flowData.length === 0 || !svgRef.current || !dimensions.width) return;
+    
+    // Clean up previous animation
+    if (animationRef.current) {
+      try {
+        if (typeof animationRef.current.cleanup === 'function') {
+          animationRef.current.cleanup();
+        }
+      } catch (e) {
+        console.error("Error cleaning up animation:", e);
+      }
+      animationRef.current = null;
     }
-    animationRef.current = null;
-
+    
+    // Clear previous SVG content
     d3.select(svgRef.current).selectAll("*").remove();
-
+    
+    const width = dimensions.width;
+    const height = dimensions.height;
+    
+    // Initialize visualization immediately with the default timeframe
+    console.log("Initializing visualization with default timeframe");
     const { svg, nodes, links, centralNode } = createOrbitalVisualization(
-      flowData,
-      svgRef.current,
-      dimensions.width,
-      dimensions.height
+      flowData, 
+      svgRef.current, 
+      width,
+      height
     );
-
-    if (!nodes.length) return;
-
+    
+    // Ensure we have nodes and links
+    if (nodes.length === 0) {
+      console.error("No nodes created from flow data");
+      return;
+    }
+    
+    // Apply category filtering
     let filteredNodes = nodes;
     let filteredLinks = links;
-
+    
     if (activeCategory !== 'all') {
-      filteredNodes = nodes.filter(n => n.id === centralNode.id || n.category === activeCategory);
-      const ids = filteredNodes.map(n => n.id);
-      filteredLinks = links.filter(l => ids.includes(l.source.id) && ids.includes(l.target.id));
+      // Filter nodes by category
+      filteredNodes = nodes.filter(node => {
+        // Keep central node
+        if (node.id === centralNode.id) return true;
+        
+        // Check if node has this category
+        return node.category === activeCategory || 
+               (node.categories && node.categories.includes(activeCategory));
+      });
+      
+      // Get IDs of filtered nodes
+      const filteredNodeIds = filteredNodes.map(node => node.id);
+      
+      // Filter links to only include connections between filtered nodes
+      filteredLinks = links.filter(link => 
+        filteredNodeIds.includes(link.source.id) && 
+        filteredNodeIds.includes(link.target.id)
+      );
     }
-
-    const orbitLayers = Math.min(10, Math.ceil(filteredNodes.length / 10));
+    
+    // Calculate orbit parameters
+    const nonCentralNodes = filteredNodes.filter(n => n.id !== centralNode.id);
+    const orbitLayers = Math.min(10, Math.ceil(nonCentralNodes.length / 10));
+    
+    // Apply zoom scale by modifying the base radius and scale factors
     const zoomFactor = zoomLevel / 100;
-    const baseRadius = Math.min(dimensions.width, dimensions.height) * 0.25 / orbitLayers * zoomFactor;
-
+    const baseRadius = Math.min(width, height) * 0.25 / orbitLayers * zoomFactor;
+    
+    // Manually scale down node radii
     filteredNodes.forEach(node => {
-      node.radius = node.id === 'BTC' ? Math.max(30, node.radius * zoomFactor) : Math.max(10, node.radius * zoomFactor);
+      if (node.id === 'BTC') {
+        node.radius = Math.max(30, node.radius * zoomFactor);
+      } else {
+        node.radius = Math.max(10, node.radius * zoomFactor);
+      }
     });
-
-    calculateNodePositions({ nodes: filteredNodes, centralNode, width: dimensions.width, height: dimensions.height, orbitLayers, baseRadius });
-
+    
+    // Position nodes
+    const nodePositionsProps = { 
+      nodes: filteredNodes, 
+      centralNode, 
+      width, 
+      height, 
+      orbitLayers, 
+      baseRadius 
+    };
+    calculateNodePositions(nodePositionsProps);
+    
+    // Add click handlers to highlight connections
     svg.selectAll(".node")
-      .on("click", function (event, d) {
-        setVisualizationData(prev => ({
-          ...prev,
-          selectedNodeId: prev.selectedNodeId === d.id ? null : d.id
+      .on("click", function(event, d) {
+        // Toggle selection state
+        setVisualizationData(prev => ({ 
+          ...prev, 
+          selectedNodeId: prev.selectedNodeId === d.id ? null : d.id 
         }));
       });
-
-    setVisualizationData({
-      nodes: filteredNodes,
-      links: filteredLinks,
+    
+    // Store visualization data for rendering
+    setVisualizationData({ 
+      nodes: filteredNodes, 
+      links: filteredLinks, 
       centralNode,
       selectedNodeId: null
     });
-
+    
     return () => {
-      d3.select(svgRef.current).selectAll("*").remove();
+      // Component cleanup
+      if (svgRef.current) {
+        d3.select(svgRef.current).selectAll("*").remove();
+      }
     };
   }, [flowData, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory]);
 };
