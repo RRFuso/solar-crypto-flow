@@ -1,18 +1,16 @@
+
 import { CryptoData, FlowData } from "@/types/crypto";
 import { fetchTechnicalIndicators, fetchOnChainData } from "./dataFetcher";
 
 export interface CryptoFeatures {
   symbol: string;
   id: string;
-  price: string;
   priceChange1h: number;
   priceChange24h: number;
   priceChange7d: number;
   volume: number;
   volumeChange24h: number;
   marketCap: number;
-
-  // Indicadores técnicos
   rsi: number;
   rsi4h: number;
   macd: number;
@@ -22,8 +20,6 @@ export interface CryptoFeatures {
   ema26: number;
   aboveMA: boolean;
   obv: number;
-
-  // Fluxo de capital
   exchangeInflow: number;
   exchangeOutflow: number;
   netFlow: number;
@@ -31,19 +27,12 @@ export interface CryptoFeatures {
   incomingFlows: number;
   outgoingFlows: number;
   netFlowPercentage: number;
-
-  // Estratégias avançadas
-  hasBullishDivergence?: boolean;
-  hasBearishDivergence?: boolean;
-  volumeSpikeWithLowRSI?: boolean;
-  supportLevelTested?: boolean;
-  resistanceLevelTested?: boolean;
-
   category: string;
+  price: string;
 }
 
 /**
- * Extração de features incluindo volume x RSI, divergências e suportes/resistências
+ * Extracts feature vectors from raw crypto data and flow data
  */
 export async function extractFeatures(
   cryptoData: CryptoData[],
@@ -51,55 +40,37 @@ export async function extractFeatures(
   chartTimeframe: string = '4h'
 ): Promise<CryptoFeatures[]> {
   const features: CryptoFeatures[] = [];
-
+  
+  // Process each crypto
   for (const crypto of cryptoData) {
     try {
+      // Get technical indicators and on-chain data
       const technical = await fetchTechnicalIndicators(crypto.symbol, chartTimeframe);
       const onChain = await fetchOnChainData(crypto.symbol);
-
+      
+      // Calculate flow metrics
       const incomingFlows = flowData
-        .filter(f => f.to === crypto.symbol && f.value > 0)
-        .reduce((sum, f) => sum + f.value, 0);
-
+        .filter(flow => flow.to === crypto.symbol && flow.value > 0)
+        .reduce((sum, flow) => sum + flow.value, 0);
+        
       const outgoingFlows = flowData
-        .filter(f => f.from === crypto.symbol && f.value < 0)
-        .reduce((sum, f) => sum + Math.abs(f.value), 0);
-
-      const netFlowPercentage = crypto.marketCap > 0
+        .filter(flow => flow.from === crypto.symbol && flow.value < 0)
+        .reduce((sum, flow) => sum + Math.abs(flow.value), 0);
+        
+      const netFlowPercentage = crypto.marketCap > 0 
         ? ((incomingFlows - outgoingFlows) / crypto.marketCap) * 100
         : 0;
-
-      const priceNow = parseFloat(crypto.price || "0");
-
-      // 📊 Estratégias avançadas
-      const hasBullishDivergence =
-        technical.rsi < 40 && crypto.priceChange1h < 0 && technical.macdHistogram > 0;
-
-      const hasBearishDivergence =
-        technical.rsi > 60 && crypto.priceChange1h > 0 && technical.macdHistogram < 0;
-
-      const volumeSpikeWithLowRSI =
-        crypto.volumeChange24h > 20 && technical.rsi < 30;
-
-      const supportLevelTested =
-        technical.ema12 < technical.ema26 &&
-        Math.abs(priceNow - technical.ema26) / priceNow < 0.01;
-
-      const resistanceLevelTested =
-        technical.ema12 > technical.ema26 &&
-        Math.abs(priceNow - technical.ema12) / priceNow < 0.01;
-
+      
+      // Create feature vector
       features.push({
         symbol: crypto.symbol || "",
         id: crypto.id,
-        price: crypto.price || "0",
         priceChange1h: crypto.priceChange1h || 0,
         priceChange24h: crypto.priceChange24h || 0,
         priceChange7d: crypto.priceChange7d || 0,
         volume: parseFloat(crypto.volume || "0"),
         volumeChange24h: crypto.volumeChange24h || 0,
         marketCap: crypto.marketCap || 0,
-
         rsi: technical.rsi,
         rsi4h: technical.rsi4h,
         macd: technical.macd.value,
@@ -109,7 +80,6 @@ export async function extractFeatures(
         ema26: technical.ema26,
         aboveMA: technical.ema12 > technical.ema26,
         obv: technical.obv,
-
         exchangeInflow: onChain.exchangeInflow,
         exchangeOutflow: onChain.exchangeOutflow,
         netFlow: onChain.netFlow,
@@ -117,26 +87,19 @@ export async function extractFeatures(
         incomingFlows,
         outgoingFlows,
         netFlowPercentage,
-
-        hasBullishDivergence,
-        hasBearishDivergence,
-        volumeSpikeWithLowRSI,
-        supportLevelTested,
-        resistanceLevelTested,
-
-        category: crypto.category || "other"
+        category: crypto.category || 'other',
+        price: crypto.price || "0"
       });
-
-    } catch (err) {
-      console.error(`Erro ao extrair features para ${crypto.symbol}:`, err);
+    } catch (error) {
+      console.error(`Error extracting features for ${crypto.symbol}:`, error);
     }
   }
-
+  
   return features;
 }
 
 /**
- * Normalização de features numéricas
+ * Normalizes feature values to a specified range
  */
 export function normalizeFeatures(
   features: CryptoFeatures[],
@@ -144,7 +107,8 @@ export function normalizeFeatures(
   maxVal: number = 1
 ): CryptoFeatures[] {
   if (features.length === 0) return [];
-
+  
+  // Get min/max values for each numeric feature
   const numericFields = [
     'priceChange1h', 'priceChange24h', 'priceChange7d',
     'volume', 'volumeChange24h', 'marketCap',
@@ -152,38 +116,48 @@ export function normalizeFeatures(
     'ema12', 'ema26', 'obv',
     'exchangeInflow', 'exchangeOutflow', 'netFlow', 'fundingRate',
     'incomingFlows', 'outgoingFlows', 'netFlowPercentage'
-  ] as const;
-
+  ] as const; // Make this a readonly tuple
+  
+  // Define an explicit type for numeric fields
   type NumericField = typeof numericFields[number];
-
-  const mins: Record<NumericField, number> = {} as any;
-  const maxs: Record<NumericField, number> = {} as any;
-
+  
+  const mins: Record<NumericField, number> = {} as Record<NumericField, number>;
+  const maxs: Record<NumericField, number> = {} as Record<NumericField, number>;
+  
+  // Initialize with first feature
   numericFields.forEach(field => {
-    mins[field] = features[0][field];
-    maxs[field] = features[0][field];
+    mins[field] = features[0][field] as number;
+    maxs[field] = features[0][field] as number;
   });
-
+  
+  // Find min/max
   features.forEach(feature => {
     numericFields.forEach(field => {
-      const val = feature[field];
+      const val = feature[field] as number;
       if (val < mins[field]) mins[field] = val;
       if (val > maxs[field]) maxs[field] = val;
     });
   });
-
-  return features.map(f => {
-    const norm = { ...f };
+  
+  // Normalize each feature
+  return features.map(feature => {
+    const normalized = { ...feature } as CryptoFeatures;
+    
     numericFields.forEach(field => {
-      const val = f[field];
+      const val = feature[field] as number;
       const min = mins[field];
       const max = maxs[field];
+      
       if (max === min) {
-        norm[field] = 0;
+        // Using a type assertion to tell TypeScript this is valid
+        (normalized[field] as number) = 0;
       } else {
-        norm[field] = minVal + ((val - min) / (max - min)) * (maxVal - minVal);
+        const normalizedValue = minVal + ((val - min) / (max - min)) * (maxVal - minVal);
+        // Using a type assertion to tell TypeScript this is valid
+        (normalized[field] as number) = normalizedValue;
       }
     });
-    return norm;
+    
+    return normalized;
   });
 }
