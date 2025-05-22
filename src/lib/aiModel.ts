@@ -11,8 +11,9 @@ export interface Prediction {
   price?: string;
 }
 
+// Cache (15 min)
 const predictionCache = new Map<string, { prediction: Prediction, timestamp: number }>();
-const CACHE_TTL = 1000 * 60 * 15; // 15 minutes
+const CACHE_TTL = 1000 * 60 * 15;
 
 export function getCachedPrediction(symbol: string): Prediction | null {
   const cached = predictionCache.get(symbol);
@@ -33,24 +34,26 @@ export function predictPriceMovements(
   features: CryptoFeatures[],
   chartTimeframe: string = '4h'
 ): Prediction[] {
-  const normalizedFeatures = normalizeFeatures(features);
+  const normalized = normalizeFeatures(features);
   const predictions: Prediction[] = [];
 
-  normalizedFeatures.forEach(feature => {
+  normalized.forEach(feature => {
     const weights = getTimeframeWeights(chartTimeframe);
-    const bullishScore = calculateBullishScore(feature, weights);
-    const bearishScore = calculateBearishScore(feature, weights);
-    const isBullish = bullishScore > bearishScore;
+    const bullish = calcBullishScore(feature, weights);
+    const bearish = calcBearishScore(feature, weights);
+    const isBullish = bullish > bearish;
+
     const confidence = isBullish
-      ? bullishScore / (bullishScore + bearishScore)
-      : bearishScore / (bullishScore + bearishScore);
+      ? bullish / (bullish + bearish)
+      : bearish / (bullish + bearish);
+
     const factors = identifyFactors(feature, isBullish, chartTimeframe);
 
     predictions.push({
       symbol: feature.symbol,
       name: feature.id,
       bullish: isBullish,
-      confidence: Math.min(0.95, confidence),
+      confidence: Math.min(0.97, confidence),
       factors,
       timestamp: Date.now(),
       price: feature.price
@@ -73,75 +76,85 @@ function getTimeframeWeights(timeframe: string) {
   }
 }
 
-function calculateBullishScore(feature: CryptoFeatures, w: any): number {
+function calcBullishScore(f: CryptoFeatures, w: any): number {
   let score = 0;
-  if (feature.rsi < 30) score += 2 * w.technical;
-  if (feature.rsi4h < 40 && feature.rsi4h > 30) score += 1.5 * w.technical;
-  if (feature.macd > feature.macdSignal) score += 1.5 * w.technical;
-  if (feature.aboveMA) score += 1 * w.technical;
-  if (feature.macdHistogram > 0) score += 1 * w.technical;
-  if (feature.priceChange1h > 0) score += 1 * w.momentum;
-  if (feature.priceChange24h > 0) score += 0.5 * w.momentum;
-  if (feature.priceChange7d > 0) score += 0.2 * w.fundamental;
-  if (feature.priceChange1h > 1) score += 2 * w.momentum;
-  if (feature.priceChange24h > 5) score += 1 * w.fundamental;
-  if (feature.volumeChange24h > 20) score += 1.5 * w.momentum;
-  if (feature.obv > 0) score += 1 * w.momentum;
-  if (feature.netFlowPercentage > 0) score += 1 * w.flow;
-  if (feature.incomingFlows > feature.outgoingFlows) score += 1.5 * w.flow;
-  if (feature.exchangeOutflow > feature.exchangeInflow) score += 1 * w.flow;
-  if (feature.fundingRate < 0.01 && feature.fundingRate > -0.01) score += 0.5 * w.flow;
+
+  if (f.rsi < 30) score += 2 * w.technical;
+  if (f.rsi4h < 40 && f.rsi4h > 30) score += 1.5 * w.technical;
+  if (f.macd > f.macdSignal) score += 1.5 * w.technical;
+  if (f.aboveMA) score += 1 * w.technical;
+  if (f.macdHistogram > 0) score += 1 * w.technical;
+
+  if (f.priceChange1h > 0) score += 1 * w.momentum;
+  if (f.priceChange24h > 0) score += 0.5 * w.momentum;
+  if (f.priceChange7d > 0) score += 0.2 * w.fundamental;
+  if (f.priceChange1h > 1) score += 2 * w.momentum;
+  if (f.priceChange24h > 5) score += 1 * w.fundamental;
+
+  if (f.volumeChange24h > 20) score += 1.5 * w.momentum;
+  if (f.obv > 0) score += 1 * w.momentum;
+
+  if (f.netFlowPercentage > 0) score += 1 * w.flow;
+  if (f.incomingFlows > f.outgoingFlows) score += 1.5 * w.flow;
+  if (f.exchangeOutflow > f.exchangeInflow) score += 1 * w.flow;
+  if (f.fundingRate > -0.01 && f.fundingRate < 0.01) score += 0.5 * w.flow;
+
   return score;
 }
 
-function calculateBearishScore(feature: CryptoFeatures, w: any): number {
+function calcBearishScore(f: CryptoFeatures, w: any): number {
   let score = 0;
-  if (feature.rsi > 70) score += 2 * w.technical;
-  if (feature.rsi4h > 70) score += 1.5 * w.technical;
-  if (feature.macd < feature.macdSignal) score += 1.5 * w.technical;
-  if (!feature.aboveMA) score += 1 * w.technical;
-  if (feature.macdHistogram < 0) score += 1 * w.technical;
-  if (feature.priceChange1h < 0) score += 1 * w.momentum;
-  if (feature.priceChange24h < 0) score += 0.5 * w.momentum;
-  if (feature.priceChange7d < 0) score += 0.2 * w.fundamental;
-  if (feature.priceChange1h < -1) score += 2 * w.momentum;
-  if (feature.priceChange24h < -5) score += 1 * w.fundamental;
-  if (feature.priceChange24h < 0 && feature.volumeChange24h > 20) score += 2 * w.momentum;
-  if (feature.obv < 0) score += 1 * w.momentum;
-  if (feature.netFlowPercentage < 0) score += 1 * w.flow;
-  if (feature.outgoingFlows > feature.incomingFlows) score += 1.5 * w.flow;
-  if (feature.exchangeInflow > feature.exchangeOutflow) score += 1 * w.flow;
-  if (feature.fundingRate > 0.01) score += 1 * w.flow;
+
+  if (f.rsi > 70) score += 2 * w.technical;
+  if (f.rsi4h > 70) score += 1.5 * w.technical;
+  if (f.macd < f.macdSignal) score += 1.5 * w.technical;
+  if (!f.aboveMA) score += 1 * w.technical;
+  if (f.macdHistogram < 0) score += 1 * w.technical;
+
+  if (f.priceChange1h < 0) score += 1 * w.momentum;
+  if (f.priceChange24h < 0) score += 0.5 * w.momentum;
+  if (f.priceChange7d < 0) score += 0.2 * w.fundamental;
+  if (f.priceChange1h < -1) score += 2 * w.momentum;
+  if (f.priceChange24h < -5) score += 1 * w.fundamental;
+
+  if (f.volumeChange24h > 20 && f.priceChange24h < 0) score += 2 * w.momentum;
+  if (f.obv < 0) score += 1 * w.momentum;
+
+  if (f.netFlowPercentage < 0) score += 1 * w.flow;
+  if (f.outgoingFlows > f.incomingFlows) score += 1.5 * w.flow;
+  if (f.exchangeInflow > f.exchangeOutflow) score += 1 * w.flow;
+  if (f.fundingRate > 0.01) score += 1 * w.flow;
+
   return score;
 }
 
-function identifyFactors(feature: CryptoFeatures, isBullish: boolean, timeframe: string): string[] {
-  const factors: string[] = [];
-  if (isBullish) {
-    if (feature.rsi < 30) factors.push("RSI oversold");
-    if (feature.rsi4h < 40 && feature.rsi4h > 30) factors.push("RSI rising from oversold");
-    if (feature.macd > feature.macdSignal) factors.push("MACD bullish crossover");
-    if (feature.macdHistogram > 0 && feature.macdHistogram > feature.macdSignal) factors.push("MACD momentum");
-    if (feature.aboveMA) factors.push("Above EMA");
-    if (feature.priceChange1h > 1) factors.push("Hourly price surge");
-    if (feature.volumeChange24h > 20) factors.push("Volume spike");
-    if (feature.obv > 0 && feature.priceChange24h > 0) factors.push("OBV confirmation");
-    if (feature.netFlowPercentage > 1) factors.push("Strong capital inflow");
-    if (feature.exchangeOutflow > feature.exchangeInflow * 1.5) factors.push("Exchange outflow");
+function identifyFactors(f: CryptoFeatures, bullish: boolean, tf: string): string[] {
+  const out: string[] = [];
+
+  if (bullish) {
+    if (f.rsi < 30) out.push("RSI oversold");
+    if (f.rsi4h < 40 && f.rsi4h > 30) out.push("RSI recovering (4h)");
+    if (f.macd > f.macdSignal) out.push("MACD bullish crossover");
+    if (f.macdHistogram > 0 && f.macdHistogram > f.macdSignal) out.push("MACD positive momentum");
+    if (f.aboveMA) out.push("Above EMA");
+    if (f.priceChange1h > 1) out.push("Short-term price surge");
+    if (f.volumeChange24h > 20) out.push("High volume");
+    if (f.obv > 0 && f.priceChange24h > 0) out.push("OBV support");
+    if (f.netFlowPercentage > 1) out.push("Capital inflow");
+    if (f.exchangeOutflow > f.exchangeInflow * 1.5) out.push("Exchange outflow");
   } else {
-    if (feature.rsi > 70) factors.push("RSI overbought");
-    if (feature.rsi4h > 70) factors.push("4H RSI overbought");
-    if (feature.macd < feature.macdSignal) factors.push("MACD bearish crossover");
-    if (feature.macdHistogram < 0 && feature.macdHistogram < feature.macdSignal) factors.push("MACD downtrend");
-    if (!feature.aboveMA) factors.push("Below EMA");
-    if (feature.priceChange1h < -1) factors.push("Hourly price drop");
-    if (feature.volumeChange24h > 20 && feature.priceChange24h < 0) factors.push("Selling volume");
-    if (feature.obv < 0) factors.push("Negative OBV");
-    if (feature.netFlowPercentage < -1) factors.push("Capital outflow");
-    if (feature.exchangeInflow > feature.exchangeOutflow * 1.5) factors.push("Exchange inflow");
+    if (f.rsi > 70) out.push("RSI overbought");
+    if (f.rsi4h > 70) out.push("RSI overbought (4h)");
+    if (f.macd < f.macdSignal) out.push("MACD bearish crossover");
+    if (f.macdHistogram < 0 && f.macdHistogram < f.macdSignal) out.push("MACD negative");
+    if (!f.aboveMA) out.push("Below EMA");
+    if (f.priceChange1h < -1) out.push("Short-term price drop");
+    if (f.volumeChange24h > 20 && f.priceChange24h < 0) out.push("High selling volume");
+    if (f.obv < 0) out.push("Negative OBV");
+    if (f.netFlowPercentage < -1) out.push("Capital outflow");
+    if (f.exchangeInflow > f.exchangeOutflow * 1.5) out.push("Exchange inflow");
   }
-  if (factors.length > 0) {
-    factors[0] = `${factors[0]} (${timeframe})`;
-  }
-  return factors.slice(0, 3);
+
+  if (out.length > 0) out[0] += ` (${tf})`;
+  return out.slice(0, 4);
 }
