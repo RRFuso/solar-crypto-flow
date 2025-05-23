@@ -35,31 +35,49 @@ export const useVisualizationData = ({
   activeCategory = 'all'
 }: UseVisualizationDataProps) => {
   useEffect(() => {
-    if (!flowData || flowData.length === 0 || !svgRef.current || !dimensions.width) return;
+    if (!flowData.length || !svgRef.current || !dimensions.width) return;
 
-    if (animationRef.current?.cleanup) animationRef.current.cleanup();
-    animationRef.current = null;
+    if (animationRef.current?.cleanup) {
+      animationRef.current.cleanup();
+      animationRef.current = null;
+    }
 
-    d3.select(svgRef.current).selectAll('*').remove();
+    d3.select(svgRef.current).selectAll("*").remove();
 
-    const width = dimensions.width;
-    const height = dimensions.height;
+    const { svg, nodes, links, centralNode } = createOrbitalVisualization(
+      flowData,
+      svgRef.current,
+      dimensions.width,
+      dimensions.height
+    );
 
-    const { svg, nodes, links, centralNode } = createOrbitalVisualization(flowData, svgRef.current, width, height);
+    if (!nodes.length) return;
 
-    if (nodes.length === 0 || !centralNode) return;
-
-    const filteredNodes = activeCategory !== 'all'
-      ? nodes.filter(node => node.id === centralNode.id || node.category === activeCategory)
-      : nodes;
+    const filteredNodes = activeCategory === 'all'
+      ? nodes
+      : nodes.filter(n => n.category === activeCategory || n.categories?.includes(activeCategory) || n.id === centralNode.id);
 
     const filteredLinks = links.filter(link =>
       filteredNodes.some(n => n.id === link.source.id) &&
       filteredNodes.some(n => n.id === link.target.id)
     );
 
-    const baseRadius = Math.min(width, height) * 0.25 / 8 * (zoomLevel / 100);
-    calculateNodePositions({ nodes: filteredNodes, centralNode, width, height, orbitLayers: 8, baseRadius });
+    const baseRadius = (Math.min(dimensions.width, dimensions.height) * 0.25 / 8) * (zoomLevel / 100);
+
+    filteredNodes.forEach(n => {
+      n.radius = n.id === 'BTC'
+        ? Math.max(30, n.radius * (zoomLevel / 100))
+        : Math.max(10, n.radius * (zoomLevel / 100));
+    });
+
+    calculateNodePositions({
+      nodes: filteredNodes,
+      centralNode,
+      width: dimensions.width,
+      height: dimensions.height,
+      orbitLayers: 8,
+      baseRadius
+    });
 
     setVisualizationData({
       nodes: filteredNodes,
@@ -68,8 +86,5 @@ export const useVisualizationData = ({
       selectedNodeId: null
     });
 
-    return () => {
-      if (svgRef.current) d3.select(svgRef.current).selectAll('*').remove();
-    };
   }, [flowData, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory]);
 };
