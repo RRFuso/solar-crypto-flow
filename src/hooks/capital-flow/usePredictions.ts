@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
@@ -18,43 +19,59 @@ export const usePredictions = (
       if (!flowData || flowData.length === 0) return;
       
       try {
-        const symbols = Array.from(new Set([
-          ...flowData.map(f => f.from),
-          ...flowData.map(f => f.to)
-        ]));
+        // Get unique crypto symbols from the flow data
+        const symbols = [...new Set([
+          ...flowData.map(flow => flow.from),
+          ...flowData.map(flow => flow.to)
+        ])];
         
+        // Get crypto data for these symbols
         const cryptoData = await fetchCryptoData();
-        const relevant = cryptoData.filter(c => symbols.includes(c.symbol));
+        const relevantCryptos = cryptoData.filter(
+          crypto => symbols.includes(crypto.symbol)
+        );
         
-        const filtered = selectedCategory !== 'all'
-          ? relevant.filter(c => c.category === selectedCategory)
-          : relevant;
-        
-        if (filtered.length) {
-          const feats = await extractFeatures(filtered, flowData, chartTimeframe);
-          const preds = predictPriceMovements(feats, chartTimeframe);
-          setPredictions(preds);
-          showAlerts(preds, chartTimeframe);
+        if (relevantCryptos.length > 0) {
+          // Apply category filter if needed
+          const categoryFilteredCryptos = selectedCategory !== 'all' 
+            ? relevantCryptos.filter(crypto => crypto.category === selectedCategory)
+            : relevantCryptos;
+            
+          // Get features and make predictions with the selected chart timeframe
+          const features = await extractFeatures(categoryFilteredCryptos, flowData, chartTimeframe);
+          const newPredictions = predictPriceMovements(features, chartTimeframe);
+          setPredictions(newPredictions);
+          
+          // Show notifications for high confidence predictions
+          showPredictionAlerts(newPredictions, chartTimeframe);
         }
-      } catch (e) {
-        console.error("Error updating AI predictions:", e);
+      } catch (error) {
+        console.error("Error updating AI predictions:", error);
       }
     };
-
+    
     updatePredictions();
-    const interval = setInterval(updatePredictions,
-      ['5m','15m'].includes(chartTimeframe) ? 60_000 : 300_000
-    );
+    // Update predictions whenever flow data, category, or chart timeframe changes
+    // Use a shorter interval for shorter timeframes
+    const intervalTime = chartTimeframe === '5m' || chartTimeframe === '15m' ? 60000 : 300000;
+    const interval = setInterval(updatePredictions, intervalTime);
+    
     return () => clearInterval(interval);
   }, [flowData, selectedCategory, chartTimeframe]);
 
-  const showAlerts = (ps: Prediction[], tf: string) => {
-    ps.filter(p => p.confidence > 0.8).forEach(p => {
-      const emoji = p.bullish ? '🚀' : '🔻';
-      toast(`${emoji} ${p.symbol} signal (${tf})`, {
-        description: `${p.factors.slice(0,2).join(' + ')} · ${Math.round(p.confidence*100)}%`,
+  // Show notifications for high confidence predictions
+  const showPredictionAlerts = (predictions: Prediction[], timeframe: string) => {
+    const highConfidencePredictions = predictions.filter(p => p.confidence > 0.8);
+    
+    highConfidencePredictions.forEach(prediction => {
+      const emoji = prediction.bullish ? '🚀' : '🔻';
+      const direction = prediction.bullish ? 'bullish' : 'bearish';
+      const factors = prediction.factors.slice(0, 2).join(' + ');
+      
+      toast(`${emoji} ${prediction.symbol} ${direction} signal (${timeframe})`, {
+        description: `${factors}. Confidence: ${Math.round(prediction.confidence * 100)}%`,
         duration: 8000,
-        className: p.bullish ? 'bg-green-900/60' : 'bg-red-900/60',
+        className: prediction.bullish ? 'bg-green-900/60' : 'bg-red-900/60',
       });
     });
   };
