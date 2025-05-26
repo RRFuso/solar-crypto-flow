@@ -1,6 +1,4 @@
 
-// src/components/capital-flow/FlowVisualization.tsx
-
 import React from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
