@@ -40,28 +40,25 @@ export async function extractFeatures(
   chartTimeframe: string = '4h'
 ): Promise<CryptoFeatures[]> {
   const features: CryptoFeatures[] = [];
-  
-  // Process each crypto
+
   for (const crypto of cryptoData) {
     try {
-      // Get technical indicators and on-chain data
       const technical = await fetchTechnicalIndicators(crypto.symbol, chartTimeframe);
       const onChain = await fetchOnChainData(crypto.symbol);
-      
-      // Calculate flow metrics
+
       const incomingFlows = flowData
         .filter(flow => flow.to === crypto.symbol && flow.value > 0)
         .reduce((sum, flow) => sum + flow.value, 0);
-        
+
       const outgoingFlows = flowData
         .filter(flow => flow.from === crypto.symbol && flow.value < 0)
         .reduce((sum, flow) => sum + Math.abs(flow.value), 0);
-        
-      const netFlowPercentage = crypto.marketCap > 0 
-        ? ((incomingFlows - outgoingFlows) / crypto.marketCap) * 100
-        : 0;
-      
-      // Create feature vector
+
+      const netFlowPercentage =
+        crypto.marketCap > 0
+          ? ((incomingFlows - outgoingFlows) / crypto.marketCap) * 100
+          : 0;
+
       features.push({
         symbol: crypto.symbol || "",
         id: crypto.id,
@@ -87,19 +84,19 @@ export async function extractFeatures(
         incomingFlows,
         outgoingFlows,
         netFlowPercentage,
-        category: crypto.category || 'other',
+        category: crypto.category || "other",
         price: crypto.price || "0"
       });
-    } catch (error) {
-      console.error(`Error extracting features for ${crypto.symbol}:`, error);
+    } catch (err) {
+      console.error(`Erro ao extrair dados de ${crypto.symbol}:`, err);
     }
   }
-  
+
   return features;
 }
 
 /**
- * Normalizes feature values to a specified range
+ * Normalizes numeric fields between a defined range
  */
 export function normalizeFeatures(
   features: CryptoFeatures[],
@@ -107,8 +104,7 @@ export function normalizeFeatures(
   maxVal: number = 1
 ): CryptoFeatures[] {
   if (features.length === 0) return [];
-  
-  // Get min/max values for each numeric feature
+
   const numericFields = [
     'priceChange1h', 'priceChange24h', 'priceChange7d',
     'volume', 'volumeChange24h', 'marketCap',
@@ -116,48 +112,41 @@ export function normalizeFeatures(
     'ema12', 'ema26', 'obv',
     'exchangeInflow', 'exchangeOutflow', 'netFlow', 'fundingRate',
     'incomingFlows', 'outgoingFlows', 'netFlowPercentage'
-  ] as const; // Make this a readonly tuple
-  
-  // Define an explicit type for numeric fields
+  ] as const;
+
   type NumericField = typeof numericFields[number];
-  
-  const mins: Record<NumericField, number> = {} as Record<NumericField, number>;
-  const maxs: Record<NumericField, number> = {} as Record<NumericField, number>;
-  
-  // Initialize with first feature
+
+  const mins: Record<NumericField, number> = {} as any;
+  const maxs: Record<NumericField, number> = {} as any;
+
   numericFields.forEach(field => {
-    mins[field] = features[0][field] as number;
-    maxs[field] = features[0][field] as number;
+    mins[field] = features[0][field];
+    maxs[field] = features[0][field];
   });
-  
-  // Find min/max
-  features.forEach(feature => {
-    numericFields.forEach(field => {
-      const val = feature[field] as number;
+
+  for (const feature of features) {
+    for (const field of numericFields) {
+      const val = feature[field];
       if (val < mins[field]) mins[field] = val;
       if (val > maxs[field]) maxs[field] = val;
-    });
-  });
-  
-  // Normalize each feature
+    }
+  }
+
   return features.map(feature => {
-    const normalized = { ...feature } as CryptoFeatures;
-    
-    numericFields.forEach(field => {
-      const val = feature[field] as number;
+    const normalized = { ...feature };
+
+    for (const field of numericFields) {
+      const val = feature[field];
       const min = mins[field];
       const max = maxs[field];
-      
+
       if (max === min) {
-        // Using a type assertion to tell TypeScript this is valid
-        (normalized[field] as number) = 0;
+        normalized[field] = 0;
       } else {
-        const normalizedValue = minVal + ((val - min) / (max - min)) * (maxVal - minVal);
-        // Using a type assertion to tell TypeScript this is valid
-        (normalized[field] as number) = normalizedValue;
+        normalized[field] = minVal + ((val - min) / (max - min)) * (maxVal - minVal);
       }
-    });
-    
+    }
+
     return normalized;
   });
 }
