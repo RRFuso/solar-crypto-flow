@@ -1,66 +1,56 @@
-import React, { useEffect } from 'react';
+// src/components/capital-flow/PredictionOrbitalOverlay.tsx
+
+import { useEffect } from 'react';
 import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
-import { OrbitalNode } from './NodePlacement';
 
-interface Props {
+interface PredictionOrbitalOverlayProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  nodes: OrbitalNode[];
   predictions: Prediction[];
-  chartTimeframe?: string;
 }
 
-const PredictionOrbitalOverlay: React.FC<Props> = ({
-  svg,
-  nodes,
-  predictions,
-  chartTimeframe = '4h'
-}) => {
+const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> = ({ svg, predictions }) => {
   useEffect(() => {
-    if (!svg || predictions.length === 0 || nodes.length === 0) return;
+    if (!svg || predictions.length === 0) return;
 
-    // Remove all previous pulse rings
-    svg.selectAll('.prediction-pulse').remove();
-
-    // Apply rings directly to node-group
-    const overlayed = new Set();
+    // Remove old prediction circles
+    svg.selectAll('.node-group .prediction-pulse').remove();
 
     predictions.forEach(pred => {
-      const node = nodes.find(n => n.id === pred.symbol);
-      if (!node || pred.confidence < 0.6 || overlayed.has(node.id)) return;
-      overlayed.add(node.id);
+      if (pred.confidence < 0.6) return;
+
+      const nodeGroup = svg.select(`.node-group[data-id='${pred.symbol}']`);
+      if (nodeGroup.empty()) return;
 
       const color = pred.bullish
         ? `rgba(0,255,128,${pred.confidence * 0.7})`
         : `rgba(255,50,50,${pred.confidence * 0.7})`;
 
-      // Append pulse circle inside node-group
-      svg.selectAll<SVGGElement, any>('.node-group')
-        .filter((d: any) => d.id === node.id)
+      const pulse = nodeGroup
         .append('circle')
         .attr('class', 'prediction-pulse')
-        .attr('r', node.radius * 1.6)
-        .attr('stroke', color)
+        .attr('r', 14) // será adaptado conforme raio
         .attr('fill', 'none')
+        .attr('stroke', color)
         .attr('stroke-width', 2)
-        .attr('pointer-events', 'none')
         .attr('opacity', 0.7)
+        .attr('pointer-events', 'none');
+
+      pulse
         .append('animate')
         .attr('attributeName', 'r')
-        .attr('values', `${node.radius * 1.4};${node.radius * 1.9};${node.radius * 1.4}`)
-        .attr('dur', pred.bullish ? '3s' : '4s')
+        .attr('values', `12;16;12`)
+        .attr('dur', pred.bullish ? '2s' : '3s')
         .attr('repeatCount', 'indefinite');
 
-      svg.selectAll('.node-group')
-        .filter((d: any) => d.id === node.id)
-        .select('.prediction-pulse')
+      pulse
         .append('animate')
         .attr('attributeName', 'opacity')
-        .attr('values', '0.7;0.2;0.7')
-        .attr('dur', pred.bullish ? '3s' : '4s')
+        .attr('values', '0.7;0.3;0.7')
+        .attr('dur', pred.bullish ? '2s' : '3s')
         .attr('repeatCount', 'indefinite');
     });
-  }, [svg, nodes, predictions, chartTimeframe]);
+  }, [svg, predictions]);
 
   return null;
 };
