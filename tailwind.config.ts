@@ -1,7 +1,8 @@
 
 import type { Config } from "tailwindcss";
+import animatePlugin from "tailwindcss-animate";
 
-export default {
+const config: Config = {
   darkMode: ["class"],
   content: [
     "./pages/**/*.{ts,tsx}",
@@ -9,7 +10,6 @@ export default {
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
   ],
-  prefix: "",
   theme: {
     container: {
       center: true,
@@ -25,13 +25,14 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        // Neon colors for the crypto flow panel
-        'neon': {
-          'blue': '#0ea5e9',
-          'green': '#00ffcc',
-          'red': '#ff0066',
+        crypto: {
+          dark: "#0a0f1e",
         },
-        'crypto-dark': '#0a0f1e',
+        neon: {
+          blue: "#0ea5e9",
+          green: "#00ffcc",
+          red: "#ff0066",
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -76,48 +77,50 @@ export default {
           to: { height: "0" },
         },
         "flow-pulse": {
-          "0%, 100%": { 
+          "0%, 100%": {
             transform: "scale(1)",
-            opacity: "1"
+            opacity: "1",
           },
-          "50%": { 
+          "50%": {
             transform: "scale(1.05)",
-            opacity: "0.8"
+            opacity: "0.8",
           },
         },
         "fade-in": {
           "0%": {
             opacity: "0",
-            transform: "translateY(10px)"
+            transform: "translateY(10px)",
           },
           "100%": {
             opacity: "1",
-            transform: "translateY(0)"
-          }
+            transform: "translateY(0)",
+          },
         },
         "particle-flow": {
           "0%": {
             opacity: "0",
-            offset: "0%"
+            offset: "0%",
           },
           "50%": {
             opacity: "1",
-            offset: "50%"
+            offset: "50%",
           },
           "100%": {
             opacity: "0",
-            offset: "100%"
-          }
-        }
+            offset: "100%",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "flow-pulse": "flow-pulse 2s ease-in-out infinite",
         "fade-in": "fade-in 0.3s ease-out",
-        "particle-flow": "particle-flow 3s linear infinite"
+        "particle-flow": "particle-flow 3s linear infinite",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
-} satisfies Config;
+  plugins: [animatePlugin],
+};
+
+export default config;
