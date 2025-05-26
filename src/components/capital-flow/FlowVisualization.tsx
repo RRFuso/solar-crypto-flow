@@ -1,8 +1,7 @@
 
-import React from 'react';
+]import React from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
-import { Prediction } from '@/lib/aiModel';
 import { OrbitLayersComponent } from './OrbitLayers';
 import { LinkRendererComponent } from './LinkRenderer';
 import { NodeRendererComponent } from './NodeRenderer';
@@ -10,17 +9,16 @@ import { OrbitalAnimationComponent } from './OrbitalAnimation';
 import { StarfieldBackground } from './visualization/StarfieldBackground';
 import { useVisualizationSetup } from './visualization/useVisualizationSetup';
 import { useVisualizationData } from './visualization/useVisualizationData';
-import { PredictionOrbitalOverlay } from './PredictionOrbitalOverlay';
+import { PredictionOrbitalOverlay } from './PredictionOrbitalOverlay'; // 👈 Importante
+import { usePredictions } from '@/hooks/usePredictions'; // 👈 Hook que busca os predictions
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
-  predictions?: Prediction[];
   zoomLevel?: number;
 }
 
 export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
   flowData, 
-  predictions = [],
   zoomLevel = 70 
 }) => {
   const {
@@ -32,7 +30,9 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     animationRef,
     createOrbitalVisualization
   } = useVisualizationSetup(flowData, zoomLevel);
-  
+
+  const predictions = usePredictions(); // 👈 Gancho para obter previsões da IA
+
   useVisualizationData({
     flowData,
     svgRef,
@@ -51,12 +51,12 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     );
   }
 
-  const renderVisualization = svgRef.current && dimensions.width > 0 && visualizationData.nodes.length > 0;
+  const render = svgRef.current && dimensions.width > 0 && visualizationData.nodes.length > 0;
 
   return (
-    <div ref={containerRef} className="w-full h-full relative" style={{ minHeight: "700px" }}>
+    <div ref={containerRef} className="w-full h-full" style={{ minHeight: "700px" }}>
       <svg ref={svgRef} className="w-full h-full" />
-      {renderVisualization && svgRef.current && (
+      {render && svgRef.current && (
         <>
           <StarfieldBackground 
             svg={d3.select(svgRef.current)}
@@ -69,7 +69,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             height={dimensions.height}
             orbitLayers={8}
             baseRadius={30 * (zoomLevel / 100)}
-            extendFullScreen={true}
+            extendFullScreen
           />
           <LinkRendererComponent 
             svg={d3.select(svgRef.current)}
@@ -83,17 +83,17 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             selectedNodeId={visualizationData.selectedNodeId}
             zoomLevel={zoomLevel}
           />
-          <PredictionOrbitalOverlay
-            svg={d3.select(svgRef.current)}
-            nodes={visualizationData.nodes}
-            predictions={predictions}
-            zoomLevel={zoomLevel}
-          />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
             nodes={visualizationData.nodes}
             width={dimensions.width}
             height={dimensions.height}
+          />
+          <PredictionOrbitalOverlay
+            svg={d3.select(svgRef.current)}
+            nodes={visualizationData.nodes}
+            predictions={predictions}
+            zoomLevel={zoomLevel}
           />
         </>
       )}
