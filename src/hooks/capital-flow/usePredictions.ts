@@ -1,5 +1,4 @@
 
-// src/hooks/usePredictions.ts
 import { useState, useEffect } from 'react';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
