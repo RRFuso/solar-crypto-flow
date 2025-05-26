@@ -1,64 +1,102 @@
 
-import { useState, useEffect } from 'react';
+import React from 'react';
+import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
-import { Prediction } from '@/lib/aiModel';
-import { fetchCryptoData } from '@/lib/dataFetcher';
-import { extractFeatures } from '@/lib/featureExtractor';
-import { predictPriceMovements } from '@/lib/aiModel';
-import { toast } from 'sonner';
+import { OrbitLayersComponent } from './OrbitLayers';
+import { LinkRendererComponent } from './LinkRenderer';
+import { NodeRendererComponent } from './NodeRenderer';
+import { OrbitalAnimationComponent } from './OrbitalAnimation';
+import { StarfieldBackground } from './visualization/StarfieldBackground';
+import { useVisualizationSetup } from './visualization/useVisualizationSetup';
+import { useVisualizationData } from './visualization/useVisualizationData';
+import { PredictionOrbitalOverlay } from './PredictionOrbitalOverlay';
+import { usePredictions } from '@/hooks/usePredictions';
 
-export const usePredictions = (
-  flowData: FlowData[] | undefined, 
-  selectedCategory: string, 
-  chartTimeframe: string
-) => {
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
+interface FlowVisualizationProps {
+  flowData: FlowData[];
+  zoomLevel?: number;
+  activeCategory?: string;
+  chartTimeframe?: string;
+}
 
-  useEffect(() => {
-    const updatePredictions = async () => {
-      if (!flowData || flowData.length === 0) return;
-      
-      try {
-        const symbols = Array.from(new Set([
-          ...flowData.map(f => f.from),
-          ...flowData.map(f => f.to)
-        ]));
-        
-        const cryptoData = await fetchCryptoData();
-        const relevant = cryptoData.filter(c => symbols.includes(c.symbol));
-        
-        const filtered = selectedCategory !== 'all'
-          ? relevant.filter(c => c.category === selectedCategory)
-          : relevant;
-        
-        if (filtered.length) {
-          const feats = await extractFeatures(filtered, flowData, chartTimeframe);
-          const preds = predictPriceMovements(feats, chartTimeframe);
-          setPredictions(preds);
-          showAlerts(preds, chartTimeframe);
-        }
-      } catch (e) {
-        console.error("Error updating AI predictions:", e);
-      }
-    };
+export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
+  flowData,
+  zoomLevel = 70,
+  activeCategory = 'all',
+  chartTimeframe = '4h'
+}) => {
+  const {
+    svgRef,
+    containerRef,
+    dimensions,
+    visualizationData,
+    setVisualizationData,
+    animationRef,
+    createOrbitalVisualization
+  } = useVisualizationSetup(flowData, zoomLevel);
 
-    updatePredictions();
-    const interval = setInterval(updatePredictions,
-      ['5m','15m'].includes(chartTimeframe) ? 60_000 : 300_000
-    );
-    return () => clearInterval(interval);
-  }, [flowData, selectedCategory, chartTimeframe]);
+  // Aqui passamos os parâmetros ao hook
+  const { predictions } = usePredictions(flowData, activeCategory, chartTimeframe);
 
-  const showAlerts = (ps: Prediction[], tf: string) => {
-    ps.filter(p => p.confidence > 0.8).forEach(p => {
-      const emoji = p.bullish ? '🚀' : '🔻';
-      toast(`${emoji} ${p.symbol} signal (${tf})`, {
-        description: `${p.factors.slice(0,2).join(' + ')} · ${Math.round(p.confidence*100)}%`,
-        duration: 8000,
-        className: p.bullish ? 'bg-green-900/60' : 'bg-red-900/60',
-      });
-    });
-  };
+  useVisualizationData({
+    flowData,
+    svgRef,
+    dimensions,
+    zoomLevel,
+    setVisualizationData,
+    animationRef,
+    createOrbitalVisualization,
+    activeCategory
+  });
 
-  return { predictions };
+  const ready = svgRef.current && dimensions.width > 0 && visualizationData.nodes.length > 0;
+
+  return (
+    <div ref={containerRef} className="w-full h-full" style={{ minHeight: 700 }}>
+      <svg ref={svgRef} className="w-full h-full" />
+      {ready && (
+        <>
+          <StarfieldBackground
+            svg={d3.select(svgRef.current!)}
+            width={dimensions.width}
+            height={dimensions.height}
+          />
+          <OrbitLayersComponent
+            svg={d3.select(svgRef.current!)}
+            width={dimensions.width}
+            height={dimensions.height}
+            orbitLayers={8}
+            baseRadius={30 * (zoomLevel / 100)}
+            extendFullScreen
+          />
+          <LinkRendererComponent
+            svg={d3.select(svgRef.current!)}
+            links={visualizationData.links}
+            selectedNodeId={visualizationData.selectedNodeId}
+          />
+          <NodeRendererComponent
+            svg={d3.select(svgRef.current!)}
+            nodes={visualizationData.nodes}
+            centralNode={visualizationData.centralNode}
+            selectedNodeId={visualizationData.selectedNodeId}
+            zoomLevel={zoomLevel}
+          />
+          <OrbitalAnimationComponent
+            svg={d3.select(svgRef.current!)}
+            nodes={visualizationData.nodes}
+            width={dimensions.width}
+            height={dimensions.height}
+            rotationSpeed={0.0001}
+            updateLinksInRealTime
+          />
+          <PredictionOrbitalOverlay
+            svg={d3.select(svgRef.current!)}
+            nodes={visualizationData.nodes}
+            predictions={predictions}
+            zoomLevel={zoomLevel}
+          />
+        </>
+      )}
+    </div>
+  );
 };
