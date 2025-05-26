@@ -1,166 +1,180 @@
+import React, { useState } from 'react';
+import { Prediction } from '@/lib/aiModel';
+import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Search,
+} from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
-import { CryptoFeatures, normalizeFeatures } from "./featureExtractor";
+interface Props {
+  predictions: Prediction[];
+  chartTimeframe?: string;
+}
 
-export interface Prediction {
+interface StrategyData {
   symbol: string;
-  name?: string;
-  bullish: boolean;
-  confidence: number;
-  factors: string[];
-  timestamp: number;
-  price?: string;
+  name: string;
+  entry: string;
+  stopLoss: string;
+  takeProfit1: string;
+  takeProfit2: string;
+  risk: string;
+  reward: string;
+  timeframe: string;
+  direction: 'bullish' | 'bearish';
+  overview: string;
+  indicators: string[];
 }
 
-const predictionCache = new Map<string, { prediction: Prediction; timestamp: number }>();
-const CACHE_TTL = 1000 * 60 * 15; // 15 minutos
+export const AIWatchlist: React.FC<Props> = ({ predictions, chartTimeframe = '4h' }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStrategy, setSelectedStrategy] = useState<StrategyData | null>(null);
 
-export function getCachedPrediction(symbol: string): Prediction | null {
-  const cached = predictionCache.get(symbol);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.prediction;
-  }
-  return null;
-}
+  const filtered = predictions
+    .filter(p =>
+      p.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.name && p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    )
+    .sort((a, b) => b.confidence - a.confidence);
 
-export function storePrediction(prediction: Prediction): void {
-  predictionCache.set(prediction.symbol, {
-    prediction,
-    timestamp: Date.now()
-  });
-}
+  const bullish = filtered.filter(p => p.bullish);
+  const bearish = filtered.filter(p => !p.bullish);
 
-export function predictPriceMovements(
-  features: CryptoFeatures[],
-  chartTimeframe: string = "4h"
-): Prediction[] {
-  const normalizedFeatures = normalizeFeatures(features);
-  const predictions: Prediction[] = [];
+  const generateIndicators = (p: Prediction): string[] => {
+    const indicators: string[] = [];
 
-  normalizedFeatures.forEach(feature => {
-    const weights = getTimeframeWeights(chartTimeframe);
-    const bullishScore = calculateBullishScore(feature, weights);
-    const bearishScore = calculateBearishScore(feature, weights);
+    if (p.confidence >= 0.85) indicators.push('🔥 Volume Anômalo');
+    if (p.factors.some(f => /RSI/i)) indicators.push('RSI Divergência');
+    if (p.factors.some(f => /MACD/i)) indicators.push('MACD Cruzamento');
+    if (p.factors.some(f => /fibonacci/i)) indicators.push('Fibonacci Retração');
+    if (p.factors.some(f => /support|resistance/i)) indicators.push('Suporte/Resistência');
 
-    const isBullish = bullishScore > bearishScore;
-    const confidence = isBullish
-      ? bullishScore / (bullishScore + bearishScore)
-      : bearishScore / (bullishScore + bearishScore);
+    return indicators.slice(0, 3);
+  };
 
-    const factors = identifyFactors(feature, isBullish, chartTimeframe);
+  const showStrategy = (p: Prediction) => {
+    const price = parseFloat(p.price || '0') || 1;
+    const indicators = generateIndicators(p);
 
-    predictions.push({
-      symbol: feature.symbol,
-      name: feature.id,
-      bullish: isBullish,
-      confidence: Math.min(0.95, confidence),
-      factors,
-      timestamp: Date.now(),
-      price: feature.price
+    const stop = 3 + Math.random() * 2;
+    const tp1 = 5 + Math.random() * 5;
+    const tp2 = tp1 + 5 + Math.random() * 10;
+
+    const direction = p.bullish ? 'bullish' : 'bearish';
+
+    setSelectedStrategy({
+      symbol: p.symbol,
+      name: p.name || p.symbol,
+      entry: price.toFixed(2),
+      stopLoss: (p.bullish ? price * (1 - stop / 100) : price * (1 + stop / 100)).toFixed(2),
+      takeProfit1: (p.bullish ? price * (1 + tp1 / 100) : price * (1 - tp1 / 100)).toFixed(2),
+      takeProfit2: (p.bullish ? price * (1 + tp2 / 100) : price * (1 - tp2 / 100)).toFixed(2),
+      risk: `${stop.toFixed(1)}%`,
+      reward: `${tp2.toFixed(1)}%`,
+      timeframe: chartTimeframe,
+      direction,
+      overview: `${p.symbol} apresenta sinal ${direction === 'bullish' ? 'de alta' : 'de baixa'} com base em ${indicators.join(', ')}.`,
+      indicators,
     });
-  });
+  };
 
-  return predictions;
-}
+  const renderPrediction = (p: Prediction) => (
+    <div
+      key={p.symbol}
+      className="bg-gray-800 hover:bg-gray-700 transition-colors rounded-md p-2 flex items-center gap-3"
+      style={{ maxWidth: '260px' }}
+    >
+      <img
+        src={getCryptoLogoUrl(p.symbol)}
+        alt={p.symbol}
+        className="w-6 h-6 rounded-full"
+      />
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-center text-sm text-white">
+          <span className="truncate max-w-[100px]">{p.symbol}</span>
+          <span className={p.bullish ? 'text-green-400' : 'text-red-400'}>
+            {p.bullish ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+            {Math.round(p.confidence * 100)}%
+          </span>
+        </div>
+        <div className="text-xs text-gray-400 truncate">{p.factors.slice(0, 2).join(' + ')}</div>
+        {p.confidence > 0.6 && (
+          <button
+            onClick={() => showStrategy(p)}
+            className="text-xs text-blue-400 hover:underline mt-1"
+          >
+            Ver Estratégia
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
-function getTimeframeWeights(timeframe: string) {
-  switch (timeframe) {
-    case "5m":
-      return { technical: 1.5, fundamental: 0.3, flow: 1.2, momentum: 1.6 };
-    case "15m":
-      return { technical: 1.4, fundamental: 0.4, flow: 1.1, momentum: 1.4 };
-    case "30m":
-      return { technical: 1.3, fundamental: 0.5, flow: 1.1, momentum: 1.2 };
-    case "1h":
-      return { technical: 1.2, fundamental: 0.6, flow: 1.0, momentum: 1.1 };
-    case "4h":
-      return { technical: 1.0, fundamental: 0.8, flow: 1.0, momentum: 1.0 };
-    case "24h":
-      return { technical: 0.9, fundamental: 1.0, flow: 1.0, momentum: 0.9 };
-    case "7d":
-      return { technical: 0.7, fundamental: 1.2, flow: 0.8, momentum: 0.7 };
-    default:
-      return { technical: 1.0, fundamental: 1.0, flow: 1.0, momentum: 1.0 };
-  }
-}
+  return (
+    <div className="bg-black border border-gray-700 rounded-lg px-4 py-3 w-[280px]">
+      <h2 className="text-white text-lg font-semibold mb-2">🧠 AI Watchlist</h2>
+      <div className="mb-3">
+        <input
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="🔍 Buscar ativo..."
+          className="w-full p-2 bg-gray-900 border border-gray-700 rounded text-white text-sm"
+        />
+      </div>
 
-function calculateBullishScore(feature: CryptoFeatures, w: any): number {
-  let score = 0;
-  if (feature.rsi < 30) score += 2 * w.technical;
-  if (feature.rsi4h > 30 && feature.rsi4h < 40) score += 1.5 * w.technical;
-  if (feature.macd > feature.macdSignal) score += 1.5 * w.technical;
-  if (feature.aboveMA) score += 1 * w.technical;
-  if (feature.macdHistogram > 0) score += 1 * w.technical;
+      <div className="space-y-4 overflow-y-auto max-h-[600px]">
+        {bullish.length > 0 && (
+          <div>
+            <h3 className="text-green-400 text-sm mb-1">🐂 Bullish</h3>
+            <div className="space-y-2">{bullish.map(renderPrediction)}</div>
+          </div>
+        )}
+        {bearish.length > 0 && (
+          <div>
+            <h3 className="text-red-400 text-sm mt-4 mb-1">🐻 Bearish</h3>
+            <div className="space-y-2">{bearish.map(renderPrediction)}</div>
+          </div>
+        )}
+      </div>
 
-  if (feature.priceChange1h > 0) score += 1 * w.momentum;
-  if (feature.priceChange1h > 1) score += 2 * w.momentum;
-  if (feature.priceChange24h > 0) score += 0.5 * w.momentum;
-  if (feature.priceChange24h > 5) score += 1 * w.fundamental;
-
-  if (feature.volumeChange24h > 20) score += 1.5 * w.momentum;
-  if (feature.obv > 0) score += 1 * w.momentum;
-
-  if (feature.netFlowPercentage > 0) score += 1 * w.flow;
-  if (feature.incomingFlows > feature.outgoingFlows) score += 1.5 * w.flow;
-  if (feature.exchangeOutflow > feature.exchangeInflow) score += 1 * w.flow;
-  if (feature.fundingRate > -0.01 && feature.fundingRate < 0.01) score += 0.5 * w.flow;
-
-  return score;
-}
-
-function calculateBearishScore(feature: CryptoFeatures, w: any): number {
-  let score = 0;
-  if (feature.rsi > 70) score += 2 * w.technical;
-  if (feature.rsi4h > 70) score += 1.5 * w.technical;
-  if (feature.macd < feature.macdSignal) score += 1.5 * w.technical;
-  if (!feature.aboveMA) score += 1 * w.technical;
-  if (feature.macdHistogram < 0) score += 1 * w.technical;
-
-  if (feature.priceChange1h < 0) score += 1 * w.momentum;
-  if (feature.priceChange1h < -1) score += 2 * w.momentum;
-  if (feature.priceChange24h < 0) score += 0.5 * w.momentum;
-  if (feature.priceChange24h < -5) score += 1 * w.fundamental;
-
-  if (feature.priceChange24h < 0 && feature.volumeChange24h > 20) score += 2 * w.momentum;
-  if (feature.obv < 0) score += 1 * w.momentum;
-
-  if (feature.netFlowPercentage < 0) score += 1 * w.flow;
-  if (feature.outgoingFlows > feature.incomingFlows) score += 1.5 * w.flow;
-  if (feature.exchangeInflow > feature.exchangeOutflow) score += 1 * w.flow;
-  if (feature.fundingRate > 0.01) score += 1 * w.flow;
-
-  return score;
-}
-
-function identifyFactors(feature: CryptoFeatures, isBullish: boolean, timeframe: string): string[] {
-  const factors: string[] = [];
-
-  if (isBullish) {
-    if (feature.rsi < 30) factors.push("RSI oversold");
-    if (feature.rsi4h > 30 && feature.rsi4h < 40) factors.push("RSI recovery");
-    if (feature.macd > feature.macdSignal) factors.push("MACD bullish crossover");
-    if (feature.macdHistogram > 0) factors.push("MACD positive momentum");
-    if (feature.aboveMA) factors.push("Price above MA");
-    if (feature.priceChange1h > 1) factors.push("Price surge 1h");
-    if (feature.volumeChange24h > 20) factors.push("Volume spike");
-    if (feature.obv > 0) factors.push("Positive OBV");
-    if (feature.netFlowPercentage > 1) factors.push("Strong inflow");
-    if (feature.exchangeOutflow > feature.exchangeInflow * 1.5) factors.push("Exchange outflow");
-  } else {
-    if (feature.rsi > 70) factors.push("RSI overbought");
-    if (feature.rsi4h > 70) factors.push("4h RSI overbought");
-    if (feature.macd < feature.macdSignal) factors.push("MACD bearish crossover");
-    if (feature.macdHistogram < 0) factors.push("MACD negative momentum");
-    if (!feature.aboveMA) factors.push("Price below MA");
-    if (feature.priceChange1h < -1) factors.push("Price drop 1h");
-    if (feature.volumeChange24h > 20 && feature.priceChange24h < 0) factors.push("High volume sell-off");
-    if (feature.obv < 0) factors.push("Negative OBV");
-    if (feature.netFlowPercentage < -1) factors.push("Capital outflow");
-    if (feature.exchangeInflow > feature.exchangeOutflow * 1.5) factors.push("Exchange inflow");
-  }
-
-  if (factors.length) {
-    factors[0] = `${factors[0]} (${timeframe})`;
-  }
-
-  return factors.slice(0, 3);
-}
+      {selectedStrategy && (
+        <Dialog open onOpenChange={() => setSelectedStrategy(null)}>
+          <DialogContent className="bg-gray-900 text-white border-gray-700 max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                Estratégia: {selectedStrategy.name}
+              </DialogTitle>
+              <DialogDescription>
+                Timeframe: {selectedStrategy.timeframe}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-3 text-sm text-gray-300 space-y-2">
+              <p>{selectedStrategy.overview}</p>
+              <ul className="list-disc list-inside text-xs text-gray-400">
+                {selectedStrategy.indicators.map((i, idx) => (
+                  <li key={idx}>{i}</li>
+                ))}
+              </ul>
+              <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+                <div className="text-green-400">Entrada: ${selectedStrategy.entry}</div>
+                <div className="text-red-400">Stop: ${selectedStrategy.stopLoss}</div>
+                <div className="text-green-400">TP1: ${selectedStrategy.takeProfit1}</div>
+                <div className="text-green-400">TP2: ${selectedStrategy.takeProfit2}</div>
+                <div className="text-yellow-400">Risco: {selectedStrategy.risk}</div>
+                <div className="text-yellow-400">Retorno: {selectedStrategy.reward}</div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+};
