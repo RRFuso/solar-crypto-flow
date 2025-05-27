@@ -1,10 +1,9 @@
 
-import { normalizeFeatures } from './featureExtractor';
-import { FeatureSet } from '@/types/crypto';
+import { CryptoFeatures, normalizeFeatures } from "./featureExtractor";
 
 export interface Prediction {
   symbol: string;
-  name: string;
+  name?: string;
   bullish: boolean;
   confidence: number;
   factors: string[];
@@ -12,8 +11,9 @@ export interface Prediction {
   price?: string;
 }
 
+// Cache de previsões
 const predictionCache = new Map<string, { prediction: Prediction; timestamp: number }>();
-const CACHE_TTL = 15 * 60 * 1000;
+const CACHE_TTL = 1000 * 60 * 15; // 15 minutos
 
 export function getCachedPrediction(symbol: string): Prediction | null {
   const cached = predictionCache.get(symbol);
@@ -23,81 +23,114 @@ export function getCachedPrediction(symbol: string): Prediction | null {
   return null;
 }
 
-export function storePrediction(prediction: Prediction) {
-  predictionCache.set(prediction.symbol, { prediction, timestamp: Date.now() });
+export function storePrediction(prediction: Prediction): void {
+  predictionCache.set(prediction.symbol, {
+    prediction,
+    timestamp: Date.now(),
+  });
 }
 
-export function predictPriceMovements(features: FeatureSet[], chartTimeframe: string = '4h'): Prediction[] {
+export function predictPriceMovements(
+  features: CryptoFeatures[],
+  chartTimeframe: string = "4h"
+): Prediction[] {
   const normalized = normalizeFeatures(features);
   const weights = getTimeframeWeights(chartTimeframe);
   const predictions: Prediction[] = [];
 
-  for (const f of normalized) {
-    const bullScore = scoreBullish(f, weights);
-    const bearScore = scoreBearish(f, weights);
-    const isBull = bullScore > bearScore;
-    const confidence = isBull ? bullScore / (bullScore + bearScore) : bearScore / (bullScore + bullScore);
-    const factors = getFactors(f, isBull, chartTimeframe);
+  for (const feat of normalized) {
+    const bull = scoreBullish(feat, weights);
+    const bear = scoreBearish(feat, weights);
+    const isBullish = bull > bear;
+    const conf = isBullish ? bull / (bull + bear) : bear / (bull + bear);
+    const factors = getFactors(feat, isBullish, chartTimeframe);
 
     predictions.push({
-      symbol: f.symbol,
-      name: f.id,
-      bullish: isBull,
-      confidence: Math.min(0.95, confidence),
+      symbol: feat.symbol,
+      name: feat.id,
+      bullish: isBullish,
+      confidence: Math.min(0.95, conf),
       factors,
       timestamp: Date.now(),
-      price: f.price
+      price: feat.price
     });
   }
 
   return predictions;
 }
 
-function getTimeframeWeights(tf: string) {
-  const map: Record<string, any> = {
-    '5m': { tech: 1.5, flow: 1.2, mom: 1.6, fund: 0.3 },
-    '15m': { tech: 1.4, flow: 1.1, mom: 1.4, fund: 0.4 },
-    '1h': { tech: 1.2, flow: 1.0, mom: 1.1, fund: 0.6 },
-    '4h': { tech: 1.0, flow: 1.0, mom: 1.0, fund: 0.8 },
-    '24h': { tech: 0.9, flow: 1.0, mom: 0.9, fund: 1.0 },
-  };
-  return map[tf] || { tech: 1, flow: 1, mom: 1, fund: 1 };
+function getTimeframeWeights(timeframe: string) {
+  switch (timeframe) {
+    case "5m": return { tech: 1.5, fund: 0.3, flow: 1.2, mom: 1.6 };
+    case "15m": return { tech: 1.4, fund: 0.4, flow: 1.1, mom: 1.4 };
+    case "1h": return { tech: 1.2, fund: 0.6, flow: 1.0, mom: 1.1 };
+    case "4h": return { tech: 1.0, fund: 0.8, flow: 1.0, mom: 1.0 };
+    case "24h": return { tech: 0.9, fund: 1.0, flow: 1.0, mom: 0.9 };
+    default: return { tech: 1.0, fund: 1.0, flow: 1.0, mom: 1.0 };
+  }
 }
 
-function scoreBullish(f: FeatureSet, w: any) {
-  let score = 0;
-  if (f.rsi < 30) score += 2 * w.tech;
-  if (f.macd > f.macdSignal) score += 1.5 * w.tech;
-  if (f.divergenceBullish) score += 2.5 * w.tech;
-  if (f.aboveMA) score += 1 * w.tech;
-  if (f.priceChange1h > 1) score += 1.5 * w.mom;
-  if (f.volumeChange24h > 20) score += 1.5 * w.mom;
-  if (f.incomingFlows > f.outgoingFlows) score += 1.5 * w.flow;
-  return score;
+function scoreBullish(f: CryptoFeatures, w: any): number {
+  let s = 0;
+
+  if (f.rsi < 30) s += 2 * w.tech;
+  if (f.rsi4h < 40 && f.rsi4h > 30) s += 1.5 * w.tech;
+  if (f.macd > f.macdSignal) s += 1.5 * w.tech;
+  if (f.macdHistogram > 0) s += 1 * w.tech;
+  if (f.aboveMA) s += 1 * w.tech;
+
+  if (f.priceChange1h > 1) s += 2 * w.mom;
+  if (f.priceChange24h > 5) s += 1 * w.fund;
+
+  if (f.volumeChange24h > 20) s += 1.5 * w.mom;
+  if (f.obv > 0) s += 1 * w.mom;
+
+  if (f.netFlowPercentage > 0) s += 1 * w.flow;
+  if (f.incomingFlows > f.outgoingFlows) s += 1.5 * w.flow;
+  if (f.exchangeOutflow > f.exchangeInflow) s += 1 * w.flow;
+
+  return s;
 }
 
-function scoreBearish(f: FeatureSet, w: any) {
-  let score = 0;
-  if (f.rsi > 70) score += 2 * w.tech;
-  if (f.macd < f.macdSignal) score += 1.5 * w.tech;
-  if (f.divergenceBearish) score += 2.5 * w.tech;
-  if (!f.aboveMA) score += 1 * w.tech;
-  if (f.priceChange1h < -1) score += 1.5 * w.mom;
-  if (f.outgoingFlows > f.incomingFlows) score += 1.5 * w.flow;
-  return score;
+function scoreBearish(f: CryptoFeatures, w: any): number {
+  let s = 0;
+
+  if (f.rsi > 70) s += 2 * w.tech;
+  if (f.rsi4h > 70) s += 1.5 * w.tech;
+  if (f.macd < f.macdSignal) s += 1.5 * w.tech;
+  if (f.macdHistogram < 0) s += 1 * w.tech;
+  if (!f.aboveMA) s += 1 * w.tech;
+
+  if (f.priceChange1h < -1) s += 2 * w.mom;
+  if (f.priceChange24h < -5) s += 1 * w.fund;
+
+  if (f.volumeChange24h > 20 && f.priceChange24h < 0) s += 2 * w.mom;
+  if (f.obv < 0) s += 1 * w.mom;
+
+  if (f.netFlowPercentage < 0) s += 1 * w.flow;
+  if (f.outgoingFlows > f.incomingFlows) s += 1.5 * w.flow;
+  if (f.exchangeInflow > f.exchangeOutflow) s += 1 * w.flow;
+
+  return s;
 }
 
-function getFactors(f: FeatureSet, bull: boolean, tf: string): string[] {
-  const list = [];
+function getFactors(f: CryptoFeatures, bull: boolean, tf: string): string[] {
+  const list: string[] = [];
+
   if (bull) {
     if (f.rsi < 30) list.push("RSI oversold");
-    if (f.divergenceBullish) list.push("Bullish divergence");
-    if (f.volumeChange24h > 20) list.push("High volume");
+    if (f.macd > f.macdSignal) list.push("MACD bullish crossover");
+    if (f.macdHistogram > 0) list.push("MACD histogram positivo");
+    if (f.volumeChange24h > 20) list.push("Volume alto");
+    if (f.netFlowPercentage > 1) list.push("Forte fluxo positivo");
   } else {
     if (f.rsi > 70) list.push("RSI overbought");
-    if (f.divergenceBearish) list.push("Bearish divergence");
-    if (f.volumeChange24h > 20 && f.priceChange24h < 0) list.push("Volume dump");
+    if (f.macd < f.macdSignal) list.push("MACD bearish crossover");
+    if (f.macdHistogram < 0) list.push("MACD histogram negativo");
+    if (f.volumeChange24h > 20 && f.priceChange24h < 0) list.push("Venda com volume alto");
+    if (f.netFlowPercentage < -1) list.push("Forte fluxo negativo");
   }
+
   if (list.length > 0) list[0] += ` (${tf})`;
-  return list;
+  return list.slice(0, 3);
 }

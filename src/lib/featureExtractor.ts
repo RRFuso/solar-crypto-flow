@@ -1,3 +1,4 @@
+
 import { CryptoData, FlowData } from "@/types/crypto";
 import { fetchTechnicalIndicators, fetchOnChainData } from "./dataFetcher";
 
@@ -30,6 +31,9 @@ export interface CryptoFeatures {
   price: string;
 }
 
+/**
+ * Extrai vetores de features combinando dados de mercado, técnicos e de fluxo de capital
+ */
 export async function extractFeatures(
   cryptoData: CryptoData[],
   flowData: FlowData[],
@@ -43,11 +47,11 @@ export async function extractFeatures(
       const onChain = await fetchOnChainData(crypto.symbol);
 
       const incoming = flowData
-        .filter(f => f.to === crypto.symbol && f.value > 0)
+        .filter(flow => flow.to === crypto.symbol && flow.value > 0)
         .reduce((sum, f) => sum + f.value, 0);
 
       const outgoing = flowData
-        .filter(f => f.from === crypto.symbol && f.value < 0)
+        .filter(flow => flow.from === crypto.symbol && flow.value < 0)
         .reduce((sum, f) => sum + Math.abs(f.value), 0);
 
       const netFlowPct = crypto.marketCap > 0
@@ -79,44 +83,66 @@ export async function extractFeatures(
         incomingFlows: incoming,
         outgoingFlows: outgoing,
         netFlowPercentage: netFlowPct,
-        category: crypto.category || 'other',
+        category: crypto.category || "other",
         price: crypto.price || "0"
       });
-    } catch (e) {
-      console.error(`Erro ao extrair features de ${crypto.symbol}`, e);
+    } catch (err) {
+      console.error(`❌ Erro ao processar ${crypto.symbol}:`, err);
     }
   }
 
   return features;
 }
 
-export function normalizeFeatures(features: CryptoFeatures[]): CryptoFeatures[] {
-  if (features.length === 0) return [];
+/**
+ * Normaliza os dados de features numéricas para uso em ML
+ */
+export function normalizeFeatures(
+  features: CryptoFeatures[],
+  minVal: number = -1,
+  maxVal: number = 1
+): CryptoFeatures[] {
+  if (!features.length) return [];
 
-  const fields = [
-    'priceChange1h', 'priceChange24h', 'priceChange7d',
-    'volume', 'volumeChange24h', 'marketCap',
-    'rsi', 'rsi4h', 'macd', 'macdSignal', 'macdHistogram',
-    'ema12', 'ema26', 'obv',
-    'exchangeInflow', 'exchangeOutflow', 'netFlow', 'fundingRate',
-    'incomingFlows', 'outgoingFlows', 'netFlowPercentage'
+  const numericFields = [
+    "priceChange1h", "priceChange24h", "priceChange7d",
+    "volume", "volumeChange24h", "marketCap",
+    "rsi", "rsi4h", "macd", "macdSignal", "macdHistogram",
+    "ema12", "ema26", "obv",
+    "exchangeInflow", "exchangeOutflow", "netFlow", "fundingRate",
+    "incomingFlows", "outgoingFlows", "netFlowPercentage"
   ] as const;
 
-  const mins: Record<string, number> = {};
-  const maxs: Record<string, number> = {};
+  type NumericField = typeof numericFields[number];
 
-  fields.forEach(f => {
-    mins[f] = Math.min(...features.map(ft => ft[f] ?? 0));
-    maxs[f] = Math.max(...features.map(ft => ft[f] ?? 0));
+  const mins: Record<NumericField, number> = {} as Record<NumericField, number>;
+  const maxs: Record<NumericField, number> = {} as Record<NumericField, number>;
+
+  numericFields.forEach(field => {
+    mins[field] = features[0][field] as number;
+    maxs[field] = features[0][field] as number;
   });
 
-  return features.map(f => {
-    const copy = { ...f };
-    fields.forEach(field => {
+  for (const feature of features) {
+    for (const field of numericFields) {
+      const val = feature[field];
+      if (val < mins[field]) mins[field] = val;
+      if (val > maxs[field]) maxs[field] = val;
+    }
+  }
+
+  return features.map(original => {
+    const normalized = { ...original };
+
+    for (const field of numericFields) {
       const min = mins[field];
       const max = maxs[field];
-      copy[field] = max === min ? 0 : (f[field] - min) / (max - min);
-    });
-    return copy;
+      const val = original[field];
+
+      (normalized[field] as number) = max === min ? 0
+        : minVal + ((val - min) / (max - min)) * (maxVal - minVal);
+    }
+
+    return normalized;
   });
 }
