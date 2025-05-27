@@ -8,7 +8,7 @@ import { LinkRendererExtended } from './LinkRendererExtended';
 import { NodeRendererComponent } from './NodeRenderer';
 import { OrbitalAnimationComponent } from './OrbitalAnimation';
 import { StarfieldBackground } from './visualization/StarfieldBackground';
-import { PredictionOrbitalOverlay } from './PredictionOrbitalOverlay';
+import PredictionOrbitalOverlay from './PredictionOrbitalOverlay';
 import { useVisualizationSetup } from './visualization/useVisualizationSetup';
 import { useVisualizationData } from './visualization/useVisualizationData';
 
