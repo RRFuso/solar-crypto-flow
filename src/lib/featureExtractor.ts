@@ -3,7 +3,7 @@ import { CryptoData } from '@/types/crypto';
 
 // Cálculo de média simples
 const sma = (arr: number[], period: number): number => {
-  if (arr.length < period) return arr[arr.length - 1] || 0;
+  if (arr.length < period) return arr[arr.length - 1] || 0; 
   return arr.slice(-period).reduce((sum, val) => sum + val, 0) / period;
 };
 
