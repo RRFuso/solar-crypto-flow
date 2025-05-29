@@ -1,64 +1,45 @@
 import { CryptoData } from '@/types/crypto';
 
-export interface FeatureVector {
-  symbol: string;
-  id: string;
-  price: number;
-  rsi: number;
-  rsi4h: number;
-  macd: number;
-  macdSignal: number;
-  macdHistogram: number;
-  obv: number;
-  volumeChange24h: number;
-  priceChange1h: number;
-  priceChange24h: number;
-  aboveMA: boolean;
-  netFlowPercentage: number;
-  incomingFlows: number;
-  outgoingFlows: number;
-  exchangeInflow: number;
-  exchangeOutflow: number;
-  divergenceBullish: boolean;
-  divergenceBearish: boolean;
+/**
+ * Função que calcula divergência bullish ou bearish com base em preço e OBV (On-Balance Volume)
+ * @returns objeto com flags de divergência
+ */
+function calculateDivergences(data: CryptoData): { divergenceBullish: boolean, divergenceBearish: boolean } {
+  // Exemplo simplificado: compara tendência do preço vs. OBV
+  const priceChange = data.priceChange24h;
+  const obvChange = data.obvChange24h || 0;
+
+  const divergenceBullish = priceChange < 0 && obvChange > 0;
+  const divergenceBearish = priceChange > 0 && obvChange < 0;
+
+  return { divergenceBullish, divergenceBearish };
 }
 
-export function extractFeatures(data: CryptoData[]): FeatureVector[] {
-  return data.map(coin => {
-    const netFlow = coin.incomingFlows - coin.outgoingFlows;
-    const netFlowPercentage = coin.marketCap > 0 ? (netFlow / coin.marketCap) * 100 : 0;
-    const aboveMA = coin.price > coin.movingAverage;
-
-    // Divergência com base em preço subindo e volume caindo (bearish), ou preço caindo e volume subindo (bullish)
-    const divergenceBullish = coin.priceChange24h < 0 && coin.volumeChange24h > 10;
-    const divergenceBearish = coin.priceChange24h > 0 && coin.volumeChange24h < -10;
+/**
+ * Normaliza os dados crus das criptos e adiciona fatores derivados
+ */
+export function normalizeFeatures(rawFeatures: CryptoData[]) {
+  return rawFeatures.map(data => {
+    const { divergenceBullish, divergenceBearish } = calculateDivergences(data);
 
     return {
-      symbol: coin.symbol,
-      id: coin.id,
-      price: coin.price,
-      rsi: coin.rsi,
-      rsi4h: coin.rsi4h || coin.rsi, // fallback
-      macd: coin.macd,
-      macdSignal: coin.macdSignal,
-      macdHistogram: coin.macdHistogram,
-      obv: coin.obv,
-      volumeChange24h: coin.volumeChange24h,
-      priceChange1h: coin.priceChange1h,
-      priceChange24h: coin.priceChange24h,
-      aboveMA,
-      netFlowPercentage,
-      incomingFlows: coin.incomingFlows,
-      outgoingFlows: coin.outgoingFlows,
-      exchangeInflow: coin.exchangeInflow,
-      exchangeOutflow: coin.exchangeOutflow,
+      ...data,
+      symbol: data.symbol,
+      id: data.symbol,
+      aboveMA: data.price > (data.movingAverage || 0),
+      netFlowPercentage: data.incomingFlows && data.outgoingFlows
+        ? ((data.incomingFlows - data.outgoingFlows) / Math.max(data.marketCap || 1, 1)) * 100
+        : 0,
+      exchangeInflow: data.exchangeInflow || 0,
+      exchangeOutflow: data.exchangeOutflow || 0,
+      obv: data.obv || 0,
+      obvChange24h: data.obvChange24h || 0,
+      macdHistogram: data.macdHistogram || 0,
+      volumeChange24h: data.volumeChange24h || 0,
+      priceChange1h: data.priceChange1h || 0,
+      priceChange24h: data.priceChange24h || 0,
       divergenceBullish,
-      divergenceBearish
+      divergenceBearish,
     };
   });
-}
-
-export function normalizeFeatures(features: FeatureVector[]): FeatureVector[] {
-  // Pode-se aplicar normalização min-max se desejar.
-  return features.map(f => ({ ...f }));
 }
