@@ -1,148 +1,76 @@
 
-import { CryptoData, FlowData } from "@/types/crypto";
-import { fetchTechnicalIndicators, fetchOnChainData } from "./dataFetcher";
+import { CryptoData } from '@/types/crypto';
 
-export interface CryptoFeatures {
-  symbol: string;
-  id: string;
-  priceChange1h: number;
-  priceChange24h: number;
-  priceChange7d: number;
-  volume: number;
-  volumeChange24h: number;
-  marketCap: number;
-  rsi: number;
-  rsi4h: number;
-  macd: number;
-  macdSignal: number;
-  macdHistogram: number;
-  ema12: number;
-  ema26: number;
-  aboveMA: boolean;
-  obv: number;
-  exchangeInflow: number;
-  exchangeOutflow: number;
-  netFlow: number;
-  fundingRate: number;
-  incomingFlows: number;
-  outgoingFlows: number;
-  netFlowPercentage: number;
-  category: string;
-  price: string;
-}
+// Cálculo de média simples
+const sma = (arr: number[], period: number): number => {
+  if (arr.length < period) return arr[arr.length - 1] || 0;
+  return arr.slice(-period).reduce((sum, val) => sum + val, 0) / period;
+};
 
-/**
- * Extrai vetores de features combinando dados de mercado, técnicos e de fluxo de capital
- */
-export async function extractFeatures(
-  cryptoData: CryptoData[],
-  flowData: FlowData[],
-  chartTimeframe: string = '4h'
-): Promise<CryptoFeatures[]> {
-  const features: CryptoFeatures[] = [];
+// Cálculo de desvio padrão
+const std = (arr: number[]): number => {
+  const mean = sma(arr, arr.length);
+  return Math.sqrt(sma(arr.map(x => (x - mean) ** 2), arr.length));
+};
 
-  for (const crypto of cryptoData) {
-    try {
-      const technical = await fetchTechnicalIndicators(crypto.symbol, chartTimeframe);
-      const onChain = await fetchOnChainData(crypto.symbol);
+// Divergência entre RSI e Preço
+const computeDivergence = (prices: number[], rsis: number[]): { bull: boolean; bear: boolean } => {
+  if (prices.length < 3 || rsis.length < 3) return { bull: false, bear: false };
+  const priceTrend = prices[prices.length - 1] - prices[0];
+  const rsiTrend = rsis[rsis.length - 1] - rsis[0];
+  return {
+    bull: priceTrend < 0 && rsiTrend > 0,
+    bear: priceTrend > 0 && rsiTrend < 0
+  };
+};
 
-      const incoming = flowData
-        .filter(flow => flow.to === crypto.symbol && flow.value > 0)
-        .reduce((sum, f) => sum + f.value, 0);
+// Detecta lateralização por baixa variação e volume alto
+const computeLateralization = (prices: number[], volume: number[]): number => {
+  const volatility = std(prices) / (sma(prices, prices.length) || 1);
+  const volAvg = sma(volume, volume.length);
+  if (volatility < 0.015 && volAvg > 0) return 1;
+  return 0;
+};
 
-      const outgoing = flowData
-        .filter(flow => flow.from === crypto.symbol && flow.value < 0)
-        .reduce((sum, f) => sum + Math.abs(f.value), 0);
+export function extractFeatures(data: CryptoData[]): any[] {
+  return data.map((d) => {
+    const priceHistory = d.history?.price || [];
+    const rsiHistory = d.history?.rsi || [];
+    const volumeHistory = d.history?.volume || [];
+    const obvHistory = d.history?.obv || [];
 
-      const netFlowPct = crypto.marketCap > 0
-        ? ((incoming - outgoing) / crypto.marketCap) * 100
-        : 0;
+    const price = d.price || priceHistory[priceHistory.length - 1] || 0;
+    const rsi = d.rsi || rsiHistory[rsiHistory.length - 1] || 50;
+    const obv = d.obv || obvHistory[obvHistory.length - 1] || 0;
 
-      features.push({
-        symbol: crypto.symbol,
-        id: crypto.id,
-        priceChange1h: crypto.priceChange1h || 0,
-        priceChange24h: crypto.priceChange24h || 0,
-        priceChange7d: crypto.priceChange7d || 0,
-        volume: parseFloat(crypto.volume || "0"),
-        volumeChange24h: crypto.volumeChange24h || 0,
-        marketCap: crypto.marketCap || 0,
-        rsi: technical.rsi,
-        rsi4h: technical.rsi4h,
-        macd: technical.macd.value,
-        macdSignal: technical.macd.signal,
-        macdHistogram: technical.macd.histogram,
-        ema12: technical.ema12,
-        ema26: technical.ema26,
-        aboveMA: technical.ema12 > technical.ema26,
-        obv: technical.obv,
-        exchangeInflow: onChain.exchangeInflow,
-        exchangeOutflow: onChain.exchangeOutflow,
-        netFlow: onChain.netFlow,
-        fundingRate: onChain.fundingRate,
-        incomingFlows: incoming,
-        outgoingFlows: outgoing,
-        netFlowPercentage: netFlowPct,
-        category: crypto.category || "other",
-        price: crypto.price || "0"
-      });
-    } catch (err) {
-      console.error(`❌ Erro ao processar ${crypto.symbol}:`, err);
-    }
-  }
+    const divergence = computeDivergence(priceHistory, rsiHistory);
+    const lateralScore = computeLateralization(priceHistory, volumeHistory);
 
-  return features;
-}
+    const flowStrength = d.incomingFlows - d.outgoingFlows;
+    const netFlowPct = (flowStrength / (d.volume || 1)) * 100;
 
-/**
- * Normaliza os dados de features numéricas para uso em ML
- */
-export function normalizeFeatures(
-  features: CryptoFeatures[],
-  minVal: number = -1,
-  maxVal: number = 1
-): CryptoFeatures[] {
-  if (!features.length) return [];
-
-  const numericFields = [
-    "priceChange1h", "priceChange24h", "priceChange7d",
-    "volume", "volumeChange24h", "marketCap",
-    "rsi", "rsi4h", "macd", "macdSignal", "macdHistogram",
-    "ema12", "ema26", "obv",
-    "exchangeInflow", "exchangeOutflow", "netFlow", "fundingRate",
-    "incomingFlows", "outgoingFlows", "netFlowPercentage"
-  ] as const;
-
-  type NumericField = typeof numericFields[number];
-
-  const mins: Record<NumericField, number> = {} as Record<NumericField, number>;
-  const maxs: Record<NumericField, number> = {} as Record<NumericField, number>;
-
-  numericFields.forEach(field => {
-    mins[field] = features[0][field] as number;
-    maxs[field] = features[0][field] as number;
-  });
-
-  for (const feature of features) {
-    for (const field of numericFields) {
-      const val = feature[field];
-      if (val < mins[field]) mins[field] = val;
-      if (val > maxs[field]) maxs[field] = val;
-    }
-  }
-
-  return features.map(original => {
-    const normalized = { ...original };
-
-    for (const field of numericFields) {
-      const min = mins[field];
-      const max = maxs[field];
-      const val = original[field];
-
-      (normalized[field] as number) = max === min ? 0
-        : minVal + ((val - min) / (max - min)) * (maxVal - minVal);
-    }
-
-    return normalized;
+    return {
+      symbol: d.symbol,
+      id: d.id,
+      price,
+      rsi,
+      obv,
+      macd: d.macd,
+      macdSignal: d.macdSignal,
+      macdHistogram: d.macdHistogram,
+      aboveMA: d.aboveMA,
+      priceChange1h: d.priceChange1h,
+      priceChange24h: d.priceChange24h,
+      volumeChange24h: d.volumeChange24h,
+      exchangeInflow: d.exchangeInflow,
+      exchangeOutflow: d.exchangeOutflow,
+      incomingFlows: d.incomingFlows,
+      outgoingFlows: d.outgoingFlows,
+      netFlowPercentage: netFlowPct,
+      divergenceBullish: divergence.bull,
+      divergenceBearish: divergence.bear,
+      lateralizationScore: lateralScore,
+      timestamp: Date.now()
+    };
   });
 }
