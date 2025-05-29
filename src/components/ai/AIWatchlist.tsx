@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Prediction } from '@/lib/aiModel';
 import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { normalizeFeatures } from '@/lib/featureExtractor';
+import { normalizeFeatures } from "@/lib/featureExtractor";
 import {
   Dialog,
   DialogContent,
