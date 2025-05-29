@@ -1,75 +1,56 @@
-import React, { useEffect } from 'react';
 import * as d3 from 'd3';
-import { FlowLink } from '@/types/flow';
-import { getCryptoColor } from '@/lib/colors';
+import React, { useEffect } from 'react';
+import { Prediction } from '@/lib/aiModel';
 
-interface LinkRendererExtendedProps {
+interface LinkRendererProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  links: FlowLink[];
-  selectedNodeId?: string | null;
+  links: any[];
+  selectedNodeId: string | null;
+  predictionsMap: Map<string, Prediction>;
 }
 
-export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({ svg, links, selectedNodeId }) => {
+export const LinkRendererExtended: React.FC<LinkRendererProps> = ({
+  svg,
+  links,
+  selectedNodeId,
+  predictionsMap
+}) => {
   useEffect(() => {
     if (!svg || !links) return;
 
-    svg.selectAll('.flow-link-group').remove();
+    // Clean previous render
+    svg.selectAll('.dynamic-link').remove();
 
-    const linkGroup = svg.append('g').attr('class', 'flow-link-group');
+    const linkGroup = svg.append('g').attr('class', 'dynamic-link');
 
-    links.forEach((link, index) => {
-      const { source, target, value, netFlow } = link;
+    // Draw dynamic links
+    links.forEach(link => {
+      const source = link.source;
+      const target = link.target;
 
-      const path = linkGroup
+      const prediction = predictionsMap.get(target.id);
+      const confidence = prediction?.confidence || 0.5;
+      const bullish = prediction?.bullish ?? true;
+
+      const strength = confidence;
+      const color = bullish ? d3.interpolateGreens(confidence) : d3.interpolateReds(confidence);
+
+      linkGroup
         .append('line')
-        .attr('class', 'flow-line')
         .attr('x1', source.x)
         .attr('y1', source.y)
         .attr('x2', target.x)
         .attr('y2', target.y)
-        .attr('stroke', 'rgba(255,255,255,0.05)')
-        .attr('stroke-width', Math.max(1, Math.log10(Math.abs(value) + 1)));
-
-      const numParticles = Math.min(5, Math.floor(Math.abs(value) / 10_000_000)); // define quantidade com base no volume
-      const flowDirection = netFlow > 0 ? 1 : -1;
-      const color = netFlow > 0 ? '#00ff88' : '#ff3344';
-
-      for (let i = 0; i < numParticles; i++) {
-        const particle = linkGroup
-          .append('circle')
-          .attr('class', 'flow-particle')
-          .attr('r', 2)
-          .attr('fill', color)
-          .attr('cx', source.x)
-          .attr('cy', source.y)
-          .attr('opacity', 0.8);
-
-        const totalLength = Math.hypot(target.x - source.x, target.y - source.y);
-        const speedFactor = Math.max(0.5, Math.min(3, Math.abs(netFlow) / 1_000_000)); // velocidade relativa
-
-        const animateParticle = () => {
-          particle
-            .transition()
-            .duration(4000 / speedFactor)
-            .ease(d3.easeLinear)
-            .attrTween('cx', () => d3.interpolate(source.x, target.x))
-            .attrTween('cy', () => d3.interpolate(source.y, target.y))
-            .on('end', () => {
-              particle.attr('cx', source.x).attr('cy', source.y);
-              animateParticle(); // loop
-            });
-        };
-
-        setTimeout(animateParticle, i * 500); // espalhar no tempo
-      }
+        .attr('stroke', color)
+        .attr('stroke-opacity', selectedNodeId === target.id ? 1 : 0.6)
+        .attr('stroke-width', 1.5 + strength * 2)
+        .attr('pointer-events', 'none');
     });
 
     return () => {
-      svg.selectAll('.flow-link-group').remove();
+      svg.selectAll('.dynamic-link').remove();
     };
-  }, [svg, links, selectedNodeId]);
+  }, [svg, links, selectedNodeId, predictionsMap]);
 
   return null;
 };
-
-export default LinkRendererExtended;
