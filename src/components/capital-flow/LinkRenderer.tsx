@@ -1,4 +1,4 @@
-// src/components/capital-flow/LinkRenderer.tsx
+
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { FlowLink } from '@/types/crypto';
