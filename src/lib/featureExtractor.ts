@@ -1,84 +1,76 @@
 
-import { CryptoData } from "@/types/crypto";
+import { CryptoData } from '@/types/crypto';
 
-export interface ExtractedFeatures {
-  symbol: string;
-  id: string;
-  price: number;
-  volume: number;
-  rsi: number;
-  rsi4h: number;
-  macd: number;
-  macdSignal: number;
-  macdHistogram: number;
-  obv: number;
-  aboveMA: boolean;
-  priceChange1h: number;
-  priceChange24h: number;
-  volumeChange24h: number;
-  incomingFlows: number;
-  outgoingFlows: number;
-  exchangeInflow: number;
-  exchangeOutflow: number;
-  netFlowPercentage: number;
-  divergenceBullish: boolean;
-  divergenceBearish: boolean;
-}
+// Cálculo de média simples
+const sma = (arr: number[], period: number): number => {
+  if (arr.length < period) return arr[arr.length - 1] || 0;
+  return arr.slice(-period).reduce((sum, val) => sum + val, 0) / period;
+};
 
-export function extractFeatures(data: CryptoData): ExtractedFeatures {
-  const price = data.close;
-  const price1hAgo = data.history["1h"]?.close || price;
-  const price24hAgo = data.history["24h"]?.close || price;
+// Cálculo de desvio padrão
+const std = (arr: number[]): number => {
+  const mean = sma(arr, arr.length);
+  return Math.sqrt(sma(arr.map(x => (x - mean) ** 2), arr.length));
+};
 
-  const volume = data.volume;
-  const volume24hAgo = data.history["24h"]?.volume || volume;
-
-  const rsi = data.indicators.rsi;
-  const rsi4h = data.indicators.rsi4h;
-  const macd = data.indicators.macd;
-  const macdSignal = data.indicators.macdSignal;
-  const obv = data.indicators.obv;
-
-  const ma50 = data.indicators.ma50;
-  const ma200 = data.indicators.ma200;
-  const aboveMA = price > ma50 && ma50 > ma200;
-
-  const inflow = data.capitalFlow.in;
-  const outflow = data.capitalFlow.out;
-  const netFlow = inflow - outflow;
-  const netFlowPercentage = inflow > 0 ? (netFlow / inflow) * 100 : 0;
-
-  // 🔍 Divergências entre RSI/OBV e Preço
-  const prevRSI = data.history["1h"]?.indicators?.rsi || rsi;
-  const prevOBV = data.history["1h"]?.indicators?.obv || obv;
-  const prevPrice = data.history["1h"]?.close || price;
-
-  const divergenceBullish =
-    rsi > prevRSI && price < prevPrice && obv > prevOBV;
-  const divergenceBearish =
-    rsi < prevRSI && price > prevPrice && obv < prevOBV;
-
+// Divergência entre RSI e Preço
+const computeDivergence = (prices: number[], rsis: number[]): { bull: boolean; bear: boolean } => {
+  if (prices.length < 3 || rsis.length < 3) return { bull: false, bear: false };
+  const priceTrend = prices[prices.length - 1] - prices[0];
+  const rsiTrend = rsis[rsis.length - 1] - rsis[0];
   return {
-    symbol: data.symbol,
-    id: data.id,
-    price,
-    volume,
-    rsi,
-    rsi4h,
-    macd,
-    macdSignal,
-    macdHistogram: macd - macdSignal,
-    obv,
-    aboveMA,
-    priceChange1h: ((price - price1hAgo) / price1hAgo) * 100,
-    priceChange24h: ((price - price24hAgo) / price24hAgo) * 100,
-    volumeChange24h: ((volume - volume24hAgo) / volume24hAgo) * 100,
-    incomingFlows: inflow,
-    outgoingFlows: outflow,
-    exchangeInflow: data.capitalFlow.exchangeIn || 0,
-    exchangeOutflow: data.capitalFlow.exchangeOut || 0,
-    netFlowPercentage,
-    divergenceBullish,
-    divergenceBearish,
+    bull: priceTrend < 0 && rsiTrend > 0,
+    bear: priceTrend > 0 && rsiTrend < 0
   };
+};
+
+// Detecta lateralização por baixa variação e volume alto
+const computeLateralization = (prices: number[], volume: number[]): number => {
+  const volatility = std(prices) / (sma(prices, prices.length) || 1);
+  const volAvg = sma(volume, volume.length);
+  if (volatility < 0.015 && volAvg > 0) return 1;
+  return 0;
+};
+
+export function extractFeatures(data: CryptoData[]): any[] {
+  return data.map((d) => {
+    const priceHistory = d.history?.price || [];
+    const rsiHistory = d.history?.rsi || [];
+    const volumeHistory = d.history?.volume || [];
+    const obvHistory = d.history?.obv || [];
+
+    const price = d.price || priceHistory[priceHistory.length - 1] || 0;
+    const rsi = d.rsi || rsiHistory[rsiHistory.length - 1] || 50;
+    const obv = d.obv || obvHistory[obvHistory.length - 1] || 0;
+
+    const divergence = computeDivergence(priceHistory, rsiHistory);
+    const lateralScore = computeLateralization(priceHistory, volumeHistory);
+
+    const flowStrength = d.incomingFlows - d.outgoingFlows;
+    const netFlowPct = (flowStrength / (d.volume || 1)) * 100;
+
+    return {
+      symbol: d.symbol,
+      id: d.id,
+      price,
+      rsi,
+      obv,
+      macd: d.macd,
+      macdSignal: d.macdSignal,
+      macdHistogram: d.macdHistogram,
+      aboveMA: d.aboveMA,
+      priceChange1h: d.priceChange1h,
+      priceChange24h: d.priceChange24h,
+      volumeChange24h: d.volumeChange24h,
+      exchangeInflow: d.exchangeInflow,
+      exchangeOutflow: d.exchangeOutflow,
+      incomingFlows: d.incomingFlows,
+      outgoingFlows: d.outgoingFlows,
+      netFlowPercentage: netFlowPct,
+      divergenceBullish: divergence.bull,
+      divergenceBearish: divergence.bear,
+      lateralizationScore: lateralScore,
+      timestamp: Date.now()
+    };
+  });
 }
