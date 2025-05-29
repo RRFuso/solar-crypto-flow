@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
-import { FlowData } from '@/types/crypto';
+import { FlowData } from '@/types/crypto'; 
 import { Prediction } from '@/lib/aiModel';
 import { OrbitLayersComponent } from './OrbitLayers';
 import { LinkRendererExtended } from './LinkRendererExtended';
