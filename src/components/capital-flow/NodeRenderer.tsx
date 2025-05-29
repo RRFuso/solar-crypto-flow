@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
 
 interface NodeRendererProps {
-  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>; 
   nodes: any[];
   centralNode: any;
   selectedNodeId: string | null;
