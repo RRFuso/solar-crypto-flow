@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import * as d3 from 'd3';
 import { NarrativeNode } from '@/types/narratives';
@@ -37,7 +36,7 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
 
   const centralNode = findCentralNode();
 
-  // Calculate orbital radius based on market cap with improved spacing
+  // Calculate orbital radius based on market cap with adjusted scale for 100% zoom visibility
   const calculateOrbitalRadius = (node: NarrativeNode, allNodes: NarrativeNode[], central: NarrativeNode | null) => {
     if (!central || node === central) return 0;
 
@@ -50,22 +49,24 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
       .map(n => cryptoDataMap.get(n.id)?.marketCap ?? cryptoDataMap.get(n.name.toUpperCase())?.marketCap ?? 0)
       .filter(cap => cap > 0);
 
+    // Define min/max orbital radii significantly reduced for better viewport fit
+    // Adjust these values based on visual testing to match desired density at 100% zoom
+    const baseSize = Math.min(width, height);
+    const minRadius = baseSize * 0.1;  // e.g., 10% of the smaller dimension for the closest orbit
+    const maxRadius = baseSize * 0.35; // e.g., 35% of the smaller dimension for the farthest orbit
+
     if (validMarketCaps.length === 0 || marketCap <= 0) {
-      return Math.min(width, height) * 0.4; // Increased max radius for better spacing
+      return maxRadius; // Place nodes with invalid/zero market cap at the outermost orbit
     }
 
     const minMarketCap = Math.min(...validMarketCaps);
     const maxMarketCap = Math.max(...validMarketCaps);
 
-    // Significantly increased orbital spacing
-    const minRadius = Math.min(width, height) * 0.2; // Increased from 0.15
-    const maxRadius = Math.min(width, height) * 0.45; // Slightly increased
-
     if (maxMarketCap === minMarketCap) {
-        return (minRadius + maxRadius) / 2;
+        return (minRadius + maxRadius) / 2; // Place all in a middle orbit if caps are the same
     }
 
-    // Enhanced logarithmic scale for better distribution
+    // Use inverse log scale: higher market cap -> smaller radius
     const logMin = Math.log10(minMarketCap);
     const logMax = Math.log10(maxMarketCap);
     const logCap = marketCap > 0 ? Math.log10(marketCap) : logMin;
@@ -75,104 +76,77 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
         normalizedLog = Math.max(0, Math.min(1, (logCap - logMin) / (logMax - logMin)));
     }
     
-    // Apply exponential curve for more pronounced separation
-    const exponentialFactor = Math.pow(normalizedLog, 0.7); // Smoother distribution
+    // Apply exponential curve for distribution (optional, adjust exponent for feel)
+    const exponentialFactor = Math.pow(normalizedLog, 0.7); 
     const radius = maxRadius - exponentialFactor * (maxRadius - minRadius);
     
     return Math.max(minRadius, Math.min(maxRadius, radius));
   };
 
-  // Position nodes initially based on market cap
+  // Position nodes initially (optional, simulation will arrange them)
   const positionNodes = () => {
     if (!centralNode) return;
-    
-    // Place central node at center
     centralNode.x = width / 2;
     centralNode.y = height / 2;
-    
-    // Position other nodes in circular arrangement
     const otherNodes = nodes.filter(n => n !== centralNode);
     otherNodes.forEach((node, index) => {
       const radius = calculateOrbitalRadius(node, nodes, centralNode);
       const angle = (index / otherNodes.length) * 2 * Math.PI;
-      
       node.x = width / 2 + Math.cos(angle) * radius;
       node.y = height / 2 + Math.sin(angle) * radius;
     });
   };
 
-  // Enhanced D3 Force Simulation with better spacing
+  // D3 Force Simulation - Adjusted forces for the new scale
   const simulation = d3.forceSimulation(nodes)
-    // Significantly increased collision detection with larger padding
-    .force("collision", d3.forceCollide().radius((d: NarrativeNode) => (d.radius || 20) * 2.5).strength(1.2))
-    // Stronger repulsion for better node separation
-    .force("charge", d3.forceManyBody().strength(-300).distanceMax(200)) 
-    // Enhanced radial force with stronger pull to maintain orbits
+    // Adjust collision radius based on node size and desired spacing at the new scale
+    .force("collision", d3.forceCollide().radius((d: NarrativeNode) => (d.radius || 10) + 5).strength(0.9))
+    // Adjust charge strength and distance for the new scale
+    .force("charge", d3.forceManyBody().strength(-80).distanceMax(baseSize * 0.2))
+    // Radial force to maintain orbits - strength might need tuning
     .force("orbit", d3.forceRadial(
         (d: NarrativeNode) => calculateOrbitalRadius(d, nodes, centralNode), 
         width / 2, 
         height / 2
-      ).strength(1.5)) // Increased strength to maintain orbital positions
-    .alphaDecay(0.02) // Slower decay for more stable positioning
-    .velocityDecay(0.5); // Increased decay for less jittery movement
+      ).strength(1.2)) // Slightly increased strength to enforce orbits more strictly
+    .alphaDecay(0.0228) 
+    .velocityDecay(0.4);
 
-  // Fix the central node's position with enhanced stability
+  // Fix the central node's position
   useEffect(() => {
       if (centralNode) {
           centralNode.fx = width / 2;
           centralNode.fy = height / 2;
-          
-          // Add slight warming to help with positioning
-          simulation.alpha(0.4).restart();
-          
-          // Add a tick listener to maintain central node position
-          const maintainCenter = () => {
-            if (centralNode) {
-              centralNode.fx = width / 2;
-              centralNode.fy = height / 2;
-            }
-          };
-          
-          simulation.on('tick', maintainCenter);
-          
-          return () => {
-            simulation.on('tick', null);
-          };
       }
-  }, [centralNode, width, height, simulation]);
+      // Give simulation a nudge when parameters change
+      simulation.alpha(0.3).restart(); 
+  }, [centralNode, width, height]); // Removed simulation from dependencies to avoid loop
 
-  // Enhanced bounds checking with better margin calculation
+  // Apply bounds to keep nodes within the SVG area
   const applyBounds = () => {
     nodes.forEach(node => {
       if (node === centralNode) return;
-      const radius = (node.radius || 20) * 1.5; // Increased margin
+      const radius = node.radius || 10; // Use base radius for bounds checking
       node.x = typeof node.x === 'number' ? Math.max(radius, Math.min(width - radius, node.x)) : width / 2;
       node.y = typeof node.y === 'number' ? Math.max(radius, Math.min(height - radius, node.y)) : height / 2;
     });
   };
 
-  // Enhanced drag handlers with better stability
+  // Drag handlers
   const dragHandlers = {
     dragstarted: (event: any) => {
-      if (!event.active) simulation.alphaTarget(0.4).restart(); // Increased alpha target
-      event.subject.startX = event.subject.x;
-      event.subject.startY = event.subject.y;
+      if (!event.active) simulation.alphaTarget(0.3).restart();
       event.subject.fx = event.subject.x;
       event.subject.fy = event.subject.y;
     },
     dragged: (event: any) => {
-      if (event.subject === centralNode) return; // Keep central node fixed
+      if (event.subject === centralNode) return;
       event.subject.fx = event.x;
       event.subject.fy = event.y;
     },
     dragended: (event: any) => {
       if (!event.active) simulation.alphaTarget(0);
-      if (event.subject === centralNode) {
-        // Ensure central node stays fixed
-        event.subject.fx = width / 2;
-        event.subject.fy = height / 2;
-      } else {
-        // Release other nodes but with gentle transition
+      if (event.subject !== centralNode) {
         event.subject.fx = null;
         event.subject.fy = null;
       }
@@ -181,10 +155,11 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
 
   return {
     simulation,
-    positionNodes, // Added missing method
+    positionNodes, 
     applyBounds,
     dragHandlers,
     centralNode,
-    calculateOrbitalRadius // Export for use in other components
+    calculateOrbitalRadius
   };
 };
+

@@ -1,69 +1,52 @@
-
 import * as d3 from 'd3';
 import { NarrativeNode } from '@/types/narratives';
 import { VisualizationElements } from './types';
 
 export const useOrbitalAnimation = () => {
-  // Setup and manage orbital animations
+  // Setup and manage animations (if any beyond D3 simulation)
   const setupOrbitalAnimation = (
     elements: VisualizationElements,
     nodes: NarrativeNode[]
-  ): number => {
-    const { link, node, svg } = elements;
+  ): number | null => {
+    // const { link, node, svg } = elements;
+
+    // NOTE: The D3 simulation itself handles the positioning and movement
+    // of nodes based on forces (including the radial/orbital force).
+    // Applying an additional manual rotation here can conflict with the simulation
+    // and might be the source of the desynchronization if not applied correctly
+    // to the entire node group <g>.
+
+    // If a continuous, slow orbital rotation *independent* of the simulation's
+    // physics is desired, it needs careful implementation. However, for now,
+    // let's rely solely on the D3 simulation tick to update positions via
+    // the updatePositions -> updateNodePositions chain, which applies the
+    // transform to the entire node group <g>.
+
+    // If other non-D3 animations are needed (e.g., particle flow), 
+    // the requestAnimationFrame loop could be used for those.
     
-    // Find the central node (Bitcoin or largest)
-    const centralNode = nodes.find(n => n.name.toLowerCase().includes("bitcoin")) || 
-                     nodes.reduce((max, n) => n.value > max.value ? n : max, nodes[0]);
-    
+    // Example: If particle animation was needed
+    /*
     let lastTimestamp = Date.now();
-    
-    const orbitAnimationFrame = () => {
+    const animationFrame = () => {
       const now = Date.now();
       const elapsed = now - lastTimestamp;
       lastTimestamp = now;
-      
-      // Skip if no time has passed (prevents jumps on first frame)
-      if (elapsed === 0) {
-        return requestAnimationFrame(orbitAnimationFrame);
+
+      if (elapsed > 0) {
+        // Update particle positions here, for example
+        // updateFlowParticles(svg, links, elapsed); 
       }
-      
-      // Apply subtle rotation to all non-central nodes
-      if (centralNode) {
-        const rotationSpeed = 0.00005; // Very slow rotation
-        
-        nodes.forEach(node => {
-          if (node === centralNode) return;
-          
-          // Calculate current angle from center
-          const dx = node.x - centralNode.x;
-          const dy = node.y - centralNode.y;
-          const angle = Math.atan2(dy, dx) + rotationSpeed * elapsed;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          
-          // Update position with rotation
-          node.x = centralNode.x + Math.cos(angle) * distance;
-          node.y = centralNode.y + Math.sin(angle) * distance;
-        });
-        
-        // Update node positions
-        node.attr("transform", d => `translate(${d.x},${d.y})`);
-        
-        // Update link paths using curved lines
-        link.attr("d", d => {
-          const dx = d.target.x - d.source.x;
-          const dy = d.target.y - d.source.y;
-          const dr = Math.sqrt(dx * dx + dy * dy) * 2; // Curved path
-          return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-        });
-      }
-      
-      return requestAnimationFrame(orbitAnimationFrame);
+
+      return requestAnimationFrame(animationFrame);
     };
-    
-    // Start orbital animation
-    return requestAnimationFrame(orbitAnimationFrame);
+    return requestAnimationFrame(animationFrame);
+    */
+
+    // Return null if no separate animation loop is needed
+    return null; 
   };
-  
+
   // Create starfield background effect - enhanced with more stars and variety
   const createStarfield = (
     svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
@@ -71,21 +54,17 @@ export const useOrbitalAnimation = () => {
     height: number
   ) => {
     const starGroup = svg.append("g").attr("class", "starfield");
-    const numStars = 200; // Increased from 100 to 200 stars
+    const numStars = 150; // Adjusted star count for potentially smaller view
     
     for (let i = 0; i < numStars; i++) {
       const x = Math.random() * width;
       const y = Math.random() * height;
-      // More variety in star sizes
-      const size = Math.random() * 1.8 + 0.2; // 0.2 to 2.0
-      const opacity = Math.random() * 0.6 + 0.2; // 0.2 to 0.8
+      const size = Math.random() * 1.5 + 0.1; // Smaller max size
+      const opacity = Math.random() * 0.5 + 0.1; // Dimmer max opacity
       
-      // Add subtle color variation to some stars
       const colorRand = Math.random();
       let color = "white";
-      
-      // Add very subtle color to some stars (10%)
-      if (colorRand > 0.9) {
+      if (colorRand > 0.95) { // Fewer colored stars
         const colors = ["#f0f8ff", "#fffaf0", "#f5f5dc", "#e6e6fa"];
         color = colors[Math.floor(Math.random() * colors.length)];
       }
@@ -97,28 +76,28 @@ export const useOrbitalAnimation = () => {
         .attr("fill", color)
         .attr("opacity", opacity);
         
-      // Add subtle twinkling effect to some stars
-      if (Math.random() > 0.7) {
+      // Twinkling effect
+      if (Math.random() > 0.8) { // Fewer twinkling stars
         star.append("animate")
           .attr("attributeName", "opacity")
-          .attr("values", `${opacity};${opacity * 0.5};${opacity}`)
-          .attr("dur", `${2 + Math.random() * 5}s`)
+          .attr("values", `${opacity};${opacity * 0.3};${opacity}`)
+          .attr("dur", `${3 + Math.random() * 6}s`)
           .attr("repeatCount", "indefinite");
       }
     }
     
-    // Add a few distant "galaxies" (blurred star clusters)
-    for (let i = 0; i < 3; i++) {
+    // Fewer, smaller galaxies
+    for (let i = 0; i < 2; i++) {
       const x = Math.random() * width;
       const y = Math.random() * height;
-      const galaxySize = 30 + Math.random() * 50;
+      const galaxySize = 20 + Math.random() * 30;
       
       starGroup.append("circle")
         .attr("cx", x)
         .attr("cy", y)
         .attr("r", galaxySize)
-        .attr("fill", "rgba(120, 120, 180, 0.03)")
-        .attr("filter", "blur(10px)");
+        .attr("fill", "rgba(120, 120, 180, 0.02)") // More subtle fill
+        .attr("filter", "blur(8px)"); // Less blur
     }
     
     return starGroup;
@@ -129,3 +108,4 @@ export const useOrbitalAnimation = () => {
     createStarfield
   };
 };
+
