@@ -29,7 +29,6 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
           maxCapNode = node;
         }
       });
-      // If no BTC and no market cap data, fallback to the first node as center (less ideal)
       return maxCapNode || nodes[0]; 
     }
     return btcNode;
@@ -44,34 +43,32 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
       const nodesWithCaps = nonCentralNodes.map(node => {
           const cryptoInfoById = cryptoDataMap.get(node.id);
           const cryptoInfoByName = cryptoDataMap.get(node.name.toUpperCase());
-          // Default to 0 if no market cap found
           const marketCap = cryptoInfoById?.marketCap ?? cryptoInfoByName?.marketCap ?? 0;
           return { node, marketCap };
       })
-      // Sort by market cap descending, nodes with 0 cap go to the end
       .sort((a, b) => (b.marketCap === 0 ? -1 : (a.marketCap === 0 ? 1 : b.marketCap - a.marketCap))); 
 
       rankedNodes = nodesWithCaps.map((item, index) => ({ ...item, rank: index + 1 }));
   }
-  // Create a map for quick rank lookup
   const rankMap = new Map(rankedNodes.map(item => [item.node.id, item.rank]));
 
-  // Calculate orbital radius based on RANKING
+  // Calculate orbital radius based on RANKING - **Drastically Reduced Radii**
   const calculateOrbitalRadiusByRank = (node: NarrativeNode, central: NarrativeNode | null) => {
     if (!central || node === central) return 0;
 
     const rank = rankMap.get(node.id);
-    const baseSize = Math.min(width, height);
+    // Use a smaller base dimension for radius calculation to make it more compact
+    const baseSize = Math.min(width, height) * 0.6; // Reduced base size factor
 
-    // Define fixed orbital radii (adjust number and values as needed)
+    // Define fixed orbital radii - **Significantly smaller values**
     const orbitRadii = [
-      baseSize * 0.15, // Orbit 1 (Closest)
-      baseSize * 0.25, // Orbit 2
-      baseSize * 0.35, // Orbit 3
-      baseSize * 0.45  // Orbit 4 (Farthest) - Also for nodes without rank/cap
+      baseSize * 0.15, // Orbit 1 (e.g., 9% of min(width, height))
+      baseSize * 0.28, // Orbit 2 (e.g., 17%)
+      baseSize * 0.40, // Orbit 3 (e.g., 24%)
+      baseSize * 0.50  // Orbit 4 (e.g., 30%) - Max radius is now much smaller
     ];
 
-    // Define rank thresholds for each orbit (exclusive of BTC)
+    // Define rank thresholds (adjust if needed based on number of nodes)
     const rankThresholds = [
       10, // Rank 1-10 -> Orbit 1
       30, // Rank 11-30 -> Orbit 2
@@ -80,7 +77,6 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
     ];
 
     if (rank === undefined || rank <= 0) {
-        // Node not found in ranking (e.g., no market cap), assign to outermost orbit
         return orbitRadii[orbitRadii.length - 1];
     }
 
@@ -102,27 +98,25 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
     centralNode.y = height / 2;
     const otherNodes = nodes.filter(n => n !== centralNode);
     otherNodes.forEach((node, index) => {
-      // Use the rank-based radius for initial positioning
       const radius = calculateOrbitalRadiusByRank(node, centralNode);
-      // Distribute evenly around the circle
       const angle = (index / otherNodes.length) * 2 * Math.PI; 
       node.x = width / 2 + Math.cos(angle) * radius;
       node.y = height / 2 + Math.sin(angle) * radius;
     });
   };
 
-  // D3 Force Simulation - Adjusted for rank-based orbits
+  // D3 Force Simulation - Adjusted for the **much smaller scale**
   const simulation = d3.forceSimulation(nodes)
-    // Collision force: Adjust radius based on visual density in orbits
-    .force("collision", d3.forceCollide().radius((d: NarrativeNode) => (d.radius || 10) + 6).strength(0.8))
-    // Charge force: May need less repulsion if collision handles spacing well
-    .force("charge", d3.forceManyBody().strength(-60).distanceMax(width * 0.3))
+    // Collision force: Needs careful tuning for the smaller scale
+    .force("collision", d3.forceCollide().radius((d: NarrativeNode) => (d.radius || 8) + 4).strength(0.9))
+    // Charge force: Reduce strength significantly due to closer proximity
+    .force("charge", d3.forceManyBody().strength(-40).distanceMax(width * 0.2))
     // Radial force using the RANK-BASED radius calculation
     .force("orbit", d3.forceRadial(
         (d: NarrativeNode) => calculateOrbitalRadiusByRank(d, centralNode), 
         width / 2, 
         height / 2
-      ).strength(1.1)) // Strong strength to keep nodes in their fixed orbits
+      ).strength(1.2)) // Keep strength high to enforce orbits
     .alphaDecay(0.0228) 
     .velocityDecay(0.4);
 
@@ -132,25 +126,22 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
           centralNode.fx = width / 2;
           centralNode.fy = height / 2;
       }
-      // Update node data (including ranks) and restart simulation
       simulation.nodes(nodes); 
-      // Re-calculate ranks if nodes/data change significantly (outside this hook's scope)
-      // Apply initial positioning based on ranks
       positionNodes(); 
-      simulation.alpha(0.5).restart(); // Give simulation a good start
-  }, [nodes, cryptoDataMap, centralNode, width, height]); // Re-run if nodes, data, or dimensions change
+      simulation.alpha(0.6).restart(); // Higher alpha initially for faster settling
+  }, [nodes, cryptoDataMap, centralNode, width, height]);
 
   // Apply bounds
   const applyBounds = () => {
     nodes.forEach(node => {
       if (node === centralNode) return;
-      const radius = node.radius || 10;
+      const radius = node.radius || 8;
       node.x = typeof node.x === 'number' ? Math.max(radius, Math.min(width - radius, node.x)) : width / 2;
       node.y = typeof node.y === 'number' ? Math.max(radius, Math.min(height - radius, node.y)) : height / 2;
     });
   };
 
-  // Drag handlers (no changes needed here)
+  // Drag handlers
   const dragHandlers = {
     dragstarted: (event: any) => {
       if (!event.active) simulation.alphaTarget(0.3).restart();
@@ -177,7 +168,6 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
     applyBounds,
     dragHandlers,
     centralNode,
-    // Expose the rank-based radius function if needed elsewhere
     calculateOrbitalRadius: calculateOrbitalRadiusByRank 
   };
 };
