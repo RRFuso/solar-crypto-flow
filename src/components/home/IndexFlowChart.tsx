@@ -72,8 +72,8 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
     // Calculate orbital distances based on market cap
     const orbitRadii = calculateOrbitalPositions(nodes, width, height);
     
-    // Draw orbit paths
-    createOrbitalPaths({ svg, nodes, width, height, orbitRadii });
+    // Draw orbit paths - Fixed to pass 5 arguments
+    createOrbitalPaths(svg, nodes, width, height, orbitRadii);
     
     // Position nodes in orbital arrangement based on market cap
     positionNodesInOrbits(nodes, width, height, orbitRadii);
