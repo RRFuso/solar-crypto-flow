@@ -1,148 +1,88 @@
+import { CryptoData } from '@/types/crypto';
 
-import { CryptoData, FlowData } from "@/types/crypto";
-import { fetchTechnicalIndicators, fetchOnChainData } from "./dataFetcher";
-
-export interface CryptoFeatures {
+interface NormalizedFeature {
   symbol: string;
   id: string;
-  priceChange1h: number;
-  priceChange24h: number;
-  priceChange7d: number;
-  volume: number;
-  volumeChange24h: number;
-  marketCap: number;
+  price: number;
   rsi: number;
   rsi4h: number;
   macd: number;
   macdSignal: number;
   macdHistogram: number;
-  ema12: number;
-  ema26: number;
   aboveMA: boolean;
+  priceChange1h: number;
+  priceChange24h: number;
+  volumeChange24h: number;
   obv: number;
-  exchangeInflow: number;
-  exchangeOutflow: number;
-  netFlow: number;
-  fundingRate: number;
+  netFlowPercentage: number;
   incomingFlows: number;
   outgoingFlows: number;
-  netFlowPercentage: number;
-  category: string;
-  price: string;
+  exchangeInflow: number;
+  exchangeOutflow: number;
+  divergenceBullish: boolean;
+  divergenceBearish: boolean;
 }
 
-/**
- * Extrai vetores de features combinando dados de mercado, técnicos e de fluxo de capital
- */
-export async function extractFeatures(
-  cryptoData: CryptoData[],
-  flowData: FlowData[],
-  chartTimeframe: string = '4h'
-): Promise<CryptoFeatures[]> {
-  const features: CryptoFeatures[] = [];
+export function normalizeFeatures(data: CryptoData[]): NormalizedFeature[] {
+  return data.map((item) => {
+    const rsi = item.indicators?.rsi ?? 50;
+    const rsi4h = item.indicators?.rsi4h ?? 50;
+    const macd = item.indicators?.macd ?? 0;
+    const macdSignal = item.indicators?.macdSignal ?? 0;
+    const macdHistogram = macd - macdSignal;
 
-  for (const crypto of cryptoData) {
-    try {
-      const technical = await fetchTechnicalIndicators(crypto.symbol, chartTimeframe);
-      const onChain = await fetchOnChainData(crypto.symbol);
+    const price = item.price ?? 0;
+    const priceChange1h = item.priceChange1h ?? 0;
+    const priceChange24h = item.priceChange24h ?? 0;
+    const volumeChange24h = item.volumeChange24h ?? 0;
+    const obv = item.obv ?? 0;
 
-      const incoming = flowData
-        .filter(flow => flow.to === crypto.symbol && flow.value > 0)
-        .reduce((sum, f) => sum + f.value, 0);
+    const aboveMA = (item.indicators?.ma ?? price) < price;
 
-      const outgoing = flowData
-        .filter(flow => flow.from === crypto.symbol && flow.value < 0)
-        .reduce((sum, f) => sum + Math.abs(f.value), 0);
+    const incomingFlows = item.incomingFlows ?? 0;
+    const outgoingFlows = item.outgoingFlows ?? 0;
+    const exchangeInflow = item.exchangeInflow ?? 0;
+    const exchangeOutflow = item.exchangeOutflow ?? 0;
 
-      const netFlowPct = crypto.marketCap > 0
-        ? ((incoming - outgoing) / crypto.marketCap) * 100
-        : 0;
+    const netFlow = incomingFlows - outgoingFlows;
+    const totalFlow = incomingFlows + outgoingFlows || 1;
+    const netFlowPercentage = (netFlow / totalFlow) * 100;
 
-      features.push({
-        symbol: crypto.symbol,
-        id: crypto.id,
-        priceChange1h: crypto.priceChange1h || 0,
-        priceChange24h: crypto.priceChange24h || 0,
-        priceChange7d: crypto.priceChange7d || 0,
-        volume: parseFloat(crypto.volume || "0"),
-        volumeChange24h: crypto.volumeChange24h || 0,
-        marketCap: crypto.marketCap || 0,
-        rsi: technical.rsi,
-        rsi4h: technical.rsi4h,
-        macd: technical.macd.value,
-        macdSignal: technical.macd.signal,
-        macdHistogram: technical.macd.histogram,
-        ema12: technical.ema12,
-        ema26: technical.ema26,
-        aboveMA: technical.ema12 > technical.ema26,
-        obv: technical.obv,
-        exchangeInflow: onChain.exchangeInflow,
-        exchangeOutflow: onChain.exchangeOutflow,
-        netFlow: onChain.netFlow,
-        fundingRate: onChain.fundingRate,
-        incomingFlows: incoming,
-        outgoingFlows: outgoing,
-        netFlowPercentage: netFlowPct,
-        category: crypto.category || "other",
-        price: crypto.price || "0"
-      });
-    } catch (err) {
-      console.error(`❌ Erro ao processar ${crypto.symbol}:`, err);
-    }
-  }
+    // Detectar divergência bullish (RSI sobe, preço cai, OBV sobe)
+    const divergenceBullish = 
+      priceChange1h < 0 &&
+      rsi > 50 &&
+      obv > 0 &&
+      macdHistogram > 0;
 
-  return features;
-}
+    // Detectar divergência bearish (RSI cai, preço sobe, OBV negativo)
+    const divergenceBearish = 
+      priceChange1h > 0 &&
+      rsi < 50 &&
+      obv < 0 &&
+      macdHistogram < 0;
 
-/**
- * Normaliza os dados de features numéricas para uso em ML
- */
-export function normalizeFeatures(
-  features: CryptoFeatures[],
-  minVal: number = -1,
-  maxVal: number = 1
-): CryptoFeatures[] {
-  if (!features.length) return [];
-
-  const numericFields = [
-    "priceChange1h", "priceChange24h", "priceChange7d",
-    "volume", "volumeChange24h", "marketCap",
-    "rsi", "rsi4h", "macd", "macdSignal", "macdHistogram",
-    "ema12", "ema26", "obv",
-    "exchangeInflow", "exchangeOutflow", "netFlow", "fundingRate",
-    "incomingFlows", "outgoingFlows", "netFlowPercentage"
-  ] as const;
-
-  type NumericField = typeof numericFields[number];
-
-  const mins: Record<NumericField, number> = {} as Record<NumericField, number>;
-  const maxs: Record<NumericField, number> = {} as Record<NumericField, number>;
-
-  numericFields.forEach(field => {
-    mins[field] = features[0][field] as number;
-    maxs[field] = features[0][field] as number;
-  });
-
-  for (const feature of features) {
-    for (const field of numericFields) {
-      const val = feature[field];
-      if (val < mins[field]) mins[field] = val;
-      if (val > maxs[field]) maxs[field] = val;
-    }
-  }
-
-  return features.map(original => {
-    const normalized = { ...original };
-
-    for (const field of numericFields) {
-      const min = mins[field];
-      const max = maxs[field];
-      const val = original[field];
-
-      (normalized[field] as number) = max === min ? 0
-        : minVal + ((val - min) / (max - min)) * (maxVal - minVal);
-    }
-
-    return normalized;
+    return {
+      symbol: item.symbol,
+      id: item.id,
+      price,
+      rsi,
+      rsi4h,
+      macd,
+      macdSignal,
+      macdHistogram,
+      aboveMA,
+      priceChange1h,
+      priceChange24h,
+      volumeChange24h,
+      obv,
+      netFlowPercentage,
+      incomingFlows,
+      outgoingFlows,
+      exchangeInflow,
+      exchangeOutflow,
+      divergenceBullish,
+      divergenceBearish,
+    };
   });
 }
