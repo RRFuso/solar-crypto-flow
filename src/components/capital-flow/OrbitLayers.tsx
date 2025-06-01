@@ -29,30 +29,30 @@ export const OrbitLayersComponent: React.FC<OrbitLayersProps> = ({
     const centerX = width / 2;
     const centerY = height / 2;
 
-    // FIXED: Adjusted orbit visualization for better viewport fit
+    // **CRITICAL FIX: Dramatically reduced orbit visualization for perfect viewport fit**
     for (let i = 1; i <= orbitLayers; i++) {
-      // Reduced spacing multiplier from 2.5 to 1.8 for viewport fit
-      const radius = baseRadius * i * 1.8;
+      // **Reduced spacing multiplier from 1.8 to 1.3 for much tighter orbits**
+      const radius = baseRadius * i * 1.3;
       
-      // More conservative max radius check for viewport fit
-      const maxAllowedRadius = Math.min(width, height) / 2.5; // Changed from /2-50 to /2.5
+      // **Much more conservative max radius for guaranteed viewport fit**
+      const maxAllowedRadius = Math.min(width, height) / 3.0; // Changed from /2.5 to /3.0
       if (radius > maxAllowedRadius) continue;
       
-      // Create orbit circle with enhanced styling
+      // Create orbit circle with enhanced styling but smaller scale
       orbitGroup.append('circle')
         .attr('class', 'orbit-layer')
         .attr('cx', centerX)
         .attr('cy', centerY)
         .attr('r', radius)
         .attr('fill', 'none')
-        .attr('stroke', `rgba(255, 255, 255, ${Math.max(0.04, 0.18 - i * 0.02)})`) // Slightly increased opacity
-        .attr('stroke-width', Math.max(0.5, 1.8 - i * 0.15)) // Adjusted width
-        .attr('stroke-dasharray', `${Math.max(3, 6 - i)},${Math.max(3, 6 - i)}`) // Adjusted dash pattern
+        .attr('stroke', `rgba(255, 255, 255, ${Math.max(0.05, 0.20 - i * 0.025)})`) // Slightly more visible
+        .attr('stroke-width', Math.max(0.4, 1.5 - i * 0.12)) // Thinner lines for smaller scale
+        .attr('stroke-dasharray', `${Math.max(2, 5 - i)},${Math.max(2, 5 - i)}`) // Smaller dash pattern
         .style('pointer-events', 'none');
 
-      // Add orbit markers for better visual reference (fewer for cleaner look)
-      if (i <= 2) { // Reduced from 3 to 2 for cleaner look
-        const markerCount = Math.max(3, i * 2); // Reduced marker count
+      // **Fewer orbit markers for cleaner appearance at smaller scale**
+      if (i <= 2) {
+        const markerCount = Math.max(2, i * 1.5); // Reduced marker count further
         for (let j = 0; j < markerCount; j++) {
           const angle = (j / markerCount) * 2 * Math.PI;
           const x = centerX + Math.cos(angle) * radius;
@@ -62,20 +62,20 @@ export const OrbitLayersComponent: React.FC<OrbitLayersProps> = ({
             .attr('class', 'orbit-marker')
             .attr('cx', x)
             .attr('cy', y)
-            .attr('r', Math.max(0.4, 1.5 - i * 0.2)) // Slightly smaller markers
-            .attr('fill', `rgba(255, 255, 255, ${Math.max(0.06, 0.15 - i * 0.03)})`)
+            .attr('r', Math.max(0.3, 1.2 - i * 0.15)) // Much smaller markers
+            .attr('fill', `rgba(255, 255, 255, ${Math.max(0.05, 0.12 - i * 0.025)})`)
             .style('pointer-events', 'none');
         }
       }
     }
 
-    // Add central reference point
+    // **Smaller central reference point**
     orbitGroup.append('circle')
       .attr('class', 'central-reference')
       .attr('cx', centerX)
       .attr('cy', centerY)
-      .attr('r', 2)
-      .attr('fill', 'rgba(255, 255, 255, 0.4)')
+      .attr('r', 1.5) // Reduced from 2 to 1.5
+      .attr('fill', 'rgba(255, 255, 255, 0.3)')
       .style('pointer-events', 'none');
 
     return () => {

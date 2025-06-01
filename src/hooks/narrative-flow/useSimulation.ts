@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import * as d3 from 'd3';
 import { NarrativeNode } from '@/types/narratives';
@@ -52,28 +53,28 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
   }
   const rankMap = new Map(rankedNodes.map(item => [item.node.id, item.rank]));
 
-  // Calculate orbital radius based on RANKING - **Drastically Reduced Radii**
+  // Calculate orbital radius based on RANKING - **Drastically Reduced for Viewport Fit**
   const calculateOrbitalRadiusByRank = (node: NarrativeNode, central: NarrativeNode | null) => {
     if (!central || node === central) return 0;
 
     const rank = rankMap.get(node.id);
-    // Use a smaller base dimension for radius calculation to make it more compact
-    const baseSize = Math.min(width, height) * 0.6; // Reduced base size factor
+    // **CRITICAL FIX: Drastically reduced base size for perfect viewport fit**
+    const baseSize = Math.min(width, height) * 0.35; // Reduced from 0.6 to 0.35
 
-    // Define fixed orbital radii - **Significantly smaller values**
+    // **SIGNIFICANTLY SMALLER orbital radii for 100% zoom viewport fit**
     const orbitRadii = [
-      baseSize * 0.15, // Orbit 1 (e.g., 9% of min(width, height))
-      baseSize * 0.28, // Orbit 2 (e.g., 17%)
-      baseSize * 0.40, // Orbit 3 (e.g., 24%)
-      baseSize * 0.50  // Orbit 4 (e.g., 30%) - Max radius is now much smaller
+      baseSize * 0.12, // Orbit 1 - Very close (was 0.15)
+      baseSize * 0.22, // Orbit 2 - Close (was 0.28) 
+      baseSize * 0.32, // Orbit 3 - Medium (was 0.40)
+      baseSize * 0.40  // Orbit 4 - Far (was 0.50)
     ];
 
-    // Define rank thresholds (adjust if needed based on number of nodes)
+    // **Adjusted rank thresholds for better distribution**
     const rankThresholds = [
-      10, // Rank 1-10 -> Orbit 1
-      30, // Rank 11-30 -> Orbit 2
-      60  // Rank 31-60 -> Orbit 3
-          // Rank 61+ -> Orbit 4
+      8,  // Rank 1-8 -> Orbit 1 (reduced from 10)
+      20, // Rank 9-20 -> Orbit 2 (reduced from 30)
+      40  // Rank 21-40 -> Orbit 3 (reduced from 60)
+        // Rank 41+ -> Orbit 4
     ];
 
     if (rank === undefined || rank <= 0) {
@@ -105,18 +106,18 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
     });
   };
 
-  // D3 Force Simulation - Adjusted for the **much smaller scale**
+  // **D3 Force Simulation - Adjusted for much smaller scale**
   const simulation = d3.forceSimulation(nodes)
-    // Collision force: Needs careful tuning for the smaller scale
-    .force("collision", d3.forceCollide().radius((d: NarrativeNode) => (d.radius || 8) + 4).strength(0.9))
-    // Charge force: Reduce strength significantly due to closer proximity
-    .force("charge", d3.forceManyBody().strength(-40).distanceMax(width * 0.2))
-    // Radial force using the RANK-BASED radius calculation
+    // **Collision force: Reduced radius for tighter packing**
+    .force("collision", d3.forceCollide().radius((d: NarrativeNode) => (d.radius || 6) + 2).strength(0.8))
+    // **Charge force: Reduced strength and distance for smaller scale**
+    .force("charge", d3.forceManyBody().strength(-25).distanceMax(width * 0.15))
+    // **Radial force: Using the RANK-BASED radius calculation**
     .force("orbit", d3.forceRadial(
         (d: NarrativeNode) => calculateOrbitalRadiusByRank(d, centralNode), 
         width / 2, 
         height / 2
-      ).strength(1.2)) // Keep strength high to enforce orbits
+      ).strength(1.0)) // Slightly reduced strength for smoother movement
     .alphaDecay(0.0228) 
     .velocityDecay(0.4);
 
@@ -128,16 +129,16 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
       }
       simulation.nodes(nodes); 
       positionNodes(); 
-      simulation.alpha(0.6).restart(); // Higher alpha initially for faster settling
+      simulation.alpha(0.5).restart(); // Reduced alpha for faster settling
   }, [nodes, cryptoDataMap, centralNode, width, height]);
 
-  // Apply bounds
+  // Apply bounds - **Tighter bounds for viewport fit**
   const applyBounds = () => {
     nodes.forEach(node => {
       if (node === centralNode) return;
-      const radius = node.radius || 8;
-      node.x = typeof node.x === 'number' ? Math.max(radius, Math.min(width - radius, node.x)) : width / 2;
-      node.y = typeof node.y === 'number' ? Math.max(radius, Math.min(height - radius, node.y)) : height / 2;
+      const radius = node.radius || 6; // Reduced default radius
+      node.x = typeof node.x === 'number' ? Math.max(radius + 10, Math.min(width - radius - 10, node.x)) : width / 2;
+      node.y = typeof node.y === 'number' ? Math.max(radius + 10, Math.min(height - radius - 10, node.y)) : height / 2;
     });
   };
 
@@ -171,4 +172,3 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
     calculateOrbitalRadius: calculateOrbitalRadiusByRank 
   };
 };
-
