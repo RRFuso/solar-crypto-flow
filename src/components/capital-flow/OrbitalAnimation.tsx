@@ -2,8 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
 
-// ... keep existing code (types and interfaces)
-
 type OrbitalLink = {
   source: OrbitalNode;
   target: OrbitalNode;
@@ -28,15 +26,15 @@ export class OrbitalAnimation {
     this.startAnimation(props);
   }
   
-  private startAnimation({ svg, nodes, width, height, rotationSpeed = 0.00006, updateLinksInRealTime = true }: OrbitalAnimationProps) {
-    // PERFECT SYNCHRONIZATION: All visual elements move together as cohesive units
+  private startAnimation({ svg, nodes, width, height, rotationSpeed = 0.00008, updateLinksInRealTime = true }: OrbitalAnimationProps) {
+    // FIXED: Synchronized animation for nodes, rings, and links
     const nonCentralNodes = nodes.filter(node => node.type !== "central");
     const centralNode = nodes.find(node => node.type === "central");
     
     if (!centralNode || nonCentralNodes.length === 0) return;
     
     const animateOrbits = () => {
-      // SYNCHRONIZED MOVEMENT: Move all orbital nodes together
+      // SYNCHRONIZED: Move all orbital nodes together
       nonCentralNodes.forEach((node) => {
         // Calculate current angle from center
         const dx = node.x - width/2;
@@ -49,54 +47,33 @@ export class OrbitalAnimation {
         node.y = height/2 + Math.sin(angle) * radius;
       });
       
-      // CRITICAL: Update ALL visual elements in perfect synchronization
-      // Update main node groups
+      // SYNCHRONIZED: Update all visual elements together
+      // Update node positions
       svg.selectAll(".node")
         .attr("transform", d => `translate(${d.x},${d.y})`);
       
-      // SYNCHRONIZED: Update node glow/aura backgrounds to follow nodes exactly
+      // FIXED: Synchronize glow positions with nodes
       svg.selectAll(".node-glow")
         .attr("cx", d => d.x)
         .attr("cy", d => d.y);
         
-      // SYNCHRONIZED: Update central pulse circles
+      // FIXED: Synchronize pulse circles for central node
       svg.selectAll(".pulse-circle")
         .attr("cx", d => d.x)
         .attr("cy", d => d.y);
       
-      // CRITICAL SYNCHRONIZATION: Signal rings must follow their parent nodes exactly
+      // CRITICAL FIX: Synchronize signal rings with their parent nodes
       svg.selectAll(".signal-ring")
         .attr("transform", d => {
-          // Signal rings move with their parent node and maintain relative rotation
-          const nodeRotation = Math.atan2(d.y - height/2, d.x - width/2) * 180 / Math.PI;
-          return `translate(${d.x || 0}, ${d.y || 0}) rotate(${nodeRotation})`;
+          // Each signal ring should follow its parent node exactly
+          return `translate(${d.x || 0}, ${d.y || 0})`;
         });
       
-      // SYNCHRONIZED: Flow indicators follow nodes exactly
+      // CRITICAL FIX: Synchronize flow indicators with nodes
       svg.selectAll(".flow-indicator")
         .attr("transform", d => `translate(${d.x || 0}, ${d.y || 0})`);
       
-      // SYNCHRONIZED: Update background glow effects
-      svg.selectAll(".node-background")
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y);
-      
-      // SYNCHRONIZED: Update all node-related visual elements
-      svg.selectAll(".nodes-group .node")
-        .each(function(d) {
-          const nodeGroup = d3.select(this);
-          
-          // Update any child elements that need positioning
-          nodeGroup.selectAll("circle:not(.node-circle)")
-            .attr("cx", 0) // Relative to parent group
-            .attr("cy", 0);
-          
-          nodeGroup.selectAll("text")
-            .attr("x", 0)
-            .attr("y", d => (d.radius || 20) + 15);
-        });
-      
-      // SYNCHRONIZED: Update link positions in real-time with node movement
+      // SYNCHRONIZED: Update link positions in real-time if enabled
       if (updateLinksInRealTime) {
         const links = svg.selectAll("path.link-path, path.flow-link");
         if (!links.empty()) {
@@ -108,15 +85,15 @@ export class OrbitalAnimation {
             const targetX = d.target.x || 0;
             const targetY = d.target.y || 0;
             
-            // Create smooth curved path that follows node movement perfectly
+            // Calculate curved path that follows node movement
             const dx = targetX - sourceX;
             const dy = targetY - sourceY;
-            const dr = Math.sqrt(dx * dx + dy * dy) * 1.1; // Smooth curve
+            const dr = Math.sqrt(dx * dx + dy * dy) * 1.2; // Reduced curve for better visual clarity
             
             return `M${sourceX},${sourceY} A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
           });
           
-          // SYNCHRONIZED: Update link gradients to follow node positions exactly
+          // SYNCHRONIZED: Update link gradients to follow node positions
           svg.selectAll("linearGradient")
             .each(function(d: any) {
               if (!d || !d.source || !d.target) return;
@@ -130,11 +107,11 @@ export class OrbitalAnimation {
         }
       }
       
-      // Continue synchronized animation
+      // Continue animation
       this.animationRef = requestAnimationFrame(animateOrbits);
     };
     
-    // Start perfectly synchronized animation
+    // Start animation
     this.animationRef = requestAnimationFrame(animateOrbits);
   }
   
@@ -146,18 +123,19 @@ export class OrbitalAnimation {
   }
 }
 
-// ENHANCED COMPONENT: Perfect synchronization of all visual elements
+// FIXED: Enhanced component with synchronized animations
 export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
   svg,
   nodes,
   width,
   height,
-  rotationSpeed = 0.00006, // Slightly reduced for smoother animation
+  rotationSpeed = 0.00008, // Reduced for smoother animation
   updateLinksInRealTime = true
 }) => {
   useEffect(() => {
     if (!svg || nodes.length === 0) return;
 
+    // Find central node
     const centralNode = nodes.find(node => node.type === "central");
     const orbitalNodes = nodes.filter(node => node.type === "orbital");
     
@@ -170,7 +148,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
       const currentTime = Date.now();
       const deltaTime = (currentTime - startTime) * rotationSpeed;
 
-      // PERFECTLY SYNCHRONIZED: Enhanced orbital movement with all visual elements
+      // SYNCHRONIZED: Enhanced orbital movement with all visual elements moving together
       orbitalNodes.forEach((node, index) => {
         if (!node.x || !node.y) return;
 
@@ -180,8 +158,8 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
         const currentRadius = Math.sqrt(dx * dx + dy * dy);
         
         // Market cap based speed (larger caps move slower)
-        const marketCapFactor = Math.max(0.3, Math.min(1.2, Math.log10(node.marketCap || 1) / 8));
-        const speed = rotationSpeed / (marketCapFactor * 0.7);
+        const marketCapFactor = Math.max(0.2, Math.min(1.5, Math.log10(node.marketCap || 1) / 8));
+        const speed = rotationSpeed / (marketCapFactor * 0.6);
         
         const currentAngle = Math.atan2(dy, dx);
         const newAngle = currentAngle + speed;
@@ -191,7 +169,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
         node.y = height / 2 + Math.sin(newAngle) * currentRadius;
       });
 
-      // PERFECTLY SYNCHRONIZED: Update ALL visual elements together as cohesive units
+      // SYNCHRONIZED: Update all visual elements together
       const nodeElements = svg.selectAll('.node-group, .node').data(nodes, (d: any) => d.id);
       
       nodeElements.each(function(d) {
@@ -200,17 +178,17 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
         // Update main node position
         nodeGroup.attr('transform', `translate(${d.x || 0}, ${d.y || 0})`);
         
-        // CRITICAL: Signal rings follow nodes with perfect synchronization
-        const signalRings = svg.selectAll(`.signal-ring[data-node-id="${d.id}"]`);
+        // CRITICAL FIX: Synchronize signal rings with exact node position
+        const signalRings = nodeGroup.selectAll('.signal-ring');
         if (!signalRings.empty()) {
-          signalRings.each(function() {
+          signalRings.each(function(ringData: any) {
             const ring = d3.select(this);
             
-            // Perfect synchronization: ring follows node position exactly
-            const nodeRotation = Math.atan2(d.y - height/2, d.x - width/2) * 180 / Math.PI;
-            ring.attr('transform', `translate(${d.x}, ${d.y}) rotate(${nodeRotation + deltaTime * 0.0002})`);
+            // Keep ring perfectly centered on node with synchronized rotation
+            const ringRotation = deltaTime * 0.0003;
+            ring.attr('transform', `rotate(${ringRotation * 180 / Math.PI})`);
             
-            // Synchronized color pulsing
+            // Update ring colors with synchronized pulsing
             if (d.divergenceBullish) {
               ring.attr('stroke', '#00ff88').attr('stroke-opacity', 0.7 + Math.sin(deltaTime * 0.002) * 0.2);
             } else if (d.divergenceBearish) {
@@ -219,31 +197,39 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
           });
         }
         
-        // SYNCHRONIZED: Flow indicators follow nodes exactly
-        const flowIndicators = svg.selectAll(`.flow-indicator[data-node-id="${d.id}"]`);
+        // SYNCHRONIZED: Update flow indicators
+        const flowIndicators = nodeGroup.selectAll('.flow-indicator');
         if (!flowIndicators.empty()) {
-          flowIndicators.attr('transform', `translate(${d.x || 0}, ${d.y || 0})`);
-        }
-        
-        // SYNCHRONIZED: Glow effects follow nodes exactly
-        const glowEffects = svg.selectAll(`.node-glow[data-node-id="${d.id}"]`);
-        if (!glowEffects.empty()) {
-          glowEffects.attr('cx', d.x).attr('cy', d.y);
+          flowIndicators.each(function(flowData: any) {
+            const indicator = d3.select(this);
+            
+            // Synchronize flow indicator animations with node movement
+            if (d.inflow && d.inflow > (d.outflow || 0)) {
+              indicator
+                .attr('fill', '#00ff88')
+                .attr('opacity', 0.5 + Math.sin(deltaTime * 0.003) * 0.2);
+            } else if (d.outflow && d.outflow > (d.inflow || 0)) {
+              indicator
+                .attr('fill', '#ff3366')
+                .attr('opacity', 0.5 + Math.sin(deltaTime * 0.003) * 0.2);
+            }
+          });
         }
       });
 
-      // SYNCHRONIZED: Update links in perfect real-time sync with node movement
+      // SYNCHRONIZED: Update links in real-time with node movement
       if (updateLinksInRealTime) {
         const linkElements = svg.selectAll('.flow-link, .link-path');
         if (!linkElements.empty()) {
           linkElements.each(function(d: any) {
             if (d.source && d.target && d.source.x && d.target.x) {
               const link = d3.select(this);
+              // Create smooth curved path that follows node movement
               const dx = d.target.x - d.source.x;
               const dy = d.target.y - d.source.y;
-              const dr = Math.sqrt(dx * dx + dy * dy) * 1.1;
+              const dr = Math.sqrt(dx * dx + dy * dy) * 1.2;
               const path = `M${d.source.x},${d.source.y} A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-              link.attr('d', path);
+              link.select('path').attr('d', path);
             }
           });
         }
@@ -252,9 +238,10 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
       animationFrameId = requestAnimationFrame(animate);
     };
 
-    // Start the perfectly synchronized animation
+    // Start the synchronized animation
     animate();
 
+    // Cleanup function
     return () => {
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);

@@ -39,8 +39,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
-  // COMPACT SCALE: Significantly reduced zoom level for viewport fit at 100% browser zoom
-  const adjustedZoomLevel = zoomLevel * 0.55; // Reduced from 0.75 to 0.55 for much more compact visualization
+  // FIXED: Adjusted zoom level for better viewport fit
+  const adjustedZoomLevel = zoomLevel * 0.75; // Reduce overall scale by 25%
   
   // Initialize visualization data
   useVisualizationData({
@@ -147,37 +147,37 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             height={dimensions.height}
           />
           
-          {/* COMPACT SCALE: Render orbital visualization with significantly reduced scale */}
+          {/* FIXED: Render orbital visualization components with adjusted scale */}
           <OrbitLayersComponent 
             svg={d3.select(svgRef.current)}
             width={dimensions.width}
             height={dimensions.height}
-            orbitLayers={5} // Reduced from 6 to 5 for compact layout
-            baseRadius={20 * (adjustedZoomLevel / 100)} // Significantly reduced base radius
-            extendFullScreen={false}
+            orbitLayers={6} // Reduced from 8 to 6 for better viewport fit
+            baseRadius={28 * (adjustedZoomLevel / 100)} // Reduced base radius for viewport fit
+            extendFullScreen={false} // Changed to false for better viewport control
           />
           <LinkRendererExtended
             svg={d3.select(svgRef.current)}
             links={visualizationData.links}
             selectedNodeId={visualizationData.selectedNodeId}
             predictions={predictions}
-            animateWithOrbit={true}
-            getCategoryColor={getCategoryColor}
+            animateWithOrbit={true} // Enable orbital animation for links
+            getCategoryColor={getCategoryColor} // Pass the color function
           />
           <NodeRendererComponent 
             svg={d3.select(svgRef.current)}
             nodes={visualizationData.nodes}
             centralNode={visualizationData.centralNode}
             selectedNodeId={visualizationData.selectedNodeId}
-            zoomLevel={adjustedZoomLevel} // Use compact adjusted zoom level
+            zoomLevel={adjustedZoomLevel} // Use adjusted zoom level
           />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
             nodes={visualizationData.nodes}
             width={dimensions.width}
             height={dimensions.height}
-            rotationSpeed={0.00006} // Slightly reduced speed for smoother compact animation
-            updateLinksInRealTime={true}
+            rotationSpeed={0.00008} // Slightly reduced speed for smoother animation
+            updateLinksInRealTime={true} // Update links with orbital movement
           />
           
           {/* Add AI predictions overlay */}
@@ -185,7 +185,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             <PredictionOrbitalOverlay
               svg={d3.select(svgRef.current)}
               nodes={visualizationData.nodes}
-              updateInterval={600000}
+              updateInterval={600000} // Update every 10 minutes
               predictions={predictions}
               chartTimeframe={chartTimeframe}
             />
