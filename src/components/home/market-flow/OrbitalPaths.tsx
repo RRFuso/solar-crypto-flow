@@ -1,73 +1,101 @@
 
-import React from 'react';
 import * as d3 from 'd3';
+import { NarrativeNode } from '@/types/narratives';
 
-interface OrbitalPathsProps {
-  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  nodes: any[];
-  width: number;
-  height: number;
-  orbitRadii: number[];
-}
+export const useOrbitalPaths = () => {
+  // Create orbital paths for solar system effect
+  const createOrbitalPaths = (
+    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+    nodes: NarrativeNode[],
+    width: number,
+    height: number
+  ) => {
+    const centerX = width / 2;
+    const centerY = height / 2;
+    
+    // Find the central node (Bitcoin or largest)
+    const centralNode = nodes.find(n => n.name.toLowerCase().includes("bitcoin")) || 
+                        nodes.reduce((max, n) => n.value > max.value ? n : max, nodes[0]);
+    
+    if (centralNode) {
+      // Draw orbital circles
+      const orbitGroup = svg.append("g").attr("class", "orbit-paths");
+      const nonCentralNodes = nodes.filter(n => n !== centralNode);
+      
+      // Calculate distance from central node for each other node
+      nonCentralNodes.forEach(node => {
+        // Calculate distance
+        const dx = node.x - centralNode.x;
+        const dy = node.y - centralNode.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Draw orbit circle
+        orbitGroup.append("circle")
+          .attr("cx", centerX)
+          .attr("cy", centerY)
+          .attr("r", distance)
+          .attr("fill", "none")
+          .attr("stroke", "rgba(255, 255, 255, 0.1)")
+          .attr("stroke-width", 1)
+          .attr("stroke-dasharray", "3,3");
+      });
+      
+      return { centralNode, orbitGroup };
+    }
+    
+    return { centralNode, orbitGroup: null };
+  };
 
-export const createOrbitalPaths = (props: OrbitalPathsProps) => {
-  const { svg, nodes, width, height, orbitRadii } = props;
+  return {
+    createOrbitalPaths
+  };
+};
 
-  // Draw orbit paths with larger distances
-  nodes.forEach((node, i) => {
-    if (!node.isCentral) {
-      const orbitPath = svg.append("circle")
-        .attr("cx", width / 2)
-        .attr("cy", height / 2)
-        .attr("r", orbitRadii[i])
+// Export the functions directly for backward compatibility
+export const createOrbitalPaths = (
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+  nodes: any[],
+  width: number,
+  height: number,
+  orbitRadii: number[]
+) => {
+  const centerX = width / 2;
+  const centerY = height / 2;
+  
+  // Draw orbital circles based on provided radii
+  const orbitGroup = svg.append("g").attr("class", "orbit-paths");
+  
+  orbitRadii.forEach((radius, index) => {
+    if (radius > 0) {
+      orbitGroup.append("circle")
+        .attr("cx", centerX)
+        .attr("cy", centerY)
+        .attr("r", radius)
         .attr("fill", "none")
         .attr("stroke", "rgba(255, 255, 255, 0.1)")
         .attr("stroke-width", 1)
         .attr("stroke-dasharray", "3,3");
     }
   });
+  
+  return orbitGroup;
 };
 
-// Create enhanced starfield background
 export const createStarfield = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   width: number,
   height: number,
-  numStars: number = 250 // Increased number of stars
+  numStars: number = 200
 ) => {
   const starGroup = svg.append("g").attr("class", "starfield");
   
-  // Add distant nebula effects for more depth
-  const numNebulas = 4 + Math.floor(Math.random() * 3);
-  for (let i = 0; i < numNebulas; i++) {
-    const x = Math.random() * width;
-    const y = Math.random() * height;
-    const size = Math.random() * 300 + 150;
-    
-    // Generate colors for nebulas
-    const nebulaColors = [
-      'rgba(41, 121, 255, 0.04)',
-      'rgba(147, 51, 234, 0.03)',
-      'rgba(236, 72, 153, 0.04)',
-      'rgba(59, 130, 246, 0.03)',
-      'rgba(16, 185, 129, 0.03)'
-    ];
-    
-    const nebula = starGroup.append("circle")
-      .attr("cx", x)
-      .attr("cy", y)
-      .attr("r", size)
-      .attr("fill", nebulaColors[Math.floor(Math.random() * nebulaColors.length)])
-      .attr("filter", "blur(40px)");
-  }
-  
-  // Add stars with varied sizes and brightness
   for (let i = 0; i < numStars; i++) {
     const x = Math.random() * width;
     const y = Math.random() * height;
-    const size = Math.random() * 2 + 0.2; // Varied sizes
-    const opacity = Math.random() * 0.7 + 0.2; // Varied brightness
+    const size = Math.random() * 1.5 + 0.1;
+    const opacity = Math.random() * 0.6 + 0.1;
     
+    // Create a star
     const star = starGroup.append("circle")
       .attr("cx", x)
       .attr("cy", y)
@@ -75,66 +103,14 @@ export const createStarfield = (
       .attr("fill", "white")
       .attr("opacity", opacity);
       
-    // Add twinkling to more stars
-    if (Math.random() > 0.5) { // More twinkling stars
+    // Add subtle twinkle animation to some stars
+    if (Math.random() > 0.7) {
       star.append("animate")
         .attr("attributeName", "opacity")
-        .attr("values", `${opacity};${opacity * 0.3};${opacity}`)
-        .attr("dur", `${2 + Math.random() * 5}s`)
+        .attr("values", `${opacity};${opacity * 0.4};${opacity}`)
+        .attr("dur", `${2 + Math.random() * 6}s`)
         .attr("repeatCount", "indefinite");
     }
-  }
-  
-  // Add a few brighter stars with subtle glow
-  for (let i = 0; i < numStars / 20; i++) {
-    const x = Math.random() * width;
-    const y = Math.random() * height;
-    const size = Math.random() * 1.5 + 1;
-    
-    // Create glow effect
-    const starGlow = starGroup.append("circle")
-      .attr("cx", x)
-      .attr("cy", y)
-      .attr("r", size * 3)
-      .attr("fill", "rgba(255, 255, 255, 0.1)")
-      .attr("filter", "blur(2px)");
-      
-    // Actual star
-    const brightStar = starGroup.append("circle")
-      .attr("cx", x)
-      .attr("cy", y)
-      .attr("r", size)
-      .attr("fill", "white")
-      .attr("opacity", 0.9);
-      
-    // Add subtle pulsing effect
-    if (Math.random() > 0.5) {
-      brightStar.append("animate")
-        .attr("attributeName", "opacity")
-        .attr("values", "0.9;0.7;0.9")
-        .attr("dur", `${3 + Math.random() * 4}s`)
-        .attr("repeatCount", "indefinite");
-        
-      starGlow.append("animate")
-        .attr("attributeName", "opacity")
-        .attr("values", "0.1;0.05;0.1")
-        .attr("dur", `${3 + Math.random() * 4}s`)
-        .attr("repeatCount", "indefinite");
-    }
-  }
-  
-  // Add subtle dust clouds
-  for (let i = 0; i < 5; i++) {
-    const x = Math.random() * width;
-    const y = Math.random() * height;
-    const size = Math.random() * 400 + 200;
-    
-    starGroup.append("circle")
-      .attr("cx", x)
-      .attr("cy", y)
-      .attr("r", size)
-      .attr("fill", "rgba(50, 50, 80, 0.03)")
-      .attr("filter", "blur(60px)");
   }
   
   return starGroup;

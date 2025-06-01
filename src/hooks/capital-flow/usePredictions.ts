@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
 import { fetchCryptoData } from '@/lib/dataFetcher';
-import { normalizeFeatures } from '@/lib/featureExtractor';
+import { normalizeFeatures, extractFeatures } from '@/lib/featureExtractor';
 import { predictPriceMovements } from '@/lib/aiModel';
 import { toast } from 'sonner';
 
