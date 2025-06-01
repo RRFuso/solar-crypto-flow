@@ -39,12 +39,15 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
+  // FIXED: Adjusted zoom level for better viewport fit
+  const adjustedZoomLevel = zoomLevel * 0.75; // Reduce overall scale by 25%
+  
   // Initialize visualization data
   useVisualizationData({
     flowData,
     svgRef,
     dimensions,
-    zoomLevel: zoomLevel * 1.15, // Increase node size by 15%
+    zoomLevel: adjustedZoomLevel,
     setVisualizationData,
     animationRef,
     createOrbitalVisualization,
@@ -144,14 +147,14 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             height={dimensions.height}
           />
           
-          {/* Render orbital visualization components */}
+          {/* FIXED: Render orbital visualization components with adjusted scale */}
           <OrbitLayersComponent 
             svg={d3.select(svgRef.current)}
             width={dimensions.width}
             height={dimensions.height}
-            orbitLayers={8}
-            baseRadius={34.5 * (zoomLevel / 100) * 1.15} // Increase orbital radius by 15%
-            extendFullScreen={true} // Extend orbit lines to full screen
+            orbitLayers={6} // Reduced from 8 to 6 for better viewport fit
+            baseRadius={28 * (adjustedZoomLevel / 100)} // Reduced base radius for viewport fit
+            extendFullScreen={false} // Changed to false for better viewport control
           />
           <LinkRendererExtended
             svg={d3.select(svgRef.current)}
@@ -166,14 +169,14 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             nodes={visualizationData.nodes}
             centralNode={visualizationData.centralNode}
             selectedNodeId={visualizationData.selectedNodeId}
-            zoomLevel={zoomLevel * 1.25} // Increase node size by 25%
+            zoomLevel={adjustedZoomLevel} // Use adjusted zoom level
           />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
             nodes={visualizationData.nodes}
             width={dimensions.width}
             height={dimensions.height}
-            rotationSpeed={0.00012} // Faster rotation (increased from 0.00004)
+            rotationSpeed={0.00008} // Slightly reduced speed for smoother animation
             updateLinksInRealTime={true} // Update links with orbital movement
           />
           
