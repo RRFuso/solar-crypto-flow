@@ -6,12 +6,12 @@ import { CryptoData } from '@/types/crypto';
 
 interface SimulationConfig {
   nodes: NarrativeNode[];
-  cryptoDataMap: Map<string, CryptoData>;
+  cryptoDataMap?: Map<string, CryptoData>;
   width: number;
   height: number;
 }
 
-export const useSimulation = ({ nodes, cryptoDataMap, width, height }: SimulationConfig) => {
+export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height }: SimulationConfig) => {
 
   // Find BTC node (central node)
   const findCentralNode = () => {
@@ -30,7 +30,7 @@ export const useSimulation = ({ nodes, cryptoDataMap, width, height }: Simulatio
           maxCapNode = node;
         }
       });
-      return maxCapNode;
+      return maxCapNode || nodes[0]; // Return first node if no market cap data available
     }
     return btcNode;
   };
@@ -80,6 +80,25 @@ export const useSimulation = ({ nodes, cryptoDataMap, width, height }: Simulatio
     const radius = maxRadius - exponentialFactor * (maxRadius - minRadius);
     
     return Math.max(minRadius, Math.min(maxRadius, radius));
+  };
+
+  // Position nodes initially based on market cap
+  const positionNodes = () => {
+    if (!centralNode) return;
+    
+    // Place central node at center
+    centralNode.x = width / 2;
+    centralNode.y = height / 2;
+    
+    // Position other nodes in circular arrangement
+    const otherNodes = nodes.filter(n => n !== centralNode);
+    otherNodes.forEach((node, index) => {
+      const radius = calculateOrbitalRadius(node, nodes, centralNode);
+      const angle = (index / otherNodes.length) * 2 * Math.PI;
+      
+      node.x = width / 2 + Math.cos(angle) * radius;
+      node.y = height / 2 + Math.sin(angle) * radius;
+    });
   };
 
   // Enhanced D3 Force Simulation with better spacing
@@ -162,6 +181,7 @@ export const useSimulation = ({ nodes, cryptoDataMap, width, height }: Simulatio
 
   return {
     simulation,
+    positionNodes, // Added missing method
     applyBounds,
     dragHandlers,
     centralNode,

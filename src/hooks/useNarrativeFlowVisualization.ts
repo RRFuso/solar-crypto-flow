@@ -50,9 +50,21 @@ export const useNarrativeFlowVisualization = (
       predicted: flow.predicted
     }));
 
-    // Set up simulation
+    // Create a mock crypto data map for backward compatibility
+    const cryptoDataMap = new Map();
+    nodes.forEach(node => {
+      cryptoDataMap.set(node.id, {
+        marketCap: node.value || 0,
+        price: 0,
+        volume: 0,
+        change24h: 0
+      });
+    });
+
+    // Set up simulation with the correct parameters
     const { simulation, positionNodes, applyBounds, dragHandlers } = useSimulation({
       nodes,
+      cryptoDataMap, // Now included
       width,
       height
     });
