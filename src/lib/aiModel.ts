@@ -9,7 +9,40 @@ export interface Prediction {
   factors: string[];
   timestamp: number;
   price?: string;
+  explosivePotential?: 'High' | 'Medium' | 'Low' | 'None';
+  isBreakout?: boolean;
+  isExpansion?: boolean;
+  isAccelerating?: boolean;
 }
+
+export interface HistoricalData {
+  symbol: string;
+  date: string;
+  price: number;
+  volume: number;
+  high: number;
+  low: number;
+  priceChange24h: number;
+}
+
+export interface PriceActionSignal {
+  symbol: string;
+  explosivePotential: 'High' | 'Medium' | 'Low' | 'None';
+  isBreakout: boolean;
+  isExpansion: boolean;
+  isAccelerating: boolean;
+  lastUpdated: number;
+}
+
+// Constantes para análise de price action
+const VOLUME_AVG_PERIOD = 20;
+const VOLUME_BREAKOUT_MULTIPLIER = 1.5;
+const PRICE_BREAKOUT_THRESHOLD = 3; // % mínimo de mudança de preço
+const VOLATILITY_THRESHOLD_LOW = 2; // % baixa volatilidade
+const VOLATILITY_THRESHOLD_HIGH = 8; // % alta volatilidade  
+const MOMENTUM_ACCELERATION_THRESHOLD = 1.5; // multiplicador de aceleração
+const RSI_OVERSOLD_THRESHOLD = 30;
+const RSI_OVERBOUGHT_THRESHOLD = 70;
 
 // Cache de previsões
 const predictionCache = new Map<string, { prediction: Prediction; timestamp: number }>();
@@ -30,9 +63,112 @@ export function storePrediction(prediction: Prediction): void {
   });
 }
 
+// Função para calcular média móvel simples do volume
+function calculateVolumeSMA(historicalData: HistoricalData[], period: number): number {
+  if (historicalData.length < period) return 0;
+  
+  const recentData = historicalData.slice(-period);
+  const totalVolume = recentData.reduce((sum, data) => sum + data.volume, 0);
+  return totalVolume / period;
+}
+
+// Deteção de breakout de preço/volume
+function detectPriceVolumeBreakout(currentData: CryptoFeatures, historicalData: HistoricalData[]): boolean {
+  if (historicalData.length < VOLUME_AVG_PERIOD) return false;
+  
+  const avgVolume = calculateVolumeSMA(historicalData, VOLUME_AVG_PERIOD);
+  const currentVolume = currentData.volume || 0;
+  const priceChange = Math.abs(currentData.priceChange24h || 0);
+  
+  // Breakout: volume acima da média E mudança significativa de preço
+  const volumeBreakout = currentVolume > (avgVolume * VOLUME_BREAKOUT_MULTIPLIER);
+  const priceBreakout = priceChange > PRICE_BREAKOUT_THRESHOLD;
+  
+  return volumeBreakout && priceBreakout;
+}
+
+// Deteção de expansão de volatilidade após compressão
+function detectVolatilityExpansion(currentData: CryptoFeatures, historicalData: HistoricalData[]): boolean {
+  if (historicalData.length < 10) return false;
+  
+  const recentData = historicalData.slice(-7); // últimos 7 dias
+  const previousData = historicalData.slice(-14, -7); // 7 dias anteriores
+  
+  // Calcular volatilidade média dos períodos
+  const recentVolatility = recentData.reduce((sum, data) => sum + Math.abs(data.priceChange24h), 0) / recentData.length;
+  const previousVolatility = previousData.reduce((sum, data) => sum + Math.abs(data.priceChange24h), 0) / previousData.length;
+  
+  const currentVolatility = Math.abs(currentData.priceChange24h || 0);
+  
+  // Expansão: período anterior com baixa volatilidade seguido de alta volatilidade atual
+  const wasCompressed = previousVolatility < VOLATILITY_THRESHOLD_LOW;
+  const isExpanding = currentVolatility > VOLATILITY_THRESHOLD_HIGH;
+  
+  return wasCompressed && isExpanding;
+}
+
+// Deteção de aceleração de momentum
+function detectMomentumAcceleration(currentData: CryptoFeatures): boolean {
+  const priceChange1h = currentData.priceChange1h || 0;
+  const priceChange24h = currentData.priceChange24h || 0;
+  const volumeChange = currentData.volumeChange24h || 0;
+  
+  // Aceleração: movimento de preço recente mais forte que médio E volume crescente
+  const priceAcceleration = Math.abs(priceChange1h) > (Math.abs(priceChange24h) / 24 * MOMENTUM_ACCELERATION_THRESHOLD);
+  const volumeSupport = volumeChange > 10; // volume 10% acima do normal
+  const rsiMomentum = (currentData.rsi > 50 && priceChange1h > 0) || (currentData.rsi < 50 && priceChange1h < 0);
+  
+  return priceAcceleration && volumeSupport && rsiMomentum;
+}
+
+// Análise principal de price action
+export function analyzeCryptoWithPriceAction(
+  currentData: CryptoFeatures,
+  historicalData: HistoricalData[]
+): PriceActionSignal {
+  const isBreakout = detectPriceVolumeBreakout(currentData, historicalData);
+  const isExpansion = detectVolatilityExpansion(currentData, historicalData);
+  const isAccelerating = detectMomentumAcceleration(currentData);
+  
+  // Determinar potencial explosivo baseado nos sinais
+  let explosivePotential: 'High' | 'Medium' | 'Low' | 'None' = 'None';
+  
+  const signalCount = [isBreakout, isExpansion, isAccelerating].filter(Boolean).length;
+  
+  if (signalCount >= 3) {
+    explosivePotential = 'High';
+  } else if (signalCount === 2) {
+    explosivePotential = 'Medium';
+  } else if (signalCount === 1) {
+    explosivePotential = 'Low';
+  }
+  
+  // Boost baseado em condições técnicas favoráveis
+  if (explosivePotential !== 'None') {
+    const rsi = currentData.rsi || 50;
+    const macdPositive = (currentData.macd || 0) > (currentData.macdSignal || 0);
+    
+    // RSI em zona favorável + MACD positivo = upgrade do sinal
+    if ((rsi < RSI_OVERSOLD_THRESHOLD || (rsi > 40 && rsi < 60)) && macdPositive) {
+      if (explosivePotential === 'Medium') explosivePotential = 'High';
+      else if (explosivePotential === 'Low') explosivePotential = 'Medium';
+    }
+  }
+  
+  return {
+    symbol: currentData.symbol,
+    explosivePotential,
+    isBreakout,
+    isExpansion,
+    isAccelerating,
+    lastUpdated: Date.now()
+  };
+}
+
 export function predictPriceMovements(
   features: CryptoFeatures[],
-  chartTimeframe: string = "4h"
+  chartTimeframe: string = "4h",
+  historicalDataMap?: Map<string, HistoricalData[]>
 ): Prediction[] {
   const normalized = normalizeFeatures(features);
   const weights = getTimeframeWeights(chartTimeframe);
@@ -45,6 +181,13 @@ export function predictPriceMovements(
     const conf = isBullish ? bull / (bull + bear) : bear / (bull + bear);
     const factors = getFactors(feat, isBullish, chartTimeframe);
 
+    // Análise de price action se dados históricos disponíveis
+    let priceActionData: PriceActionSignal | undefined;
+    if (historicalDataMap?.has(feat.symbol)) {
+      const historicalData = historicalDataMap.get(feat.symbol)!;
+      priceActionData = analyzeCryptoWithPriceAction(feat, historicalData);
+    }
+
     predictions.push({
       symbol: feat.symbol,
       name: feat.id,
@@ -52,7 +195,11 @@ export function predictPriceMovements(
       confidence: Math.min(0.95, conf),
       factors,
       timestamp: Date.now(),
-      price: feat.price.toString()
+      price: feat.price.toString(),
+      explosivePotential: priceActionData?.explosivePotential || 'None',
+      isBreakout: priceActionData?.isBreakout || false,
+      isExpansion: priceActionData?.isExpansion || false,
+      isAccelerating: priceActionData?.isAccelerating || false
     });
   }
 
