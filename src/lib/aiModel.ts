@@ -52,7 +52,7 @@ export function predictPriceMovements(
       confidence: Math.min(0.95, conf),
       factors,
       timestamp: Date.now(),
-      price: feat.price.toString()
+      price: feat.price
     });
   }
 

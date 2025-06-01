@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 
@@ -10,75 +11,61 @@ interface OrbitLayersProps {
   extendFullScreen?: boolean;
 }
 
-export const OrbitLayersComponent: React.FC<OrbitLayersProps> = ({
-  svg,
-  width,
-  height,
-  orbitLayers,
-  baseRadius,
-  extendFullScreen = false
-}) => {
+export const OrbitLayersComponent = React.memo((props: OrbitLayersProps) => {
+  const { svg, width, height, orbitLayers, baseRadius, extendFullScreen = true } = props;
+  
   useEffect(() => {
-    if (!svg) return;
-
-    // Remove existing orbit layers
-    svg.selectAll('.orbit-layer').remove();
-
-    const orbitGroup = svg.append('g').attr('class', 'orbit-layers');
+    // Clear existing orbit layers
+    svg.selectAll('.orbit-layers').remove();
+    
+    // Create orbit layers group
+    const orbitGroup = svg.append("g").attr("class", "orbit-layers");
+    
+    // Calculate max radius to cover entire screen
+    const maxScreenRadius = Math.sqrt(Math.pow(width/2, 2) + Math.pow(height/2, 2));
+    
+    // Calculate center point
     const centerX = width / 2;
     const centerY = height / 2;
-
-    // Enhanced orbit visualization with better spacing
+    
+    // Draw orbit circles
     for (let i = 1; i <= orbitLayers; i++) {
-      const radius = baseRadius * i * 2.5; // Increased spacing multiplier
+      // Calculate radius - either use incremental base radius or extend to full screen
+      let orbitRadius = extendFullScreen
+        ? (maxScreenRadius / orbitLayers) * i // Distribute evenly across full screen
+        : baseRadius * i; // Use incremental base radius
       
-      // Skip orbits that would be too large for the screen
-      if (radius > Math.min(width, height) / 2 - 50) continue;
-      
-      // Create orbit circle with enhanced styling
-      orbitGroup.append('circle')
-        .attr('class', 'orbit-layer')
-        .attr('cx', centerX)
-        .attr('cy', centerY)
-        .attr('r', radius)
-        .attr('fill', 'none')
-        .attr('stroke', `rgba(255, 255, 255, ${Math.max(0.03, 0.15 - i * 0.02)})`) // Fading opacity
-        .attr('stroke-width', Math.max(0.5, 2 - i * 0.2)) // Decreasing width
-        .attr('stroke-dasharray', `${Math.max(2, 8 - i)},${Math.max(2, 8 - i)}`) // Dynamic dash pattern
-        .style('pointer-events', 'none');
-
-      // Add orbit markers for better visual reference
-      if (i <= 3) { // Only for inner orbits
-        const markerCount = Math.max(4, i * 2);
-        for (let j = 0; j < markerCount; j++) {
-          const angle = (j / markerCount) * 2 * Math.PI;
-          const x = centerX + Math.cos(angle) * radius;
-          const y = centerY + Math.sin(angle) * radius;
-          
-          orbitGroup.append('circle')
-            .attr('class', 'orbit-marker')
-            .attr('cx', x)
-            .attr('cy', y)
-            .attr('r', Math.max(0.5, 2 - i * 0.3))
-            .attr('fill', `rgba(255, 255, 255, ${Math.max(0.05, 0.2 - i * 0.05)})`)
-            .style('pointer-events', 'none');
-        }
-      }
+      orbitGroup.append("circle")
+        .attr("cx", centerX)
+        .attr("cy", centerY)
+        .attr("r", orbitRadius)
+        .attr("fill", "none")
+        .attr("stroke", "rgba(255, 255, 255, 0.05)")
+        .attr("stroke-width", i === 1 ? 2 : 1) // Make inner orbit slightly thicker
+        .attr("stroke-dasharray", "3,3");
     }
-
-    // Add central reference point
-    orbitGroup.append('circle')
-      .attr('class', 'central-reference')
-      .attr('cx', centerX)
-      .attr('cy', centerY)
-      .attr('r', 2)
-      .attr('fill', 'rgba(255, 255, 255, 0.3)')
-      .style('pointer-events', 'none');
-
+    
+    // Add faint radial lines for better spatial orientation
+    const radialLineCount = 12;
+    for (let i = 0; i < radialLineCount; i++) {
+      const angle = (i / radialLineCount) * Math.PI * 2;
+      const lineEndX = centerX + Math.cos(angle) * maxScreenRadius;
+      const lineEndY = centerY + Math.sin(angle) * maxScreenRadius;
+      
+      orbitGroup.append("line")
+        .attr("x1", centerX)
+        .attr("y1", centerY)
+        .attr("x2", lineEndX)
+        .attr("y2", lineEndY)
+        .attr("stroke", "rgba(255, 255, 255, 0.03)")
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "2,4");
+    }
+    
     return () => {
       svg.selectAll('.orbit-layers').remove();
     };
   }, [svg, width, height, orbitLayers, baseRadius, extendFullScreen]);
-
+  
   return null;
-};
+});

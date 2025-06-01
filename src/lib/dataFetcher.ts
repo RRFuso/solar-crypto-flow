@@ -1,3 +1,4 @@
+
 import { CryptoData, FlowData } from "@/types/crypto";
 
 const API_BASE_URL = "https://api.coingecko.com/api/v3";
@@ -8,7 +9,7 @@ const API_BASE_URL = "https://api.coingecko.com/api/v3";
 export async function fetchCryptoData(): Promise<CryptoData[]> {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=150&sparkline=false&price_change_percentage=1h,24h,7d`
+      `${API_BASE_URL}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=150&sparkline=false&price_change_percentage=1h,24h,7d` // Increased per_page for more pairs
     );
 
     if (!response.ok) {
@@ -38,7 +39,8 @@ export async function fetchCryptoData(): Promise<CryptoData[]> {
       priceChange1h: coin.price_change_percentage_1h_in_currency || 0,
       priceChange24h: coin.price_change_percentage_24h_in_currency || 0,
       priceChange7d: coin.price_change_percentage_7d_in_currency || 0,
-      volumeChange24h: coin.market_cap_change_percentage_24h ?? coin.price_change_percentage_24h ?? 0,
+      // Use market_cap_change_percentage_24h if available, otherwise fallback to price change
+      volumeChange24h: coin.market_cap_change_percentage_24h ?? coin.price_change_percentage_24h ?? 0, 
       category: determineCryptoCategory(coin.id),
       // Add raw values needed for flow calculation
       current_price: coin.current_price,
@@ -87,68 +89,73 @@ function determineCryptoCategory(id: string): string {
  */
 export async function fetchCapitalFlows(cryptos: CryptoData[], maxFlows: number = 50): Promise<FlowData[]> {
   const potentialFlows: FlowData[] = [];
-  const minVolumeThreshold = 100000;
-  const minMarketCapThreshold = 5000000;
+  const minVolumeThreshold = 100000; // Ignore flows involving coins with very low volume
+  const minMarketCapThreshold = 5000000; // Ignore flows involving coins with very low market cap
 
   for (let i = 0; i < cryptos.length; i++) {
     const source = cryptos[i];
 
     // Skip sources that are stablecoins or below thresholds
     if (source.category === 'stablecoin' || 
-        parseFloat(source.volume || '0') < minVolumeThreshold || 
-        (source.marketCap || 0) < minMarketCapThreshold) {
+        source.total_volume < minVolumeThreshold || 
+        source.market_cap < minMarketCapThreshold) {
       continue;
     }
 
     for (let j = 0; j < cryptos.length; j++) {
-      if (i === j) continue;
+      if (i === j) continue; // Skip self-flow
       const target = cryptos[j];
 
       // Skip targets below thresholds (allow stablecoins as targets)
-      if (parseFloat(target.volume || '0') < minVolumeThreshold || 
-          (target.category !== 'stablecoin' && (target.marketCap || 0) < minMarketCapThreshold)) {
+      if (target.total_volume < minVolumeThreshold || 
+          (target.category !== 'stablecoin' && target.market_cap < minMarketCapThreshold)) {
         continue;
       }
 
-      const sourcePerf = source.priceChange24h || 0;
-      const targetPerf = target.priceChange24h || 0;
+      const sourcePerf = source.price_change_percentage_24h;
+      const targetPerf = target.price_change_percentage_24h;
       const perfDiff = targetPerf - sourcePerf;
 
       // Basic condition: Flow potential exists if there's a performance difference
-      if (Math.abs(perfDiff) > 0.5) {
+      if (Math.abs(perfDiff) > 0.5) { // Require at least 0.5% performance difference
         
         // Calculate flow strength based on performance difference and volumes
-        const sourceLogVol = Math.log10(parseFloat(source.volume || '1') + 1);
-        const targetLogVol = Math.log10(parseFloat(target.volume || '1') + 1);
+        // Use log scale for volume to prevent extreme dominance by high-volume pairs
+        const sourceLogVol = Math.log10(source.total_volume + 1);
+        const targetLogVol = Math.log10(target.total_volume + 1);
         
         // Flow strength increases with performance difference and combined volume
         let flowStrength = Math.abs(perfDiff) * (sourceLogVol + targetLogVol);
 
-        // Adjust strength based on direction
-        if (perfDiff > 0 && sourcePerf < 0) {
+        // Adjust strength based on direction (stronger flow if source is down, target is up)
+        if (perfDiff > 0 && sourcePerf < 0) { // Source down, Target up (Strong Buy Flow)
           flowStrength *= 1.5;
-        } else if (perfDiff < 0 && sourcePerf > 0) {
+        } else if (perfDiff < 0 && sourcePerf > 0) { // Source up, Target down (Strong Sell Flow)
           flowStrength *= 1.2;
         }
         
-        // Estimate flow value
-        let flowValue = flowStrength * (parseFloat(source.volume || '0') * 0.0005);
+        // Estimate flow value: Proportional to flowStrength and a fraction of the source's volume
+        // The factor (e.g., 0.001) scales the flow value for visualization
+        let flowValue = flowStrength * (source.total_volume * 0.0005);
         
-        // Cap flow value to a max percentage of source market cap
-        flowValue = Math.min(flowValue, (source.marketCap || 0) * 0.01);
+        // Cap flow value to a max percentage of source market cap (e.g., 1%) to keep it reasonable
+        flowValue = Math.min(flowValue, source.market_cap * 0.01);
 
+        // Determine flow direction (value sign)
+        // Positive value: flow from source to target (target outperforms source)
+        // Negative value: flow from target to source (source outperforms target)
         const finalFlowValue = perfDiff > 0 ? flowValue : -flowValue;
 
         // Calculate percentage relative to source market cap
-        const percentage = ((source.marketCap || 1) > 0) ? (flowValue / (source.marketCap || 1)) * 100 * (perfDiff > 0 ? 1 : -1) : 0;
+        const percentage = (flowValue / source.market_cap) * 100 * (perfDiff > 0 ? 1 : -1);
 
         potentialFlows.push({
           id: `${source.symbol}-${target.symbol}-${Date.now()}`,
-          from: source.symbol || '',
-          to: target.symbol || '',
+          from: source.symbol,
+          to: target.symbol,
           value: finalFlowValue,
-          percentage: isNaN(percentage) ? 0 : percentage,
-          volume: flowValue,
+          percentage: isNaN(percentage) ? 0 : percentage, // Handle potential NaN
+          volume: flowValue, // Absolute volume of the flow
           fromCategory: source.category || 'other',
           toCategory: target.category || 'other'
         });
@@ -161,6 +168,7 @@ export async function fetchCapitalFlows(cryptos: CryptoData[], maxFlows: number 
     .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
     .slice(0, maxFlows);
 }
+
 
 /**
  * Fetches technical indicators (RSI, MACD, etc.) for a cryptocurrency
@@ -264,3 +272,4 @@ export async function fetchOnChainData(symbol: string): Promise<{
     netFlow: inflow - outflow
   };
 }
+
