@@ -11,6 +11,8 @@ export interface OrbitalNode {
   divergenceBearish?: boolean;
   inflow?: number;
   outflow?: number;
+  marketCap: number;
+  type: "central" | "orbital";
 }
 
 interface CalculateNodePositionsProps {
