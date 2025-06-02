@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { CryptoData } from '@/types/crypto';
 import { 
   calculateRSI,
-  calculateMACD,
+  calculateMACD, 
   calculateEMA,
   calculateBollingerBands,
   EXPLOSIVE_CRITERIA,
