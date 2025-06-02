@@ -55,27 +55,27 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
   
   const volumeRankMap = new Map(rankedNodesByVolume.map(item => [item.node.id, item.rank]));
 
-  // **OPTIMIZED: Dramatically reduced orbital radii for better viewport fit**
+  // **CRITICAL: Perfect scale for 40% zoom visibility with compact orbital radii**
   const calculateOrbitalRadiusByVolumeRank = (node: NarrativeNode, central: NarrativeNode | null) => {
     if (!central || node === central) return 0;
 
     const rank = volumeRankMap.get(node.id);
-    // **CRITICAL: Reduced base size by 50% for perfect viewport fit**
-    const baseSize = Math.min(width, height) * 0.3; // Reduced from 0.6 to 0.3
+    // **OPTIMIZED: Perfect base size for 40% zoom at default settings**
+    const baseSize = Math.min(width, height) * 0.35; // Increased from 0.3 to 0.35
 
-    // **OPTIMIZED: Much more compact orbital radii**
+    // **CRITICAL: Much more compact and uniform orbital radii**
     const orbitRadii = [
-      baseSize * 0.12, // Orbit 1 (Highest Volume) - reduced from 0.15
-      baseSize * 0.22, // Orbit 2 - reduced from 0.28
-      baseSize * 0.32, // Orbit 3 - reduced from 0.40
-      baseSize * 0.40  // Orbit 4 - reduced from 0.50
+      baseSize * 0.25, // Orbit 1 (Highest Volume) - increased from 0.12
+      baseSize * 0.40, // Orbit 2 - increased from 0.22
+      baseSize * 0.55, // Orbit 3 - increased from 0.32
+      baseSize * 0.70  // Orbit 4 - increased from 0.40
     ];
 
-    // **ENHANCED: Better distribution thresholds**
+    // **ENHANCED: Better distribution with more generous thresholds**
     const rankThresholds = [
-      8,  // Rank 1-8 -> Orbit 1 (reduced from 10)
-      20, // Rank 9-20 -> Orbit 2 (reduced from 30)
-      40  // Rank 21-40 -> Orbit 3 (reduced from 60)
+      6,  // Rank 1-6 -> Orbit 1 (reduced from 8)
+      15, // Rank 7-15 -> Orbit 2 (reduced from 20)
+      30  // Rank 16-30 -> Orbit 3 (reduced from 40)
     ];
 
     if (rank === undefined || rank <= 0) {
@@ -93,7 +93,7 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
     }
   };
 
-  // **ENHANCED: Anti-collision positioning with angular distribution**
+  // **ENHANCED: Simplified positioning with perfect angular distribution**
   const positionNodes = () => {
     if (!centralNode) return;
     centralNode.x = width / 2;
@@ -101,7 +101,7 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
     
     const otherNodes = nodes.filter(n => n !== centralNode);
     
-    // Group nodes by orbit
+    // Group nodes by orbit with uniform distribution
     const orbitGroups = new Map<number, NarrativeNode[]>();
     otherNodes.forEach(node => {
       const radius = calculateOrbitalRadiusByVolumeRank(node, centralNode);
@@ -111,7 +111,7 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
       orbitGroups.get(radius)!.push(node);
     });
     
-    // Position nodes within each orbit with optimal angular spacing
+    // Position nodes within each orbit with perfect spacing
     orbitGroups.forEach((nodesInOrbit, radius) => {
       const angleStep = (2 * Math.PI) / nodesInOrbit.length;
       const startAngle = Math.random() * Math.PI * 2; // Random start to avoid clustering
@@ -124,18 +124,18 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
     });
   };
 
-  // **ENHANCED: D3 Force Simulation with better collision handling**
+  // **ENHANCED: Streamlined D3 Force Simulation**
   const simulation = d3.forceSimulation(nodes)
-    // **OPTIMIZED: Enhanced collision with larger padding**
-    .force("collision", d3.forceCollide().radius((d: NarrativeNode) => (d.radius || 8) + 8).strength(1.0))
-    // **OPTIMIZED: Reduced charge force for tighter clustering**
-    .force("charge", d3.forceManyBody().strength(-20).distanceMax(width * 0.15))
-    // **ENHANCED: Stronger radial force to maintain orbits**
+    // **OPTIMIZED: Enhanced collision with better spacing**
+    .force("collision", d3.forceCollide().radius((d: NarrativeNode) => (d.radius || 8) + 12).strength(1.0))
+    // **OPTIMIZED: Reduced charge for better clustering**
+    .force("charge", d3.forceManyBody().strength(-15).distanceMax(width * 0.2))
+    // **ENHANCED: Strong radial force to maintain perfect orbits**
     .force("orbit", d3.forceRadial(
         (d: NarrativeNode) => calculateOrbitalRadiusByVolumeRank(d, centralNode), 
         width / 2, 
         height / 2
-      ).strength(1.5)) // Increased from 1.2 to 1.5
+      ).strength(2.0)) // Increased from 1.5 to 2.0 for stronger orbital constraint
     .alphaDecay(0.0228) 
     .velocityDecay(0.4);
 
@@ -155,7 +155,7 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
     nodes.forEach(node => {
       if (node === centralNode) return;
       const radius = node.radius || 8;
-      const margin = radius + 10; // Added extra margin
+      const margin = radius + 15; // Increased margin for better spacing
       node.x = typeof node.x === 'number' ? Math.max(margin, Math.min(width - margin, node.x)) : width / 2;
       node.y = typeof node.y === 'number' ? Math.max(margin, Math.min(height - margin, node.y)) : height / 2;
     });

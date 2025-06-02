@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
@@ -38,8 +39,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
-  // **CRITICAL FIX: Dramatically reduced zoom level for perfect viewport fit at 100% browser zoom**
-  const adjustedZoomLevel = zoomLevel * 0.35; // Further reduced from 0.5 to 0.35 (35% of original)
+  // **CRITICAL FIX: Dramatically increased base scale for perfect viewport fit at 40% zoom**
+  const adjustedZoomLevel = zoomLevel * 2.5; // Increased from 0.35 to 2.5 for much better visibility
   
   // Initialize visualization data
   useVisualizationData({
@@ -146,13 +147,13 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             height={dimensions.height}
           />
           
-          {/* **OPTIMIZED: Render orbital visualization with dramatically reduced scale** */}
+          {/* **OPTIMIZED: Render orbital visualization with much better scale** */}
           <OrbitLayersComponent 
             svg={d3.select(svgRef.current)}
             width={dimensions.width}
             height={dimensions.height}
-            orbitLayers={3} // Further reduced from 4 to 3 for better viewport fit
-            baseRadius={15 * (adjustedZoomLevel / 100)} // Further reduced base radius
+            orbitLayers={4} // Increased back to 4 for better distribution
+            baseRadius={60 * (adjustedZoomLevel / 100)} // Increased base radius significantly
             extendFullScreen={false}
           />
           <LinkRendererExtended
@@ -175,7 +176,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             nodes={visualizationData.nodes}
             width={dimensions.width}
             height={dimensions.height}
-            rotationSpeed={0.00004} // Further reduced speed for smoother animation
+            rotationSpeed={0.00002} // Reduced speed for smoother animation
             updateLinksInRealTime={true}
           />
           

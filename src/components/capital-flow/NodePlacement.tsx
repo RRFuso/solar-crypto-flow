@@ -31,19 +31,25 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
     .filter(n => n.id !== centralNode.id)
     .sort((a, b) => b.marketCap - a.marketCap);
   
-  // **ENHANCED: Group nodes by orbital layer first**
+  // **CRITICAL: Much more compact and uniform orbital distribution**
+  const maxRadius = Math.min(width, height) * 0.35; // Reduced from larger values
+  const minRadius = maxRadius * 0.25; // Start closer to center
+  
+  // Calculate optimal nodes per orbit for uniform distribution
+  const totalNodes = nonCentralNodes.length;
+  const nodesPerOrbit = Math.ceil(totalNodes / orbitLayers);
+  
+  // Create orbit groups with uniform distribution
   const orbitGroups = new Map<number, OrbitalNode[]>();
   
-  nonCentralNodes.forEach((node, i) => {
-    // Determine which orbit layer this node belongs to based on market cap ratio
-    const marketCapRatio = node.marketCap / centralNode.marketCap;
-    const layerIndex = Math.min(
-      orbitLayers - 1, 
-      Math.floor((1 - Math.min(marketCapRatio, 0.8)) * orbitLayers)
-    );
+  nonCentralNodes.forEach((node, index) => {
+    // Determine orbit index based on position in sorted array
+    const orbitIndex = Math.floor(index / nodesPerOrbit);
+    const actualOrbitIndex = Math.min(orbitIndex, orbitLayers - 1);
     
-    // **OPTIMIZED: Increased spacing between orbits**
-    const orbitRadius = (layerIndex + 1) * baseRadius * 3.0; // Increased from 2.5 to 3.0
+    // Calculate orbit radius with uniform spacing
+    const radiusStep = (maxRadius - minRadius) / (orbitLayers - 1);
+    const orbitRadius = minRadius + (actualOrbitIndex * radiusStep);
     
     if (!orbitGroups.has(orbitRadius)) {
       orbitGroups.set(orbitRadius, []);
@@ -51,89 +57,36 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
     orbitGroups.get(orbitRadius)!.push(node);
   });
   
-  // **ENHANCED: Position nodes within each orbit with perfect angular distribution**
+  // **ENHANCED: Position nodes within each orbit with perfect angular spacing**
   const placedNodes: Array<{x: number, y: number, radius: number}> = [
-    { x: centralNode.x, y: centralNode.y, radius: centralNode.radius * 4 } // Increased padding for central node
+    { x: centralNode.x, y: centralNode.y, radius: centralNode.radius * 2 }
   ];
   
   orbitGroups.forEach((nodesInOrbit, orbitRadius) => {
     const angleStep = (2 * Math.PI) / nodesInOrbit.length;
-    const startAngle = Math.random() * Math.PI * 2; // Random start angle to avoid clustering
+    const startAngle = Math.random() * Math.PI * 2; // Random start to avoid clustering
     
     nodesInOrbit.forEach((node, index) => {
-      let angle = startAngle + (index * angleStep);
-      let found = false;
-      let attempts = 0;
-      const maxAttempts = 100;
+      const angle = startAngle + (index * angleStep);
       
-      // **ENHANCED: Try multiple angle offsets to avoid collisions**
-      while (!found && attempts < maxAttempts) {
-        const testX = width / 2 + Math.cos(angle) * orbitRadius;
-        const testY = height / 2 + Math.sin(angle) * orbitRadius;
-        
-        // Check for collisions with existing nodes
-        let collision = false;
-        for (const placed of placedNodes) {
-          const dx = testX - placed.x;
-          const dy = testY - placed.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          const minDistance = placed.radius + node.radius * 4; // Increased minimum distance
-          
-          if (distance < minDistance) {
-            collision = true;
-            break;
-          }
-        }
-        
-        if (!collision) {
-          node.x = testX;
-          node.y = testY;
-          placedNodes.push({ x: testX, y: testY, radius: node.radius * 3 });
-          found = true;
-        } else {
-          // **ENHANCED: Smart angle adjustment**
-          if (attempts < 50) {
-            angle += angleStep * 0.1; // Small adjustment
-          } else {
-            angle += angleStep * 0.3; // Larger adjustment
-          }
-          attempts++;
-        }
+      // Direct placement with minimal collision checking for speed
+      const testX = width / 2 + Math.cos(angle) * orbitRadius;
+      const testY = height / 2 + Math.sin(angle) * orbitRadius;
+      
+      // Simple bounds checking
+      const margin = node.radius + 5;
+      if (testX >= margin && testX <= width - margin && 
+          testY >= margin && testY <= height - margin) {
+        node.x = testX;
+        node.y = testY;
+      } else {
+        // Fallback: adjust radius slightly inward
+        const adjustedRadius = orbitRadius * 0.9;
+        node.x = width / 2 + Math.cos(angle) * adjustedRadius;
+        node.y = height / 2 + Math.sin(angle) * adjustedRadius;
       }
       
-      // **FALLBACK: If no position found, use safe radial placement**
-      if (!found) {
-        let safeRadius = orbitRadius;
-        let safeAngle = startAngle + (index * angleStep);
-        
-        // Find safe radius by incrementally increasing
-        for (let radiusMultiplier = 1.0; radiusMultiplier <= 2.0; radiusMultiplier += 0.1) {
-          safeRadius = orbitRadius * radiusMultiplier;
-          const safeX = width / 2 + Math.cos(safeAngle) * safeRadius;
-          const safeY = height / 2 + Math.sin(safeAngle) * safeRadius;
-          
-          // Check if this position is safe
-          let safePlacement = true;
-          for (const placed of placedNodes) {
-            const dx = safeX - placed.x;
-            const dy = safeY - placed.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const minDistance = placed.radius + node.radius * 4;
-            
-            if (distance < minDistance) {
-              safePlacement = false;
-              break;
-            }
-          }
-          
-          if (safePlacement) {
-            node.x = safeX;
-            node.y = safeY;
-            placedNodes.push({ x: safeX, y: safeY, radius: node.radius * 3 });
-            break;
-          }
-        }
-      }
+      placedNodes.push({ x: node.x, y: node.y, radius: node.radius * 2 });
     });
   });
   

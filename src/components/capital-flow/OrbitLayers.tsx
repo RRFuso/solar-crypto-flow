@@ -29,53 +29,54 @@ export const OrbitLayersComponent: React.FC<OrbitLayersProps> = ({
     const centerX = width / 2;
     const centerY = height / 2;
 
-    // **CRITICAL FIX: Dramatically reduced orbit visualization for perfect viewport fit**
+    // **CRITICAL: Much more compact and visible orbit spacing**
+    const maxRadius = Math.min(width, height) * 0.35; // Conservative max radius
+    const minRadius = maxRadius * 0.25; // Start much closer to center
+    
     for (let i = 1; i <= orbitLayers; i++) {
-      // **Reduced spacing multiplier from 1.8 to 1.3 for much tighter orbits**
-      const radius = baseRadius * i * 1.3;
+      // **Linear spacing for uniform distribution**
+      const radiusStep = (maxRadius - minRadius) / (orbitLayers - 1);
+      const radius = minRadius + ((i - 1) * radiusStep);
       
-      // **Much more conservative max radius for guaranteed viewport fit**
-      const maxAllowedRadius = Math.min(width, height) / 3.0; // Changed from /2.5 to /3.0
-      if (radius > maxAllowedRadius) continue;
+      // Skip if radius would exceed viewport
+      if (radius > maxRadius) continue;
       
-      // Create orbit circle with enhanced styling but smaller scale
+      // Create orbit circle with enhanced visibility
       orbitGroup.append('circle')
         .attr('class', 'orbit-layer')
         .attr('cx', centerX)
         .attr('cy', centerY)
         .attr('r', radius)
         .attr('fill', 'none')
-        .attr('stroke', `rgba(255, 255, 255, ${Math.max(0.05, 0.20 - i * 0.025)})`) // Slightly more visible
-        .attr('stroke-width', Math.max(0.4, 1.5 - i * 0.12)) // Thinner lines for smaller scale
-        .attr('stroke-dasharray', `${Math.max(2, 5 - i)},${Math.max(2, 5 - i)}`) // Smaller dash pattern
+        .attr('stroke', `rgba(255, 255, 255, ${Math.max(0.1, 0.25 - i * 0.03)})`) // More visible
+        .attr('stroke-width', Math.max(1, 2 - i * 0.1)) // Thicker lines
+        .attr('stroke-dasharray', `${Math.max(3, 6 - i)},${Math.max(3, 6 - i)}`) // Cleaner dash pattern
         .style('pointer-events', 'none');
 
-      // **Fewer orbit markers for cleaner appearance at smaller scale**
-      if (i <= 2) {
-        const markerCount = Math.max(2, i * 1.5); // Reduced marker count further
-        for (let j = 0; j < markerCount; j++) {
-          const angle = (j / markerCount) * 2 * Math.PI;
-          const x = centerX + Math.cos(angle) * radius;
-          const y = centerY + Math.sin(angle) * radius;
-          
-          orbitGroup.append('circle')
-            .attr('class', 'orbit-marker')
-            .attr('cx', x)
-            .attr('cy', y)
-            .attr('r', Math.max(0.3, 1.2 - i * 0.15)) // Much smaller markers
-            .attr('fill', `rgba(255, 255, 255, ${Math.max(0.05, 0.12 - i * 0.025)})`)
-            .style('pointer-events', 'none');
-        }
+      // **Orbital markers for reference points**
+      const markerCount = Math.max(4, i * 2); // More markers for outer orbits
+      for (let j = 0; j < markerCount; j++) {
+        const angle = (j / markerCount) * 2 * Math.PI;
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+        
+        orbitGroup.append('circle')
+          .attr('class', 'orbit-marker')
+          .attr('cx', x)
+          .attr('cy', y)
+          .attr('r', Math.max(0.5, 1.5 - i * 0.1)) // Visible markers
+          .attr('fill', `rgba(255, 255, 255, ${Math.max(0.08, 0.15 - i * 0.02)})`)
+          .style('pointer-events', 'none');
       }
     }
 
-    // **Smaller central reference point**
+    // **Enhanced central reference point**
     orbitGroup.append('circle')
       .attr('class', 'central-reference')
       .attr('cx', centerX)
       .attr('cy', centerY)
-      .attr('r', 1.5) // Reduced from 2 to 1.5
-      .attr('fill', 'rgba(255, 255, 255, 0.3)')
+      .attr('r', 2) // Slightly larger for visibility
+      .attr('fill', 'rgba(255, 255, 255, 0.4)')
       .style('pointer-events', 'none');
 
     return () => {
