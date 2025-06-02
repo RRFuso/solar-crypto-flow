@@ -36,14 +36,13 @@ interface Strategy {
 }
 
 // Helper to get badge based on potential
-const getPotentialBadge = (potential: PriceActionSignal['explosive_potential']) => {
+const getPotentialBadge = (potential: PriceActionSignal['explosivePotential']) => {
   switch (potential) {
-    case 'High (Breakout + Momentum)':
-    case 'High (Expansion + Momentum)':
+    case 'High':
       return <span className="text-xs font-bold text-red-400 flex items-center gap-1"><Rocket size={12} /> ALTO</span>;
-    case 'Medium (Breakout/Expansion)':
+    case 'Medium':
       return <span className="text-xs font-bold text-yellow-400 flex items-center gap-1"><Zap size={12} /> MÉDIO</span>;
-    case 'Low (Momentum Acceleration)':
+    case 'Low':
       return <span className="text-xs font-bold text-blue-400 flex items-center gap-1"><BarChart size={12} /> BAIXO</span>;
     default:
       return null;
@@ -63,7 +62,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
   const symbols = useMemo(() => predictions.map(p => p.symbol), [predictions]);
 
   // 2. Fetch signals using the hook
-  const { signals, loading: signalsLoading } = usePriceActionSignals(symbols);
+  const { signals, signalsLoading, error } = usePriceActionSignals(symbols);
   // --- End Integration --- 
 
   const filtered = predictions
@@ -81,14 +80,14 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     const result: string[] = [];
     const lowerFactors = p.factors.map(f => f.toLowerCase());
     // Add signals from price action if they exist
-    if (signal?.is_breakout) result.push('💥 Breakout Preço/Volume');
-    if (signal?.is_expansion) result.push('📊 Expansão Volatilidade');
-    if (signal?.is_accelerating) result.push('🚀 Aceleração Momentum');
+    if (signal?.isBreakout) result.push('💥 Breakout Preço/Volume');
+    if (signal?.isExpansion) result.push('📊 Expansão Volatilidade');
+    if (signal?.isAccelerating) result.push('🚀 Aceleração Momentum');
 
     // Keep existing indicators
     if (lowerFactors.some(f => f.includes('rsi'))) result.push('🔁 RSI Divergência');
     if (lowerFactors.some(f => f.includes('macd'))) result.push('📊 MACD Cruzamento');
-    if (lowerFactors.some(f => f.includes('volume') && !signal?.is_breakout)) result.push('💥 Volume Anômalo'); // Avoid duplicate
+    if (lowerFactors.some(f => f.includes('volume') && !signal?.isBreakout)) result.push('💥 Volume Anômalo'); // Avoid duplicate
     if (lowerFactors.some(f => f.includes('flow') || f.includes('inflow') || f.includes('outflow'))) result.push('🌊 Fluxo de Capital');
     if (lowerFactors.some(f => f.includes('support') || f.includes('resistance'))) result.push('🧱 Suporte/Resistência');
     
@@ -114,8 +113,8 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
 
     const indicators = indicatorsFromFactors(p, signal);
     let overview = `${p.symbol} apresenta potencial ${p.bullish ? 'bullish' : 'bearish'} com base em ${indicators.join(', ')}.`;
-    if (signal?.explosive_potential && signal.explosive_potential !== 'None') {
-        overview += ` Potencial explosivo classificado como: ${signal.explosive_potential.split(' ')[0]}.`;
+    if (signal?.explosivePotential && signal.explosivePotential !== 'None') {
+        overview += ` Potencial explosivo classificado como: ${signal.explosivePotential}.`;
     }
     overview += ` Entrada sugerida em $${price.toFixed(2)}, risco de ${stopPercent.toFixed(1)}% e retorno estimado até ${tp2.toFixed(1)}%.`;
 
@@ -139,7 +138,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
   const renderCard = (p: Prediction) => {
     // 3. Get the signal for the current prediction
     const signal = signals.get(p.symbol);
-    const potentialBadge = signal ? getPotentialBadge(signal.explosive_potential) : null;
+    const potentialBadge = signal ? getPotentialBadge(signal.explosivePotential) : null;
 
     return (
       <div
@@ -170,11 +169,11 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
             {signalsLoading ? (
                 <Skeleton className="h-3 w-24 mt-1 mb-2 rounded-sm" />
             ) : (
-                signal && signal.explosive_potential !== 'None' && (
+                signal && signal.explosivePotential !== 'None' && (
                     <div className="flex items-center gap-2 text-xs text-gray-400 mb-2 flex-wrap">
-                        {signal.is_breakout && <span>💥Breakout</span>}
-                        {signal.is_expansion && <span>📊Expansão</span>}
-                        {signal.is_accelerating && <span>🚀Aceleração</span>}
+                        {signal.isBreakout && <span>💥Breakout</span>}
+                        {signal.isExpansion && <span>📊Expansão</span>}
+                        {signal.isAccelerating && <span>🚀Aceleração</span>}
                     </div>
                 )
             )}
@@ -261,14 +260,14 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
               </div>
               
               {/* Display Price Action Signal Details in Strategy */} 
-              {strategy.priceActionSignal && strategy.priceActionSignal.explosive_potential !== 'None' && (
+              {strategy.priceActionSignal && strategy.priceActionSignal.explosivePotential !== 'None' && (
                 <div className="bg-gray-800 p-3 rounded-lg">
                   <h4 className="font-medium mb-2 text-purple-400">Sinal Price Action:</h4>
                   <div className="flex items-center gap-4 flex-wrap">
-                    {getPotentialBadge(strategy.priceActionSignal.explosive_potential)}
-                    {strategy.priceActionSignal.is_breakout && <span className='text-xs text-gray-300'>💥 Breakout</span>}
-                    {strategy.priceActionSignal.is_expansion && <span className='text-xs text-gray-300'>📊 Expansão</span>}
-                    {strategy.priceActionSignal.is_accelerating && <span className='text-xs text-gray-300'>🚀 Aceleração</span>}
+                    {getPotentialBadge(strategy.priceActionSignal.explosivePotential)}
+                    {strategy.priceActionSignal.isBreakout && <span className='text-xs text-gray-300'>💥 Breakout</span>}
+                    {strategy.priceActionSignal.isExpansion && <span className='text-xs text-gray-300'>📊 Expansão</span>}
+                    {strategy.priceActionSignal.isAccelerating && <span className='text-xs text-gray-300'>🚀 Aceleração</span>}
                   </div>
                 </div>
               )}
@@ -320,4 +319,3 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
 };
 
 export default AIWatchlist;
-
