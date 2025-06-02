@@ -1,9 +1,7 @@
-
-import React, { useState } from 'react';
-import { Prediction } from '@/lib/aiModel';
+import React, { useState, useMemo } from 'react';
+import { Prediction } from '@/lib/aiModel'; // Assuming Prediction type might need update or use CryptoAnalysisResult
 import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
-import { ArrowUpRight, ArrowDownRight, Zap, TrendingUp } from 'lucide-react';
-import { normalizeFeatures } from '@/lib/featureExtractor';
+import { ArrowUpRight, ArrowDownRight, Zap, Rocket, BarChart, AlertTriangle } from 'lucide-react'; // Added icons
 import {
   Dialog,
   DialogContent,
@@ -11,9 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { usePriceActionSignals, PriceActionSignal } from '@/hooks/usePriceActionSignals'; // Import the hook and type
+import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton for loading state
 
 interface AIWatchlistProps {
-  predictions: Prediction[];
+  predictions: Prediction[]; // Consider if this should be CryptoAnalysisResult[] or similar
   maxItems?: number;
   chartTimeframe?: string;
 }
@@ -31,9 +31,24 @@ interface Strategy {
   overview: string;
   indicators: string[];
   timeframe: string;
-  explosivePotential?: string;
-  priceActionSignals?: string[];
+  // Add price action signals to strategy details
+  priceActionSignal?: PriceActionSignal | null;
 }
+
+// Helper to get badge based on potential
+const getPotentialBadge = (potential: PriceActionSignal['explosive_potential']) => {
+  switch (potential) {
+    case 'High (Breakout + Momentum)':
+    case 'High (Expansion + Momentum)':
+      return <span className="text-xs font-bold text-red-400 flex items-center gap-1"><Rocket size={12} /> ALTO</span>;
+    case 'Medium (Breakout/Expansion)':
+      return <span className="text-xs font-bold text-yellow-400 flex items-center gap-1"><Zap size={12} /> MÉDIO</span>;
+    case 'Low (Momentum Acceleration)':
+      return <span className="text-xs font-bold text-blue-400 flex items-center gap-1"><BarChart size={12} /> BAIXO</span>;
+    default:
+      return null;
+  }
+};
 
 const AIWatchlist: React.FC<AIWatchlistProps> = ({
   predictions,
@@ -43,69 +58,44 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
   const [search, setSearch] = useState('');
   const [strategy, setStrategy] = useState<Strategy | null>(null);
 
+  // --- Integration of Price Action Signals --- 
+  // 1. Get symbols from predictions
+  const symbols = useMemo(() => predictions.map(p => p.symbol), [predictions]);
+
+  // 2. Fetch signals using the hook
+  const { signals, loading: signalsLoading } = usePriceActionSignals(symbols);
+  // --- End Integration --- 
+
   const filtered = predictions
     .filter(p =>
       p.symbol.toLowerCase().includes(search.toLowerCase()) ||
       (p.name && p.name.toLowerCase().includes(search.toLowerCase()))
     )
-    .sort((a, b) => {
-      // Priorizar por potencial explosivo primeiro, depois confiança
-      const explosiveOrder = { 'High': 4, 'Medium': 3, 'Low': 2, 'None': 1 };
-      const aExplosive = explosiveOrder[a.explosivePotential || 'None'];
-      const bExplosive = explosiveOrder[b.explosivePotential || 'None'];
-      
-      if (aExplosive !== bExplosive) return bExplosive - aExplosive;
-      return b.confidence - a.confidence;
-    });
+    // Consider sorting also by explosive potential if available
+    .sort((a, b) => b.confidence - a.confidence);
 
   const bullish = filtered.filter(p => p.bullish).slice(0, maxItems);
   const bearish = filtered.filter(p => !p.bullish).slice(0, maxItems);
 
-  const getExplosiveBadge = (explosivePotential?: string) => {
-    if (!explosivePotential || explosivePotential === 'None') return null;
-    
-    const config = {
-      'High': { color: 'text-red-400 bg-red-900/30 border-red-400/50', icon: '🚀', label: 'HIGH' },
-      'Medium': { color: 'text-orange-400 bg-orange-900/30 border-orange-400/50', icon: '⚡', label: 'MED' },
-      'Low': { color: 'text-yellow-400 bg-yellow-900/30 border-yellow-400/50', icon: '📈', label: 'LOW' }
-    };
-    
-    const badge = config[explosivePotential as keyof typeof config];
-    if (!badge) return null;
-    
-    return (
-      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold border ${badge.color}`}>
-        <span>{badge.icon}</span>
-        <span>{badge.label}</span>
-      </div>
-    );
-  };
-
-  const getPriceActionSignals = (p: Prediction): string[] => {
-    const signals: string[] = [];
-    if (p.isBreakout) signals.push('💥 Volume Breakout');
-    if (p.isExpansion) signals.push('📊 Volatilidade Expansão');
-    if (p.isAccelerating) signals.push('🚀 Momentum Aceleração');
-    return signals;
-  };
-
-  const indicatorsFromFactors = (p: Prediction): string[] => {
+  const indicatorsFromFactors = (p: Prediction, signal: PriceActionSignal | null): string[] => {
     const result: string[] = [];
     const lowerFactors = p.factors.map(f => f.toLowerCase());
+    // Add signals from price action if they exist
+    if (signal?.is_breakout) result.push('💥 Breakout Preço/Volume');
+    if (signal?.is_expansion) result.push('📊 Expansão Volatilidade');
+    if (signal?.is_accelerating) result.push('🚀 Aceleração Momentum');
+
+    // Keep existing indicators
     if (lowerFactors.some(f => f.includes('rsi'))) result.push('🔁 RSI Divergência');
     if (lowerFactors.some(f => f.includes('macd'))) result.push('📊 MACD Cruzamento');
-    if (lowerFactors.some(f => f.includes('volume'))) result.push('💥 Volume Anômalo');
+    if (lowerFactors.some(f => f.includes('volume') && !signal?.is_breakout)) result.push('💥 Volume Anômalo'); // Avoid duplicate
     if (lowerFactors.some(f => f.includes('flow') || f.includes('inflow') || f.includes('outflow'))) result.push('🌊 Fluxo de Capital');
     if (lowerFactors.some(f => f.includes('support') || f.includes('resistance'))) result.push('🧱 Suporte/Resistência');
     
-    // Adicionar sinais de price action
-    const priceActionSignals = getPriceActionSignals(p);
-    result.push(...priceActionSignals);
-    
-    return result.length > 0 ? result : ['📈 Análise Técnica'];
+    return result.length > 0 ? result : ['📈 Análise Técnica Padrão'];
   };
 
-  const showStrategy = (p: Prediction) => {
+  const showStrategy = (p: Prediction, signal: PriceActionSignal | null) => {
     const price = parseFloat(p.price || '0') || 1;
     const stopPercent = 3 + Math.random() * 2;
     const tp1 = 5 + Math.random() * 5;
@@ -122,17 +112,11 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
       ? price * (1 + tp2 / 100)
       : price * (1 - tp2 / 100);
 
-    const indicators = indicatorsFromFactors(p);
-    const priceActionSignals = getPriceActionSignals(p);
-    
-    let overview = `${p.symbol} apresenta potencial ${
-      p.bullish ? 'bullish' : 'bearish'
-    } com base em ${indicators.slice(0, 2).join(', ')}.`;
-    
-    if (p.explosivePotential && p.explosivePotential !== 'None') {
-      overview += ` Potencial explosivo ${p.explosivePotential.toLowerCase()} detectado com sinais de price action.`;
+    const indicators = indicatorsFromFactors(p, signal);
+    let overview = `${p.symbol} apresenta potencial ${p.bullish ? 'bullish' : 'bearish'} com base em ${indicators.join(', ')}.`;
+    if (signal?.explosive_potential && signal.explosive_potential !== 'None') {
+        overview += ` Potencial explosivo classificado como: ${signal.explosive_potential.split(' ')[0]}.`;
     }
-    
     overview += ` Entrada sugerida em $${price.toFixed(2)}, risco de ${stopPercent.toFixed(1)}% e retorno estimado até ${tp2.toFixed(1)}%.`;
 
     setStrategy({
@@ -148,81 +132,73 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
       overview,
       indicators,
       timeframe: chartTimeframe,
-      explosivePotential: p.explosivePotential,
-      priceActionSignals
+      priceActionSignal: signal, // Pass signal to strategy dialog
     });
   };
 
-  const renderCard = (p: Prediction) => (
-    <div
-      key={p.symbol}
-      className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors text-white border border-gray-700 relative"
-    >
-      {p.explosivePotential && p.explosivePotential !== 'None' && (
-        <div className="absolute -top-2 -right-2 z-10">
-          {getExplosiveBadge(p.explosivePotential)}
-        </div>
-      )}
-      
-      <div className="flex items-start gap-3">
-        <img
-          src={getCryptoLogoUrl(p.symbol)}
-          alt={p.symbol}
-          className="w-8 h-8 rounded-full flex-shrink-0 mt-1"
-        />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <span className="font-bold text-sm truncate">{p.symbol}</span>
-            <div className={`flex items-center gap-1 ${p.bullish ? 'text-green-400' : 'text-red-400'}`}>
-              {p.bullish ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-              <span className="text-xs font-medium">{Math.round(p.confidence * 100)}%</span>
+  const renderCard = (p: Prediction) => {
+    // 3. Get the signal for the current prediction
+    const signal = signals.get(p.symbol);
+    const potentialBadge = signal ? getPotentialBadge(signal.explosive_potential) : null;
+
+    return (
+      <div
+        key={p.symbol}
+        className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors text-white border border-gray-700"
+      >
+        <div className="flex items-start gap-3">
+          <img
+            src={getCryptoLogoUrl(p.symbol)}
+            alt={p.symbol}
+            className="w-8 h-8 rounded-full flex-shrink-0 mt-1"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-bold text-sm truncate">{p.symbol}</span>
+              {/* Display Potential Badge */} 
+              {signalsLoading ? (
+                  <Skeleton className="h-4 w-12 rounded-sm" />
+              ) : (
+                  potentialBadge
+              )}
+              <div className={`flex items-center gap-1 ${p.bullish ? 'text-green-400' : 'text-red-400'}`}>
+                {p.bullish ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                <span className="text-xs font-medium">{Math.round(p.confidence * 100)}%</span>
+              </div>
             </div>
+            {/* Display Specific Signal Flags */} 
+            {signalsLoading ? (
+                <Skeleton className="h-3 w-24 mt-1 mb-2 rounded-sm" />
+            ) : (
+                signal && signal.explosive_potential !== 'None' && (
+                    <div className="flex items-center gap-2 text-xs text-gray-400 mb-2 flex-wrap">
+                        {signal.is_breakout && <span>💥Breakout</span>}
+                        {signal.is_expansion && <span>📊Expansão</span>}
+                        {signal.is_accelerating && <span>🚀Aceleração</span>}
+                    </div>
+                )
+            )}
+            {/* Original factors text (optional, maybe remove if flags are shown) */} 
+            {/* <div className="text-xs text-gray-400 mb-2 line-clamp-2">{p.factors[0]}</div> */} 
+            {p.confidence > 0.6 && (
+              <button
+                onClick={() => showStrategy(p, signal || null)} // Pass signal to strategy
+                className="text-xs text-blue-400 hover:text-blue-300 hover:underline transition-colors"
+              >
+                Ver Estratégia
+              </button>
+            )}
           </div>
-          
-          <div className="text-xs text-gray-400 mb-2 line-clamp-2">{p.factors[0]}</div>
-          
-          {/* Price Action Signals */}
-          {(p.isBreakout || p.isExpansion || p.isAccelerating) && (
-            <div className="flex flex-wrap gap-1 mb-2">
-              {p.isBreakout && (
-                <span className="text-xs bg-red-900/30 text-red-300 px-1.5 py-0.5 rounded border border-red-400/30">
-                  💥 Breakout
-                </span>
-              )}
-              {p.isExpansion && (
-                <span className="text-xs bg-orange-900/30 text-orange-300 px-1.5 py-0.5 rounded border border-orange-400/30">
-                  📊 Expansão
-                </span>
-              )}
-              {p.isAccelerating && (
-                <span className="text-xs bg-blue-900/30 text-blue-300 px-1.5 py-0.5 rounded border border-blue-400/30">
-                  🚀 Aceleração
-                </span>
-              )}
-            </div>
-          )}
-          
-          {p.confidence > 0.6 && (
-            <button
-              onClick={() => showStrategy(p)}
-              className="text-xs text-blue-400 hover:text-blue-300 hover:underline transition-colors"
-            >
-              Ver Estratégia
-            </button>
-          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="bg-black border border-gray-700 rounded-lg h-full flex flex-col min-w-[380px] max-w-[450px]">
       <div className="p-4 border-b border-gray-700">
         <h2 className="text-white text-lg font-semibold mb-3 flex items-center gap-2">
           🧠 AI Watchlist
-          <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full">
-            Price Action
-          </span>
         </h2>
         <input
           className="w-full p-2 rounded-md bg-gray-900 border border-gray-600 text-white text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none"
@@ -266,18 +242,13 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
         </div>
       </div>
 
-      {/* Strategy Dialog */}
+      {/* Strategy Dialog - Updated to show PA signals */}
       {strategy && (
         <Dialog open={!!strategy} onOpenChange={() => setStrategy(null)}>
           <DialogContent className="bg-gray-900 border border-gray-700 max-w-lg w-full text-white">
             <DialogHeader>
-              <DialogTitle className="text-lg font-bold text-center flex items-center justify-center gap-2">
+              <DialogTitle className="text-lg font-bold text-center">
                 Estratégia: {strategy.name} ({strategy.symbol})
-                {strategy.explosivePotential && strategy.explosivePotential !== 'None' && (
-                  <span className="text-xs bg-gradient-to-r from-red-500 to-orange-500 px-2 py-1 rounded-full">
-                    🚀 {strategy.explosivePotential}
-                  </span>
-                )}
               </DialogTitle>
               <DialogDescription className="text-center text-gray-400">
                 Baseada no timeframe {strategy.timeframe}
@@ -289,21 +260,23 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
                 <p className="text-gray-300">{strategy.overview}</p>
               </div>
               
-              {strategy.priceActionSignals && strategy.priceActionSignals.length > 0 && (
-                <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 p-3 rounded-lg border border-purple-500/30">
-                  <h4 className="font-medium mb-2 text-purple-300">🔥 Sinais de Price Action:</h4>
-                  <ul className="space-y-1">
-                    {strategy.priceActionSignals.map((signal, idx) => (
-                      <li key={idx} className="text-xs text-purple-200">• {signal}</li>
-                    ))}
-                  </ul>
+              {/* Display Price Action Signal Details in Strategy */} 
+              {strategy.priceActionSignal && strategy.priceActionSignal.explosive_potential !== 'None' && (
+                <div className="bg-gray-800 p-3 rounded-lg">
+                  <h4 className="font-medium mb-2 text-purple-400">Sinal Price Action:</h4>
+                  <div className="flex items-center gap-4 flex-wrap">
+                    {getPotentialBadge(strategy.priceActionSignal.explosive_potential)}
+                    {strategy.priceActionSignal.is_breakout && <span className='text-xs text-gray-300'>💥 Breakout</span>}
+                    {strategy.priceActionSignal.is_expansion && <span className='text-xs text-gray-300'>📊 Expansão</span>}
+                    {strategy.priceActionSignal.is_accelerating && <span className='text-xs text-gray-300'>🚀 Aceleração</span>}
+                  </div>
                 </div>
               )}
-              
+
               <div className="bg-gray-800 p-3 rounded-lg">
-                <h4 className="font-medium mb-2 text-blue-400">📊 Indicadores Técnicos:</h4>
+                <h4 className="font-medium mb-2 text-blue-400">Indicadores Técnicos/Fatores:</h4>
                 <ul className="space-y-1">
-                  {strategy.indicators.slice(0, 5).map((indicator, idx) => (
+                  {strategy.indicators.map((indicator, idx) => (
                     <li key={idx} className="text-xs text-gray-400">• {indicator}</li>
                   ))}
                 </ul>
@@ -347,3 +320,4 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
 };
 
 export default AIWatchlist;
+
