@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
@@ -39,8 +38,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
-  // **CRITICAL FIX: Significantly reduced zoom level for perfect viewport fit at 100% browser zoom**
-  const adjustedZoomLevel = zoomLevel * 0.5; // Reduced from 0.75 to 0.5 (50% reduction)
+  // **CRITICAL FIX: Dramatically reduced zoom level for perfect viewport fit at 100% browser zoom**
+  const adjustedZoomLevel = zoomLevel * 0.35; // Further reduced from 0.5 to 0.35 (35% of original)
   
   // Initialize visualization data
   useVisualizationData({
@@ -152,8 +151,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             svg={d3.select(svgRef.current)}
             width={dimensions.width}
             height={dimensions.height}
-            orbitLayers={4} // Reduced from 6 to 4 for better viewport fit
-            baseRadius={20 * (adjustedZoomLevel / 100)} // Reduced base radius further
+            orbitLayers={3} // Further reduced from 4 to 3 for better viewport fit
+            baseRadius={15 * (adjustedZoomLevel / 100)} // Further reduced base radius
             extendFullScreen={false}
           />
           <LinkRendererExtended
@@ -176,7 +175,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             nodes={visualizationData.nodes}
             width={dimensions.width}
             height={dimensions.height}
-            rotationSpeed={0.00006} // Slightly reduced speed for smoother animation
+            rotationSpeed={0.00004} // Further reduced speed for smoother animation
             updateLinksInRealTime={true}
           />
           
