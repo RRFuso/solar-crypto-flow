@@ -1,283 +1,323 @@
+import React, { useState, useMemo } from 'react';
+import { Prediction } from '@/lib/aiModel'; // Assuming Prediction type might need update or use CryptoAnalysisResult
+import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
+import { ArrowUpRight, ArrowDownRight, Zap, Rocket, BarChart, AlertTriangle } from 'lucide-react'; // Added icons
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { usePriceActionSignals, PriceActionSignal } from '@/hooks/usePriceActionSignals'; // Import the hook and type
+import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton for loading state
 
-import { CryptoFeatures, normalizeFeatures } from "./featureExtractor";
-
-export interface Prediction {
-  symbol: string;
-  name?: string;
-  bullish: boolean;
-  confidence: number;
-  factors: string[];
-  timestamp: number;
-  price?: string;
-  explosivePotential?: 'High' | 'Medium' | 'Low' | 'None';
-  isBreakout?: boolean;
-  isExpansion?: boolean;
-  isAccelerating?: boolean;
+interface AIWatchlistProps {
+  predictions: Prediction[]; // Consider if this should be CryptoAnalysisResult[] or similar
+  maxItems?: number;
+  chartTimeframe?: string;
 }
 
-export interface HistoricalData {
+interface Strategy {
   symbol: string;
-  date: string;
-  price: number;
-  volume: number;
-  high: number;
-  low: number;
-  priceChange24h: number;
+  name: string;
+  direction: 'bullish' | 'bearish';
+  entry: string;
+  stopLoss: string;
+  takeProfit1: string;
+  takeProfit2: string;
+  risk: string;
+  reward: string;
+  overview: string;
+  indicators: string[];
+  timeframe: string;
+  // Add price action signals to strategy details
+  priceActionSignal?: PriceActionSignal | null;
 }
 
-export interface PriceActionSignal {
-  symbol: string;
-  explosivePotential: 'High' | 'Medium' | 'Low' | 'None';
-  isBreakout: boolean;
-  isExpansion: boolean;
-  isAccelerating: boolean;
-  lastUpdated: number;
-}
-
-// Constantes para análise de price action
-const VOLUME_AVG_PERIOD = 20;
-const VOLUME_BREAKOUT_MULTIPLIER = 1.5;
-const PRICE_BREAKOUT_THRESHOLD = 3; // % mínimo de mudança de preço
-const VOLATILITY_THRESHOLD_LOW = 2; // % baixa volatilidade
-const VOLATILITY_THRESHOLD_HIGH = 8; // % alta volatilidade  
-const MOMENTUM_ACCELERATION_THRESHOLD = 1.5; // multiplicador de aceleração
-const RSI_OVERSOLD_THRESHOLD = 30;
-const RSI_OVERBOUGHT_THRESHOLD = 70;
-
-// Cache de previsões
-const predictionCache = new Map<string, { prediction: Prediction; timestamp: number }>();
-const CACHE_TTL = 1000 * 60 * 15; // 15 minutos
-
-export function getCachedPrediction(symbol: string): Prediction | null {
-  const cached = predictionCache.get(symbol);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.prediction;
+// Helper to get badge based on potential
+const getPotentialBadge = (potential: PriceActionSignal['explosive_potential']) => {
+  switch (potential) {
+    case 'High (Breakout + Momentum)':
+    case 'High (Expansion + Momentum)':
+      return <span className="text-xs font-bold text-red-400 flex items-center gap-1"><Rocket size={12} /> ALTO</span>;
+    case 'Medium (Breakout/Expansion)':
+      return <span className="text-xs font-bold text-yellow-400 flex items-center gap-1"><Zap size={12} /> MÉDIO</span>;
+    case 'Low (Momentum Acceleration)':
+      return <span className="text-xs font-bold text-blue-400 flex items-center gap-1"><BarChart size={12} /> BAIXO</span>;
+    default:
+      return null;
   }
-  return null;
-}
+};
 
-export function storePrediction(prediction: Prediction): void {
-  predictionCache.set(prediction.symbol, {
-    prediction,
-    timestamp: Date.now(),
-  });
-}
+const AIWatchlist: React.FC<AIWatchlistProps> = ({
+  predictions,
+  maxItems = 5,
+  chartTimeframe = '4h',
+}) => {
+  const [search, setSearch] = useState('');
+  const [strategy, setStrategy] = useState<Strategy | null>(null);
 
-// Função para calcular média móvel simples do volume
-function calculateVolumeSMA(historicalData: HistoricalData[], period: number): number {
-  if (historicalData.length < period) return 0;
-  
-  const recentData = historicalData.slice(-period);
-  const totalVolume = recentData.reduce((sum, data) => sum + data.volume, 0);
-  return totalVolume / period;
-}
+  // --- Integration of Price Action Signals --- 
+  // 1. Get symbols from predictions
+  const symbols = useMemo(() => predictions.map(p => p.symbol), [predictions]);
 
-// Deteção de breakout de preço/volume
-function detectPriceVolumeBreakout(currentData: CryptoFeatures, historicalData: HistoricalData[]): boolean {
-  if (historicalData.length < VOLUME_AVG_PERIOD) return false;
-  
-  const avgVolume = calculateVolumeSMA(historicalData, VOLUME_AVG_PERIOD);
-  const currentVolume = currentData.volume || 0;
-  const priceChange = Math.abs(currentData.priceChange24h || 0);
-  
-  // Breakout: volume acima da média E mudança significativa de preço
-  const volumeBreakout = currentVolume > (avgVolume * VOLUME_BREAKOUT_MULTIPLIER);
-  const priceBreakout = priceChange > PRICE_BREAKOUT_THRESHOLD;
-  
-  return volumeBreakout && priceBreakout;
-}
+  // 2. Fetch signals using the hook
+  const { signals, loading: signalsLoading } = usePriceActionSignals(symbols);
+  // --- End Integration --- 
 
-// Deteção de expansão de volatilidade após compressão
-function detectVolatilityExpansion(currentData: CryptoFeatures, historicalData: HistoricalData[]): boolean {
-  if (historicalData.length < 10) return false;
-  
-  const recentData = historicalData.slice(-7); // últimos 7 dias
-  const previousData = historicalData.slice(-14, -7); // 7 dias anteriores
-  
-  // Calcular volatilidade média dos períodos
-  const recentVolatility = recentData.reduce((sum, data) => sum + Math.abs(data.priceChange24h), 0) / recentData.length;
-  const previousVolatility = previousData.reduce((sum, data) => sum + Math.abs(data.priceChange24h), 0) / previousData.length;
-  
-  const currentVolatility = Math.abs(currentData.priceChange24h || 0);
-  
-  // Expansão: período anterior com baixa volatilidade seguido de alta volatilidade atual
-  const wasCompressed = previousVolatility < VOLATILITY_THRESHOLD_LOW;
-  const isExpanding = currentVolatility > VOLATILITY_THRESHOLD_HIGH;
-  
-  return wasCompressed && isExpanding;
-}
+  const filtered = predictions
+    .filter(p =>
+      p.symbol.toLowerCase().includes(search.toLowerCase()) ||
+      (p.name && p.name.toLowerCase().includes(search.toLowerCase()))
+    )
+    // Consider sorting also by explosive potential if available
+    .sort((a, b) => b.confidence - a.confidence);
 
-// Deteção de aceleração de momentum
-function detectMomentumAcceleration(currentData: CryptoFeatures): boolean {
-  const priceChange1h = currentData.priceChange1h || 0;
-  const priceChange24h = currentData.priceChange24h || 0;
-  const volumeChange = currentData.volumeChange24h || 0;
-  
-  // Aceleração: movimento de preço recente mais forte que médio E volume crescente
-  const priceAcceleration = Math.abs(priceChange1h) > (Math.abs(priceChange24h) / 24 * MOMENTUM_ACCELERATION_THRESHOLD);
-  const volumeSupport = volumeChange > 10; // volume 10% acima do normal
-  const rsiMomentum = (currentData.rsi > 50 && priceChange1h > 0) || (currentData.rsi < 50 && priceChange1h < 0);
-  
-  return priceAcceleration && volumeSupport && rsiMomentum;
-}
+  const bullish = filtered.filter(p => p.bullish).slice(0, maxItems);
+  const bearish = filtered.filter(p => !p.bullish).slice(0, maxItems);
 
-// Análise principal de price action
-export function analyzeCryptoWithPriceAction(
-  currentData: CryptoFeatures,
-  historicalData: HistoricalData[]
-): PriceActionSignal {
-  const isBreakout = detectPriceVolumeBreakout(currentData, historicalData);
-  const isExpansion = detectVolatilityExpansion(currentData, historicalData);
-  const isAccelerating = detectMomentumAcceleration(currentData);
-  
-  // Determinar potencial explosivo baseado nos sinais
-  let explosivePotential: 'High' | 'Medium' | 'Low' | 'None' = 'None';
-  
-  const signalCount = [isBreakout, isExpansion, isAccelerating].filter(Boolean).length;
-  
-  if (signalCount >= 3) {
-    explosivePotential = 'High';
-  } else if (signalCount === 2) {
-    explosivePotential = 'Medium';
-  } else if (signalCount === 1) {
-    explosivePotential = 'Low';
-  }
-  
-  // Boost baseado em condições técnicas favoráveis
-  if (explosivePotential !== 'None') {
-    const rsi = currentData.rsi || 50;
-    const macdPositive = (currentData.macd || 0) > (currentData.macdSignal || 0);
+  const indicatorsFromFactors = (p: Prediction, signal: PriceActionSignal | null): string[] => {
+    const result: string[] = [];
+    const lowerFactors = p.factors.map(f => f.toLowerCase());
+    // Add signals from price action if they exist
+    if (signal?.is_breakout) result.push('💥 Breakout Preço/Volume');
+    if (signal?.is_expansion) result.push('📊 Expansão Volatilidade');
+    if (signal?.is_accelerating) result.push('🚀 Aceleração Momentum');
+
+    // Keep existing indicators
+    if (lowerFactors.some(f => f.includes('rsi'))) result.push('🔁 RSI Divergência');
+    if (lowerFactors.some(f => f.includes('macd'))) result.push('📊 MACD Cruzamento');
+    if (lowerFactors.some(f => f.includes('volume') && !signal?.is_breakout)) result.push('💥 Volume Anômalo'); // Avoid duplicate
+    if (lowerFactors.some(f => f.includes('flow') || f.includes('inflow') || f.includes('outflow'))) result.push('🌊 Fluxo de Capital');
+    if (lowerFactors.some(f => f.includes('support') || f.includes('resistance'))) result.push('🧱 Suporte/Resistência');
     
-    // RSI em zona favorável + MACD positivo = upgrade do sinal
-    if ((rsi < RSI_OVERSOLD_THRESHOLD || (rsi > 40 && rsi < 60)) && macdPositive) {
-      if (explosivePotential === 'Medium') explosivePotential = 'High';
-      else if (explosivePotential === 'Low') explosivePotential = 'Medium';
-    }
-  }
-  
-  return {
-    symbol: currentData.symbol,
-    explosivePotential,
-    isBreakout,
-    isExpansion,
-    isAccelerating,
-    lastUpdated: Date.now()
+    return result.length > 0 ? result : ['📈 Análise Técnica Padrão'];
   };
-}
 
-export function predictPriceMovements(
-  features: CryptoFeatures[],
-  chartTimeframe: string = "4h",
-  historicalDataMap?: Map<string, HistoricalData[]>
-): Prediction[] {
-  const normalized = normalizeFeatures(features);
-  const weights = getTimeframeWeights(chartTimeframe);
-  const predictions: Prediction[] = [];
+  const showStrategy = (p: Prediction, signal: PriceActionSignal | null) => {
+    const price = parseFloat(p.price || '0') || 1;
+    const stopPercent = 3 + Math.random() * 2;
+    const tp1 = 5 + Math.random() * 5;
+    const tp2 = tp1 + 5 + Math.random() * 10;
 
-  for (const feat of normalized) {
-    const bull = scoreBullish(feat, weights);
-    const bear = scoreBearish(feat, weights);
-    const isBullish = bull > bear;
-    const conf = isBullish ? bull / (bull + bear) : bear / (bull + bear);
-    const factors = getFactors(feat, isBullish, chartTimeframe);
+    const direction = p.bullish ? 'bullish' : 'bearish';
+    const stopLoss = p.bullish
+      ? price * (1 - stopPercent / 100)
+      : price * (1 + stopPercent / 100);
+    const takeProfit1 = p.bullish
+      ? price * (1 + tp1 / 100)
+      : price * (1 - tp1 / 100);
+    const takeProfit2 = p.bullish
+      ? price * (1 + tp2 / 100)
+      : price * (1 - tp2 / 100);
 
-    // Análise de price action se dados históricos disponíveis
-    let priceActionData: PriceActionSignal | undefined;
-    if (historicalDataMap?.has(feat.symbol)) {
-      const historicalData = historicalDataMap.get(feat.symbol)!;
-      priceActionData = analyzeCryptoWithPriceAction(feat, historicalData);
+    const indicators = indicatorsFromFactors(p, signal);
+    let overview = `${p.symbol} apresenta potencial ${p.bullish ? 'bullish' : 'bearish'} com base em ${indicators.join(', ')}.`;
+    if (signal?.explosive_potential && signal.explosive_potential !== 'None') {
+        overview += ` Potencial explosivo classificado como: ${signal.explosive_potential.split(' ')[0]}.`;
     }
+    overview += ` Entrada sugerida em $${price.toFixed(2)}, risco de ${stopPercent.toFixed(1)}% e retorno estimado até ${tp2.toFixed(1)}%.`;
 
-    predictions.push({
-      symbol: feat.symbol,
-      name: feat.id,
-      bullish: isBullish,
-      confidence: Math.min(0.95, conf),
-      factors,
-      timestamp: Date.now(),
-      price: feat.price.toString(),
-      explosivePotential: priceActionData?.explosivePotential || 'None',
-      isBreakout: priceActionData?.isBreakout || false,
-      isExpansion: priceActionData?.isExpansion || false,
-      isAccelerating: priceActionData?.isAccelerating || false
+    setStrategy({
+      symbol: p.symbol,
+      name: p.name || p.symbol,
+      direction,
+      entry: price.toFixed(2),
+      stopLoss: stopLoss.toFixed(2),
+      takeProfit1: takeProfit1.toFixed(2),
+      takeProfit2: takeProfit2.toFixed(2),
+      risk: `${stopPercent.toFixed(1)}%`,
+      reward: `${tp2.toFixed(1)}%`,
+      overview,
+      indicators,
+      timeframe: chartTimeframe,
+      priceActionSignal: signal, // Pass signal to strategy dialog
     });
-  }
+  };
 
-  return predictions;
-}
+  const renderCard = (p: Prediction) => {
+    // 3. Get the signal for the current prediction
+    const signal = signals.get(p.symbol);
+    const potentialBadge = signal ? getPotentialBadge(signal.explosive_potential) : null;
 
-function getTimeframeWeights(timeframe: string) {
-  switch (timeframe) {
-    case "5m": return { tech: 1.5, fund: 0.3, flow: 1.2, mom: 1.6 };
-    case "15m": return { tech: 1.4, fund: 0.4, flow: 1.1, mom: 1.4 };
-    case "1h": return { tech: 1.2, fund: 0.6, flow: 1.0, mom: 1.1 };
-    case "4h": return { tech: 1.0, fund: 0.8, flow: 1.0, mom: 1.0 };
-    case "24h": return { tech: 0.9, fund: 1.0, flow: 1.0, mom: 0.9 };
-    default: return { tech: 1.0, fund: 1.0, flow: 1.0, mom: 1.0 };
-  }
-}
+    return (
+      <div
+        key={p.symbol}
+        className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors text-white border border-gray-700"
+      >
+        <div className="flex items-start gap-3">
+          <img
+            src={getCryptoLogoUrl(p.symbol)}
+            alt={p.symbol}
+            className="w-8 h-8 rounded-full flex-shrink-0 mt-1"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-bold text-sm truncate">{p.symbol}</span>
+              {/* Display Potential Badge */} 
+              {signalsLoading ? (
+                  <Skeleton className="h-4 w-12 rounded-sm" />
+              ) : (
+                  potentialBadge
+              )}
+              <div className={`flex items-center gap-1 ${p.bullish ? 'text-green-400' : 'text-red-400'}`}>
+                {p.bullish ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                <span className="text-xs font-medium">{Math.round(p.confidence * 100)}%</span>
+              </div>
+            </div>
+            {/* Display Specific Signal Flags */} 
+            {signalsLoading ? (
+                <Skeleton className="h-3 w-24 mt-1 mb-2 rounded-sm" />
+            ) : (
+                signal && signal.explosive_potential !== 'None' && (
+                    <div className="flex items-center gap-2 text-xs text-gray-400 mb-2 flex-wrap">
+                        {signal.is_breakout && <span>💥Breakout</span>}
+                        {signal.is_expansion && <span>📊Expansão</span>}
+                        {signal.is_accelerating && <span>🚀Aceleração</span>}
+                    </div>
+                )
+            )}
+            {/* Original factors text (optional, maybe remove if flags are shown) */} 
+            {/* <div className="text-xs text-gray-400 mb-2 line-clamp-2">{p.factors[0]}</div> */} 
+            {p.confidence > 0.6 && (
+              <button
+                onClick={() => showStrategy(p, signal || null)} // Pass signal to strategy
+                className="text-xs text-blue-400 hover:text-blue-300 hover:underline transition-colors"
+              >
+                Ver Estratégia
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
-function scoreBullish(f: CryptoFeatures, w: any): number {
-  let s = 0;
+  return (
+    <div className="bg-black border border-gray-700 rounded-lg h-full flex flex-col min-w-[380px] max-w-[450px]">
+      <div className="p-4 border-b border-gray-700">
+        <h2 className="text-white text-lg font-semibold mb-3 flex items-center gap-2">
+          🧠 AI Watchlist
+        </h2>
+        <input
+          className="w-full p-2 rounded-md bg-gray-900 border border-gray-600 text-white text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+          placeholder="🔍 Buscar ativo..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
-  if (f.rsi < 30) s += 2 * w.tech;
-  if (f.rsi4h < 40 && f.rsi4h > 30) s += 1.5 * w.tech;
-  if (f.macd > f.macdSignal) s += 1.5 * w.tech;
-  if (f.macdHistogram > 0) s += 1 * w.tech;
-  if (f.aboveMA) s += 1 * w.tech;
+      <div className="flex-1 p-4 overflow-y-auto">
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-green-400 text-sm font-medium mb-3 flex items-center gap-2">
+              🐂 Bullish Signals
+            </h3>
+            <div className="space-y-2">
+              {bullish.length ? (
+                bullish.map(renderCard)
+              ) : (
+                <div className="text-gray-500 text-xs text-center py-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                  Nenhum sinal bullish disponível
+                </div>
+              )}
+            </div>
+          </div>
 
-  if (f.priceChange1h > 1) s += 2 * w.mom;
-  if (f.priceChange24h > 5) s += 1 * w.fund;
+          <div>
+            <h3 className="text-red-400 text-sm font-medium mb-3 flex items-center gap-2">
+              🐻 Bearish Signals
+            </h3>
+            <div className="space-y-2">
+              {bearish.length ? (
+                bearish.map(renderCard)
+              ) : (
+                <div className="text-gray-500 text-xs text-center py-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                  Nenhum sinal bearish disponível
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
-  if (f.volumeChange24h > 20) s += 1.5 * w.mom;
-  if (f.obv > 0) s += 1 * w.mom;
+      {/* Strategy Dialog - Updated to show PA signals */}
+      {strategy && (
+        <Dialog open={!!strategy} onOpenChange={() => setStrategy(null)}>
+          <DialogContent className="bg-gray-900 border border-gray-700 max-w-lg w-full text-white">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold text-center">
+                Estratégia: {strategy.name} ({strategy.symbol})
+              </DialogTitle>
+              <DialogDescription className="text-center text-gray-400">
+                Baseada no timeframe {strategy.timeframe}
+              </DialogDescription>
+            </DialogHeader>
 
-  if (f.netFlowPercentage > 0) s += 1 * w.flow;
-  if (f.incomingFlows > f.outgoingFlows) s += 1.5 * w.flow;
-  if (f.exchangeOutflow > f.exchangeInflow) s += 1 * w.flow;
+            <div className="space-y-4 text-sm">
+              <div className="bg-gray-800 p-3 rounded-lg">
+                <p className="text-gray-300">{strategy.overview}</p>
+              </div>
+              
+              {/* Display Price Action Signal Details in Strategy */} 
+              {strategy.priceActionSignal && strategy.priceActionSignal.explosive_potential !== 'None' && (
+                <div className="bg-gray-800 p-3 rounded-lg">
+                  <h4 className="font-medium mb-2 text-purple-400">Sinal Price Action:</h4>
+                  <div className="flex items-center gap-4 flex-wrap">
+                    {getPotentialBadge(strategy.priceActionSignal.explosive_potential)}
+                    {strategy.priceActionSignal.is_breakout && <span className='text-xs text-gray-300'>💥 Breakout</span>}
+                    {strategy.priceActionSignal.is_expansion && <span className='text-xs text-gray-300'>📊 Expansão</span>}
+                    {strategy.priceActionSignal.is_accelerating && <span className='text-xs text-gray-300'>🚀 Aceleração</span>}
+                  </div>
+                </div>
+              )}
 
-  return s;
-}
+              <div className="bg-gray-800 p-3 rounded-lg">
+                <h4 className="font-medium mb-2 text-blue-400">Indicadores Técnicos/Fatores:</h4>
+                <ul className="space-y-1">
+                  {strategy.indicators.map((indicator, idx) => (
+                    <li key={idx} className="text-xs text-gray-400">• {indicator}</li>
+                  ))}
+                </ul>
+              </div>
 
-function scoreBearish(f: CryptoFeatures, w: any): number {
-  let s = 0;
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-green-900/30 p-3 rounded-lg border border-green-700/50">
+                  <div className="text-green-400 text-xs font-medium">📥 Entrada</div>
+                  <div className="text-white font-bold">${strategy.entry}</div>
+                </div>
+                <div className="bg-red-900/30 p-3 rounded-lg border border-red-700/50">
+                  <div className="text-red-400 text-xs font-medium">🛑 Stop Loss</div>
+                  <div className="text-white font-bold">${strategy.stopLoss}</div>
+                </div>
+                <div className="bg-green-900/20 p-3 rounded-lg border border-green-600/50">
+                  <div className="text-green-300 text-xs font-medium">🎯 Take Profit 1</div>
+                  <div className="text-white font-bold">${strategy.takeProfit1}</div>
+                </div>
+                <div className="bg-green-900/20 p-3 rounded-lg border border-green-600/50">
+                  <div className="text-green-300 text-xs font-medium">🎯 Take Profit 2</div>
+                  <div className="text-white font-bold">${strategy.takeProfit2}</div>
+                </div>
+              </div>
 
-  if (f.rsi > 70) s += 2 * w.tech;
-  if (f.rsi4h > 70) s += 1.5 * w.tech;
-  if (f.macd < f.macdSignal) s += 1.5 * w.tech;
-  if (f.macdHistogram < 0) s += 1 * w.tech;
-  if (!f.aboveMA) s += 1 * w.tech;
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-yellow-900/30 p-2 rounded-lg border border-yellow-700/50 text-center">
+                  <div className="text-yellow-300 text-xs">⚠️ Risco</div>
+                  <div className="text-white font-bold text-sm">{strategy.risk}</div>
+                </div>
+                <div className="bg-blue-900/30 p-2 rounded-lg border border-blue-700/50 text-center">
+                  <div className="text-blue-300 text-xs">📈 Retorno</div>
+                  <div className="text-white font-bold text-sm">{strategy.reward}</div>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+};
 
-  if (f.priceChange1h < -1) s += 2 * w.mom;
-  if (f.priceChange24h < -5) s += 1 * w.fund;
+export default AIWatchlist;
 
-  if (f.volumeChange24h > 20 && f.priceChange24h < 0) s += 2 * w.mom;
-  if (f.obv < 0) s += 1 * w.mom;
-
-  if (f.netFlowPercentage < 0) s += 1 * w.flow;
-  if (f.outgoingFlows > f.incomingFlows) s += 1.5 * w.flow;
-  if (f.exchangeInflow > f.exchangeOutflow) s += 1 * w.flow;
-
-  return s;
-}
-
-function getFactors(f: CryptoFeatures, bull: boolean, tf: string): string[] {
-  const list: string[] = [];
-
-  if (bull) {
-    if (f.rsi < 30) list.push("RSI oversold");
-    if (f.macd > f.macdSignal) list.push("MACD bullish crossover");
-    if (f.macdHistogram > 0) list.push("MACD histogram positivo");
-    if (f.volumeChange24h > 20) list.push("Volume alto");
-    if (f.netFlowPercentage > 1) list.push("Forte fluxo positivo");
-  } else {
-    if (f.rsi > 70) list.push("RSI overbought");
-    if (f.macd < f.macdSignal) list.push("MACD bearish crossover");
-    if (f.macdHistogram < 0) list.push("MACD histogram negativo");
-    if (f.volumeChange24h > 20 && f.priceChange24h < 0) list.push("Venda com volume alto");
-    if (f.netFlowPercentage < -1) list.push("Forte fluxo negativo");
-  }
-
-  if (list.length > 0) list[0] += ` (${tf})`;
-  return list.slice(0, 3);
-}
