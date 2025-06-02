@@ -9,7 +9,72 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      crypto_historical_data: {
+        Row: {
+          close: number | null
+          date: string
+          high: number | null
+          low: number | null
+          market_cap: number | null
+          open: number | null
+          price: number | null
+          price_change_24h: number | null
+          symbol: string
+          volume: number | null
+        }
+        Insert: {
+          close?: number | null
+          date: string
+          high?: number | null
+          low?: number | null
+          market_cap?: number | null
+          open?: number | null
+          price?: number | null
+          price_change_24h?: number | null
+          symbol: string
+          volume?: number | null
+        }
+        Update: {
+          close?: number | null
+          date?: string
+          high?: number | null
+          low?: number | null
+          market_cap?: number | null
+          open?: number | null
+          price?: number | null
+          price_change_24h?: number | null
+          symbol?: string
+          volume?: number | null
+        }
+        Relationships: []
+      }
+      crypto_price_action_signals: {
+        Row: {
+          explosive_potential: string | null
+          is_accelerating: boolean | null
+          is_breakout: boolean | null
+          is_expansion: boolean | null
+          last_updated: string
+          symbol: string
+        }
+        Insert: {
+          explosive_potential?: string | null
+          is_accelerating?: boolean | null
+          is_breakout?: boolean | null
+          is_expansion?: boolean | null
+          last_updated?: string
+          symbol: string
+        }
+        Update: {
+          explosive_potential?: string | null
+          is_accelerating?: boolean | null
+          is_breakout?: boolean | null
+          is_expansion?: boolean | null
+          last_updated?: string
+          symbol?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

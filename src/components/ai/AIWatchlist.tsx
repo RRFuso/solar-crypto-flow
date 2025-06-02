@@ -4,6 +4,8 @@ import { Prediction } from '@/lib/aiModel';
 import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
 import { ArrowUpRight, ArrowDownRight, Zap, TrendingUp } from 'lucide-react';
 import { normalizeFeatures } from '@/lib/featureExtractor';
+import { usePriceActionSignals, PriceActionSignal } from '@/hooks/usePriceActionSignals';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -43,16 +45,24 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
   const [search, setSearch] = useState('');
   const [strategy, setStrategy] = useState<Strategy | null>(null);
 
+  // Extract symbols from predictions for the hook
+  const symbols = predictions.map(p => p.symbol);
+  const { signals, signalsLoading } = usePriceActionSignals(symbols);
+
   const filtered = predictions
     .filter(p =>
       p.symbol.toLowerCase().includes(search.toLowerCase()) ||
       (p.name && p.name.toLowerCase().includes(search.toLowerCase()))
     )
     .sort((a, b) => {
+      // Get signals for sorting
+      const aSignal = signals.get(a.symbol);
+      const bSignal = signals.get(b.symbol);
+      
       // Priorizar por potencial explosivo primeiro, depois confiança
       const explosiveOrder = { 'High': 4, 'Medium': 3, 'Low': 2, 'None': 1 };
-      const aExplosive = explosiveOrder[a.explosivePotential || 'None'];
-      const bExplosive = explosiveOrder[b.explosivePotential || 'None'];
+      const aExplosive = explosiveOrder[aSignal?.explosivePotential || 'None'];
+      const bExplosive = explosiveOrder[bSignal?.explosivePotential || 'None'];
       
       if (aExplosive !== bExplosive) return bExplosive - aExplosive;
       return b.confidence - a.confidence;
@@ -81,12 +91,14 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     );
   };
 
-  const getPriceActionSignals = (p: Prediction): string[] => {
-    const signals: string[] = [];
-    if (p.isBreakout) signals.push('💥 Volume Breakout');
-    if (p.isExpansion) signals.push('📊 Volatilidade Expansão');
-    if (p.isAccelerating) signals.push('🚀 Momentum Aceleração');
-    return signals;
+  const getPriceActionSignals = (signal?: PriceActionSignal): string[] => {
+    if (!signal) return [];
+    
+    const signalsList: string[] = [];
+    if (signal.isBreakout) signalsList.push('💥 Volume Breakout');
+    if (signal.isExpansion) signalsList.push('📊 Volatilidade Expansão');
+    if (signal.isAccelerating) signalsList.push('🚀 Momentum Aceleração');
+    return signalsList;
   };
 
   const indicatorsFromFactors = (p: Prediction): string[] => {
@@ -98,8 +110,9 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     if (lowerFactors.some(f => f.includes('flow') || f.includes('inflow') || f.includes('outflow'))) result.push('🌊 Fluxo de Capital');
     if (lowerFactors.some(f => f.includes('support') || f.includes('resistance'))) result.push('🧱 Suporte/Resistência');
     
-    // Adicionar sinais de price action
-    const priceActionSignals = getPriceActionSignals(p);
+    // Adicionar sinais de price action do Supabase
+    const signal = signals.get(p.symbol);
+    const priceActionSignals = getPriceActionSignals(signal);
     result.push(...priceActionSignals);
     
     return result.length > 0 ? result : ['📈 Análise Técnica'];
@@ -123,14 +136,15 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
       : price * (1 - tp2 / 100);
 
     const indicators = indicatorsFromFactors(p);
-    const priceActionSignals = getPriceActionSignals(p);
+    const signal = signals.get(p.symbol);
+    const priceActionSignals = getPriceActionSignals(signal);
     
     let overview = `${p.symbol} apresenta potencial ${
       p.bullish ? 'bullish' : 'bearish'
     } com base em ${indicators.slice(0, 2).join(', ')}.`;
     
-    if (p.explosivePotential && p.explosivePotential !== 'None') {
-      overview += ` Potencial explosivo ${p.explosivePotential.toLowerCase()} detectado com sinais de price action.`;
+    if (signal?.explosivePotential && signal.explosivePotential !== 'None') {
+      overview += ` Potencial explosivo ${signal.explosivePotential.toLowerCase()} detectado com sinais de price action.`;
     }
     
     overview += ` Entrada sugerida em $${price.toFixed(2)}, risco de ${stopPercent.toFixed(1)}% e retorno estimado até ${tp2.toFixed(1)}%.`;
@@ -148,72 +162,91 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
       overview,
       indicators,
       timeframe: chartTimeframe,
-      explosivePotential: p.explosivePotential,
+      explosivePotential: signal?.explosivePotential,
       priceActionSignals
     });
   };
 
-  const renderCard = (p: Prediction) => (
-    <div
-      key={p.symbol}
-      className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors text-white border border-gray-700 relative"
-    >
-      {p.explosivePotential && p.explosivePotential !== 'None' && (
-        <div className="absolute -top-2 -right-2 z-10">
-          {getExplosiveBadge(p.explosivePotential)}
-        </div>
-      )}
-      
-      <div className="flex items-start gap-3">
-        <img
-          src={getCryptoLogoUrl(p.symbol)}
-          alt={p.symbol}
-          className="w-8 h-8 rounded-full flex-shrink-0 mt-1"
-        />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <span className="font-bold text-sm truncate">{p.symbol}</span>
-            <div className={`flex items-center gap-1 ${p.bullish ? 'text-green-400' : 'text-red-400'}`}>
-              {p.bullish ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-              <span className="text-xs font-medium">{Math.round(p.confidence * 100)}%</span>
+  const renderCard = (p: Prediction) => {
+    const signal = signals.get(p.symbol);
+    
+    if (signalsLoading) {
+      return (
+        <div key={p.symbol} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+          <div className="flex items-start gap-3">
+            <Skeleton className="w-8 h-8 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-16" />
             </div>
           </div>
-          
-          <div className="text-xs text-gray-400 mb-2 line-clamp-2">{p.factors[0]}</div>
-          
-          {/* Price Action Signals */}
-          {(p.isBreakout || p.isExpansion || p.isAccelerating) && (
-            <div className="flex flex-wrap gap-1 mb-2">
-              {p.isBreakout && (
-                <span className="text-xs bg-red-900/30 text-red-300 px-1.5 py-0.5 rounded border border-red-400/30">
-                  💥 Breakout
-                </span>
-              )}
-              {p.isExpansion && (
-                <span className="text-xs bg-orange-900/30 text-orange-300 px-1.5 py-0.5 rounded border border-orange-400/30">
-                  📊 Expansão
-                </span>
-              )}
-              {p.isAccelerating && (
-                <span className="text-xs bg-blue-900/30 text-blue-300 px-1.5 py-0.5 rounded border border-blue-400/30">
-                  🚀 Aceleração
-                </span>
-              )}
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={p.symbol}
+        className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors text-white border border-gray-700 relative"
+      >
+        {signal?.explosivePotential && signal.explosivePotential !== 'None' && (
+          <div className="absolute -top-2 -right-2 z-10">
+            {getExplosiveBadge(signal.explosivePotential)}
+          </div>
+        )}
+        
+        <div className="flex items-start gap-3">
+          <img
+            src={getCryptoLogoUrl(p.symbol)}
+            alt={p.symbol}
+            className="w-8 h-8 rounded-full flex-shrink-0 mt-1"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-bold text-sm truncate">{p.symbol}</span>
+              <div className={`flex items-center gap-1 ${p.bullish ? 'text-green-400' : 'text-red-400'}`}>
+                {p.bullish ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                <span className="text-xs font-medium">{Math.round(p.confidence * 100)}%</span>
+              </div>
             </div>
-          )}
-          
-          {p.confidence > 0.6 && (
-            <button
-              onClick={() => showStrategy(p)}
-              className="text-xs text-blue-400 hover:text-blue-300 hover:underline transition-colors"
-            >
-              Ver Estratégia
-            </button>
-          )}
+            
+            <div className="text-xs text-gray-400 mb-2 line-clamp-2">{p.factors[0]}</div>
+            
+            {/* Price Action Signals from Supabase */}
+            {signal && (signal.isBreakout || signal.isExpansion || signal.isAccelerating) && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {signal.isBreakout && (
+                  <span className="text-xs bg-red-900/30 text-red-300 px-1.5 py-0.5 rounded border border-red-400/30">
+                    💥 Breakout
+                  </span>
+                )}
+                {signal.isExpansion && (
+                  <span className="text-xs bg-orange-900/30 text-orange-300 px-1.5 py-0.5 rounded border border-orange-400/30">
+                    📊 Expansão
+                  </span>
+                )}
+                {signal.isAccelerating && (
+                  <span className="text-xs bg-blue-900/30 text-blue-300 px-1.5 py-0.5 rounded border border-blue-400/30">
+                    🚀 Aceleração
+                  </span>
+                )}
+              </div>
+            )}
+            
+            {p.confidence > 0.6 && (
+              <button
+                onClick={() => showStrategy(p)}
+                className="text-xs text-blue-400 hover:text-blue-300 hover:underline transition-colors"
+              >
+                Ver Estratégia
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="bg-black border border-gray-700 rounded-lg h-full flex flex-col min-w-[380px] max-w-[450px]">
