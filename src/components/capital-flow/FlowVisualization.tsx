@@ -40,7 +40,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
   // **CRITICAL FIX: Dramatically increased base scale for perfect viewport fit at 40% zoom**
-  const adjustedZoomLevel = zoomLevel * 2.5; // Increased from 0.35 to 2.5 for much better visibility
+  const adjustedZoomLevel = zoomLevel * 1.5; // Increased from 0.35 to 2.5 for much better visibility
   
   // Initialize visualization data
   useVisualizationData({
