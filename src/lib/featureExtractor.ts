@@ -1,4 +1,3 @@
-
 import { CryptoData, FlowData } from '@/types/crypto';
 import { fetchTechnicalIndicators, fetchOnChainData } from './dataFetcher';
 
@@ -6,6 +5,7 @@ interface NormalizedFeature {
   symbol: string;
   id: string;
   price: number;
+  volume: number;
   rsi: number;
   rsi4h: number;
   macd: number;
@@ -58,6 +58,7 @@ export async function extractFeatures(
         symbol: crypto.symbol,
         id: crypto.id,
         price: parseFloat(crypto.price) || 0,
+        volume: parseFloat(crypto.volume) || 0,
         rsi: indicators.rsi,
         rsi4h: indicators.rsi4h,
         macd: indicators.macd.value,
@@ -100,6 +101,7 @@ export async function extractFeatures(
         symbol: crypto.symbol,
         id: crypto.id,
         price: parseFloat(crypto.price) || 0,
+        volume: parseFloat(crypto.volume) || 0,
         rsi: 50,
         rsi4h: 50,
         macd: 0,
@@ -130,6 +132,7 @@ export function normalizeFeatures(features: CryptoFeatures[]): NormalizedFeature
       symbol: feature.symbol,
       id: feature.id,
       price: feature.price,
+      volume: feature.volume,
       rsi: feature.rsi,
       rsi4h: feature.rsi4h,
       macd: feature.macd,
