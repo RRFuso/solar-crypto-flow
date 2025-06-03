@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -11,6 +12,16 @@ import RiskManagementPanel from "@/components/RiskManagementPanel";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("crypto");
+
+  // Mock crypto data for the ocean component
+  const mockCryptos = [
+    { id: "BTC", name: "Bitcoin", performance: 5.2 },
+    { id: "ETH", name: "Ethereum", performance: 3.8 },
+    { id: "ADA", name: "Cardano", performance: 12.5 },
+    { id: "SOL", name: "Solana", performance: -2.1 },
+    { id: "AVAX", name: "Avalanche", performance: 8.7 },
+    { id: "DOT", name: "Polkadot", performance: 1.4 },
+  ];
 
   return (
     <DashboardLayout>
@@ -40,7 +51,7 @@ const Index = () => {
           <div className="mt-6">
             <TabsContent value="crypto" className="space-y-6">
               <CryptoPanel />
-              <CryptoOcean />
+              <CryptoOcean cryptos={mockCryptos} />
             </TabsContent>
 
             <TabsContent value="capital-flow" className="space-y-6">

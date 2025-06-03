@@ -1,5 +1,16 @@
+
 import { CryptoData } from "@/types/crypto";
 import { NarrativeData } from "@/types/narratives";
+
+// --- Prediction Interface ---
+export interface Prediction {
+  symbol: string;
+  name?: string;
+  price?: string;
+  bullish: boolean;
+  confidence: number;
+  factors: string[];
+}
 
 // --- Constants for Price Action Detection ---
 const VOLUME_AVG_PERIOD = 7; // Days to calculate average volume
@@ -11,6 +22,107 @@ const MOMENTUM_ACCELERATION_THRESHOLD = 1.5; // Factor increase between 1h/24h/7
 // --- Interfaces for Historical Data (Assumed Structure) ---
 interface DailySnapshot extends Omit<CryptoData, 'id' | 'name' | 'symbol' | 'category'> {
   date: string; // YYYY-MM-DD
+}
+
+// --- Prediction Cache ---
+const predictionCache = new Map<string, { prediction: Prediction; timestamp: number }>();
+const CACHE_DURATION = 300000; // 5 minutes
+
+// --- Cache Management Functions ---
+export function getCachedPrediction(symbol: string): Prediction | null {
+  const cached = predictionCache.get(symbol);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.prediction;
+  }
+  return null;
+}
+
+export function storePrediction(symbol: string, prediction: Prediction): void {
+  predictionCache.set(symbol, {
+    prediction,
+    timestamp: Date.now()
+  });
+}
+
+// --- Price Movement Prediction Function ---
+export function predictPriceMovements(features: any[], timeframe: string = '4h'): Prediction[] {
+  if (!features || features.length === 0) return [];
+  
+  return features.map(feature => {
+    // Check cache first
+    const cached = getCachedPrediction(feature.symbol);
+    if (cached) return cached;
+    
+    // Generate prediction based on features
+    const factors: string[] = [];
+    let confidence = 0.5;
+    let bullish = false;
+    
+    // Analyze volume patterns
+    if (feature.volumeAnomaly > 2) {
+      factors.push("Volume spike detected");
+      confidence += 0.15;
+    }
+    
+    // Analyze price momentum
+    if (feature.momentum > 0.1) {
+      factors.push("Strong upward momentum");
+      bullish = true;
+      confidence += 0.2;
+    } else if (feature.momentum < -0.1) {
+      factors.push("Strong downward momentum");
+      bullish = false;
+      confidence += 0.2;
+    }
+    
+    // Analyze volatility
+    if (feature.volatility > 0.05) {
+      factors.push("High volatility environment");
+      confidence += 0.1;
+    }
+    
+    // Analyze market cap flows
+    if (feature.marketCapFlow > 0) {
+      factors.push("Capital inflow detected");
+      bullish = true;
+      confidence += 0.15;
+    } else if (feature.marketCapFlow < 0) {
+      factors.push("Capital outflow detected");
+      bullish = false;
+      confidence += 0.15;
+    }
+    
+    // Add timeframe-specific factors
+    if (timeframe === '5m' || timeframe === '15m') {
+      factors.push(`Short-term ${timeframe} analysis`);
+      confidence *= 0.8; // Lower confidence for shorter timeframes
+    } else if (timeframe === '1d' || timeframe === '1w') {
+      factors.push(`Long-term ${timeframe} analysis`);
+      confidence *= 1.1; // Higher confidence for longer timeframes
+    }
+    
+    // Ensure we have at least one factor
+    if (factors.length === 0) {
+      factors.push("Technical analysis");
+    }
+    
+    // Clamp confidence between 0.3 and 0.95
+    confidence = Math.max(0.3, Math.min(0.95, confidence));
+    
+    const prediction: Prediction = {
+      symbol: feature.symbol,
+      name: feature.name,
+      price: feature.price?.toString(),
+      bullish,
+      confidence,
+      factors
+    };
+    
+    // Cache the prediction
+    storePrediction(feature.symbol, prediction);
+    
+    return prediction;
+  });
 }
 
 // --- Price Action Detection Logic ---
@@ -143,4 +255,3 @@ export async function predictNarrativeShift(narratives: NarrativeData[]): Promis
   console.log("Predicting narrative shifts for:", narratives.length);
   return { message: "Narrative prediction placeholder" };
 }
-
