@@ -1,56 +1,37 @@
 
 import React from 'react';
-import { Home, BarChart, MessageCircle } from 'lucide-react';
-import { cn } from "@/lib/utils";
+import UserMenu from '@/components/auth/UserMenu';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  activeTab?: string;
-  onTabChange?: (tab: string) => void;
 }
 
-const DashboardLayout = ({ children, activeTab = 'home', onTabChange }: DashboardLayoutProps) => {
-  const menuItems = [
-    { id: 'home', icon: Home, label: 'Home' },
-    { id: 'performance', icon: BarChart, label: 'Performance' },
-    { id: 'social-flow', icon: MessageCircle, label: 'Social Flow' },
-  ];
-
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white overflow-hidden">
-      {/* Top Navigation Bar */}
-      <header className="bg-gray-900/90 backdrop-blur-xl border-b border-gray-800 px-4 py-3">
-        <div className="container mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-            SolarCrypto
-          </h1>
-          
-          <nav className="flex items-center space-x-1">
-            {menuItems.map(({ id, icon: Icon, label }) => (
-              <button
-                key={id}
-                onClick={() => onTabChange?.(id)}
-                className={cn(
-                  "flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors text-sm",
-                  activeTab === id 
-                    ? "bg-gray-800 text-white" 
-                    : "text-gray-400 hover:bg-gray-800/50 hover:text-white"
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{label}</span>
-              </button>
-            ))}
-          </nav>
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
+      {/* Header with user menu */}
+      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <h1 className="text-xl font-bold text-white">
+              🧠 Crypto AI Dashboard
+            </h1>
+          </div>
+          <UserMenu />
         </div>
       </header>
-      
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <div className="h-full">
-          {children}
-        </div>
+
+      {/* Main content */}
+      <main className="container mx-auto p-6">
+        {children}
       </main>
+
+      {/* Security notice footer */}
+      <footer className="border-t border-gray-800 bg-gray-900/30 backdrop-blur-sm mt-8">
+        <div className="container mx-auto px-4 py-3 text-center text-xs text-gray-400">
+          🔒 Secured with Row Level Security (RLS) • All data transmissions encrypted
+        </div>
+      </footer>
     </div>
   );
 };
