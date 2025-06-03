@@ -43,16 +43,14 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
 
   return (
     <div className="flex gap-6 h-full" style={{ minHeight: "700px" }}>
-      {/* AI Watchlist on the left */}
-      {filteredPredictions.length > 0 && (
-        <div className="w-64 h-full flex-shrink-0">
-          <AIWatchlist 
-            predictions={filteredPredictions} 
-            maxItems={8} 
-            chartTimeframe={chartTimeframe}
-          />
-        </div>
-      )}
+      {/* AI Watchlist on the left - always show */}
+      <div className="w-80 h-full flex-shrink-0">
+        <AIWatchlist 
+          predictions={filteredPredictions} 
+          maxItems={8} 
+          chartTimeframe={chartTimeframe}
+        />
+      </div>
       
       {/* Main Visualization Area */}
       <div className="flex-1 flex flex-col items-center justify-center relative">

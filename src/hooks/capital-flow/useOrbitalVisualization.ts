@@ -105,7 +105,7 @@ export const useOrbitalVisualization = () => {
       }
     });
     
-    // Create links with immediate visibility
+    // Create links but don't render them as blue lines
     const links = flowData.map(flow => ({
       source: nodes.find(n => n.id === flow.from),
       target: nodes.find(n => n.id === flow.to),
@@ -114,30 +114,7 @@ export const useOrbitalVisualization = () => {
       percentage: flow.percentage
     })).filter(link => link.source && link.target) as OrbitalLink[];
     
-    // Force immediate rendering of links
-    const linkGroup = svg.append("g").attr("class", "links");
-    
-    links.forEach(link => {
-      if (link.source && link.target) {
-        const lineGenerator = d3.line()
-          .x(d => d[0])
-          .y(d => d[1])
-          .curve(d3.curveBasis);
-        
-        const path = lineGenerator([
-          [link.source.x || 0, link.source.y || 0],
-          [link.target.x || 0, link.target.y || 0]
-        ]);
-        
-        linkGroup.append("path")
-          .attr("d", path)
-          .attr("stroke", "#3b82f6")
-          .attr("stroke-width", Math.max(1, (link.value || 0) / 1000))
-          .attr("fill", "none")
-          .attr("opacity", 0.6)
-          .style("pointer-events", "none");
-      }
-    });
+    // Don't render the blue lines - let the LinkRenderer handle the dotted flow lines
     
     return {
       svg,
