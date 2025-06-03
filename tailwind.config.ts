@@ -2,7 +2,7 @@ import type { Config } from "tailwindcss";
 import animatePlugin from "tailwindcss-animate";
 
 const config: Config = {
-  darkMode: "class",
+  darkMode: ["class"],
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -12,21 +12,22 @@ const config: Config = {
   theme: {
     container: {
       center: true,
-      padding: "1rem", // reduzido para liberar mais espaço visível
+      padding: {
+        DEFAULT: "1rem",
+        sm: "1.5rem",
+        lg: "2rem",
+        xl: "2.5rem",
+        "2xl": "3rem",
+      },
       screens: {
-        sm: "100%", // para telas pequenas: usa largura total
+        sm: "100%",
         md: "100%",
         lg: "1024px",
         xl: "1280px",
-        "2xl": "100%", // antes: 1400px → agora: total largura
+        "2xl": "1536px",
       },
     },
     extend: {
-      scale: {
-        85: "0.85",
-        90: "0.90",
-        95: "0.95",
-      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -85,38 +86,17 @@ const config: Config = {
           to: { height: "0" },
         },
         "flow-pulse": {
-          "0%, 100%": {
-            transform: "scale(1)",
-            opacity: "1",
-          },
-          "50%": {
-            transform: "scale(1.05)",
-            opacity: "0.8",
-          },
+          "0%, 100%": { transform: "scale(1)", opacity: "1" },
+          "50%": { transform: "scale(1.05)", opacity: "0.8" },
         },
         "fade-in": {
-          "0%": {
-            opacity: "0",
-            transform: "translateY(10px)",
-          },
-          "100%": {
-            opacity: "1",
-            transform: "translateY(0)",
-          },
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "particle-flow": {
-          "0%": {
-            opacity: "0",
-            offset: "0%",
-          },
-          "50%": {
-            opacity: "1",
-            offset: "50%",
-          },
-          "100%": {
-            opacity: "0",
-            offset: "100%",
-          },
+          "0%": { opacity: "0", offset: "0%" },
+          "50%": { opacity: "1", offset: "50%" },
+          "100%": { opacity: "0", offset: "100%" },
         },
       },
       animation: {
