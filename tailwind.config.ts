@@ -1,9 +1,8 @@
-
 import type { Config } from "tailwindcss";
 import animatePlugin from "tailwindcss-animate";
 
 const config: Config = {
-  darkMode: "class", // forma simplificada recomendada
+  darkMode: "class",
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -13,12 +12,21 @@ const config: Config = {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: "1rem", // reduzido para liberar mais espaço visível
       screens: {
-        "2xl": "1400px",
+        sm: "100%", // para telas pequenas: usa largura total
+        md: "100%",
+        lg: "1024px",
+        xl: "1280px",
+        "2xl": "100%", // antes: 1400px → agora: total largura
       },
     },
     extend: {
+      scale: {
+        85: "0.85",
+        90: "0.90",
+        95: "0.95",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
