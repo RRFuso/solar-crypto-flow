@@ -1,39 +1,53 @@
+export default function Home() {
+  return (
+    <main className="min-h-screen w-full bg-background text-foreground overflow-hidden">
+      <div className="flex flex-col h-full w-full">
+        {/* Topbar, filtros, etc. */}
+        <header className="w-full px-4 md:px-6 py-4">
+          <h1 className="text-xl font-bold">🔥 Capital Flow</h1>
+        </header>
 
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import DashboardLayout from "@/components/layout/DashboardLayout";
-import CryptoPanel from "@/components/CryptoPanel";
-import CapitalFlowPanel from "@/components/capital-flow/CapitalFlowPanel";
+        {/* Área dinâmica do gráfico */}
+        <section className="flex-1 overflow-hidden">
+          <CapitalFlowCanvas />
+        </section>
+      </div>
+    </main>
+  );
+}
 
-const Index = () => {
-  const [activeTab, setActiveTab] = useState("capital-flow");
+// src/components/CapitalFlowCanvas.tsx
+// Componente que renderiza a visualização dinâmica e responsiva
+
+import { useEffect, useRef } from "react";
+
+export function CapitalFlowCanvas() {
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const resizeCanvas = () => {
+      if (!canvasRef.current) return;
+
+      const container = canvasRef.current;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      // Aqui você chamaria o método do grafo/visualização para se redimensionar:
+      // forceGraphInstance.current.width(width).height(height);
+    };
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    return () => window.removeEventListener("resize", resizeCanvas);
+  }, []);
 
   return (
-    <DashboardLayout>
-      <div className="h-full w-full">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-800/50 backdrop-blur-sm">
-            <TabsTrigger value="capital-flow" className="text-white font-medium">
-              💰 Capital Flow
-            </TabsTrigger>
-            <TabsTrigger value="crypto" className="text-white font-medium">
-              📊 Crypto
-            </TabsTrigger>
-          </TabsList>
-
-          <div className="flex-1 mt-4">
-            <TabsContent value="capital-flow" className="h-full">
-              <CapitalFlowPanel />
-            </TabsContent>
-
-            <TabsContent value="crypto" className="h-full">
-              <CryptoPanel />
-            </TabsContent>
-          </div>
-        </Tabs>
-      </div>
-    </DashboardLayout>
+    <div
+      ref={canvasRef}
+      className="w-full h-full relative"
+    >
+      {/* Visualização solar com gráfico de fluxo de capital */}
+      {/* Ex: <ForceGraph3D ref={forceGraphInstance} ... /> */}
+    </div>
   );
-};
-
-export default Index;
+}
