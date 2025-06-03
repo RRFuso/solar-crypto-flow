@@ -19,10 +19,43 @@ export const useNarrativeFlowVisualization = (
   containerRef: RefObject<HTMLDivElement>,
   config: VisualizationConfig
 ) => {
-  useEffect(() => {
-    if (!config.flowData || config.flowData.length === 0 || !svgRef.current || !containerRef.current) return;
+  const { width, height, narratives, flowData, isPredicted } = config;
+  
+  // Use our custom hooks to create and prepare nodes
+  const { createNodes, scaleNodeSizes } = useNodeSizing(narratives);
+  const nodes = createNodes(flowData);
+  scaleNodeSizes(nodes);
+  
+  // Create links from flow data
+  const links = flowData.map(flow => ({
+    source: nodes.find(n => n.id === flow.from),
+    target: nodes.find(n => n.id === flow.to),
+    value: flow.value,
+    percentage: flow.percentage,
+    predicted: flow.predicted
+  }));
 
-    const { width, height, narratives, flowData, isPredicted } = config;
+  // Create a mock crypto data map for backward compatibility
+  const cryptoDataMap = new Map();
+  nodes.forEach(node => {
+    cryptoDataMap.set(node.id, {
+      marketCap: node.value || 0,
+      price: 0,
+      volume: 0,
+      change24h: 0
+    });
+  });
+
+  // Call useSimulation at the top level
+  const { simulation, positionNodes, applyBounds, dragHandlers } = useSimulation({
+    nodes,
+    cryptoDataMap,
+    width,
+    height
+  });
+
+  useEffect(() => {
+    if (!flowData || flowData.length === 0 || !svgRef.current || !containerRef.current) return;
     
     // Clear previous SVG content
     d3.select(svgRef.current).selectAll("*").remove();
@@ -36,39 +69,6 @@ export const useNarrativeFlowVisualization = (
     // Add starfield background first (before other elements)
     createStarfield(svg, width, height);
     
-    // Use our custom hooks to create and prepare nodes
-    const { createNodes, scaleNodeSizes } = useNodeSizing(narratives);
-    const nodes = createNodes(flowData);
-    scaleNodeSizes(nodes);
-    
-    // Create links from flow data
-    const links = flowData.map(flow => ({
-      source: nodes.find(n => n.id === flow.from),
-      target: nodes.find(n => n.id === flow.to),
-      value: flow.value,
-      percentage: flow.percentage,
-      predicted: flow.predicted
-    }));
-
-    // Create a mock crypto data map for backward compatibility
-    const cryptoDataMap = new Map();
-    nodes.forEach(node => {
-      cryptoDataMap.set(node.id, {
-        marketCap: node.value || 0,
-        price: 0,
-        volume: 0,
-        change24h: 0
-      });
-    });
-
-    // Set up simulation with the correct parameters
-    const { simulation, positionNodes, applyBounds, dragHandlers } = useSimulation({
-      nodes,
-      cryptoDataMap, // Now included
-      width,
-      height
-    });
-
     // Apply initial positioning
     positionNodes();
 
@@ -95,7 +95,7 @@ export const useNarrativeFlowVisualization = (
         cancelAnimationFrame(elements.animationFrameId);
       }
     };
-  }, [config, svgRef, containerRef]);
+  }, [config, svgRef, containerRef, simulation, positionNodes, applyBounds, dragHandlers, nodes, links]);
   
   // Helper function to create starfield background
   const createStarfield = (
