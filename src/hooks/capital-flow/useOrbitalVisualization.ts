@@ -38,7 +38,6 @@ export const useOrbitalVisualization = () => {
     const assetVolumes = new Map<string, number>();
     
     flowData.forEach(flow => {
-      // Sum volumes for both source and target nodes
       const fromVolume = assetVolumes.get(flow.from) || 0;
       assetVolumes.set(flow.from, fromVolume + (flow.volume || 0));
       
@@ -46,44 +45,67 @@ export const useOrbitalVisualization = () => {
       assetVolumes.set(flow.to, toVolume + (flow.volume || 0));
     });
     
-    // Create nodes with market cap (or volume) information
-    const nodes = assets.map(id => {
-      // Use marketCap if available in data, otherwise use the computed volume
+    // Create nodes with better orbital positioning
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const maxRadius = Math.min(width, height) * 0.35;
+    
+    // Sort assets by volume for better orbital arrangement
+    const sortedAssets = assets.sort((a, b) => {
+      const volumeA = assetVolumes.get(a) || 0;
+      const volumeB = assetVolumes.get(b) || 0;
+      return volumeB - volumeA;
+    });
+    
+    const nodes = sortedAssets.map((id, index) => {
       const marketCap = flowData.find(d => d.from === id || d.to === id)?.marketCap || 
                         assetVolumes.get(id) || 1;
       
       const isBTC = id === 'BTC';
       
-      return {
-        id,
-        marketCap,
-        radius: isBTC ? 45 : Math.max(20, Math.min(40, 20 + (marketCap / 1000))),
-        type: isBTC ? "central" as const : "orbital" as const,
-        x: 0,
-        y: 0
-      };
+      // Create multiple orbital layers for better distribution
+      const totalNodes = sortedAssets.length;
+      let orbitRadius, angle;
+      
+      if (isBTC) {
+        // Central position for BTC
+        return {
+          id,
+          marketCap,
+          radius: 45,
+          type: "central" as const,
+          x: centerX,
+          y: centerY
+        };
+      } else {
+        // Distribute other nodes in orbital layers
+        const nodeIndex = index - 1; // Subtract 1 for BTC
+        const nodesPerOrbit = 8;
+        const orbitLayer = Math.floor(nodeIndex / nodesPerOrbit);
+        const nodeInOrbit = nodeIndex % nodesPerOrbit;
+        
+        orbitRadius = 120 + (orbitLayer * 80); // Multiple orbital layers
+        angle = (nodeInOrbit / nodesPerOrbit) * 2 * Math.PI;
+        
+        // Add some randomness for more natural positioning
+        const radiusVariation = (Math.random() - 0.5) * 20;
+        const angleVariation = (Math.random() - 0.5) * 0.3;
+        
+        const finalRadius = Math.min(orbitRadius + radiusVariation, maxRadius);
+        const finalAngle = angle + angleVariation;
+        
+        return {
+          id,
+          marketCap,
+          radius: Math.max(20, Math.min(35, 20 + (marketCap / 10000))),
+          type: "orbital" as const,
+          x: centerX + Math.cos(finalAngle) * finalRadius,
+          y: centerY + Math.sin(finalAngle) * finalRadius
+        };
+      }
     });
     
-    // Always make BTC the central node, regardless of market cap
-    const btcNode = nodes.find(node => node.id === 'BTC');
-    let centralNode;
-    
-    if (btcNode) {
-      centralNode = btcNode;
-      centralNode.type = "central";
-      centralNode.radius = 45; // Make central node bigger
-    } else {
-      // If BTC is not in the dataset, use the largest market cap as fallback
-      centralNode = nodes.reduce((max, node) => 
-        node.marketCap > max.marketCap ? node : max, 
-        { ...nodes[0], marketCap: -Infinity });
-      
-      // Mark the central node
-      centralNode.type = "central";
-      centralNode.radius = 45;
-    }
-    
-    // Create links
+    // Create links with immediate visibility
     const links = flowData.map(flow => ({
       source: nodes.find(n => n.id === flow.from),
       target: nodes.find(n => n.id === flow.to),
@@ -92,13 +114,38 @@ export const useOrbitalVisualization = () => {
       percentage: flow.percentage
     })).filter(link => link.source && link.target) as OrbitalLink[];
     
+    // Force immediate rendering of links
+    const linkGroup = svg.append("g").attr("class", "links");
+    
+    links.forEach(link => {
+      if (link.source && link.target) {
+        const lineGenerator = d3.line()
+          .x(d => d[0])
+          .y(d => d[1])
+          .curve(d3.curveBasis);
+        
+        const path = lineGenerator([
+          [link.source.x || 0, link.source.y || 0],
+          [link.target.x || 0, link.target.y || 0]
+        ]);
+        
+        linkGroup.append("path")
+          .attr("d", path)
+          .attr("stroke", "#3b82f6")
+          .attr("stroke-width", Math.max(1, (link.value || 0) / 1000))
+          .attr("fill", "none")
+          .attr("opacity", 0.6)
+          .style("pointer-events", "none");
+      }
+    });
+    
     return {
       svg,
       width,
       height,
       nodes,
       links,
-      centralNode
+      centralNode: nodes.find(n => n.type === "central") || nodes[0]
     };
   }, []);
 

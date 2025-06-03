@@ -42,7 +42,18 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
   }
 
   return (
-    <div className="flex gap-6 flex-1" style={{ minHeight: "700px" }}>
+    <div className="flex gap-6 h-full" style={{ minHeight: "700px" }}>
+      {/* AI Watchlist on the left */}
+      {filteredPredictions.length > 0 && (
+        <div className="w-64 h-full flex-shrink-0">
+          <AIWatchlist 
+            predictions={filteredPredictions} 
+            maxItems={8} 
+            chartTimeframe={chartTimeframe}
+          />
+        </div>
+      )}
+      
       {/* Main Visualization Area */}
       <div className="flex-1 flex flex-col items-center justify-center relative">
         {/* D3 Visualization with zoom level prop */}
@@ -57,17 +68,6 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
         {/* Legend */}
         <FlowLegend />
       </div>
-      
-      {/* AI Watchlist Sidebar */}
-      {filteredPredictions.length > 0 && (
-        <div className="w-64 h-full">
-          <AIWatchlist 
-            predictions={filteredPredictions} 
-            maxItems={8} 
-            chartTimeframe={chartTimeframe}
-          />
-        </div>
-      )}
     </div>
   );
 };

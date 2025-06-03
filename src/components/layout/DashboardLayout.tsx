@@ -1,37 +1,48 @@
 
 import React from 'react';
 import UserMenu from '@/components/auth/UserMenu';
+import LoadingScreen from '@/components/ui/loading-screen';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white">
-      {/* Header with user menu */}
-      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <h1 className="text-xl font-bold text-white">
-              🧠 Crypto AI Dashboard
+    <div className="h-screen w-screen bg-gradient-to-br from-black via-gray-900 to-black text-white overflow-hidden">
+      {/* Header with Solar Crypto branding */}
+      <header className="border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-sm h-16 flex-shrink-0">
+        <div className="h-full px-6 flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+              <span className="text-black font-bold text-lg">☀</span>
+            </div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+              Solar Crypto
             </h1>
           </div>
           <UserMenu />
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="container mx-auto p-6">
+      {/* Main content area */}
+      <main className="h-[calc(100vh-4rem)] p-6 overflow-hidden">
         {children}
       </main>
-
-      {/* Security notice footer */}
-      <footer className="border-t border-gray-800 bg-gray-900/30 backdrop-blur-sm mt-8">
-        <div className="container mx-auto px-4 py-3 text-center text-xs text-gray-400">
-          🔒 Secured with Row Level Security (RLS) • All data transmissions encrypted
-        </div>
-      </footer>
     </div>
   );
 };

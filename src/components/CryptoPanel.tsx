@@ -1,11 +1,11 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { useCryptoData } from "@/hooks/useCryptoData";
 import CryptoChart from './CryptoChart';
-import { Tabs } from "@/components/ui/tabs";
-import { Bitcoin } from 'lucide-react';
+import { Bitcoin, Search } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import TabsList from './crypto/TabsList';
+import { Input } from "@/components/ui/input";
+import CryptoFilterDropdown from './crypto/CryptoFilterDropdown';
 import OutperformingTab from './crypto/tabs/OutperformingTab';
 import BullishTab from './crypto/tabs/BullishTab';
 import MatchingTab from './crypto/tabs/MatchingTab'; 
@@ -18,7 +18,8 @@ import { CryptoData } from '@/types/crypto';
 
 const CryptoPanel = () => {
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoData>({ id: 'BTC', name: 'Bitcoin', performance: 0 });
-  const [activeTab, setActiveTab] = useState('outperforming');
+  const [activeFilter, setActiveFilter] = useState('outperforming');
+  const [searchTerm, setSearchTerm] = useState('');
   const [settings, setSettings] = useState({
     rsiOverbought: 70,
     rsiOversold: 30,
@@ -33,14 +34,12 @@ const CryptoPanel = () => {
     rsiOversold: settings.rsiOversold
   });
 
-  // Memoized handler to prevent unnecessary re-renders
   const handleSelectCrypto = useCallback((crypto: CryptoData) => {
     setSelectedCrypto(crypto);
   }, []);
 
-  // Memoized function to get timeframe
   const getTimeframe = useCallback(() => {
-    switch (activeTab) {
+    switch (activeFilter) {
       case 'outperforming':
         return 'W';
       case 'bullish':
@@ -49,90 +48,100 @@ const CryptoPanel = () => {
         return '240';
       case 'overbought':
         return '240';
-      case 'matching':
+      case 'bearish':
         return 'D';
-      case 'explosive':
-        return '240';
       default:
         return 'D';
     }
-  }, [activeTab]);
+  }, [activeFilter]);
+
+  const renderActiveTab = () => {
+    const commonProps = {
+      cryptos,
+      selectedCrypto,
+      onSelectCrypto: handleSelectCrypto,
+      searchTerm
+    };
+
+    switch (activeFilter) {
+      case 'outperforming':
+        return <OutperformingTab {...commonProps} />;
+      case 'bullish':
+        return <BullishTab {...commonProps} />;
+      case 'bearish':
+        return <MatchingTab {...commonProps} />;
+      case 'overbought':
+        return <OverboughtTab {...commonProps} />;
+      case 'oversold':
+        return <OversoldTab {...commonProps} />;
+      case 'div-bull':
+        return <DivergenciaBullTab {...commonProps} />;
+      case 'div-bear':
+        return <DivergenciaBearTab {...commonProps} />;
+      default:
+        return <OutperformingTab {...commonProps} />;
+    }
+  };
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex gap-6 h-[calc(100vh-12rem)]">
-        <div className="w-2/5 flex flex-col border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden">
-          <Tabs 
-            defaultValue="outperforming" 
-            className="w-full h-full flex flex-col"
-            onValueChange={setActiveTab}
-          >
-            <TabsList activeTab={activeTab} onTabChange={setActiveTab} />
-            <div className="flex-1 min-h-0">
-              <OutperformingTab 
-                cryptos={cryptos} 
-                selectedCrypto={selectedCrypto} 
-                onSelectCrypto={handleSelectCrypto} 
-              />
-              <BullishTab 
-                cryptos={cryptos} 
-                selectedCrypto={selectedCrypto} 
-                onSelectCrypto={handleSelectCrypto} 
-              />
-              <OversoldTab 
-                cryptos={cryptos} 
-                selectedCrypto={selectedCrypto} 
-                onSelectCrypto={handleSelectCrypto} 
-              />
-              <OverboughtTab 
-                cryptos={cryptos} 
-                selectedCrypto={selectedCrypto} 
-                onSelectCrypto={handleSelectCrypto} 
-              />
-              <MatchingTab 
-                cryptos={cryptos} 
-                selectedCrypto={selectedCrypto} 
-                onSelectCrypto={handleSelectCrypto} 
-              />
-              <DivergenciaBullTab 
-                cryptos={cryptos} 
-                selectedCrypto={selectedCrypto} 
-                onSelectCrypto={handleSelectCrypto} 
-              />
-              <DivergenciaBearTab 
-                cryptos={cryptos} 
-                selectedCrypto={selectedCrypto} 
-                onSelectCrypto={handleSelectCrypto} 
-              />
-            </div>
-          </Tabs>
-        </div>
-
-        <div className="w-3/5 relative">
-          <div className="h-full border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden">
-            <CryptoChart 
-              crypto={selectedCrypto} 
-              timeframe={getTimeframe()}
-              key={`${selectedCrypto.id}-${getTimeframe()}`}
-            />
-          </div>
-          <div className="absolute top-4 right-4 flex gap-2">
+    <div className="flex gap-6 h-full">
+      {/* Left panel - Crypto list */}
+      <div className="w-2/5 flex flex-col border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden">
+        {/* Header with filters */}
+        <div className="p-4 border-b border-gray-800 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-white">Criptomoedas</h2>
             <CryptoSettings 
               settings={settings}
               onSettingsChange={setSettings}
             />
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-gray-800/50 hover:bg-gray-700/50"
-              onClick={() => {
-                setSelectedCrypto({ id: 'BTC', name: 'Bitcoin', performance: 0 });
-              }}
-            >
-              <Bitcoin className="w-4 h-4 mr-2" />
-              BTC/USDT
-            </Button>
           </div>
+          
+          {/* Filter dropdown */}
+          <CryptoFilterDropdown
+            value={activeFilter}
+            onValueChange={setActiveFilter}
+          />
+          
+          {/* Search input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Buscar ativo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Content area */}
+        <div className="flex-1 min-h-0">
+          {renderActiveTab()}
+        </div>
+      </div>
+
+      {/* Right panel - Chart */}
+      <div className="w-3/5 relative">
+        <div className="h-full border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden">
+          <CryptoChart 
+            crypto={selectedCrypto} 
+            timeframe={getTimeframe()}
+            key={`${selectedCrypto.id}-${getTimeframe()}`}
+          />
+        </div>
+        <div className="absolute top-4 right-4">
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-gray-800/50 hover:bg-gray-700/50 border-gray-700"
+            onClick={() => {
+              setSelectedCrypto({ id: 'BTC', name: 'Bitcoin', performance: 0 });
+            }}
+          >
+            <Bitcoin className="w-4 h-4 mr-2" />
+            BTC/USDT
+          </Button>
         </div>
       </div>
     </div>
