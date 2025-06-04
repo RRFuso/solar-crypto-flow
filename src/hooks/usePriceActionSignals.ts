@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { sanitizeInput, validateSymbol } from '@/utils/inputValidation';
+import { sanitizeInput, validateSymbol, checkRateLimit } from '@/utils/inputValidation';
 
 export interface PriceActionSignal {
   symbol: string;
@@ -23,8 +23,15 @@ export const usePriceActionSignals = (symbols: string[]) => {
       return;
     }
 
+    // Rate limiting check
+    if (!checkRateLimit('price-action-signals', 10, 60000)) {
+      setError('Rate limit exceeded. Please wait before making more requests.');
+      return;
+    }
+
     // Validate and sanitize symbols for security
     const validSymbols = symbols
+      .slice(0, 50) // Limit number of symbols to prevent abuse
       .map(symbol => sanitizeInput(symbol.toUpperCase()))
       .filter(symbol => validateSymbol(symbol));
 
@@ -47,7 +54,8 @@ export const usePriceActionSignals = (symbols: string[]) => {
 
         if (supabaseError) {
           console.error('Supabase error fetching price action signals:', supabaseError);
-          setError(supabaseError.message);
+          // Don't expose detailed database errors to users
+          setError('Failed to fetch price signals. Please try again.');
           return;
         }
 
@@ -59,13 +67,19 @@ export const usePriceActionSignals = (symbols: string[]) => {
           data.forEach((signal) => {
             // Additional validation of returned data
             if (signal.symbol && validateSymbol(signal.symbol)) {
+              // Validate explosive_potential value
+              const validPotentials = ['High', 'Medium', 'Low', 'None'];
+              const explosivePotential = validPotentials.includes(signal.explosive_potential) 
+                ? signal.explosive_potential as 'High' | 'Medium' | 'Low' | 'None'
+                : 'None';
+
               signalsMap.set(signal.symbol, {
                 symbol: signal.symbol,
-                explosivePotential: (signal.explosive_potential as 'High' | 'Medium' | 'Low' | 'None') || 'None',
-                isBreakout: signal.is_breakout || false,
-                isExpansion: signal.is_expansion || false,
-                isAccelerating: signal.is_accelerating || false,
-                lastUpdated: signal.last_updated
+                explosivePotential,
+                isBreakout: Boolean(signal.is_breakout),
+                isExpansion: Boolean(signal.is_expansion),
+                isAccelerating: Boolean(signal.is_accelerating),
+                lastUpdated: signal.last_updated || new Date().toISOString()
               });
             }
           });
@@ -74,13 +88,18 @@ export const usePriceActionSignals = (symbols: string[]) => {
         setSignals(signalsMap);
       } catch (err) {
         console.error('Error fetching price action signals:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        setError('Network error. Please check your connection and try again.');
       } finally {
         setSignalsLoading(false);
       }
     };
 
-    fetchSignals();
+    // Debounce the fetch to prevent excessive API calls
+    const timeoutId = setTimeout(() => {
+      fetchSignals();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
   }, [symbols.join(',')]);
 
   return { signals, signalsLoading, error };
