@@ -1,4 +1,6 @@
+
 import { CryptoData, FlowData } from "@/types/crypto";
+import { PriceActionSignal } from "@/hooks/usePriceActionSignals"; // Import PriceActionSignal
 
 const API_BASE_URL = "https://api.coingecko.com/api/v3";
 
@@ -57,16 +59,16 @@ export async function fetchCryptoData(): Promise<CryptoData[]> {
  */
 function determineCryptoCategory(id: string): string {
   const categories: Record<string, string[]> = {
-    'layer1': ['bitcoin', 'ethereum', 'solana', 'cardano', 'avalanche-2', 'polkadot', 'near', 'binancecoin', 'ripple', 'tron', 'litecoin', 'cosmos'], // Added more L1s
-    'defi': ['uniswap', 'aave', 'maker', 'compound-governance-token', 'curve-dao-token', 'synthetix-network-token', 'pancakeswap-token', 'lido-dao', 'frax-share', 'thorchain', 'rocket-pool', 'sushi'], // Updated DeFi
+    'layer1': ['bitcoin', 'ethereum', 'solana', 'cardano', 'avalanche-2', 'polkadot', 'near', 'binancecoin', 'ripple', 'tron', 'litecoin', 'cosmos'],
+    'defi': ['uniswap', 'aave', 'maker', 'compound-governance-token', 'curve-dao-token', 'synthetix-network-token', 'pancakeswap-token', 'lido-dao', 'frax-share', 'thorchain', 'rocket-pool', 'sushi'],
     'memecoin': ['dogecoin', 'shiba-inu', 'pepe', 'floki', 'dogwifhat', 'bonk'],
     'stablecoin': ['tether', 'usd-coin', 'dai', 'true-usd', 'binance-usd', 'frax'],
-    'gaming': ['the-sandbox', 'decentraland', 'axie-infinity', 'gala', 'enjincoin', 'immutable-x', 'render-token'], // Updated Gaming
+    'gaming': ['the-sandbox', 'decentraland', 'axie-infinity', 'gala', 'enjincoin', 'immutable-x', 'render-token'],
     'privacy': ['monero', 'zcash', 'dash', 'secret', 'oasis-network'],
-    'ai': ['fetch-ai', 'singularitynet', 'ocean-protocol', 'bittensor', 'render-token', 'the-graph'], // Added AI
-    'rwa': ['centrifuge', 'maple', 'ondo-finance', 'pendle'], // Added RWA
-    'infrastructure': ['chainlink', 'the-graph', 'filecoin', 'arweave', 'hedera-hashgraph', 'internet-computer'], // Added Infrastructure
-    'layer2': ['optimism', 'arbitrum', 'matic-network', 'starknet', 'immutable-x', 'manta-network'] // Added Layer 2
+    'ai': ['fetch-ai', 'singularitynet', 'ocean-protocol', 'bittensor', 'render-token', 'the-graph'],
+    'rwa': ['centrifuge', 'maple', 'ondo-finance', 'pendle'],
+    'infrastructure': ['chainlink', 'the-graph', 'filecoin', 'arweave', 'hedera-hashgraph', 'internet-computer'],
+    'layer2': ['optimism', 'arbitrum', 'matic-network', 'starknet', 'immutable-x', 'manta-network']
   };
 
   for (const [category, cryptos] of Object.entries(categories)) {
@@ -74,7 +76,6 @@ function determineCryptoCategory(id: string): string {
       return category;
     }
   }
-  // Default categories based on common prefixes/suffixes if not found above
   if (id.includes('wrapped')) return 'other';
   if (id.includes('staked')) return 'defi';
   
@@ -83,17 +84,21 @@ function determineCryptoCategory(id: string): string {
 
 /**
  * Generates capital flow data between cryptocurrencies based on market dynamics.
- * This version uses price performance and volume to estimate flows, reducing randomness.
+ * This version uses price performance, volume, and price action signals to estimate flows.
  */
-export async function fetchCapitalFlows(cryptos: CryptoData[], maxFlows: number = 50): Promise<FlowData[]> {
+export async function fetchCapitalFlows(
+  cryptos: CryptoData[], 
+  priceActionSignals: Map<string, PriceActionSignal> | null, // Accept signals
+  maxFlows: number = 50
+): Promise<FlowData[]> {
   const potentialFlows: FlowData[] = [];
   const minVolumeThreshold = 100000;
   const minMarketCapThreshold = 5000000;
 
   for (let i = 0; i < cryptos.length; i++) {
     const source = cryptos[i];
+    const sourceSymbol = source.symbol || '';
 
-    // Skip sources that are stablecoins or below thresholds
     if (source.category === 'stablecoin' || 
         parseFloat(source.volume || '0') < minVolumeThreshold || 
         (source.marketCap || 0) < minMarketCapThreshold) {
@@ -103,8 +108,8 @@ export async function fetchCapitalFlows(cryptos: CryptoData[], maxFlows: number 
     for (let j = 0; j < cryptos.length; j++) {
       if (i === j) continue;
       const target = cryptos[j];
+      const targetSymbol = target.symbol || '';
 
-      // Skip targets below thresholds (allow stablecoins as targets)
       if (parseFloat(target.volume || '0') < minVolumeThreshold || 
           (target.category !== 'stablecoin' && (target.marketCap || 0) < minMarketCapThreshold)) {
         continue;
@@ -114,38 +119,49 @@ export async function fetchCapitalFlows(cryptos: CryptoData[], maxFlows: number 
       const targetPerf = target.priceChange24h || 0;
       const perfDiff = targetPerf - sourcePerf;
 
-      // Basic condition: Flow potential exists if there's a performance difference
       if (Math.abs(perfDiff) > 0.5) {
-        
-        // Calculate flow strength based on performance difference and volumes
         const sourceLogVol = Math.log10(parseFloat(source.volume || '1') + 1);
         const targetLogVol = Math.log10(parseFloat(target.volume || '1') + 1);
-        
-        // Flow strength increases with performance difference and combined volume
         let flowStrength = Math.abs(perfDiff) * (sourceLogVol + targetLogVol);
 
-        // Adjust strength based on direction
+        // --- Price Action Signal Integration --- 
+        const sourceSignal = priceActionSignals?.get(sourceSymbol);
+        const targetSignal = priceActionSignals?.get(targetSymbol);
+        let signalBoost = 1.0;
+
+        // Boost if source/target has high/medium potential or breakout
+        const hasSignificantSignal = (signal: PriceActionSignal | undefined) => 
+          signal && (signal.explosivePotential === 'High' || signal.explosivePotential === 'Medium' || signal.isBreakout);
+
+        if (hasSignificantSignal(sourceSignal) || hasSignificantSignal(targetSignal)) {
+           // Strong boost if flow is towards the asset with the signal
+           if (perfDiff > 0 && hasSignificantSignal(targetSignal)) {
+               signalBoost = 2.5; 
+           } else if (perfDiff < 0 && hasSignificantSignal(sourceSignal)) {
+               signalBoost = 2.0; // Slightly smaller boost for outflow from signaled asset
+           } else {
+               signalBoost = 1.5; // General boost if either has a signal
+           }
+        }
+        // Apply the boost
+        flowStrength *= signalBoost;
+        // --- End Price Action Integration ---
+
         if (perfDiff > 0 && sourcePerf < 0) {
           flowStrength *= 1.5;
         } else if (perfDiff < 0 && sourcePerf > 0) {
           flowStrength *= 1.2;
         }
         
-        // Estimate flow value
         let flowValue = flowStrength * (parseFloat(source.volume || '0') * 0.0005);
-        
-        // Cap flow value to a max percentage of source market cap
         flowValue = Math.min(flowValue, (source.marketCap || 0) * 0.01);
-
         const finalFlowValue = perfDiff > 0 ? flowValue : -flowValue;
-
-        // Calculate percentage relative to source market cap
         const percentage = ((source.marketCap || 1) > 0) ? (flowValue / (source.marketCap || 1)) * 100 * (perfDiff > 0 ? 1 : -1) : 0;
 
         potentialFlows.push({
-          id: `${source.symbol}-${target.symbol}-${Date.now()}`,
-          from: source.symbol || '',
-          to: target.symbol || '',
+          id: `${sourceSymbol}-${targetSymbol}-${Date.now()}`,
+          from: sourceSymbol,
+          to: targetSymbol,
           value: finalFlowValue,
           percentage: isNaN(percentage) ? 0 : percentage,
           volume: flowValue,
@@ -156,7 +172,6 @@ export async function fetchCapitalFlows(cryptos: CryptoData[], maxFlows: number 
     }
   }
 
-  // Sort by absolute flow value and return top flows
   return potentialFlows
     .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
     .slice(0, maxFlows);
@@ -177,62 +192,39 @@ export async function fetchTechnicalIndicators(
   ema26: number;
   obv: number;
 }> {
-  // In a real app, this would call a technical analysis API or calculate from OHLCV data
-  // For now, we'll simulate different indicator values based on timeframe
-  
-  // Add some variation based on timeframe to make the simulation more realistic
   const timeframeMultiplier = getTimeframeMultiplier(timeframe);
-  
   return {
     rsi: simulateRSI(timeframeMultiplier),
-    rsi4h: simulateRSI(0.9), // 4h RSI is less volatile
+    rsi4h: simulateRSI(0.9),
     macd: {
       value: simulateMACD(0.5 * timeframeMultiplier),
       signal: simulateMACD(0.4 * timeframeMultiplier),
       histogram: simulateMACD(0.1 * timeframeMultiplier),
     },
     ema12: simulateEMA() * timeframeMultiplier,
-    ema26: simulateEMA() * (timeframeMultiplier * 0.9), // EMA26 changes more slowly
+    ema26: simulateEMA() * (timeframeMultiplier * 0.9),
     obv: Math.random() * 1000000 - 500000,
   };
 }
 
-// Helper function to get a multiplier based on timeframe
 function getTimeframeMultiplier(timeframe: string): number {
   switch (timeframe) {
-    case '5m':
-      return 1.5; // More volatile
-    case '15m':
-      return 1.3;
-    case '30m':
-      return 1.2;
-    case '1h':
-      return 1.1;
-    case '4h':
-      return 1.0; // Base reference
-    case '24h':
-      return 0.9;
-    case '7d':
-      return 0.7; // Less volatile
-    default:
-      return 1.0;
+    case '5m': return 1.5;
+    case '15m': return 1.3;
+    case '30m': return 1.2;
+    case '1h': return 1.1;
+    case '4h': return 1.0;
+    case '24h': return 0.9;
+    case '7d': return 0.7;
+    default: return 1.0;
   }
 }
 
-// Helper functions to simulate technical indicators
 function simulateRSI(volatilityFactor: number = 1): number {
-  // More realistic distribution - cluster around 30-70 range with tails
   const base = Math.random();
-  if (base < 0.1) {
-    // Low RSI (10-30)
-    return (10 + Math.random() * 20) * volatilityFactor;
-  } else if (base > 0.9) {
-    // High RSI (70-90)
-    return (70 + Math.random() * 20) * Math.min(1, volatilityFactor);
-  } else {
-    // Normal range (30-70)
-    return (30 + Math.random() * 40);
-  }
+  if (base < 0.1) return (10 + Math.random() * 20) * volatilityFactor;
+  else if (base > 0.9) return (70 + Math.random() * 20) * Math.min(1, volatilityFactor);
+  else return (30 + Math.random() * 40);
 }
 
 function simulateMACD(bias: number = 0): number {
@@ -252,15 +244,14 @@ export async function fetchOnChainData(symbol: string): Promise<{
   fundingRate: number;
   netFlow: number;
 }> {
-  // In a real app, this would call an API like CryptoQuant or Glassnode
   const flowBase = Math.random() * 100000;
   const inflow = flowBase + (Math.random() * 20000 - 10000);
   const outflow = flowBase + (Math.random() * 20000 - 10000);
-  
   return {
     exchangeInflow: inflow,
     exchangeOutflow: outflow,
-    fundingRate: (Math.random() * 0.2 - 0.1), // -0.1% to 0.1%
+    fundingRate: (Math.random() * 0.2 - 0.1),
     netFlow: inflow - outflow
   };
 }
+
