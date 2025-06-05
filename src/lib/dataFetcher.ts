@@ -254,4 +254,3 @@ export async function fetchOnChainData(symbol: string): Promise<{
     netFlow: inflow - outflow
   };
 }
-

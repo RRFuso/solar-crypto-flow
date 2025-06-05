@@ -465,4 +465,3 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
 };
 
 export default AIWatchlist;
-
