@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
@@ -97,22 +96,20 @@ export const useVisualizationData = ({
       );
     }
     
-    // Calculate orbit parameters with dynamic scaling
+    // Calculate orbit parameters
     const nonCentralNodes = filteredNodes.filter(n => n.id !== centralNode.id);
     const orbitLayers = Math.min(10, Math.ceil(nonCentralNodes.length / 10));
     
-    // Dynamic base radius calculation based on container size and zoom
-    const minDimension = Math.min(width, height);
+    // Apply zoom scale by modifying the base radius and scale factors
     const zoomFactor = zoomLevel / 100;
-    const baseRadius = (minDimension * 0.12 / orbitLayers) * zoomFactor; // Adjusted for better fit
+    const baseRadius = Math.min(width, height) * 0.25 / orbitLayers * zoomFactor;
     
-    // Scale node radii dynamically
+    // Manually scale down node radii
     filteredNodes.forEach(node => {
-      const sizeScale = Math.max(0.6, Math.min(1.4, minDimension / 800)); // Responsive sizing
       if (node.id === 'BTC') {
-        node.radius = Math.max(20, node.radius * zoomFactor * sizeScale);
+        node.radius = Math.max(30, node.radius * zoomFactor);
       } else {
-        node.radius = Math.max(8, node.radius * zoomFactor * sizeScale);
+        node.radius = Math.max(10, node.radius * zoomFactor);
       }
     });
     

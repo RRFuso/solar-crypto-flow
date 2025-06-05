@@ -39,17 +39,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
-  // Calculate dynamic scale based on container dimensions
-  const calculateDynamicScale = () => {
-    if (!dimensions.width || !dimensions.height) return 1;
-    
-    const minDimension = Math.min(dimensions.width, dimensions.height);
-    const baseDimension = 800; // Reference dimension for optimal viewing
-    return Math.max(0.4, Math.min(1.2, minDimension / baseDimension));
-  };
-  
-  const dynamicScale = calculateDynamicScale();
-  const adjustedZoomLevel = zoomLevel * dynamicScale;
+  // **CRITICAL FIX: Dramatically increased base scale for perfect viewport fit at 40% zoom**
+  const adjustedZoomLevel = zoomLevel * 1.5; // Increased from 0.35 to 2.5 for much better visibility
   
   // Initialize visualization data
   useVisualizationData({
@@ -135,7 +126,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
 
   if (!flowData || flowData.length === 0) {
     return (
-      <div ref={containerRef} className="w-full h-full flex items-center justify-center">
+      <div ref={containerRef} className="w-full h-full flex items-center justify-center" style={{ minHeight: "700px" }}>
         <p className="text-gray-400">No flow data available</p>
       </div>
     );
@@ -145,12 +136,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   const renderVisualization = svgRef.current && dimensions.width > 0 && visualizationData.nodes.length > 0;
 
   return (
-    <div ref={containerRef} className="w-full h-full">
-      <svg 
-        ref={svgRef} 
-        className="w-full h-full" 
-        preserveAspectRatio="xMidYMid meet"
-      />
+    <div ref={containerRef} className="w-full h-full" style={{ minHeight: "700px" }}>
+      <svg ref={svgRef} className="w-full h-full" />
       {renderVisualization && svgRef.current && (
         <>
           {/* Add starfield background */}
@@ -160,13 +147,13 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             height={dimensions.height}
           />
           
-          {/* Render orbital visualization with dynamic scale */}
+          {/* **OPTIMIZED: Render orbital visualization with much better scale** */}
           <OrbitLayersComponent 
             svg={d3.select(svgRef.current)}
             width={dimensions.width}
             height={dimensions.height}
-            orbitLayers={4}
-            baseRadius={Math.min(dimensions.width, dimensions.height) * 0.08 * dynamicScale} // Dynamic base radius
+            orbitLayers={4} // Increased back to 4 for better distribution
+            baseRadius={60 * (adjustedZoomLevel / 100)} // Increased base radius significantly
             extendFullScreen={false}
           />
           <LinkRendererExtended

@@ -23,7 +23,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen min-w-screen w-full h-full bg-gradient-to-br from-black via-gray-900 to-black text-white">
+    <div className="h-screen w-screen bg-gradient-to-br from-black via-gray-900 to-black text-white overflow-hidden">
       {/* Header with Solar Crypto branding */}
       <header className="border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-sm h-16 flex-shrink-0">
         <div className="h-full px-6 flex justify-between items-center">
@@ -40,7 +40,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       </header>
 
       {/* Main content area */}
-      <main className="h-[calc(100vh-4rem)] p-6 overflow-auto">
+      <main className="h-[calc(100vh-4rem)] p-6 overflow-hidden">
         {children}
       </main>
     </div>
