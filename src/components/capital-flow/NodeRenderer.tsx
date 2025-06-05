@@ -75,20 +75,29 @@ const formatPercentage = (change: number | undefined): string => {
 };
 
 // 📦 CLASS
-export class NodeRenderer {
+class NodeRendererClass {
+  private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  private nodes: ExtendedOrbitalNode[];
+  private selectedNodeId: string | null;
+  private zoomLevel: number;
+
   constructor(props: NodeRendererProps) {
-    this.renderNodes(props);
+    this.svg = props.svg;
+    this.nodes = props.nodes;
+    this.selectedNodeId = props.selectedNodeId;
+    this.zoomLevel = props.zoomLevel;
+    this.renderNodes();
   }
 
-  private renderNodes({ svg, nodes, centralNode, selectedNodeId, zoomLevel }: NodeRendererProps) {
-    svg.selectAll('.nodes-group').remove();
-    const nodesGroup = svg.append("g").attr("class", "nodes-group");
+  private renderNodes() {
+    this.svg.selectAll('.nodes-group').remove();
+    const nodesGroup = this.svg.append("g").attr("class", "nodes-group");
 
-    this.createNodePatterns(svg, nodes);
+    this.createNodePatterns(this.svg, this.nodes);
 
     // 🟢 GLOW (Updated color logic)
     nodesGroup.selectAll('circle.node-glow')
-      .data(nodes)
+      .data(this.nodes)
       .enter()
       .append('circle')
       .attr('class', 'node-glow')
@@ -96,25 +105,25 @@ export class NodeRenderer {
       .attr('cy', d => d.y)
       .attr('r', d => {
         const volFactor = d.volume ? Math.sqrt(d.volume) / 100 : 1;
-        return d.radius * 1.3 * volFactor * (zoomLevel / 100);
+        return d.radius * 1.3 * volFactor * (this.zoomLevel / 100);
       })
       .attr('fill', getGlowColor)
       .attr('filter', 'blur(6px)');
 
     // 🧠 MAIN NODE GROUP
     const node = nodesGroup.selectAll('g.node')
-      .data(nodes)
+      .data(this.nodes)
       .enter()
       .append('g')
       .attr('class', 'node')
       .attr('transform', d => `translate(${d.x},${d.y})`)
       .attr('data-id', d => d.id)
       .style('cursor', 'pointer')
-      .on('mouseenter', (event, d: ExtendedOrbitalNode) => { // Ensure d is typed correctly
-        svg.selectAll('.node-tooltip').remove();
-        const tooltip = svg.append('g')
+      .on('mouseenter', (event: MouseEvent, d: ExtendedOrbitalNode) => { // Correct event handler signature
+        this.svg.selectAll('.node-tooltip').remove();
+        const tooltip = this.svg.append('g')
           .attr('class', 'node-tooltip')
-          .attr('transform', `translate(${d.x},${d.y - d.radius * (zoomLevel / 100) - 15})`); // Adjust vertical position
+          .attr('transform', `translate(${d.x},${d.y - d.radius * (this.zoomLevel / 100) - 15})`); // Adjust vertical position
 
         // --- Tooltip Content --- 
         const priceLine = `Preço: ${formatPrice(d.price)}`;
@@ -139,7 +148,8 @@ export class NodeRenderer {
         // Pre-calculate max width
         const tempText = tooltip.append('text').style('opacity', 0);
         textLines.forEach(line => {
-            const w = tempText.text(line).node()?.getComputedTextLength() || 0;
+            const textNode = tempText.text(line).node();
+            const w = textNode?.getComputedTextLength() || 0;
             if (w > maxWidth) maxWidth = w;
         });
         tempText.remove();
@@ -153,7 +163,7 @@ export class NodeRenderer {
           .attr('width', tooltipWidth)
           .attr('height', tooltipHeight)
           .attr('fill', 'rgba(10, 20, 30, 0.9)')
-          .attr('stroke', getStrokeColor(d, selectedNodeId))
+          .attr('stroke', getStrokeColor(d, this.selectedNodeId))
           .attr('stroke-width', 1.5);
 
         textLines.forEach((line, i) => {
@@ -186,9 +196,8 @@ export class NodeRenderer {
             .text(line);
         });
       })
-      .on('mouseleave', () => svg.selectAll('.node-tooltip').remove())
-      .on('click
-', (event, d) => {
+      .on('mouseleave', () => this.svg.selectAll('.node-tooltip').remove())
+      .on('click', (event: MouseEvent, d: ExtendedOrbitalNode) => { // Correct event handler signature and fix string literal
         const clickEvent = new CustomEvent('node-click', { detail: { nodeId: d.id } });
         document.dispatchEvent(clickEvent);
       });
@@ -198,19 +207,19 @@ export class NodeRenderer {
       .attr('class', 'node-circle')
       .attr('r', d => {
         const volFactor = d.volume ? Math.sqrt(d.volume) / 100 : 1;
-        return d.radius * volFactor * (zoomLevel / 100);
+        return d.radius * volFactor * (this.zoomLevel / 100);
       })
       .attr('fill', d => `url(#logo-${d.id})`)
-      .attr('stroke', d => getStrokeColor(d, selectedNodeId))
-      .attr('stroke-width', d => selectedNodeId === d.id ? 3 : 2)
+      .attr('stroke', d => getStrokeColor(d, this.selectedNodeId))
+      .attr('stroke-width', d => this.selectedNodeId === d.id ? 3 : 2)
       .attr('stroke-opacity', 0.9);
 
     // 🔤 LABEL (Adjust position slightly based on radius)
     node.append('text')
       .attr('text-anchor', 'middle')
-      .attr('dy', d => d.radius * (zoomLevel / 100) * 1.1 + 12)
+      .attr('dy', d => d.radius * (this.zoomLevel / 100) * 1.1 + 12)
       .attr('fill', 'white')
-      .attr('font-size', d => Math.max(9, Math.min(12, d.radius * 0.35) * (zoomLevel / 100)))
+      .attr('font-size', d => Math.max(9, Math.min(12, d.radius * 0.35) * (this.zoomLevel / 100)))
       .attr('font-weight', 'bold')
       .style('pointer-events', 'none')
       .text(d => d.id);
@@ -233,6 +242,7 @@ export class NodeRenderer {
         .attr('height', 1)
         .attr('preserveAspectRatio', 'xMidYMid slice')
         .on('error', function () {
+          // Use d3.select with 'this' context inside a standard function
           d3.select(this).attr('href', getFallbackLogoUrl());
         });
     });
@@ -243,19 +253,20 @@ export class NodeRenderer {
 export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
   useEffect(() => {
     // Ensure nodes have the necessary data before rendering
+    // This check might be redundant if data fetching/passing is handled correctly upstream
     const nodesWithData = props.nodes.map(node => ({
       ...node,
-      // Ensure price and priceChange24h are passed down or fetched if needed
-      // This might require changes in the parent components (FlowVisualization, etc.)
-      // to include these fields in the OrbitalNode data structure.
     }));
     
-    new NodeRenderer({ ...props, nodes: nodesWithData });
+    // Create an instance of the class to render nodes
+    const rendererInstance = new NodeRendererClass({ ...props, nodes: nodesWithData });
     
+    // Cleanup function remains the same
     return () => {
       props.svg.selectAll('.nodes-group').remove();
       props.svg.selectAll('.node-tooltip').remove();
     };
+  // Dependency array includes all props used inside useEffect or the class instance
   }, [props.nodes, props.selectedNodeId, props.zoomLevel, props.svg]); 
 
   return null;
