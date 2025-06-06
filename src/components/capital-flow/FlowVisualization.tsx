@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
-import { FlowData } from '@/types/crypto';
+import { FlowData, CryptoData } from '@/types/crypto'; // Import CryptoData
 import { Prediction } from '@/lib/aiModel';
 import { OrbitLayersComponent } from './OrbitLayers';
 import { LinkRendererExtended } from './LinkRendererExtended';
@@ -11,6 +11,8 @@ import { StarfieldBackground } from './visualization/StarfieldBackground';
 import PredictionOrbitalOverlay from '../ai/PredictionOrbitalOverlay';
 import { useVisualizationSetup } from './visualization/useVisualizationSetup';
 import { useVisualizationData } from './visualization/useVisualizationData';
+import { useCryptoData } from '@/hooks/useCryptoData'; // Import hook to fetch crypto data
+import { usePriceActionSignals } from '@/hooks/usePriceActionSignals'; // Import hook to fetch signals
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
@@ -37,14 +39,19 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     createOrbitalVisualization
   } = useVisualizationSetup(flowData, zoomLevel);
   
+  // Fetch necessary data for tooltips and node enrichment
+  const { cryptoDataMap, loading: loadingCryptoData } = useCryptoData(); // Fetch crypto data
+  const { signals: priceActionSignals, loading: loadingSignals } = usePriceActionSignals(); // Fetch signals
+
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
-  // **CRITICAL FIX: Dramatically increased base scale for perfect viewport fit at 40% zoom**
-  const adjustedZoomLevel = zoomLevel * 1.5; // Increased from 0.35 to 2.5 for much better visibility
+  const adjustedZoomLevel = zoomLevel * 1.5;
   
-  // Initialize visualization data
+  // Initialize visualization data, now passing the required maps
   useVisualizationData({
     flowData,
+    cryptoDataMap, // Pass crypto data map
+    priceActionSignals, // Pass signals map
     svgRef,
     dimensions,
     zoomLevel: adjustedZoomLevel,
@@ -58,71 +65,36 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   useEffect(() => {
     const handleNodeClick = (event: CustomEvent) => {
       const nodeId = event.detail.nodeId;
-      
-      // Toggle selection if clicking the same node, otherwise select the new node
       setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
-      
-      // Update visualization data with new selected node
-      setVisualizationData(prevData => ({
-        ...prevData,
-        selectedNodeId: prevData.selectedNodeId === nodeId ? null : nodeId
-      }));
+      // Update visualization data state directly (already handled by useVisualizationSetup)
+      // setVisualizationData(prevData => ({ ...prevData, selectedNodeId: prevData.selectedNodeId === nodeId ? null : nodeId }));
     };
-    
-    // Add event listener
     document.addEventListener('node-click', handleNodeClick as EventListener);
-    
-    // Remove event listener on cleanup
     return () => {
       document.removeEventListener('node-click', handleNodeClick as EventListener);
     };
-  }, [setVisualizationData]);
+  }, []); // Removed setVisualizationData dependency as it's handled by the setup hook
 
-  // Force initial rendering of links when component loads
-  useEffect(() => {
-    if (flowData && flowData.length > 0 && svgRef.current && dimensions.width > 0) {
-      // Force initialization of visualization with default timeframe
-      if (animationRef.current === null && visualizationData.nodes.length > 0) {
-        console.log("Forcing initial link rendering with default timeframe");
-        
-        // Ensure links are rendered by manually triggering a render if needed
-        if (visualizationData.links.length > 0 && svgRef.current) {
-          const svg = d3.select(svgRef.current);
-          
-          // If links group doesn't exist or is empty, trigger the link renderer
-          if (svg.select('.flow-links').empty() || svg.select('.flow-links').selectAll('*').empty()) {
-            console.log("Manually triggering link rendering");
-            
-            // This will force the LinkRendererExtended component to render
-            setVisualizationData(prevData => ({
-              ...prevData,
-              // Adding a timestamp forces the renderer to update
-              lastUpdate: new Date().getTime()
-            }));
-          }
-        }
-      }
-    }
-  }, [flowData, dimensions, visualizationData, animationRef]);
-
-  // Get color based on category from backend
-  const getCategoryColor = (category: string) => {
+  // Get color based on category from backend (assuming category is in CryptoData)
+  const getCategoryColor = (category: string | undefined) => {
     switch (category) {
-      case "🚀 Alta":
-        return "#00FF88"; // Bright green
-      case "🏃 Fuga":
-        return "#FF3366"; // Bright red
-      case "🧱 Acum.":
-        return "#FFCC00"; // Yellow
-      case "🔁 Rev.":
-        return "#00CCFF"; // Bright blue
-      case "⚠️ Alert":
-        return "#FF9900"; // Orange
-      case "Neutro":
-      default:
-        return "#8A9196"; // Neutral gray
+      case "🚀 Alta": return "#00FF88";
+      case "🏃 Fuga": return "#FF3366";
+      case "🧱 Acum.": return "#FFCC00";
+      case "🔁 Rev.": return "#00CCFF";
+      case "⚠️ Alert": return "#FF9900";
+      case "Neutro": default: return "#8A9196";
     }
   };
+
+  // Show loading state if data isn't ready
+  if (loadingCryptoData || loadingSignals) {
+    return (
+      <div ref={containerRef} className="w-full h-full flex items-center justify-center" style={{ minHeight: "700px" }}>
+        <p className="text-gray-400">Loading visualization data...</p>
+      </div>
+    );
+  }
 
   if (!flowData || flowData.length === 0) {
     return (
@@ -132,43 +104,40 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     );
   }
 
-  // Only render the visualization components if we have the SVG and data
   const renderVisualization = svgRef.current && dimensions.width > 0 && visualizationData.nodes.length > 0;
 
   return (
-    <div ref={containerRef} className="w-full h-full" style={{ minHeight: "700px" }}>
-      <svg ref={svgRef} className="w-full h-full" />
+    <div ref={containerRef} className="w-full h-full relative" style={{ minHeight: "700px" }}> {/* Added relative positioning */} 
+      <svg ref={svgRef} className="w-full h-full absolute top-0 left-0" /> {/* Added absolute positioning */} 
       {renderVisualization && svgRef.current && (
         <>
-          {/* Add starfield background */}
           <StarfieldBackground 
             svg={d3.select(svgRef.current)}
             width={dimensions.width}
             height={dimensions.height}
           />
-          
-          {/* **OPTIMIZED: Render orbital visualization with much better scale** */}
           <OrbitLayersComponent 
             svg={d3.select(svgRef.current)}
             width={dimensions.width}
             height={dimensions.height}
-            orbitLayers={4} // Increased back to 4 for better distribution
-            baseRadius={60 * (adjustedZoomLevel / 100)} // Increased base radius significantly
+            orbitLayers={4}
+            baseRadius={60 * (adjustedZoomLevel / 100)}
             extendFullScreen={false}
           />
           <LinkRendererExtended
             svg={d3.select(svgRef.current)}
             links={visualizationData.links}
-            selectedNodeId={visualizationData.selectedNodeId}
+            selectedNodeId={selectedNodeId} // Use local state for selection highlight
             predictions={predictions}
             animateWithOrbit={true}
-            getCategoryColor={getCategoryColor}
+            // Pass cryptoDataMap to get category for color
+            getCategoryColor={(linkSourceId) => getCategoryColor(cryptoDataMap.get(linkSourceId)?.category)}
           />
           <NodeRendererComponent 
             svg={d3.select(svgRef.current)}
-            nodes={visualizationData.nodes}
+            nodes={visualizationData.nodes} // Nodes now include enriched data
             centralNode={visualizationData.centralNode}
-            selectedNodeId={visualizationData.selectedNodeId}
+            selectedNodeId={selectedNodeId} // Use local state for selection highlight
             zoomLevel={adjustedZoomLevel}
           />
           <OrbitalAnimationComponent 
@@ -176,11 +145,9 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             nodes={visualizationData.nodes}
             width={dimensions.width}
             height={dimensions.height}
-            rotationSpeed={0.00002} // Reduced speed for smoother animation
+            rotationSpeed={0.00002}
             updateLinksInRealTime={true}
           />
-          
-          {/* Add AI predictions overlay */}
           {predictions && predictions.length > 0 && (
             <PredictionOrbitalOverlay
               svg={d3.select(svgRef.current)}
@@ -195,3 +162,4 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     </div>
   );
 };
+
