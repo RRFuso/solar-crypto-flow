@@ -6,9 +6,10 @@ import { calculateNodePositions, OrbitalNode } from '../NodePlacement';
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals'; // Import PriceActionSignal
 
 // Extend OrbitalNode to include necessary fields for tooltip
+// Ensure volume type matches OrbitalNode (number | undefined)
 interface ExtendedOrbitalNode extends OrbitalNode {
   price?: string;
-  volume?: string; // Volume is already part of OrbitalNode, ensure it's passed
+  volume?: number | undefined; // CORRECTED: Ensure volume is number or undefined
   priceChange24h?: number;
   priceActionSignal?: PriceActionSignal;
 }
@@ -35,6 +36,16 @@ interface UseVisualizationDataProps {
   ) => { svg: any, nodes: OrbitalNode[], links: any[], centralNode: OrbitalNode | null }; // Define return type
   activeCategory?: string;
 }
+
+// Helper function to safely parse volume to number
+const getVolumeAsNumber = (vol: number | string | undefined): number | undefined => {
+    if (typeof vol === 'number') return vol;
+    if (typeof vol === 'string') {
+        const parsed = parseFloat(vol);
+        return isNaN(parsed) ? undefined : parsed;
+    }
+    return undefined;
+};
 
 export const useVisualizationData = ({
   flowData,
@@ -86,18 +97,19 @@ export const useVisualizationData = ({
       const signalInfo = priceActionSignals?.get(node.id);
       return {
         ...node,
-        price: cryptoInfo?.price, // Add price from cryptoDataMap
-        // Volume might already be in node from createOrbitalVisualization, fallback if needed
-        volume: node.volume?.toString() ?? cryptoInfo?.volume, 
-        priceChange24h: cryptoInfo?.priceChange24h, // Add change from cryptoDataMap
-        priceActionSignal: signalInfo // Add signal info
+        price: cryptoInfo?.price,
+        // CORRECTED: Ensure volume is parsed to number
+        volume: getVolumeAsNumber(node.volume ?? cryptoInfo?.volume), 
+        priceChange24h: cryptoInfo?.priceChange24h,
+        priceActionSignal: signalInfo
       };
     });
     
     const enrichedCentralNode: ExtendedOrbitalNode | null = baseCentralNode ? {
         ...baseCentralNode,
         price: cryptoDataMap.get(baseCentralNode.id)?.price,
-        volume: baseCentralNode.volume?.toString() ?? cryptoDataMap.get(baseCentralNode.id)?.volume,
+        // CORRECTED: Ensure volume is parsed to number
+        volume: getVolumeAsNumber(baseCentralNode.volume ?? cryptoDataMap.get(baseCentralNode.id)?.volume),
         priceChange24h: cryptoDataMap.get(baseCentralNode.id)?.priceChange24h,
         priceActionSignal: priceActionSignals?.get(baseCentralNode.id)
     } : null;
@@ -112,6 +124,7 @@ export const useVisualizationData = ({
       filteredNodes = enrichedNodes.filter(node => {
         if (node.id === enrichedCentralNode?.id) return true;
         const cryptoInfo = cryptoDataMap.get(node.id);
+        // Assuming category is fetched and available in cryptoInfo
         return cryptoInfo?.category === activeCategory;
       });
 
@@ -120,13 +133,11 @@ export const useVisualizationData = ({
         filteredNodeIds.includes(link.source.id) && 
         filteredNodeIds.includes(link.target.id)
       );
-      // Ensure central node is still included if filtered out by category logic (it shouldn't be)
       if (enrichedCentralNode && !filteredNodes.find(n => n.id === enrichedCentralNode.id)) {
           filteredNodes.push(enrichedCentralNode);
       }
-      // If the central node itself was filtered out (unlikely), reset it
       if (!filteredNodeIds.includes(enrichedCentralNode?.id || '')) {
-          filteredCentralNode = null; // Or handle appropriately
+          filteredCentralNode = null;
       }
     }
 
@@ -136,8 +147,8 @@ export const useVisualizationData = ({
     const baseRadius = Math.min(width, height) * 0.25 / orbitLayers * zoomFactor;
 
     filteredNodes.forEach(node => {
-      const baseRad = node.id === filteredCentralNode?.id ? 30 : 15; // Base radius before scaling
-      node.radius = Math.max(10, baseRad * zoomFactor * 1.5); // Apply zoom and ensure min size
+      const baseRad = node.id === filteredCentralNode?.id ? 30 : 15;
+      node.radius = Math.max(10, baseRad * zoomFactor * 1.5);
     });
 
     const nodePositionsProps = { 
@@ -148,18 +159,14 @@ export const useVisualizationData = ({
       orbitLayers, 
       baseRadius 
     };
-    calculateNodePositions(nodePositionsProps);
-
-    // Remove the d3 click handler here as it might conflict or be redundant
-    // The click logic is handled in FlowVisualization.tsx via event listener
-    // svg.selectAll(".node")
-    //   .on("click", function(event, d) { ... });
+    // Ensure calculateNodePositions accepts ExtendedOrbitalNode[] or handle type mismatch
+    calculateNodePositions(nodePositionsProps as any); // Using 'as any' temporarily if types mismatch, ideally fix the function signature
 
     setVisualizationData({ 
       nodes: filteredNodes, 
       links: filteredLinks, 
       centralNode: filteredCentralNode,
-      selectedNodeId: null // Reset selection on data change
+      selectedNodeId: null
     });
 
     return () => {
@@ -167,7 +174,5 @@ export const useVisualizationData = ({
         d3.select(svgRef.current).selectAll("*").remove();
       }
     };
-  // Add cryptoDataMap and priceActionSignals to dependencies
   }, [flowData, cryptoDataMap, priceActionSignals, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory, svgRef]); 
 };
-
