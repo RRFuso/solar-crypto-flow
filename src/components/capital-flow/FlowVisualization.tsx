@@ -34,14 +34,14 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     svgRef,
     containerRef,
     dimensions,
-    visualizationData, // Contains { nodes: ExtendedOrbitalNode[], links: any[], centralNode: ExtendedOrbitalNode | null }
+    visualizationData,
     setVisualizationData,
     animationRef,
     createOrbitalVisualization
   } = useVisualizationSetup(flowData, zoomLevel);
   
   const { data: cryptoData, isLoading: loadingCryptoData } = useCryptoData();
-  const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(['BTC', 'ETH']); // Example symbols
+  const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(['BTC', 'ETH']);
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI();
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -118,7 +118,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     );
   }
 
-  if (!flowData || flowData.length === 0 || !visualizationData || visualizationData.nodes.length === 0) { // Added check for visualizationData
+  if (!flowData || flowData.length === 0) {
     return (
       <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
         <div className="text-center">
@@ -129,8 +129,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     );
   }
 
-  // Ensure visualizationData and its nodes are available before rendering components that depend on them
-  const renderVisualization = svgRef.current && dimensions.width > 0 && visualizationData && visualizationData.nodes.length > 0;
+  const renderVisualization = svgRef.current && dimensions.width > 0 && visualizationData.nodes.length > 0;
 
   return (
     <div ref={containerRef} className="w-full h-full relative overflow-hidden">
@@ -143,7 +142,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
         viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
         preserveAspectRatio="xMidYMid meet"
       />
-      {renderVisualization && svgRef.current && visualizationData && (
+      {renderVisualization && svgRef.current && (
         <>
           <StarfieldBackground 
             svg={d3.select(svgRef.current)}
@@ -161,7 +160,6 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
           <LinkRendererExtended
             svg={d3.select(svgRef.current)}
             links={visualizationData.links}
-            nodes={visualizationData.nodes} // CORRECTED: Pass nodes prop
             selectedNodeId={selectedNodeId}
             predictions={predictions}
             animateWithOrbit={true}
