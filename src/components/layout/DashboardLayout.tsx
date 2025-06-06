@@ -13,7 +13,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 2000);
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, []);
@@ -23,27 +23,28 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-black via-gray-900 to-black text-white flex flex-col">
-      {/* Header with Solar Crypto branding */}
-      <header className="border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-sm h-16 flex-shrink-0">
-        <div className="h-full px-6 flex justify-between items-center">
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-black">
+      {/* Header */}
+      <header className="flex-shrink-0 h-14 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-sm">
+        <div className="h-full px-4 flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
               <span className="text-black font-bold text-lg">☀</span>
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
               Solar Crypto
             </h1>
+            <div className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full">
+              AI Powered
+            </div>
           </div>
           <UserMenu />
         </div>
       </header>
 
-      {/* Main content area */}
-      <main className="flex-1 p-6 overflow-auto">
-        <div className="h-full w-full">
-          {children}
-        </div>
+      {/* Main Content */}
+      <main className="flex-1 overflow-hidden">
+        {children}
       </main>
     </div>
   );

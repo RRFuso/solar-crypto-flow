@@ -25,7 +25,7 @@ interface FlowVisualizationProps {
 
 export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
   flowData, 
-  zoomLevel = 40,
+  zoomLevel = 60,
   predictions = [],
   chartTimeframe = '4h',
   activeCategory = 'all'
@@ -40,18 +40,14 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     createOrbitalVisualization
   } = useVisualizationSetup(flowData, zoomLevel);
   
-  // Fetch necessary data for tooltips and node enrichment
   const { data: cryptoData, isLoading: loadingCryptoData } = useCryptoData();
   const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(['BTC', 'ETH']);
-  
-  // Get AI insights for enhanced visualization
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI();
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
-  const adjustedZoomLevel = zoomLevel * 1.5;
+  const adjustedZoomLevel = zoomLevel * 1.2;
 
-  // Create crypto data map for quick lookup
   const cryptoDataMap = React.useMemo(() => {
     const map = new Map<string, CryptoData>();
     if (cryptoData) {
@@ -62,7 +58,6 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     return map;
   }, [cryptoData]);
   
-  // Initialize visualization data, now passing the required maps
   useVisualizationData({
     flowData,
     cryptoDataMap,
@@ -76,7 +71,6 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     activeCategory
   });
 
-  // Listen for node click events to update selected node
   useEffect(() => {
     const handleNodeClick = (event: CustomEvent) => {
       const nodeId = event.detail.nodeId;
@@ -88,7 +82,6 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     };
   }, []);
 
-  // Get color based on AI insights and category
   const getCategoryColor = (symbol: string) => {
     const aiInsight = aiInsights.get(symbol);
     if (aiInsight) {
@@ -102,7 +95,6 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
       }
     }
 
-    // Fallback to category-based colors
     const crypto = cryptoDataMap.get(symbol);
     const category = crypto?.category;
     switch (category) {
@@ -115,13 +107,12 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     }
   };
 
-  // Show loading state if data isn't ready
   if (loadingCryptoData || loadingSignals || loadingAI) {
     return (
-      <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
+      <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-blue mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading AI-powered visualization...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading AI-powered visualization...</p>
         </div>
       </div>
     );
@@ -129,8 +120,11 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
 
   if (!flowData || flowData.length === 0) {
     return (
-      <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
-        <p className="text-gray-400">No flow data available</p>
+      <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
+        <div className="text-center">
+          <p className="text-slate-400 text-lg">🌌 No flow data available</p>
+          <p className="text-slate-500 text-sm">Waiting for market data...</p>
+        </div>
       </div>
     );
   }
@@ -138,7 +132,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   const renderVisualization = svgRef.current && dimensions.width > 0 && visualizationData.nodes.length > 0;
 
   return (
-    <div ref={containerRef} className="w-full h-full relative bg-gradient-to-br from-black via-gray-900 to-black">
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden">
       <svg ref={svgRef} className="w-full h-full absolute top-0 left-0" />
       {renderVisualization && svgRef.current && (
         <>
@@ -152,7 +146,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             width={dimensions.width}
             height={dimensions.height}
             orbitLayers={4}
-            baseRadius={Math.min(dimensions.width, dimensions.height) * 0.12}
+            baseRadius={Math.min(dimensions.width, dimensions.height) * 0.15}
             extendFullScreen={false}
           />
           <LinkRendererExtended
@@ -175,7 +169,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             nodes={visualizationData.nodes}
             width={dimensions.width}
             height={dimensions.height}
-            rotationSpeed={0.00002}
+            rotationSpeed={0.00001}
             updateLinksInRealTime={true}
           />
           {predictions && predictions.length > 0 && (

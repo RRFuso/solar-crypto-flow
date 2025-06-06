@@ -1,4 +1,4 @@
-// ⚙️ IMPORTS
+
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
@@ -6,7 +6,6 @@ import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 
-// Extend OrbitalNode interface locally for clarity
 interface ExtendedOrbitalNode extends OrbitalNode {
   priceActionSignal?: PriceActionSignal;
   price?: string;
@@ -21,112 +20,118 @@ interface NodeRendererProps {
   zoomLevel: number;
 }
 
-// 🎯 UTILS - Updated color logic based on AI insights
-const getGlowColor = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>): string => {
+const getAIRecommendationColor = (recommendation: string): string => {
+  switch (recommendation) {
+    case 'strong_buy': return '#00FF88';
+    case 'buy': return '#66FF99';
+    case 'hold': return '#FFCC00';
+    case 'sell': return '#FF6666';
+    case 'strong_sell': return '#FF3366';
+    default: return '#8A9196';
+  }
+};
+
+const getAIGlowColor = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>): string => {
   const aiInsight = aiInsights.get(node.id);
   if (aiInsight) {
-    if (aiInsight.opportunityScore > 80) return 'rgba(0, 255, 136, 0.5)'; // Strong opportunity - Green
-    if (aiInsight.riskScore > 70) return 'rgba(255, 50, 50, 0.5)'; // High risk - Red
-    if (aiInsight.recommendation === 'strong_buy') return 'rgba(0, 255, 204, 0.4)'; // Strong buy - Cyan
-    if (aiInsight.recommendation === 'strong_sell') return 'rgba(255, 0, 102, 0.4)'; // Strong sell - Pink
+    if (aiInsight.opportunityScore > 80) return 'rgba(0, 255, 136, 0.6)';
+    if (aiInsight.riskScore > 70) return 'rgba(255, 50, 50, 0.6)';
+    if (aiInsight.recommendation === 'strong_buy') return 'rgba(0, 255, 204, 0.5)';
+    if (aiInsight.recommendation === 'strong_sell') return 'rgba(255, 0, 102, 0.5)';
   }
 
-  // Fallback to price action signals
   const signal = node.priceActionSignal;
-  if (signal?.explosivePotential === 'High') return 'rgba(255, 50, 50, 0.5)';
+  if (signal?.explosivePotential === 'High') return 'rgba(255, 215, 0, 0.6)';
   if (signal?.explosivePotential === 'Medium') return 'rgba(255, 150, 0, 0.4)';
-  if (signal?.explosivePotential === 'Low') return 'rgba(255, 220, 0, 0.3)';
   
-  // Original logic fallback
-  if (node.divergenceBullish) return 'rgba(0,255,255,0.4)';
-  if (node.divergenceBearish) return 'rgba(255,0,180,0.4)';
-  if (node.inflow > node.outflow) return 'rgba(0, 255, 204, 0.3)';
-  if (node.outflow > node.inflow) return 'rgba(255, 0, 102, 0.3)';
-  return 'rgba(0, 181, 216, 0.2)';
+  if (node.inflow > node.outflow) return 'rgba(0, 255, 204, 0.4)';
+  if (node.outflow > node.inflow) return 'rgba(255, 0, 102, 0.4)';
+  return 'rgba(0, 181, 216, 0.3)';
 };
 
-const getStrokeColor = (node: ExtendedOrbitalNode, selectedNodeId: string | null, aiInsights: Map<string, any>): string => {
-  if (selectedNodeId === node.id) return '#ffffff';
-  
-  const aiInsight = aiInsights.get(node.id);
-  if (aiInsight) {
-    switch (aiInsight.recommendation) {
-      case 'strong_buy': return '#00FF88';
-      case 'buy': return '#66FF99';
-      case 'hold': return '#FFCC00';
-      case 'sell': return '#FF6666';
-      case 'strong_sell': return '#FF3366';
-    }
-  }
-
-  // Fallback to price action signals
-  const signal = node.priceActionSignal;
-  if (signal?.explosivePotential === 'High') return '#FFD700';
-  if (signal?.isBreakout) return '#FF4500';
-  if (signal?.isExpansion) return '#FFA500';
-  if (signal?.isAccelerating) return '#1E90FF';
-  
-  // Original logic fallback
-  if (node.divergenceBullish) return '#00ffff';
-  if (node.divergenceBearish) return '#ff0077';
-  if (node.inflow > node.outflow) return '#00ffcc';
-  if (node.outflow > node.inflow) return '#ff0066';
-  return '#00b5d8';
+const formatPrice = (priceString: string | undefined): string => {
+  const price = parseFloat(priceString || '0');
+  if (isNaN(price)) return 'N/A';
+  return `$${price.toLocaleString(undefined, { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: price < 1 ? 6 : 2 
+  })}`;
 };
 
-// Enhanced tooltip with AI insights
-const getEnhancedTooltipText = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>): string[] => {
+const formatPercentage = (change: number | undefined): string => {
+  if (change === undefined || isNaN(change)) return 'N/A';
+  return `${change > 0 ? '+' : ''}${change.toFixed(2)}%`;
+};
+
+const getRecommendationText = (recommendation: string): string => {
+  const translations = {
+    'strong_buy': 'COMPRA FORTE 🚀',
+    'buy': 'Compra 📈',
+    'hold': 'Manter ⏸️',
+    'sell': 'Venda 📉',
+    'strong_sell': 'VENDA FORTE ⚠️'
+  };
+  return translations[recommendation as keyof typeof translations] || 'Neutro';
+};
+
+const createEnhancedTooltip = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>): string[] => {
   const lines: string[] = [];
   
-  // Basic info
-  lines.push(node.name || node.id);
-  lines.push(`Preço: ${formatPrice(node.price)}`);
-  const change24h = node.priceChange24h ?? 0;
-  lines.push(`24h: ${formatPercentage(change24h)}`);
-  lines.push(`Volume: ${node.volume?.toLocaleString() || 'N/A'}`);
+  // Header with symbol and name
+  lines.push(`${node.id} ${node.name ? `(${node.name})` : ''}`);
+  lines.push('─'.repeat(25));
   
-  // AI insights
+  // Price information
+  lines.push(`💰 Preço: ${formatPrice(node.price)}`);
+  const change24h = node.priceChange24h ?? 0;
+  lines.push(`📊 24h: ${formatPercentage(change24h)}`);
+  lines.push(`📈 Volume: ${node.volume?.toLocaleString() || 'N/A'}`);
+  
+  // AI insights section
   const aiInsight = aiInsights.get(node.id);
   if (aiInsight) {
-    lines.push('--- AI Insights ---');
-    lines.push(`Recomendação: ${getRecommendationText(aiInsight.recommendation)}`);
-    lines.push(`Confiança: ${aiInsight.confidence.toFixed(1)}%`);
-    lines.push(`Oportunidade: ${aiInsight.opportunityScore.toFixed(1)}/100`);
-    lines.push(`Risco: ${aiInsight.riskScore.toFixed(1)}/100`);
+    lines.push('');
+    lines.push('🧠 AI Analysis');
+    lines.push('─'.repeat(15));
+    lines.push(`📋 ${getRecommendationText(aiInsight.recommendation)}`);
+    lines.push(`🎯 Confiança: ${aiInsight.confidence.toFixed(1)}%`);
+    lines.push(`💎 Oportunidade: ${aiInsight.opportunityScore.toFixed(0)}/100`);
+    lines.push(`⚠️ Risco: ${aiInsight.riskScore.toFixed(0)}/100`);
     
+    // Patterns detected
     if (aiInsight.patterns && aiInsight.patterns.length > 0) {
       const pattern = aiInsight.patterns[0];
-      lines.push(`Padrão: ${pattern.type} (${pattern.confidence.toFixed(1)}%)`);
+      lines.push(`🔍 Padrão: ${pattern.type}`);
+      lines.push(`   Confiança: ${pattern.confidence.toFixed(1)}%`);
+    }
+    
+    // Latest predictions
+    if (aiInsight.predictions && aiInsight.predictions.length > 0) {
+      const shortTerm = aiInsight.predictions.find(p => p.horizon === '4h') || aiInsight.predictions[0];
+      if (shortTerm) {
+        lines.push(`🎲 Próximas 4h: ${shortTerm.direction === 'bullish' ? '📈 Alta' : '📉 Baixa'}`);
+        lines.push(`   Conf: ${shortTerm.confidence.toFixed(1)}%`);
+      }
+    }
+  }
+  
+  // Price action signals
+  const signal = node.priceActionSignal;
+  if (signal && (signal.isBreakout || signal.isExpansion || signal.isAccelerating)) {
+    lines.push('');
+    lines.push('⚡ Sinais Técnicos');
+    lines.push('─'.repeat(15));
+    if (signal.isBreakout) lines.push('💥 Volume Breakout');
+    if (signal.isExpansion) lines.push('📊 Expansão de Volatilidade');
+    if (signal.isAccelerating) lines.push('🚀 Aceleração de Momentum');
+    if (signal.explosivePotential && signal.explosivePotential !== 'None') {
+      lines.push(`🎆 Potencial: ${signal.explosivePotential}`);
     }
   }
   
   return lines;
 };
 
-const getRecommendationText = (recommendation: string): string => {
-  switch (recommendation) {
-    case 'strong_buy': return 'COMPRA FORTE';
-    case 'buy': return 'Compra';
-    case 'hold': return 'Manter';
-    case 'sell': return 'Venda';
-    case 'strong_sell': return 'VENDA FORTE';
-    default: return 'Neutro';
-  }
-};
-
-// Format functions remain the same
-const formatPrice = (priceString: string | undefined): string => {
-  const price = parseFloat(priceString || '0');
-  if (isNaN(price)) return 'N/A';
-  return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: price < 1 ? 6 : 2 })}`;
-};
-
-const formatPercentage = (change: number | undefined): string => {
-  if (change === undefined || isNaN(change)) return 'N/A';
-  return `${change.toFixed(2)}%`;
-};
-
-// 📦 CLASS
 class NodeRendererClass {
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private nodes: ExtendedOrbitalNode[];
@@ -149,7 +154,7 @@ class NodeRendererClass {
 
     this.createNodePatterns(this.svg, this.nodes);
 
-    // 🟢 GLOW (Updated with AI insights)
+    // AI-powered glow effects
     nodesGroup.selectAll('circle.node-glow')
       .data(this.nodes)
       .enter()
@@ -158,13 +163,23 @@ class NodeRendererClass {
       .attr('cx', d => d.x)
       .attr('cy', d => d.y)
       .attr('r', d => {
-        const volFactor = d.volume ? Math.sqrt(d.volume) / 100 : 1;
-        return d.radius * 1.3 * volFactor * (this.zoomLevel / 100);
+        const volFactor = d.volume ? Math.sqrt(d.volume) / 120 : 1;
+        const baseRadius = d.radius * 1.4 * volFactor * (this.zoomLevel / 100);
+        
+        // Enhanced glow for AI high-opportunity assets
+        const aiInsight = this.aiInsights.get(d.id);
+        const glowMultiplier = aiInsight?.opportunityScore > 75 ? 1.6 : 1.2;
+        
+        return baseRadius * glowMultiplier;
       })
-      .attr('fill', d => getGlowColor(d, this.aiInsights))
-      .attr('filter', 'blur(6px)');
+      .attr('fill', d => getAIGlowColor(d, this.aiInsights))
+      .attr('filter', 'blur(8px)')
+      .attr('opacity', d => {
+        const aiInsight = this.aiInsights.get(d.id);
+        return aiInsight?.opportunityScore > 75 ? 0.8 : 0.5;
+      });
 
-    // 🧠 MAIN NODE GROUP
+    // Main node groups
     const node = nodesGroup.selectAll('g.node')
       .data(this.nodes)
       .enter()
@@ -174,104 +189,117 @@ class NodeRendererClass {
       .attr('data-id', d => d.id)
       .style('cursor', 'pointer')
       .on('mouseenter', (event: MouseEvent, d: ExtendedOrbitalNode) => {
-        this.svg.selectAll('.node-tooltip').remove();
-        const tooltip = this.svg.append('g')
-          .attr('class', 'node-tooltip')
-          .attr('transform', `translate(${d.x},${d.y - d.radius * (this.zoomLevel / 100) - 15})`);
-
-        const textLines = getEnhancedTooltipText(d, this.aiInsights);
-        const padding = 10;
-        const lineHeight = 16;
-        const tooltipHeight = textLines.length * lineHeight + padding * 1.5;
-        let maxWidth = 0;
-
-        // Pre-calculate max width
-        const tempText = tooltip.append('text').style('opacity', 0);
-        textLines.forEach(line => {
-            const textNode = tempText.text(line).node();
-            const w = textNode?.getComputedTextLength() || 0;
-            if (w > maxWidth) maxWidth = w;
-        });
-        tempText.remove();
-        const tooltipWidth = Math.max(200, maxWidth + padding * 2);
-
-        tooltip.append('rect')
-          .attr('rx', 6)
-          .attr('ry', 6)
-          .attr('x', -tooltipWidth / 2)
-          .attr('y', -tooltipHeight + padding / 2)
-          .attr('width', tooltipWidth)
-          .attr('height', tooltipHeight)
-          .attr('fill', 'rgba(10, 20, 30, 0.95)')
-          .attr('stroke', getStrokeColor(d, this.selectedNodeId, this.aiInsights))
-          .attr('stroke-width', 1.5);
-
-        textLines.forEach((line, i) => {
-          let fillColor = '#FFFFFF';
-          let fontWeight = 'normal';
-          let fontSize = '11px';
-
-          if (i === 0) { // Symbol/Name
-            fontWeight = 'bold';
-            fontSize = '13px';
-          } else if (line.includes('24h:')) {
-            const change24h = parseFloat(line.split(':')[1]) || 0;
-            fillColor = change24h >= 0 ? '#22c55e' : '#ef4444';
-            fontWeight = 'medium';
-          } else if (line.includes('AI Insights')) {
-            fillColor = '#00B5D8';
-            fontWeight = 'bold';
-            fontSize = '12px';
-          } else if (line.includes('COMPRA FORTE') || line.includes('VENDA FORTE')) {
-            fillColor = line.includes('COMPRA') ? '#00FF88' : '#FF3366';
-            fontWeight = 'bold';
-          } else if (line.includes('Recomendação:') || line.includes('Confiança:') || line.includes('Oportunidade:') || line.includes('Risco:') || line.includes('Padrão:')) {
-            fillColor = '#E0E0E0';
-            fontSize = '10px';
-          }
-
-          tooltip.append('text')
-            .attr('x', 0)
-            .attr('y', -tooltipHeight + padding * 1.8 + i * lineHeight)
-            .attr('text-anchor', 'middle')
-            .attr('fill', fillColor)
-            .attr('font-size', fontSize)
-            .attr('font-weight', fontWeight)
-            .text(line);
-        });
+        this.showTooltip(d);
       })
-      .on('mouseleave', () => this.svg.selectAll('.node-tooltip').remove())
+      .on('mouseleave', () => this.hideTooltip())
       .on('click', (event: MouseEvent, d: ExtendedOrbitalNode) => {
         const clickEvent = new CustomEvent('node-click', { detail: { nodeId: d.id } });
         document.dispatchEvent(clickEvent);
       });
 
-    // 🔵 CIRCLE (Updated stroke logic with AI insights)
+    // Main node circles with AI-based styling
     node.append('circle')
       .attr('class', 'node-circle')
       .attr('r', d => {
-        const volFactor = d.volume ? Math.sqrt(d.volume) / 100 : 1;
-        return d.radius * volFactor * (this.zoomLevel / 100);
+        const volFactor = d.volume ? Math.sqrt(d.volume) / 120 : 1;
+        const baseRadius = d.radius * volFactor * (this.zoomLevel / 100);
+        
+        // Larger radius for high-opportunity AI recommendations
+        const aiInsight = this.aiInsights.get(d.id);
+        const sizeMultiplier = aiInsight?.opportunityScore > 75 ? 1.3 : 1.0;
+        
+        return Math.max(20, baseRadius * sizeMultiplier);
       })
       .attr('fill', d => `url(#logo-${d.id})`)
-      .attr('stroke', d => getStrokeColor(d, this.selectedNodeId, this.aiInsights))
-      .attr('stroke-width', d => this.selectedNodeId === d.id ? 3 : 2)
-      .attr('stroke-opacity', 0.9);
+      .attr('stroke', d => {
+        if (this.selectedNodeId === d.id) return '#ffffff';
+        
+        const aiInsight = this.aiInsights.get(d.id);
+        if (aiInsight) {
+          return getAIRecommendationColor(aiInsight.recommendation);
+        }
+        
+        const signal = d.priceActionSignal;
+        if (signal?.explosivePotential === 'High') return '#FFD700';
+        if (signal?.isBreakout) return '#FF4500';
+        
+        if (d.inflow > d.outflow) return '#00ffcc';
+        if (d.outflow > d.inflow) return '#ff0066';
+        return '#00b5d8';
+      })
+      .attr('stroke-width', d => {
+        const baseWidth = this.selectedNodeId === d.id ? 4 : 2;
+        const aiInsight = this.aiInsights.get(d.id);
+        
+        // Thicker stroke for strong AI recommendations
+        if (aiInsight?.recommendation === 'strong_buy' || aiInsight?.recommendation === 'strong_sell') {
+          return baseWidth + 1;
+        }
+        
+        return baseWidth;
+      })
+      .attr('stroke-opacity', 0.9)
+      .attr('filter', d => {
+        const aiInsight = this.aiInsights.get(d.id);
+        if (aiInsight?.opportunityScore > 80) {
+          return 'drop-shadow(0 0 12px rgba(0, 255, 136, 0.8))';
+        }
+        return 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.3))';
+      });
 
-    // 🔤 LABEL
+    // Node labels with AI recommendation indicators
     node.append('text')
       .attr('text-anchor', 'middle')
-      .attr('dy', d => d.radius * (this.zoomLevel / 100) * 1.1 + 12)
+      .attr('dy', d => d.radius * (this.zoomLevel / 100) * 1.2 + 16)
       .attr('fill', 'white')
-      .attr('font-size', d => Math.max(9, Math.min(12, d.radius * 0.35) * (this.zoomLevel / 100)))
+      .attr('font-size', d => Math.max(10, Math.min(14, d.radius * 0.4) * (this.zoomLevel / 100)))
       .attr('font-weight', 'bold')
       .style('pointer-events', 'none')
-      .text(d => d.id);
+      .style('text-shadow', '1px 1px 2px rgba(0,0,0,0.8)')
+      .text(d => {
+        const aiInsight = this.aiInsights.get(d.id);
+        if (aiInsight?.recommendation === 'strong_buy') return `${d.id} 🚀`;
+        if (aiInsight?.recommendation === 'strong_sell') return `${d.id} ⚠️`;
+        return d.id;
+      });
+
+    // AI recommendation badges for strong signals
+    node.filter(d => {
+      const aiInsight = this.aiInsights.get(d.id);
+      return aiInsight?.recommendation === 'strong_buy' || aiInsight?.recommendation === 'strong_sell';
+    })
+    .append('circle')
+    .attr('class', 'ai-badge')
+    .attr('cx', d => d.radius * 0.7 * (this.zoomLevel / 100))
+    .attr('cy', d => -d.radius * 0.7 * (this.zoomLevel / 100))
+    .attr('r', 8)
+    .attr('fill', d => {
+      const aiInsight = this.aiInsights.get(d.id);
+      return aiInsight?.recommendation === 'strong_buy' ? '#00FF88' : '#FF3366';
+    })
+    .attr('stroke', 'white')
+    .attr('stroke-width', 2);
+
+    node.filter(d => {
+      const aiInsight = this.aiInsights.get(d.id);
+      return aiInsight?.recommendation === 'strong_buy' || aiInsight?.recommendation === 'strong_sell';
+    })
+    .append('text')
+    .attr('class', 'ai-badge-text')
+    .attr('x', d => d.radius * 0.7 * (this.zoomLevel / 100))
+    .attr('y', d => -d.radius * 0.7 * (this.zoomLevel / 100))
+    .attr('text-anchor', 'middle')
+    .attr('dy', '0.3em')
+    .attr('fill', 'white')
+    .attr('font-size', '10px')
+    .attr('font-weight', 'bold')
+    .text('AI');
   }
 
   private createNodePatterns(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, nodes: ExtendedOrbitalNode[]) {
     svg.select('defs').remove();
     const defs = svg.append('defs');
+    
     nodes.forEach(node => {
       const pattern = defs.append('pattern')
         .attr('id', `logo-${node.id}`)
@@ -290,9 +318,94 @@ class NodeRendererClass {
         });
     });
   }
+
+  private showTooltip(node: ExtendedOrbitalNode) {
+    this.svg.selectAll('.node-tooltip').remove();
+    
+    const tooltip = this.svg.append('g')
+      .attr('class', 'node-tooltip')
+      .attr('transform', `translate(${node.x},${node.y - node.radius * (this.zoomLevel / 100) - 20})`);
+
+    const textLines = createEnhancedTooltip(node, this.aiInsights);
+    const padding = 12;
+    const lineHeight = 18;
+    const tooltipHeight = textLines.length * lineHeight + padding * 2;
+    
+    let maxWidth = 0;
+    const tempText = tooltip.append('text').style('opacity', 0);
+    textLines.forEach(line => {
+      const textNode = tempText.text(line).node();
+      const w = textNode?.getComputedTextLength() || 0;
+      if (w > maxWidth) maxWidth = w;
+    });
+    tempText.remove();
+    
+    const tooltipWidth = Math.max(280, maxWidth + padding * 2);
+
+    // Tooltip background with AI-themed styling
+    tooltip.append('rect')
+      .attr('rx', 12)
+      .attr('ry', 12)
+      .attr('x', -tooltipWidth / 2)
+      .attr('y', -tooltipHeight + padding / 2)
+      .attr('width', tooltipWidth)
+      .attr('height', tooltipHeight)
+      .attr('fill', 'rgba(15, 23, 42, 0.95)')
+      .attr('stroke', () => {
+        const aiInsight = this.aiInsights.get(node.id);
+        if (aiInsight) return getAIRecommendationColor(aiInsight.recommendation);
+        return '#475569';
+      })
+      .attr('stroke-width', 2)
+      .attr('filter', 'drop-shadow(0 8px 32px rgba(0, 0, 0, 0.8))');
+
+    // Render tooltip text with enhanced styling
+    textLines.forEach((line, i) => {
+      let fillColor = '#FFFFFF';
+      let fontWeight = 'normal';
+      let fontSize = '12px';
+
+      if (i === 0) {
+        fillColor = '#F1F5F9';
+        fontWeight = 'bold';
+        fontSize = '14px';
+      } else if (line.includes('─')) {
+        fillColor = '#64748B';
+        fontSize = '10px';
+      } else if (line.includes('🧠 AI Analysis')) {
+        fillColor = '#A855F7';
+        fontWeight = 'bold';
+        fontSize = '13px';
+      } else if (line.includes('COMPRA FORTE') || line.includes('VENDA FORTE')) {
+        fillColor = line.includes('COMPRA') ? '#00FF88' : '#FF3366';
+        fontWeight = 'bold';
+      } else if (line.includes('24h:')) {
+        const change24h = parseFloat(line.split(':')[1]) || 0;
+        fillColor = change24h >= 0 ? '#22c55e' : '#ef4444';
+        fontWeight = 'medium';
+      } else if (line.includes('⚡ Sinais Técnicos')) {
+        fillColor = '#3B82F6';
+        fontWeight = 'bold';
+        fontSize = '13px';
+      }
+
+      tooltip.append('text')
+        .attr('x', 0)
+        .attr('y', -tooltipHeight + padding * 2 + i * lineHeight)
+        .attr('text-anchor', 'middle')
+        .attr('fill', fillColor)
+        .attr('font-size', fontSize)
+        .attr('font-weight', fontWeight)
+        .attr('font-family', 'Inter, system-ui, sans-serif')
+        .text(line);
+    });
+  }
+
+  private hideTooltip() {
+    this.svg.selectAll('.node-tooltip').remove();
+  }
 }
 
-// 🔁 REACT WRAPPER
 export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
   const { insights: aiInsights } = useAdvancedAI();
 

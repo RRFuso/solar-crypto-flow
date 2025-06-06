@@ -12,16 +12,24 @@ const Index = () => {
     <DashboardLayout>
       <div className="h-full w-full flex flex-col">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-800/50 backdrop-blur-sm mb-4">
-            <TabsTrigger value="capital-flow" className="text-white font-medium">
-              💰 Capital Flow
-            </TabsTrigger>
-            <TabsTrigger value="crypto" className="text-white font-medium">
-              📊 Crypto
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex-shrink-0 px-6 pt-4">
+            <TabsList className="grid w-full max-w-md grid-cols-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50">
+              <TabsTrigger 
+                value="capital-flow" 
+                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black"
+              >
+                💰 Capital Flow AI
+              </TabsTrigger>
+              <TabsTrigger 
+                value="crypto" 
+                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black"
+              >
+                📊 Market Data
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 overflow-hidden">
             <TabsContent value="capital-flow" className="h-full m-0">
               <CapitalFlowPanel />
             </TabsContent>

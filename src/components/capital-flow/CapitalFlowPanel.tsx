@@ -9,16 +9,15 @@ import { CategoryFilters } from './panel/CategoryFilters';
 import { FlowVisualizationContent } from './panel/FlowVisualizationContent';
 import { usePredictions } from '@/hooks/capital-flow/usePredictions';
 import { useFilteredFlowData } from '@/hooks/capital-flow/useFilteredFlowData';
-import { useFlowAnalysis } from '@/hooks/capital-flow/useFlowAnalysis'; // Import the new hook
 
 const CapitalFlowPanel = () => {
   const [timeframe, setTimeframe] = useState('24h');
   const [chartTimeframe, setChartTimeframe] = useState('4h');
-  const [zoomLevel, setZoomLevel] = useState(40); // Default zoom level at 40%
-  const [flowLimit, setFlowLimit] = useState(30); // Default to 30 flows
+  const [zoomLevel, setZoomLevel] = useState(60);
+  const [flowLimit, setFlowLimit] = useState(30);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string>('all'); // Track active category filter
+  const [activeCategory, setActiveCategory] = useState<string>('all');
 
   const { data: flowData, isLoading, error, refetch } = useQuery({
     queryKey: ['capital-flow', timeframe],
@@ -33,16 +32,9 @@ const CapitalFlowPanel = () => {
     }
   });
 
-  // Get processed flow data based on filters
   const processedFlowData = useFilteredFlowData(flowData, flowLimit, activeCategory);
-  
-  // Get AI analysis from the FastAPI backend
-  const { data: flowAnalysisData, isLoading: isAnalysisLoading } = useFlowAnalysis(processedFlowData);
-  
-  // Get AI predictions
   const { predictions } = usePredictions(flowData, selectedCategory, chartTimeframe);
 
-  // Filter predictions based on showOnlyStrongSignals setting
   const filteredPredictions = React.useMemo(() => {
     if (showOnlyStrongSignals) {
       return predictions.filter(p => p.confidence >= 0.6);
@@ -50,93 +42,76 @@ const CapitalFlowPanel = () => {
     return predictions;
   }, [predictions, showOnlyStrongSignals]);
 
-  // Merge flow data with analysis data when available
-  const enhancedFlowData = React.useMemo(() => {
-    if (!flowAnalysisData || isAnalysisLoading) return processedFlowData;
-    
-    return processedFlowData.map(flow => {
-      const analysis = flowAnalysisData.find(analysis => 
-        analysis.fluxo_in === (flow.volume || 0) && 
-        analysis.fluxo_out === (flow.outflow || 0)
-      );
-      
-      if (analysis) {
-        return {
-          ...flow,
-          category: analysis.categoria
-        };
-      }
-      return flow;
-    });
-  }, [processedFlowData, flowAnalysisData, isAnalysisLoading]);
-
-  const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 10, 150));
-  };
-
-  const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 10, 10)); // Minimum 10% zoom
-  };
-
-  const handleLimitChange = (value: number[]) => {
-    setFlowLimit(value[0]);
-  };
-
+  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 150));
+  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 20));
+  const handleLimitChange = (value: number[]) => setFlowLimit(value[0]);
   const handleChartTimeframeChange = (value: string) => {
     setChartTimeframe(value);
-    // Trigger prediction recalculation
     refetch();
   };
-
-  // Handle category filter click
-  const handleCategoryClick = (category: string) => {
-    setActiveCategory(category);
-  };
+  const handleCategoryClick = (category: string) => setActiveCategory(category);
 
   return (
-    <div className="w-full h-full flex flex-col gap-6 p-6 bg-crypto-dark backdrop-blur-xl border border-white/10 rounded-xl shadow-lg">
-      {/* Header with logo and title */}
-      <FlowPanelHeader 
-        chartTimeframe={chartTimeframe}
-        onChartTimeframeChange={handleChartTimeframeChange}
-      />
-
-      <div className="flex items-center justify-between">
-        {/* Add an empty div to help with layout */}
-        <div></div>
-        
-        {/* Control buttons and filters */}
-        <FlowControls
-          chartTimeframe={chartTimeframe}
-          showOnlyStrongSignals={showOnlyStrongSignals}
-          setShowOnlyStrongSignals={setShowOnlyStrongSignals}
+    <div className="h-full w-full flex">
+      {/* Left Sidebar - AI Watchlist */}
+      <div className="w-80 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/30 backdrop-blur-sm">
+        <FlowVisualizationContent 
+          isLoading={isLoading}
+          error={error}
+          processedFlowData={processedFlowData}
           zoomLevel={zoomLevel}
-          handleZoomIn={handleZoomIn}
-          handleZoomOut={handleZoomOut}
-          flowLimit={flowLimit}
-          handleLimitChange={handleLimitChange}
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-          onRefresh={() => refetch()}
+          filteredPredictions={filteredPredictions}
+          chartTimeframe={chartTimeframe}
+          activeCategory={activeCategory}
+          showSidebarOnly={true}
         />
       </div>
 
-      {/* Category Filter Badges */}
-      <CategoryFilters 
-        activeCategory={activeCategory}
-        onCategoryClick={handleCategoryClick}
-      />
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header Controls */}
+        <div className="flex-shrink-0 p-4 border-b border-slate-700/50 bg-slate-900/20 backdrop-blur-sm">
+          <FlowPanelHeader 
+            chartTimeframe={chartTimeframe}
+            onChartTimeframeChange={handleChartTimeframeChange}
+          />
+          
+          <div className="flex items-center justify-between mt-4">
+            <CategoryFilters 
+              activeCategory={activeCategory}
+              onCategoryClick={handleCategoryClick}
+            />
+            
+            <FlowControls
+              chartTimeframe={chartTimeframe}
+              showOnlyStrongSignals={showOnlyStrongSignals}
+              setShowOnlyStrongSignals={setShowOnlyStrongSignals}
+              zoomLevel={zoomLevel}
+              handleZoomIn={handleZoomIn}
+              handleZoomOut={handleZoomOut}
+              flowLimit={flowLimit}
+              handleLimitChange={handleLimitChange}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              onRefresh={() => refetch()}
+            />
+          </div>
+        </div>
 
-      {/* Main Visualization Content */}
-      <FlowVisualizationContent 
-        isLoading={isLoading || isAnalysisLoading}
-        error={error}
-        processedFlowData={enhancedFlowData}
-        zoomLevel={zoomLevel}
-        filteredPredictions={filteredPredictions}
-        chartTimeframe={chartTimeframe}
-        activeCategory={activeCategory}
-      />
+        {/* Main Visualization */}
+        <div className="flex-1 overflow-hidden">
+          <FlowVisualizationContent 
+            isLoading={isLoading}
+            error={error}
+            processedFlowData={processedFlowData}
+            zoomLevel={zoomLevel}
+            filteredPredictions={filteredPredictions}
+            chartTimeframe={chartTimeframe}
+            activeCategory={activeCategory}
+            showSidebarOnly={false}
+          />
+        </div>
+      </div>
     </div>
   );
 };
