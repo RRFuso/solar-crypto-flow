@@ -52,9 +52,10 @@ const CapitalFlowPanel = () => {
   const handleCategoryClick = (category: string) => setActiveCategory(category);
 
   return (
-    <div className="h-full w-full flex overflow-hidden">
-      {/* Left Sidebar - AI Watchlist - Fixed width */}
-      <div className="w-80 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-hidden">
+    // CORRECTED: Use h-full w-full flex, remove top-level overflow-hidden
+    <div className="h-full w-full flex">
+      {/* Left Sidebar - AI Watchlist - Fixed width, allow vertical scroll */}
+      <div className="w-80 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-y-auto overflow-x-hidden"> {/* Allow Y scroll */} 
         <FlowVisualizationContent 
           isLoading={isLoading}
           error={error}
@@ -67,10 +68,11 @@ const CapitalFlowPanel = () => {
         />
       </div>
 
-      {/* Main Content Area - Takes remaining space */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      {/* Main Content Area - Takes remaining space, allow scroll if needed */}
+      {/* CORRECTED: Remove min-w-0 and overflow-hidden, allow scroll */}
+      <div className="flex-1 flex flex-col overflow-auto"> 
         {/* Header Controls - Fixed height */}
-        <div className="flex-shrink-0 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm">
+        <div className="flex-shrink-0 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm z-10"> {/* Added z-index */} 
           <div className="p-4">
             <FlowPanelHeader 
               chartTimeframe={chartTimeframe}
@@ -79,7 +81,7 @@ const CapitalFlowPanel = () => {
           </div>
           
           <div className="px-4 pb-4">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap"> {/* Added flex-wrap */} 
               <div className="flex-shrink-0">
                 <CategoryFilters 
                   activeCategory={activeCategory}
@@ -106,8 +108,9 @@ const CapitalFlowPanel = () => {
           </div>
         </div>
 
-        {/* Main Visualization - Takes remaining height */}
-        <div className="flex-1 overflow-hidden relative">
+        {/* Main Visualization - Takes remaining height, ensure it can scroll if content overflows */}
+        {/* CORRECTED: Remove overflow-hidden, ensure relative positioning works */}
+        <div className="flex-1 relative min-h-[600px]"> {/* Ensure minimum height, relative for absolute children */} 
           <FlowVisualizationContent 
             isLoading={isLoading}
             error={error}
@@ -125,3 +128,4 @@ const CapitalFlowPanel = () => {
 };
 
 export default CapitalFlowPanel;
+

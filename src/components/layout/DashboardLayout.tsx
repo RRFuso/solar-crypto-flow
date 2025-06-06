@@ -23,9 +23,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   }
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-black">
+    // CORRECTED: Use min-h-screen, w-full, allow overflow-x if needed
+    <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-black">
       {/* Header */}
-      <header className="flex-shrink-0 h-14 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-sm">
+      <header className="flex-shrink-0 h-14 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-sm z-20"> {/* Added z-index */} 
         <div className="h-full px-4 flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -42,8 +43,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-hidden">
+      {/* Main Content - Allow vertical scroll, remove overflow-hidden */}
+      <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden"> {/* Allow vertical scroll, hide horizontal initially */} 
         {children}
       </main>
     </div>
@@ -51,3 +52,4 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 };
 
 export default DashboardLayout;
+
