@@ -42,9 +42,9 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
   }
 
   return (
-    <div className="flex gap-6 h-full" style={{ minHeight: "700px" }}>
+    <div className="flex gap-6 h-full w-full">
       {/* AI Watchlist on the left - always show */}
-      <div className="w-80 h-full flex-shrink-0">
+      <div className="w-80 h-full flex-shrink-0 overflow-auto">
         <AIWatchlist 
           predictions={filteredPredictions} 
           maxItems={8} 
@@ -53,18 +53,22 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
       </div>
       
       {/* Main Visualization Area */}
-      <div className="flex-1 flex flex-col items-center justify-center relative">
+      <div className="flex-1 flex flex-col items-center justify-center relative min-w-0 h-full">
         {/* D3 Visualization with zoom level prop */}
-        <FlowVisualization 
-          flowData={processedFlowData} 
-          zoomLevel={zoomLevel}
-          predictions={filteredPredictions} 
-          chartTimeframe={chartTimeframe}
-          activeCategory={activeCategory}
-        />
+        <div className="w-full h-full relative">
+          <FlowVisualization 
+            flowData={processedFlowData} 
+            zoomLevel={zoomLevel}
+            predictions={filteredPredictions} 
+            chartTimeframe={chartTimeframe}
+            activeCategory={activeCategory}
+          />
+        </div>
         
-        {/* Legend */}
-        <FlowLegend />
+        {/* Legend positioned at bottom */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+          <FlowLegend />
+        </div>
       </div>
     </div>
   );

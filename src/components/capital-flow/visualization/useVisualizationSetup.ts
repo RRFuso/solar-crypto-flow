@@ -4,12 +4,12 @@ import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
 import { useOrbitalVisualization } from '@/hooks/capital-flow/useOrbitalVisualization';
 import { OrbitalNode } from '../NodePlacement';
-import { PriceActionSignal } from '@/hooks/usePriceActionSignals'; // Import PriceActionSignal
+import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
 
 // Define ExtendedOrbitalNode here as well for consistency
 interface ExtendedOrbitalNode extends OrbitalNode {
   price?: string;
-  volume?: number | undefined; // Ensure volume is number or undefined
+  volume?: number | undefined;
   priceChange24h?: number;
   priceActionSignal?: PriceActionSignal;
 }
@@ -20,7 +20,6 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
   const { createOrbitalVisualization } = useOrbitalVisualization();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   
-  // CORRECTED: Use ExtendedOrbitalNode for the state type
   const [visualizationData, setVisualizationData] = useState<{
     nodes: ExtendedOrbitalNode[],
     links: any[],
@@ -30,22 +29,26 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
   
   const animationRef = useRef<any | null>(null);
   
-  // Handle window resize
+  // Handle window resize and initial sizing
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
         setDimensions({
-          width: containerRef.current.clientWidth,
-          // Ensure height is at least 700px or container height
-          height: Math.max(700, containerRef.current.clientHeight || 0) 
+          width: rect.width,
+          height: rect.height
         });
       }
     };
     
-    handleResize(); // Initial sizing
+    // Initial sizing with a small delay to ensure container is rendered
+    const timer = setTimeout(handleResize, 100);
+    handleResize();
+    
     window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
+      clearTimeout(timer);
     };
   }, []);
   
@@ -61,11 +64,10 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
     svgRef,
     containerRef,
     dimensions,
-    visualizationData, // State now uses ExtendedOrbitalNode
-    setVisualizationData, // Setter function type matches the state
+    visualizationData,
+    setVisualizationData,
     animationRef,
     handleNodeSelection,
     createOrbitalVisualization
   };
 };
-
