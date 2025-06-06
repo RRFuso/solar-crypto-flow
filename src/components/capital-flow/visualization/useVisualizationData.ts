@@ -1,17 +1,29 @@
+
 import { useEffect } from 'react';
 import * as d3 from 'd3';
-import { FlowData } from '@/types/crypto';
+import { FlowData, CryptoData } from '@/types/crypto'; // Import CryptoData
 import { calculateNodePositions, OrbitalNode } from '../NodePlacement';
+import { PriceActionSignal } from '@/hooks/usePriceActionSignals'; // Import PriceActionSignal
+
+// Extend OrbitalNode to include necessary fields for tooltip
+interface ExtendedOrbitalNode extends OrbitalNode {
+  price?: string;
+  volume?: string; // Volume is already part of OrbitalNode, ensure it's passed
+  priceChange24h?: number;
+  priceActionSignal?: PriceActionSignal;
+}
 
 interface UseVisualizationDataProps {
   flowData: FlowData[];
+  cryptoDataMap: Map<string, CryptoData>; // Add map for quick lookup
+  priceActionSignals: Map<string, PriceActionSignal> | null; // Add signals map
   svgRef: React.RefObject<SVGSVGElement>;
   dimensions: { width: number, height: number };
   zoomLevel: number;
   setVisualizationData: React.Dispatch<React.SetStateAction<{
-    nodes: OrbitalNode[];
+    nodes: ExtendedOrbitalNode[]; // Use extended type here
     links: any[];
-    centralNode: OrbitalNode | null;
+    centralNode: ExtendedOrbitalNode | null;
     selectedNodeId: string | null;
   }>>;
   animationRef: React.MutableRefObject<any | null>;
@@ -20,12 +32,14 @@ interface UseVisualizationDataProps {
     svgElement: SVGSVGElement,
     width: number,
     height: number
-  ) => any;
+  ) => { svg: any, nodes: OrbitalNode[], links: any[], centralNode: OrbitalNode | null }; // Define return type
   activeCategory?: string;
 }
 
 export const useVisualizationData = ({
   flowData,
+  cryptoDataMap, // Receive crypto data map
+  priceActionSignals, // Receive signals map
   svgRef,
   dimensions,
   zoomLevel,
@@ -35,10 +49,8 @@ export const useVisualizationData = ({
   activeCategory = 'all'
 }: UseVisualizationDataProps) => {
   useEffect(() => {
-    // Only proceed if we have data, an SVG element, and dimensions
     if (!flowData || flowData.length === 0 || !svgRef.current || !dimensions.width) return;
-    
-    // Clean up previous animation
+
     if (animationRef.current) {
       try {
         if (typeof animationRef.current.cleanup === 'function') {
@@ -49,104 +61,113 @@ export const useVisualizationData = ({
       }
       animationRef.current = null;
     }
-    
-    // Clear previous SVG content
+
     d3.select(svgRef.current).selectAll("*").remove();
-    
+
     const width = dimensions.width;
     const height = dimensions.height;
-    
-    // Initialize visualization immediately with the default timeframe
-    console.log("Initializing visualization with default timeframe");
-    const { svg, nodes, links, centralNode } = createOrbitalVisualization(
+
+    // Create base visualization (nodes might lack extra data here initially)
+    const { nodes: baseNodes, links, centralNode: baseCentralNode } = createOrbitalVisualization(
       flowData, 
       svgRef.current, 
       width,
       height
     );
-    
-    // Ensure we have nodes and links
-    if (nodes.length === 0) {
+
+    if (baseNodes.length === 0) {
       console.error("No nodes created from flow data");
       return;
     }
+
+    // --- Enrich nodes with Price, Volume, Change24h, and Signals --- 
+    const enrichedNodes: ExtendedOrbitalNode[] = baseNodes.map(node => {
+      const cryptoInfo = cryptoDataMap.get(node.id);
+      const signalInfo = priceActionSignals?.get(node.id);
+      return {
+        ...node,
+        price: cryptoInfo?.price, // Add price from cryptoDataMap
+        // Volume might already be in node from createOrbitalVisualization, fallback if needed
+        volume: node.volume?.toString() ?? cryptoInfo?.volume, 
+        priceChange24h: cryptoInfo?.priceChange24h, // Add change from cryptoDataMap
+        priceActionSignal: signalInfo // Add signal info
+      };
+    });
     
-    // Apply category filtering
-    let filteredNodes = nodes;
+    const enrichedCentralNode: ExtendedOrbitalNode | null = baseCentralNode ? {
+        ...baseCentralNode,
+        price: cryptoDataMap.get(baseCentralNode.id)?.price,
+        volume: baseCentralNode.volume?.toString() ?? cryptoDataMap.get(baseCentralNode.id)?.volume,
+        priceChange24h: cryptoDataMap.get(baseCentralNode.id)?.priceChange24h,
+        priceActionSignal: priceActionSignals?.get(baseCentralNode.id)
+    } : null;
+    // --- End Enrichment --- 
+
+    // Apply category filtering to enriched nodes
+    let filteredNodes = enrichedNodes;
     let filteredLinks = links;
-    
+    let filteredCentralNode = enrichedCentralNode;
+
     if (activeCategory !== 'all') {
-      // Filter nodes by category
-      filteredNodes = nodes.filter(node => {
-        // Keep central node
-        if (node.id === centralNode.id) return true;
-        
-        // Check if node has this category
-        return node.category === activeCategory || 
-               (node.categories && node.categories.includes(activeCategory));
+      filteredNodes = enrichedNodes.filter(node => {
+        if (node.id === enrichedCentralNode?.id) return true;
+        const cryptoInfo = cryptoDataMap.get(node.id);
+        return cryptoInfo?.category === activeCategory;
       });
-      
-      // Get IDs of filtered nodes
+
       const filteredNodeIds = filteredNodes.map(node => node.id);
-      
-      // Filter links to only include connections between filtered nodes
       filteredLinks = links.filter(link => 
         filteredNodeIds.includes(link.source.id) && 
         filteredNodeIds.includes(link.target.id)
       );
+      // Ensure central node is still included if filtered out by category logic (it shouldn't be)
+      if (enrichedCentralNode && !filteredNodes.find(n => n.id === enrichedCentralNode.id)) {
+          filteredNodes.push(enrichedCentralNode);
+      }
+      // If the central node itself was filtered out (unlikely), reset it
+      if (!filteredNodeIds.includes(enrichedCentralNode?.id || '')) {
+          filteredCentralNode = null; // Or handle appropriately
+      }
     }
-    
-    // Calculate orbit parameters
-    const nonCentralNodes = filteredNodes.filter(n => n.id !== centralNode.id);
+
+    const nonCentralNodes = filteredNodes.filter(n => n.id !== filteredCentralNode?.id);
     const orbitLayers = Math.min(10, Math.ceil(nonCentralNodes.length / 10));
-    
-    // Apply zoom scale by modifying the base radius and scale factors
     const zoomFactor = zoomLevel / 100;
     const baseRadius = Math.min(width, height) * 0.25 / orbitLayers * zoomFactor;
-    
-    // Manually scale down node radii
+
     filteredNodes.forEach(node => {
-      if (node.id === 'BTC') {
-        node.radius = Math.max(30, node.radius * zoomFactor);
-      } else {
-        node.radius = Math.max(10, node.radius * zoomFactor);
-      }
+      const baseRad = node.id === filteredCentralNode?.id ? 30 : 15; // Base radius before scaling
+      node.radius = Math.max(10, baseRad * zoomFactor * 1.5); // Apply zoom and ensure min size
     });
-    
-    // Position nodes
+
     const nodePositionsProps = { 
       nodes: filteredNodes, 
-      centralNode, 
+      centralNode: filteredCentralNode, 
       width, 
       height, 
       orbitLayers, 
       baseRadius 
     };
     calculateNodePositions(nodePositionsProps);
-    
-    // Add click handlers to highlight connections
-    svg.selectAll(".node")
-      .on("click", function(event, d) {
-        // Toggle selection state
-        setVisualizationData(prev => ({ 
-          ...prev, 
-          selectedNodeId: prev.selectedNodeId === d.id ? null : d.id 
-        }));
-      });
-    
-    // Store visualization data for rendering
+
+    // Remove the d3 click handler here as it might conflict or be redundant
+    // The click logic is handled in FlowVisualization.tsx via event listener
+    // svg.selectAll(".node")
+    //   .on("click", function(event, d) { ... });
+
     setVisualizationData({ 
       nodes: filteredNodes, 
       links: filteredLinks, 
-      centralNode,
-      selectedNodeId: null
+      centralNode: filteredCentralNode,
+      selectedNodeId: null // Reset selection on data change
     });
-    
+
     return () => {
-      // Component cleanup
       if (svgRef.current) {
         d3.select(svgRef.current).selectAll("*").remove();
       }
     };
-  }, [flowData, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory]);
+  // Add cryptoDataMap and priceActionSignals to dependencies
+  }, [flowData, cryptoDataMap, priceActionSignals, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory, svgRef]); 
 };
+
