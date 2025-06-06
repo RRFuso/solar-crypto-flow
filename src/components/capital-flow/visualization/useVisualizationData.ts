@@ -1,28 +1,27 @@
 
 import { useEffect } from 'react';
 import * as d3 from 'd3';
-import { FlowData, CryptoData } from '@/types/crypto'; // Import CryptoData
+import { FlowData, CryptoData } from '@/types/crypto';
 import { calculateNodePositions, OrbitalNode } from '../NodePlacement';
-import { PriceActionSignal } from '@/hooks/usePriceActionSignals'; // Import PriceActionSignal
+import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
 
 // Extend OrbitalNode to include necessary fields for tooltip
-// Ensure volume type matches OrbitalNode (number | undefined)
 interface ExtendedOrbitalNode extends OrbitalNode {
   price?: string;
-  volume?: number | undefined; // CORRECTED: Ensure volume is number or undefined
+  volume?: number | undefined;
   priceChange24h?: number;
   priceActionSignal?: PriceActionSignal;
 }
 
 interface UseVisualizationDataProps {
   flowData: FlowData[];
-  cryptoDataMap: Map<string, CryptoData>; // Add map for quick lookup
-  priceActionSignals: Map<string, PriceActionSignal> | null; // Add signals map
+  cryptoDataMap: Map<string, CryptoData>;
+  priceActionSignals: Map<string, PriceActionSignal> | null;
   svgRef: React.RefObject<SVGSVGElement>;
   dimensions: { width: number, height: number };
   zoomLevel: number;
   setVisualizationData: React.Dispatch<React.SetStateAction<{
-    nodes: ExtendedOrbitalNode[]; // Use extended type here
+    nodes: ExtendedOrbitalNode[];
     links: any[];
     centralNode: ExtendedOrbitalNode | null;
     selectedNodeId: string | null;
@@ -33,7 +32,7 @@ interface UseVisualizationDataProps {
     svgElement: SVGSVGElement,
     width: number,
     height: number
-  ) => { svg: any, nodes: OrbitalNode[], links: any[], centralNode: OrbitalNode | null }; // Define return type
+  ) => { svg: any, nodes: OrbitalNode[], links: any[], centralNode: OrbitalNode | null };
   activeCategory?: string;
 }
 
@@ -47,10 +46,28 @@ const getVolumeAsNumber = (vol: number | string | undefined): number | undefined
     return undefined;
 };
 
+// CRITICAL FIX: Conservative radius calculation
+const calculateConservativeRadius = (node: OrbitalNode, zoomLevel: number, isCentral: boolean = false): number => {
+  // Much more conservative base sizes
+  const baseRadius = isCentral ? 25 : 15;
+  
+  // Minimal zoom impact
+  const zoomFactor = Math.min(1.5, Math.max(0.7, zoomLevel / 100));
+  
+  // Calculate final radius with strict limits
+  const calculatedRadius = baseRadius * zoomFactor;
+  
+  // STRICT LIMITS to prevent oversized nodes
+  const minRadius = isCentral ? 20 : 12;
+  const maxRadius = isCentral ? 35 : 22;
+  
+  return Math.max(minRadius, Math.min(maxRadius, calculatedRadius));
+};
+
 export const useVisualizationData = ({
   flowData,
-  cryptoDataMap, // Receive crypto data map
-  priceActionSignals, // Receive signals map
+  cryptoDataMap,
+  priceActionSignals,
   svgRef,
   dimensions,
   zoomLevel,
@@ -78,7 +95,7 @@ export const useVisualizationData = ({
     const width = dimensions.width;
     const height = dimensions.height;
 
-    // Create base visualization (nodes might lack extra data here initially)
+    // Create base visualization
     const { nodes: baseNodes, links, centralNode: baseCentralNode } = createOrbitalVisualization(
       flowData, 
       svgRef.current, 
@@ -91,15 +108,14 @@ export const useVisualizationData = ({
       return;
     }
 
-    // --- Enrich nodes with Price, Volume, Change24h, and Signals --- 
+    // Enrich nodes with additional data
     const enrichedNodes: ExtendedOrbitalNode[] = baseNodes.map(node => {
       const cryptoInfo = cryptoDataMap.get(node.id);
       const signalInfo = priceActionSignals?.get(node.id);
       return {
         ...node,
         price: cryptoInfo?.price,
-        // CORRECTED: Ensure volume is parsed to number
-        volume: getVolumeAsNumber(node.volume ?? cryptoInfo?.volume), 
+        volume: getVolumeAsNumber(node.volume ?? cryptoInfo?.volume),
         priceChange24h: cryptoInfo?.priceChange24h,
         priceActionSignal: signalInfo
       };
@@ -108,14 +124,12 @@ export const useVisualizationData = ({
     const enrichedCentralNode: ExtendedOrbitalNode | null = baseCentralNode ? {
         ...baseCentralNode,
         price: cryptoDataMap.get(baseCentralNode.id)?.price,
-        // CORRECTED: Ensure volume is parsed to number
         volume: getVolumeAsNumber(baseCentralNode.volume ?? cryptoDataMap.get(baseCentralNode.id)?.volume),
         priceChange24h: cryptoDataMap.get(baseCentralNode.id)?.priceChange24h,
         priceActionSignal: priceActionSignals?.get(baseCentralNode.id)
     } : null;
-    // --- End Enrichment --- 
 
-    // Apply category filtering to enriched nodes
+    // Apply category filtering
     let filteredNodes = enrichedNodes;
     let filteredLinks = links;
     let filteredCentralNode = enrichedCentralNode;
@@ -124,7 +138,6 @@ export const useVisualizationData = ({
       filteredNodes = enrichedNodes.filter(node => {
         if (node.id === enrichedCentralNode?.id) return true;
         const cryptoInfo = cryptoDataMap.get(node.id);
-        // Assuming category is fetched and available in cryptoInfo
         return cryptoInfo?.category === activeCategory;
       });
 
@@ -133,6 +146,7 @@ export const useVisualizationData = ({
         filteredNodeIds.includes(link.source.id) && 
         filteredNodeIds.includes(link.target.id)
       );
+      
       if (enrichedCentralNode && !filteredNodes.find(n => n.id === enrichedCentralNode.id)) {
           filteredNodes.push(enrichedCentralNode);
       }
@@ -141,15 +155,16 @@ export const useVisualizationData = ({
       }
     }
 
-    const nonCentralNodes = filteredNodes.filter(n => n.id !== filteredCentralNode?.id);
-    const orbitLayers = Math.min(10, Math.ceil(nonCentralNodes.length / 10));
-    const zoomFactor = zoomLevel / 100;
-    const baseRadius = Math.min(width, height) * 0.25 / orbitLayers * zoomFactor;
-
+    // CRITICAL FIX: Apply conservative radius calculations
     filteredNodes.forEach(node => {
-      const baseRad = node.id === filteredCentralNode?.id ? 30 : 15;
-      node.radius = Math.max(10, baseRad * zoomFactor * 1.5);
+      const isCentral = node.id === filteredCentralNode?.id;
+      node.radius = calculateConservativeRadius(node, zoomLevel, isCentral);
     });
+
+    // Calculate positioning with improved parameters
+    const nonCentralNodes = filteredNodes.filter(n => n.id !== filteredCentralNode?.id);
+    const orbitLayers = Math.min(5, Math.ceil(nonCentralNodes.length / 8)); // More conservative layer count
+    const baseRadius = Math.min(width, height) * 0.2; // Reduced base radius
 
     const nodePositionsProps = { 
       nodes: filteredNodes, 
@@ -159,8 +174,8 @@ export const useVisualizationData = ({
       orbitLayers, 
       baseRadius 
     };
-    // Ensure calculateNodePositions accepts ExtendedOrbitalNode[] or handle type mismatch
-    calculateNodePositions(nodePositionsProps as any); // Using 'as any' temporarily if types mismatch, ideally fix the function signature
+    
+    calculateNodePositions(nodePositionsProps as any);
 
     setVisualizationData({ 
       nodes: filteredNodes, 

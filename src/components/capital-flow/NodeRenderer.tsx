@@ -44,8 +44,8 @@ const getAIGlowColor = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>)
   if (signal?.explosivePotential === 'High') return 'rgba(255, 215, 0, 0.6)';
   if (signal?.explosivePotential === 'Medium') return 'rgba(255, 150, 0, 0.4)';
   
-  if (node.inflow > node.outflow) return 'rgba(0, 255, 204, 0.4)';
-  if (node.outflow > node.inflow) return 'rgba(255, 0, 102, 0.4)';
+  if (node.inflow && node.outflow && node.inflow > node.outflow) return 'rgba(0, 255, 204, 0.4)';
+  if (node.inflow && node.outflow && node.outflow > node.inflow) return 'rgba(255, 0, 102, 0.4)';
   return 'rgba(0, 181, 216, 0.3)';
 };
 
@@ -72,6 +72,36 @@ const getRecommendationText = (recommendation: string): string => {
     'strong_sell': 'VENDA FORTE ⚠️'
   };
   return translations[recommendation as keyof typeof translations] || 'Neutro';
+};
+
+// CRITICAL FIX: Proper radius calculation with limits
+const calculateNodeRadius = (node: ExtendedOrbitalNode, zoomLevel: number, isCentral: boolean = false): number => {
+  // Base radius - much more conservative
+  const baseRadius = isCentral ? 25 : 15;
+  
+  // Volume factor - heavily limited to prevent extreme sizes
+  let volFactor = 1;
+  if (node.volume && node.volume > 0) {
+    // Use logarithmic scale to prevent extreme volume differences
+    const logVolume = Math.log10(node.volume);
+    volFactor = Math.min(2.5, Math.max(0.5, logVolume / 10)); // Cap between 0.5x and 2.5x
+  }
+  
+  // Zoom factor - much more conservative
+  const zoomFactor = Math.min(2, Math.max(0.5, zoomLevel / 100)); // Cap zoom effect
+  
+  // AI insight factor - minimal impact on size
+  const aiInsight = node.priceActionSignal;
+  const aiMultiplier = aiInsight?.explosivePotential === 'High' ? 1.2 : 1.0;
+  
+  // Calculate final radius with strict limits
+  const calculatedRadius = baseRadius * volFactor * zoomFactor * aiMultiplier;
+  
+  // STRICT MIN/MAX LIMITS
+  const minRadius = isCentral ? 20 : 12;
+  const maxRadius = isCentral ? 40 : 25;
+  
+  return Math.max(minRadius, Math.min(maxRadius, calculatedRadius));
 };
 
 const createEnhancedTooltip = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>): string[] => {
@@ -135,6 +165,7 @@ const createEnhancedTooltip = (node: ExtendedOrbitalNode, aiInsights: Map<string
 class NodeRendererClass {
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private nodes: ExtendedOrbitalNode[];
+  private centralNode: ExtendedOrbitalNode | null;
   private selectedNodeId: string | null;
   private zoomLevel: number;
   private aiInsights: Map<string, any>;
@@ -142,6 +173,7 @@ class NodeRendererClass {
   constructor(props: NodeRendererProps & { aiInsights: Map<string, any> }) {
     this.svg = props.svg;
     this.nodes = props.nodes;
+    this.centralNode = props.centralNode;
     this.selectedNodeId = props.selectedNodeId;
     this.zoomLevel = props.zoomLevel;
     this.aiInsights = props.aiInsights;
@@ -154,7 +186,7 @@ class NodeRendererClass {
 
     this.createNodePatterns(this.svg, this.nodes);
 
-    // AI-powered glow effects
+    // AI-powered glow effects with corrected radius calculation
     nodesGroup.selectAll('circle.node-glow')
       .data(this.nodes)
       .enter()
@@ -163,14 +195,9 @@ class NodeRendererClass {
       .attr('cx', d => d.x)
       .attr('cy', d => d.y)
       .attr('r', d => {
-        const volFactor = d.volume ? Math.sqrt(d.volume) / 120 : 1;
-        const baseRadius = d.radius * 1.4 * volFactor * (this.zoomLevel / 100);
-        
-        // Enhanced glow for AI high-opportunity assets
-        const aiInsight = this.aiInsights.get(d.id);
-        const glowMultiplier = aiInsight?.opportunityScore > 75 ? 1.6 : 1.2;
-        
-        return baseRadius * glowMultiplier;
+        const isCentral = d.id === this.centralNode?.id;
+        const nodeRadius = calculateNodeRadius(d, this.zoomLevel, isCentral);
+        return nodeRadius * 1.5; // Glow slightly larger than node
       })
       .attr('fill', d => getAIGlowColor(d, this.aiInsights))
       .attr('filter', 'blur(8px)')
@@ -197,18 +224,12 @@ class NodeRendererClass {
         document.dispatchEvent(clickEvent);
       });
 
-    // Main node circles with AI-based styling
+    // Main node circles with CORRECTED sizing
     node.append('circle')
       .attr('class', 'node-circle')
       .attr('r', d => {
-        const volFactor = d.volume ? Math.sqrt(d.volume) / 120 : 1;
-        const baseRadius = d.radius * volFactor * (this.zoomLevel / 100);
-        
-        // Larger radius for high-opportunity AI recommendations
-        const aiInsight = this.aiInsights.get(d.id);
-        const sizeMultiplier = aiInsight?.opportunityScore > 75 ? 1.3 : 1.0;
-        
-        return Math.max(20, baseRadius * sizeMultiplier);
+        const isCentral = d.id === this.centralNode?.id;
+        return calculateNodeRadius(d, this.zoomLevel, isCentral);
       })
       .attr('fill', d => `url(#logo-${d.id})`)
       .attr('stroke', d => {
@@ -223,8 +244,10 @@ class NodeRendererClass {
         if (signal?.explosivePotential === 'High') return '#FFD700';
         if (signal?.isBreakout) return '#FF4500';
         
-        if (d.inflow > d.outflow) return '#00ffcc';
-        if (d.outflow > d.inflow) return '#ff0066';
+        if (d.inflow && d.outflow) {
+          if (d.inflow > d.outflow) return '#00ffcc';
+          if (d.outflow > d.inflow) return '#ff0066';
+        }
         return '#00b5d8';
       })
       .attr('stroke-width', d => {
@@ -247,12 +270,16 @@ class NodeRendererClass {
         return 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.3))';
       });
 
-    // Node labels with AI recommendation indicators
+    // Node labels with corrected positioning
     node.append('text')
       .attr('text-anchor', 'middle')
-      .attr('dy', d => d.radius * (this.zoomLevel / 100) * 1.2 + 16)
+      .attr('dy', d => {
+        const isCentral = d.id === this.centralNode?.id;
+        const nodeRadius = calculateNodeRadius(d, this.zoomLevel, isCentral);
+        return nodeRadius + 16; // Position below the node
+      })
       .attr('fill', 'white')
-      .attr('font-size', d => Math.max(10, Math.min(14, d.radius * 0.4) * (this.zoomLevel / 100)))
+      .attr('font-size', '12px')
       .attr('font-weight', 'bold')
       .style('pointer-events', 'none')
       .style('text-shadow', '1px 1px 2px rgba(0,0,0,0.8)')
@@ -270,8 +297,16 @@ class NodeRendererClass {
     })
     .append('circle')
     .attr('class', 'ai-badge')
-    .attr('cx', d => d.radius * 0.7 * (this.zoomLevel / 100))
-    .attr('cy', d => -d.radius * 0.7 * (this.zoomLevel / 100))
+    .attr('cx', d => {
+      const isCentral = d.id === this.centralNode?.id;
+      const nodeRadius = calculateNodeRadius(d, this.zoomLevel, isCentral);
+      return nodeRadius * 0.7;
+    })
+    .attr('cy', d => {
+      const isCentral = d.id === this.centralNode?.id;
+      const nodeRadius = calculateNodeRadius(d, this.zoomLevel, isCentral);
+      return -nodeRadius * 0.7;
+    })
     .attr('r', 8)
     .attr('fill', d => {
       const aiInsight = this.aiInsights.get(d.id);
@@ -286,8 +321,16 @@ class NodeRendererClass {
     })
     .append('text')
     .attr('class', 'ai-badge-text')
-    .attr('x', d => d.radius * 0.7 * (this.zoomLevel / 100))
-    .attr('y', d => -d.radius * 0.7 * (this.zoomLevel / 100))
+    .attr('x', d => {
+      const isCentral = d.id === this.centralNode?.id;
+      const nodeRadius = calculateNodeRadius(d, this.zoomLevel, isCentral);
+      return nodeRadius * 0.7;
+    })
+    .attr('y', d => {
+      const isCentral = d.id === this.centralNode?.id;
+      const nodeRadius = calculateNodeRadius(d, this.zoomLevel, isCentral);
+      return -nodeRadius * 0.7;
+    })
     .attr('text-anchor', 'middle')
     .attr('dy', '0.3em')
     .attr('fill', 'white')
@@ -322,9 +365,12 @@ class NodeRendererClass {
   private showTooltip(node: ExtendedOrbitalNode) {
     this.svg.selectAll('.node-tooltip').remove();
     
+    const isCentral = node.id === this.centralNode?.id;
+    const nodeRadius = calculateNodeRadius(node, this.zoomLevel, isCentral);
+    
     const tooltip = this.svg.append('g')
       .attr('class', 'node-tooltip')
-      .attr('transform', `translate(${node.x},${node.y - node.radius * (this.zoomLevel / 100) - 20})`);
+      .attr('transform', `translate(${node.x},${node.y - nodeRadius - 20})`);
 
     const textLines = createEnhancedTooltip(node, this.aiInsights);
     const padding = 12;
