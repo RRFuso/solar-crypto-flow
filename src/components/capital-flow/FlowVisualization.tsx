@@ -133,7 +133,15 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
 
   return (
     <div ref={containerRef} className="w-full h-full relative overflow-hidden">
-      <svg ref={svgRef} className="w-full h-full absolute top-0 left-0" />
+      <svg 
+        ref={svgRef} 
+        className="w-full h-full absolute top-0 left-0" 
+        style={{ display: 'block' }}
+        width={dimensions.width}
+        height={dimensions.height}
+        viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+        preserveAspectRatio="xMidYMid meet"
+      />
       {renderVisualization && svgRef.current && (
         <>
           <StarfieldBackground 

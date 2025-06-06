@@ -52,9 +52,9 @@ const CapitalFlowPanel = () => {
   const handleCategoryClick = (category: string) => setActiveCategory(category);
 
   return (
-    <div className="h-full w-full flex">
-      {/* Left Sidebar - AI Watchlist */}
-      <div className="w-80 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/30 backdrop-blur-sm">
+    <div className="h-full w-full flex overflow-hidden">
+      {/* Left Sidebar - AI Watchlist - Fixed width */}
+      <div className="w-80 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-hidden">
         <FlowVisualizationContent 
           isLoading={isLoading}
           error={error}
@@ -67,39 +67,47 @@ const CapitalFlowPanel = () => {
         />
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header Controls */}
-        <div className="flex-shrink-0 p-4 border-b border-slate-700/50 bg-slate-900/20 backdrop-blur-sm">
-          <FlowPanelHeader 
-            chartTimeframe={chartTimeframe}
-            onChartTimeframeChange={handleChartTimeframeChange}
-          />
-          
-          <div className="flex items-center justify-between mt-4">
-            <CategoryFilters 
-              activeCategory={activeCategory}
-              onCategoryClick={handleCategoryClick}
-            />
-            
-            <FlowControls
+      {/* Main Content Area - Takes remaining space */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Header Controls - Fixed height */}
+        <div className="flex-shrink-0 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm">
+          <div className="p-4">
+            <FlowPanelHeader 
               chartTimeframe={chartTimeframe}
-              showOnlyStrongSignals={showOnlyStrongSignals}
-              setShowOnlyStrongSignals={setShowOnlyStrongSignals}
-              zoomLevel={zoomLevel}
-              handleZoomIn={handleZoomIn}
-              handleZoomOut={handleZoomOut}
-              flowLimit={flowLimit}
-              handleLimitChange={handleLimitChange}
-              selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
-              onRefresh={() => refetch()}
+              onChartTimeframeChange={handleChartTimeframeChange}
             />
+          </div>
+          
+          <div className="px-4 pb-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-shrink-0">
+                <CategoryFilters 
+                  activeCategory={activeCategory}
+                  onCategoryClick={handleCategoryClick}
+                />
+              </div>
+              
+              <div className="flex-shrink-0">
+                <FlowControls
+                  chartTimeframe={chartTimeframe}
+                  showOnlyStrongSignals={showOnlyStrongSignals}
+                  setShowOnlyStrongSignals={setShowOnlyStrongSignals}
+                  zoomLevel={zoomLevel}
+                  handleZoomIn={handleZoomIn}
+                  handleZoomOut={handleZoomOut}
+                  flowLimit={flowLimit}
+                  handleLimitChange={handleLimitChange}
+                  selectedCategory={selectedCategory}
+                  setSelectedCategory={setSelectedCategory}
+                  onRefresh={() => refetch()}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Main Visualization */}
-        <div className="flex-1 overflow-hidden">
+        {/* Main Visualization - Takes remaining height */}
+        <div className="flex-1 overflow-hidden relative">
           <FlowVisualizationContent 
             isLoading={isLoading}
             error={error}

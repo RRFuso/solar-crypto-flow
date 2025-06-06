@@ -34,21 +34,42 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
     const handleResize = () => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        setDimensions({
-          width: rect.width,
-          height: rect.height
-        });
+        // Ensure we get valid dimensions
+        const width = Math.max(rect.width, 300);
+        const height = Math.max(rect.height, 300);
+        
+        setDimensions({ width, height });
       }
     };
     
-    // Initial sizing with a small delay to ensure container is rendered
+    // Use ResizeObserver for more accurate container size tracking
+    let resizeObserver: ResizeObserver | null = null;
+    
+    if (containerRef.current) {
+      resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          setDimensions({
+            width: Math.max(width, 300),
+            height: Math.max(height, 300)
+          });
+        }
+      });
+      
+      resizeObserver.observe(containerRef.current);
+    }
+    
+    // Fallback to initial sizing
     const timer = setTimeout(handleResize, 100);
-    handleResize();
     
     window.addEventListener('resize', handleResize);
+    
     return () => {
       window.removeEventListener('resize', handleResize);
       clearTimeout(timer);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
     };
   }, []);
   
