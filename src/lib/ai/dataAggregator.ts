@@ -108,7 +108,7 @@ export class DataAggregator {
 
           dataPoints.push({
             symbol,
-            timestamp: parseInt(kline.openTime),
+            timestamp: parseInt(kline.openTime.toString()),
             price: currentPrice,
             volume: currentVolume,
             marketCap: 0, // Will be filled from ticker data

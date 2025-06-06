@@ -86,9 +86,9 @@ export const useAdvancedAI = (
 
         // Calculate composite scores
         const riskScore = latestFeatures.riskScore;
-        const opportunityScore = this.calculateOpportunityScore(latestFeatures, predictions);
-        const recommendation = this.generateRecommendation(latestFeatures, predictions, riskScore, opportunityScore);
-        const confidence = this.calculateOverallConfidence(predictions, patterns, latestFeatures);
+        const opportunityScore = calculateOpportunityScore(latestFeatures, predictions);
+        const recommendation = generateRecommendation(latestFeatures, predictions, riskScore, opportunityScore);
+        const confidence = calculateOverallConfidence(predictions, patterns, latestFeatures);
 
         newInsights.set(symbol, {
           symbol,
@@ -155,6 +155,8 @@ export const useAdvancedAI = (
     const shortTerm = predictions.find(p => p.horizon === '4h') || predictions[0];
     const mediumTerm = predictions.find(p => p.horizon === '1d') || predictions[0];
 
+    if (!shortTerm || !mediumTerm) return 'hold';
+
     const avgConfidence = (shortTerm.confidence + mediumTerm.confidence) / 2;
     
     // Strong signals with high confidence
@@ -181,6 +183,8 @@ export const useAdvancedAI = (
     patterns: PatternDetection[],
     features: AdvancedFeatures
   ): number => {
+    if (predictions.length === 0) return 0;
+
     // Average prediction confidence
     const avgPredictionConfidence = predictions.reduce((sum, p) => sum + p.confidence, 0) / predictions.length;
     

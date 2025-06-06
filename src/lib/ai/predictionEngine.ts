@@ -53,13 +53,13 @@ export class PredictionEngine {
     crossAsset: 0.05
   };
 
-  private horizonWeights = {
-    '1h': { technical: 0.6, volume: 0.3, momentum: 0.1 },
-    '4h': { technical: 0.5, volume: 0.25, momentum: 0.15, onChain: 0.05, social: 0.05 },
-    '1d': { technical: 0.4, volume: 0.2, momentum: 0.2, onChain: 0.1, social: 0.1 },
-    '3d': { technical: 0.3, volume: 0.15, momentum: 0.25, onChain: 0.15, social: 0.15 },
-    '1w': { technical: 0.25, volume: 0.1, momentum: 0.3, onChain: 0.2, social: 0.15 },
-    '1m': { technical: 0.2, volume: 0.1, momentum: 0.3, onChain: 0.25, social: 0.15 }
+  private horizonWeights: Record<PredictionHorizon, Record<string, number>> = {
+    '1h': { technical: 0.6, volume: 0.3, momentum: 0.1, onChain: 0, social: 0, crossAsset: 0 },
+    '4h': { technical: 0.5, volume: 0.25, momentum: 0.15, onChain: 0.05, social: 0.05, crossAsset: 0 },
+    '1d': { technical: 0.4, volume: 0.2, momentum: 0.2, onChain: 0.1, social: 0.1, crossAsset: 0 },
+    '3d': { technical: 0.3, volume: 0.15, momentum: 0.25, onChain: 0.15, social: 0.15, crossAsset: 0 },
+    '1w': { technical: 0.25, volume: 0.1, momentum: 0.3, onChain: 0.2, social: 0.15, crossAsset: 0 },
+    '1m': { technical: 0.2, volume: 0.1, momentum: 0.3, onChain: 0.25, social: 0.15, crossAsset: 0 }
   };
 
   generatePredictions(
@@ -97,9 +97,9 @@ export class PredictionEngine {
     // Apply horizon-specific weights
     const weights = this.horizonWeights[horizon];
     const compositeScore = 
-      (technicalScore * (weights.technical || 0)) +
-      (volumeScore * (weights.volume || 0)) +
-      (momentumScore * (weights.momentum || 0)) +
+      (technicalScore * weights.technical) +
+      (volumeScore * weights.volume) +
+      (momentumScore * weights.momentum) +
       (onChainScore * (weights.onChain || 0)) +
       (socialScore * (weights.social || 0)) +
       (crossAssetScore * (weights.crossAsset || 0));

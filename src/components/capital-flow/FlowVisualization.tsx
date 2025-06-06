@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
-import { FlowData, CryptoData } from '@/types/crypto'; // Import CryptoData
+import { FlowData, CryptoData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
 import { OrbitLayersComponent } from './OrbitLayers';
 import { LinkRendererExtended } from './LinkRendererExtended';
@@ -11,8 +11,8 @@ import { StarfieldBackground } from './visualization/StarfieldBackground';
 import PredictionOrbitalOverlay from '../ai/PredictionOrbitalOverlay';
 import { useVisualizationSetup } from './visualization/useVisualizationSetup';
 import { useVisualizationData } from './visualization/useVisualizationData';
-import { useCryptoData } from '@/hooks/useCryptoData'; // Import hook to fetch crypto data
-import { usePriceActionSignals } from '@/hooks/usePriceActionSignals'; // Import hook to fetch signals
+import { useCryptoData } from '@/hooks/useCryptoData';
+import { usePriceActionSignals } from '@/hooks/usePriceActionSignals';
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
@@ -40,18 +40,29 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   } = useVisualizationSetup(flowData, zoomLevel);
   
   // Fetch necessary data for tooltips and node enrichment
-  const { cryptoDataMap, loading: loadingCryptoData } = useCryptoData(); // Fetch crypto data
-  const { signals: priceActionSignals, loading: loadingSignals } = usePriceActionSignals(); // Fetch signals
+  const { data: cryptoData, isLoading: loadingCryptoData } = useCryptoData();
+  const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(['BTC', 'ETH']);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
   const adjustedZoomLevel = zoomLevel * 1.5;
+
+  // Create crypto data map for quick lookup
+  const cryptoDataMap = React.useMemo(() => {
+    const map = new Map<string, CryptoData>();
+    if (cryptoData) {
+      cryptoData.forEach(crypto => {
+        map.set(crypto.symbol, crypto);
+      });
+    }
+    return map;
+  }, [cryptoData]);
   
   // Initialize visualization data, now passing the required maps
   useVisualizationData({
     flowData,
-    cryptoDataMap, // Pass crypto data map
-    priceActionSignals, // Pass signals map
+    cryptoDataMap,
+    priceActionSignals,
     svgRef,
     dimensions,
     zoomLevel: adjustedZoomLevel,
@@ -66,14 +77,12 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     const handleNodeClick = (event: CustomEvent) => {
       const nodeId = event.detail.nodeId;
       setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
-      // Update visualization data state directly (already handled by useVisualizationSetup)
-      // setVisualizationData(prevData => ({ ...prevData, selectedNodeId: prevData.selectedNodeId === nodeId ? null : nodeId }));
     };
     document.addEventListener('node-click', handleNodeClick as EventListener);
     return () => {
       document.removeEventListener('node-click', handleNodeClick as EventListener);
     };
-  }, []); // Removed setVisualizationData dependency as it's handled by the setup hook
+  }, []);
 
   // Get color based on category from backend (assuming category is in CryptoData)
   const getCategoryColor = (category: string | undefined) => {
@@ -107,8 +116,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   const renderVisualization = svgRef.current && dimensions.width > 0 && visualizationData.nodes.length > 0;
 
   return (
-    <div ref={containerRef} className="w-full h-full relative" style={{ minHeight: "700px" }}> {/* Added relative positioning */} 
-      <svg ref={svgRef} className="w-full h-full absolute top-0 left-0" /> {/* Added absolute positioning */} 
+    <div ref={containerRef} className="w-full h-full relative" style={{ minHeight: "700px" }}>
+      <svg ref={svgRef} className="w-full h-full absolute top-0 left-0" />
       {renderVisualization && svgRef.current && (
         <>
           <StarfieldBackground 
@@ -127,17 +136,16 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
           <LinkRendererExtended
             svg={d3.select(svgRef.current)}
             links={visualizationData.links}
-            selectedNodeId={selectedNodeId} // Use local state for selection highlight
+            selectedNodeId={selectedNodeId}
             predictions={predictions}
             animateWithOrbit={true}
-            // Pass cryptoDataMap to get category for color
             getCategoryColor={(linkSourceId) => getCategoryColor(cryptoDataMap.get(linkSourceId)?.category)}
           />
           <NodeRendererComponent 
             svg={d3.select(svgRef.current)}
-            nodes={visualizationData.nodes} // Nodes now include enriched data
+            nodes={visualizationData.nodes}
             centralNode={visualizationData.centralNode}
-            selectedNodeId={selectedNodeId} // Use local state for selection highlight
+            selectedNodeId={selectedNodeId}
             zoomLevel={adjustedZoomLevel}
           />
           <OrbitalAnimationComponent 
@@ -162,4 +170,3 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     </div>
   );
 };
-
