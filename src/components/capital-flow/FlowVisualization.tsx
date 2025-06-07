@@ -129,10 +129,15 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     );
   }
 
-  const renderVisualization = svgRef.current && dimensions.width > 0 && visualizationData.nodes.length > 0;
+  // Verificação de segurança antes de renderizar
+  const renderVisualization = svgRef.current && 
+                             dimensions.width > 0 && 
+                             visualizationData && 
+                             visualizationData.nodes && 
+                             visualizationData.nodes.length > 0;
 
   return (
-    <div ref={containerRef} className="w-full h-full relative overflow-hidden">
+    <div ref={containerRef} className="w-full h-full relative">
       <svg 
         ref={svgRef} 
         className="w-full h-full absolute top-0 left-0" 
@@ -160,6 +165,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
           <LinkRendererExtended
             svg={d3.select(svgRef.current)}
             links={visualizationData.links}
+            nodes={visualizationData.nodes}
             selectedNodeId={selectedNodeId}
             predictions={predictions}
             animateWithOrbit={true}

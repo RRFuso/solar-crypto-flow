@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
@@ -7,6 +8,7 @@ import { createLinkTooltip, removeLinkTooltip } from './link-renderer/LinkToolti
 export interface LinkRendererExtendedProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   links: any[];
+  nodes: any[];
   selectedNodeId: string | null;
   predictions: Prediction[];
   animateWithOrbit?: boolean;
@@ -16,6 +18,7 @@ export interface LinkRendererExtendedProps {
 export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
   svg,
   links,
+  nodes,
   selectedNodeId,
   predictions,
   animateWithOrbit = false,
@@ -36,18 +39,31 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
   };
 
   useEffect(() => {
-    if (!svg || !links || links.length === 0) return;
+    if (!svg || !links || links.length === 0 || !nodes || nodes.length === 0) return;
 
     svg.selectAll(".flow-links").remove();
     svg.selectAll(".particles-group").remove();
 
     const linkGroup = svg.append("g").attr("class", "flow-links");
 
-    const processedLinks = links.map(link => ({
-      ...link,
-      markerId: `marker-${link.source.id}-${link.target.id}`,
-      categoryColor: link.data?.category ? getColorForFlow(link.data.category) : null
-    }));
+    // Ensure links have valid source and target nodes with current positions
+    const processedLinks = links.map(link => {
+      const sourceNode = nodes.find(n => n.id === link.source?.id || n.id === link.source);
+      const targetNode = nodes.find(n => n.id === link.target?.id || n.id === link.target);
+      
+      if (!sourceNode || !targetNode) {
+        console.warn('Link missing valid source or target node:', link);
+        return null;
+      }
+
+      return {
+        ...link,
+        source: sourceNode,
+        target: targetNode,
+        markerId: `marker-${sourceNode.id}-${targetNode.id}`,
+        categoryColor: link.data?.category ? getColorForFlow(link.data.category) : null
+      };
+    }).filter(Boolean);
 
     const handleMouseOver = (event: MouseEvent, linkData: any) => {
       createLinkTooltip(svg, event, linkData);
@@ -80,47 +96,61 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
       particles.push({ circle, link, path });
     });
 
+    let animationFrameId: number | null = null;
+
     if (animateWithOrbit) {
       const updateAll = () => {
-        // Update line paths (curved)
+        // Update line paths using current node positions
         link.attr("d", (d: any) => {
-          const dx = d.target.x - d.source.x;
-          const dy = d.target.y - d.source.y;
-          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-          return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+          if (!d.source || !d.target || 
+              typeof d.source.x !== 'number' || typeof d.source.y !== 'number' ||
+              typeof d.target.x !== 'number' || typeof d.target.y !== 'number') {
+            return "";
+          }
+
+          // Use straight lines for debugging connection issues
+          return `M${d.source.x},${d.source.y}L${d.target.x},${d.target.y}`;
         });
 
-        // Update particles with new orbital positions
+        // Update particles with new positions
         particles.forEach(({ circle, link, path }) => {
-          const dx = link.target.x - link.source.x;
-          const dy = link.target.y - link.source.y;
-          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-          const pathD = `M${link.source.x},${link.source.y}A${dr},${dr} 0 0,1 ${link.target.x},${link.target.y}`;
+          if (!link.source || !link.target || 
+              typeof link.source.x !== 'number' || typeof link.source.y !== 'number' ||
+              typeof link.target.x !== 'number' || typeof link.target.y !== 'number') {
+            return;
+          }
+
+          const pathD = `M${link.source.x},${link.source.y}L${link.target.x},${link.target.y}`;
           path.attr("d", pathD);
 
           const totalLength = path.node()?.getTotalLength() || 0;
-          const t = ((Date.now() % 4000) / 4000); // 4s loop
-          const point = path.node()?.getPointAtLength(t * totalLength);
+          if (totalLength > 0) {
+            const t = ((Date.now() % 4000) / 4000);
+            const point = path.node()?.getPointAtLength(t * totalLength);
 
-          if (point) {
-            circle.attr("transform", `translate(${point.x},${point.y})`);
-            const r = Math.round(255 * (1 - t));
-            const g = Math.round(255 * t);
-            circle.attr("fill", `rgb(${r},${g},0)`); // red → green
+            if (point) {
+              circle.attr("transform", `translate(${point.x},${point.y})`);
+              const r = Math.round(255 * (1 - t));
+              const g = Math.round(255 * t);
+              circle.attr("fill", `rgb(${r},${g},0)`);
+            }
           }
         });
 
-        requestAnimationFrame(updateAll);
+        animationFrameId = requestAnimationFrame(updateAll);
       };
 
-      requestAnimationFrame(updateAll);
+      animationFrameId = requestAnimationFrame(updateAll);
     }
 
     return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       svg.selectAll(".flow-links").remove();
       svg.selectAll(".particles-group").remove();
     };
-  }, [svg, links, selectedNodeId, animateWithOrbit, getCategoryColor]);
+  }, [svg, links, nodes, selectedNodeId, animateWithOrbit, getCategoryColor]);
 
   return null;
 };

@@ -29,7 +29,7 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
 }) => {
   if (showSidebarOnly) {
     return (
-      <div className="h-full w-full overflow-hidden">
+      <div className="h-full w-full">
         <AIWatchlist 
           predictions={filteredPredictions} 
           maxItems={12} 
@@ -41,7 +41,7 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
 
   if (isLoading) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
+      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
           <p className="text-slate-400">Loading AI-powered visualization...</p>
@@ -52,7 +52,7 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
 
   if (error) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center text-red-400 bg-gradient-to-br from-slate-900 via-slate-800 to-black">
+      <div className="w-full h-full flex items-center justify-center text-red-400 bg-gradient-to-br from-slate-900 via-slate-800 to-black">
         <div className="text-center">
           <p className="text-lg mb-2">⚠️ Failed to load market data</p>
           <p className="text-sm text-slate-500">Please try again later</p>
@@ -62,7 +62,7 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
   }
 
   return (
-    <div className="absolute inset-0 w-full h-full">
+    <div className="w-full h-full relative">
       {/* Main Orbital Visualization - Full container */}
       <FlowVisualization 
         flowData={processedFlowData} 
