@@ -45,6 +45,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI();
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [visualizationReady, setVisualizationReady] = useState(false);
   
   const adjustedZoomLevel = zoomLevel * 1.2;
 
@@ -70,6 +71,16 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     createOrbitalVisualization,
     activeCategory
   });
+
+  // Add delay to ensure proper initialization
+  useEffect(() => {
+    if (!loadingCryptoData && !loadingSignals && !loadingAI && flowData && flowData.length > 0) {
+      const timer = setTimeout(() => {
+        setVisualizationReady(true);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [loadingCryptoData, loadingSignals, loadingAI, flowData]);
 
   useEffect(() => {
     const handleNodeClick = (event: CustomEvent) => {
@@ -107,7 +118,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     }
   };
 
-  if (loadingCryptoData || loadingSignals || loadingAI) {
+  if (loadingCryptoData || loadingSignals || loadingAI || !visualizationReady) {
     return (
       <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
         <div className="text-center">
@@ -129,9 +140,10 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     );
   }
 
-  // Verificação de segurança antes de renderizar
+  // Enhanced safety checks for rendering
   const renderVisualization = svgRef.current && 
                              dimensions.width > 0 && 
+                             dimensions.height > 0 &&
                              visualizationData && 
                              visualizationData.nodes && 
                              visualizationData.nodes.length > 0;
@@ -142,8 +154,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
         ref={svgRef} 
         className="w-full h-full absolute top-0 left-0" 
         style={{ display: 'block' }}
-        width={dimensions.width}
-        height={dimensions.height}
+        width="100%"
+        height="100%"
         viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
         preserveAspectRatio="xMidYMid meet"
       />
