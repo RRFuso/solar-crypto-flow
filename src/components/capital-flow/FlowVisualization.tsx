@@ -121,11 +121,12 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
       ctx.lineTo(x, y);
       ctx.stroke();
 
-      // Draw symbol
+      // Draw label using 'to' or 'from' property instead of 'symbol'
       ctx.fillStyle = 'white';
       ctx.font = '12px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(flow.symbol || 'N/A', x, y + 25);
+      const label = flow.to !== 'BTC' ? flow.to : flow.from;
+      ctx.fillText(label || 'N/A', x, y + 25);
     });
 
   }, [flowData, dimensions, zoomLevel]);
