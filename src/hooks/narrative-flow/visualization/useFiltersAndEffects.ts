@@ -1,7 +1,7 @@
 
 export const useFiltersAndEffects = () => {
   // Create filter effects for the visualization using native DOM methods
-  const createGlowFilter = (defs: any) => {
+  const createGlowFilter = (defs: Element) => {
     // Create glow filter
     const filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
     filter.setAttribute("id", "glow");
@@ -24,12 +24,12 @@ export const useFiltersAndEffects = () => {
     feMerge.appendChild(feMergeNode2);
     filter.appendChild(feMerge);
     
-    defs.append(filter);
+    defs.appendChild(filter);
     return filter;
   };
 
   // Create clip paths for circular elements
-  const createClipPath = (defs: any, id: string, radius: number) => {
+  const createClipPath = (defs: Element, id: string, radius: number) => {
     const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
     clipPath.setAttribute("id", id);
     
@@ -37,7 +37,7 @@ export const useFiltersAndEffects = () => {
     circle.setAttribute("r", radius.toString());
     clipPath.appendChild(circle);
     
-    defs.append(clipPath);
+    defs.appendChild(clipPath);
     return clipPath;
   };
 

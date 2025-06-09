@@ -1,56 +1,60 @@
 
-import * as d3 from 'd3';
 import { formatValue } from '../utils/formatHelpers';
 
 /**
- * Creates and manages tooltips for link hover interactions
+ * Creates and manages tooltips for link hover interactions using native DOM
  */
 export const createLinkTooltip = (
-  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+  svg: Element,
   event: MouseEvent, 
   linkData: any
 ) => {
-  // Show tooltip with flow details
-  const tooltip = svg.append("g")
-    .attr("class", "tooltip")
-    .attr("transform", `translate(${event.offsetX},${event.offsetY - 40})`);
+  // Show tooltip with flow details using native DOM methods
+  const tooltip = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  tooltip.setAttribute("class", "tooltip");
+  tooltip.setAttribute("transform", `translate(${event.offsetX},${event.offsetY - 40})`);
   
-  tooltip.append("rect")
-    .attr("rx", 5)
-    .attr("ry", 5)
-    .attr("x", -80)
-    .attr("y", -40)
-    .attr("width", 160)
-    .attr("height", 55)
-    .attr("fill", "rgba(0, 0, 0, 0.8)")
-    .attr("stroke", linkData.percentage > 0 ? "#4ade80" : "#f43f5e")
-    .attr("stroke-width", 1);
+  const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  rect.setAttribute("rx", "5");
+  rect.setAttribute("ry", "5");
+  rect.setAttribute("x", "-80");
+  rect.setAttribute("y", "-40");
+  rect.setAttribute("width", "160");
+  rect.setAttribute("height", "55");
+  rect.setAttribute("fill", "rgba(0, 0, 0, 0.8)");
+  rect.setAttribute("stroke", linkData.percentage > 0 ? "#4ade80" : "#f43f5e");
+  rect.setAttribute("stroke-width", "1");
+  tooltip.appendChild(rect);
     
   // Flow direction text
-  tooltip.append("text")
-    .attr("x", 0)
-    .attr("y", -25)
-    .attr("text-anchor", "middle")
-    .attr("fill", "white")
-    .attr("font-weight", "bold")
-    .text(`${linkData.source.id.toUpperCase()} → ${linkData.target.id.toUpperCase()}`);
+  const flowText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  flowText.setAttribute("x", "0");
+  flowText.setAttribute("y", "-25");
+  flowText.setAttribute("text-anchor", "middle");
+  flowText.setAttribute("fill", "white");
+  flowText.setAttribute("font-weight", "bold");
+  flowText.textContent = `${linkData.source.id.toUpperCase()} → ${linkData.target.id.toUpperCase()}`;
+  tooltip.appendChild(flowText);
   
   // Flow value text
-  tooltip.append("text")
-    .attr("x", 0)
-    .attr("y", -5)
-    .attr("text-anchor", "middle")
-    .attr("fill", "white")
-    .text(`Volume: $${formatValue(linkData.value)}`);
+  const valueText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  valueText.setAttribute("x", "0");
+  valueText.setAttribute("y", "-5");
+  valueText.setAttribute("text-anchor", "middle");
+  valueText.setAttribute("fill", "white");
+  valueText.textContent = `Volume: $${formatValue(linkData.value)}`;
+  tooltip.appendChild(valueText);
   
   // Change percentage text
-  tooltip.append("text")
-    .attr("x", 0)
-    .attr("y", 15)
-    .attr("text-anchor", "middle")
-    .attr("fill", linkData.percentage > 0 ? "#4ade80" : "#f43f5e")
-    .text(`Change: ${(linkData.percentage >= 0 ? "+" : "") + linkData.percentage.toFixed(2)}%`);
-    
+  const changeText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  changeText.setAttribute("x", "0");
+  changeText.setAttribute("y", "15");
+  changeText.setAttribute("text-anchor", "middle");
+  changeText.setAttribute("fill", linkData.percentage > 0 ? "#4ade80" : "#f43f5e");
+  changeText.textContent = `Change: ${(linkData.percentage >= 0 ? "+" : "") + linkData.percentage.toFixed(2)}%`;
+  tooltip.appendChild(changeText);
+  
+  svg.appendChild(tooltip);
   return tooltip;
 };
 
@@ -58,7 +62,8 @@ export const createLinkTooltip = (
  * Removes any tooltips from the SVG
  */
 export const removeLinkTooltip = (
-  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>
+  svg: Element
 ) => {
-  svg.selectAll(".tooltip").remove();
+  const tooltips = svg.querySelectorAll(".tooltip");
+  tooltips.forEach(tooltip => tooltip.remove());
 };
