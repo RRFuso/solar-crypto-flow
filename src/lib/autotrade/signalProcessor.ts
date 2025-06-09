@@ -1,16 +1,6 @@
-
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
 import { Prediction } from '@/lib/aiModel';
-import { TradingStrategy, SignalCondition } from '@/types/autotrade';
-
-export interface ProcessedSignal {
-  symbol: string;
-  action: 'buy' | 'sell' | 'hold';
-  confidence: number;
-  reasons: string[];
-  timestamp: number;
-  strategyId: string;
-}
+import { TradingStrategy, SignalCondition, ProcessedSignal } from '@/types/autotrade';
 
 export class SignalProcessor {
   static processSignals(

@@ -1,4 +1,3 @@
-
 export interface AutoTradeConfig {
   enabled: boolean;
   paperTrading: boolean;
@@ -129,6 +128,15 @@ export interface CompletedTrade {
   pnlPercentage: number;
   strategyId: string;
   exitReason: 'take_profit' | 'stop_loss' | 'signal' | 'timeout';
+}
+
+export interface ProcessedSignal {
+  symbol: string;
+  action: 'buy' | 'sell' | 'hold';
+  confidence: number;
+  reasons: string[];
+  timestamp: number;
+  strategyId: string;
 }
 
 export interface AutoTradeState {
