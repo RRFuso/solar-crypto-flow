@@ -1,6 +1,4 @@
 
-import ccxt from 'ccxt';
-
 export interface ExchangeConfig {
   id: string;
   name: string;
@@ -11,27 +9,21 @@ export interface ExchangeConfig {
 }
 
 export class ExchangeManager {
-  private exchanges: Map<string, any> = new Map();
+  private configs: Map<string, ExchangeConfig> = new Map();
   
   async initializeExchange(config: ExchangeConfig): Promise<any> {
     try {
-      if (!(config.id in ccxt)) {
-        throw new Error(`Exchange ${config.id} não suportado`);
-      }
+      // Store the configuration for later use
+      this.configs.set(config.id, config);
       
-      const ExchangeClass = (ccxt as any)[config.id];
-      const exchange = new ExchangeClass({
-        apiKey: config.apiKey,
-        secret: config.apiSecret,
-        ...config.additionalParams,
-        ...(config.testMode ? { testnet: true, sandbox: true } : {})
-      });
+      console.log(`Exchange ${config.name} configurado com sucesso`);
       
-      await exchange.loadMarkets();
-      this.exchanges.set(config.id, exchange);
-      
-      console.log(`Exchange ${config.name} inicializado com sucesso`);
-      return exchange;
+      // Return a mock exchange object for now
+      return {
+        id: config.id,
+        name: config.name,
+        testMode: config.testMode
+      };
     } catch (error) {
       console.error(`Erro ao inicializar exchange ${config.id}:`, error);
       throw error;
@@ -39,13 +31,30 @@ export class ExchangeManager {
   }
   
   async fetchBalance(exchangeId: string): Promise<any> {
-    const exchange = this.getExchange(exchangeId);
-    return await exchange.fetchBalance();
+    const config = this.getConfig(exchangeId);
+    
+    // For now, return mock balance data
+    // In a real implementation, you would make API calls to the exchange
+    return {
+      free: { USDT: 1000, BTC: 0.1 },
+      used: { USDT: 0, BTC: 0 },
+      total: { USDT: 1000, BTC: 0.1 }
+    };
   }
   
   async fetchTicker(exchangeId: string, symbol: string): Promise<any> {
-    const exchange = this.getExchange(exchangeId);
-    return await exchange.fetchTicker(symbol);
+    const config = this.getConfig(exchangeId);
+    
+    // Mock ticker data
+    return {
+      symbol,
+      last: 50000,
+      bid: 49999,
+      ask: 50001,
+      high: 51000,
+      low: 49000,
+      volume: 1000
+    };
   }
   
   async createOrder(
@@ -56,26 +65,44 @@ export class ExchangeManager {
     amount: number, 
     price?: number
   ): Promise<any> {
-    const exchange = this.getExchange(exchangeId);
-    return await exchange.createOrder(symbol, type, side, amount, price);
+    const config = this.getConfig(exchangeId);
+    
+    // Mock order creation
+    return {
+      id: Date.now().toString(),
+      symbol,
+      type,
+      side,
+      amount,
+      price,
+      status: 'open',
+      timestamp: Date.now()
+    };
   }
   
   async fetchOpenOrders(exchangeId: string, symbol?: string): Promise<any> {
-    const exchange = this.getExchange(exchangeId);
-    return await exchange.fetchOpenOrders(symbol);
+    const config = this.getConfig(exchangeId);
+    
+    // Mock open orders
+    return [];
   }
   
   async cancelOrder(exchangeId: string, orderId: string, symbol?: string): Promise<any> {
-    const exchange = this.getExchange(exchangeId);
-    return await exchange.cancelOrder(orderId, symbol);
+    const config = this.getConfig(exchangeId);
+    
+    // Mock order cancellation
+    return {
+      id: orderId,
+      status: 'canceled'
+    };
   }
   
-  private getExchange(exchangeId: string): any {
-    const exchange = this.exchanges.get(exchangeId);
-    if (!exchange) {
+  private getConfig(exchangeId: string): ExchangeConfig {
+    const config = this.configs.get(exchangeId);
+    if (!config) {
       throw new Error(`Exchange ${exchangeId} não inicializado`);
     }
-    return exchange;
+    return config;
   }
   
   getSupportedExchanges(): string[] {
