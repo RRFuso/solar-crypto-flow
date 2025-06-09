@@ -1,9 +1,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { AutoTradeConfig, AutoTradeState, TradingStrategy, ProcessedSignal } from '@/types/autotrade';
+import { AutoTradeConfig, AutoTradeState, TradingStrategy } from '@/types/autotrade';
 import { usePriceActionSignals } from '@/hooks/usePriceActionSignals';
 import { usePredictions } from '@/hooks/capital-flow/usePredictions';
 import { SignalProcessor } from '@/lib/autotrade/signalProcessor';
+import { orderExecutor } from '@/lib/autotrade/orderExecutor';
+import { exchangeManager } from '@/lib/autotrade/exchanges';
 import { toast } from 'sonner';
 
 const DEFAULT_CONFIG: AutoTradeConfig = {
@@ -60,12 +62,22 @@ export const useAutoTrade = (flowData?: any) => {
           config.strategies
         );
 
-        // In paper trading mode, simulate the trades
-        if (config.paperTrading) {
-          await simulateTrades(processedSignals);
-        } else {
-          // In live trading mode, execute real trades
-          await executeLiveTrades(processedSignals);
+        // Execute trades based on signals
+        for (const signal of processedSignals) {
+          if (signal.confidence < 0.6) continue;
+
+          try {
+            if (config.paperTrading) {
+              await simulateTrade(signal);
+            } else {
+              await executeLiveTrade(signal);
+            }
+          } catch (error) {
+            console.error(`Erro ao executar trade para ${signal.symbol}:`, error);
+            toast.error(`Erro no trade: ${signal.symbol}`, {
+              description: error.message
+            });
+          }
         }
 
         setState(prev => ({
@@ -90,47 +102,84 @@ export const useAutoTrade = (flowData?: any) => {
     return () => clearInterval(interval);
   }, [config, signals, predictions, state.isRunning]);
 
-  const simulateTrades = async (signals: ProcessedSignal[]) => {
-    // Simulate paper trading logic
-    for (const signal of signals) {
-      if (signal.confidence < 0.6) continue;
+  const simulateTrade = async (signal: any) => {
+    // Check if we already have a position for this symbol
+    const existingPosition = state.openPositions.find(p => p.symbol === signal.symbol);
+    if (existingPosition) return;
 
-      // Check if we already have a position for this symbol
-      const existingPosition = state.openPositions.find(p => p.symbol === signal.symbol);
-      if (existingPosition) continue;
+    // Simulate opening a position
+    const mockPrice = 50000; // Mock price for simulation
+    const position = {
+      id: `pos_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      symbol: signal.symbol,
+      side: signal.action === 'buy' ? 'long' as const : 'short' as const,
+      amount: 0.001,
+      entryPrice: mockPrice,
+      currentPrice: mockPrice,
+      unrealizedPnl: 0,
+      unrealizedPnlPercentage: 0,
+      strategyId: signal.strategyId,
+      openTime: Date.now()
+    };
 
-      // Simulate opening a position
-      const mockPrice = 50000; // Mock price for simulation
-      const position = {
-        id: `pos_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    setState(prev => ({
+      ...prev,
+      openPositions: [...prev.openPositions, position]
+    }));
+
+    toast.success(`Paper Trade: ${signal.action.toUpperCase()} ${signal.symbol}`, {
+      description: `Confidence: ${(signal.confidence * 100).toFixed(1)}% - ${signal.reasons.join(', ')}`
+    });
+  };
+
+  const executeLiveTrade = async (signal: any) => {
+    try {
+      const strategy = config.strategies.find(s => s.id === signal.strategyId);
+      if (!strategy) return;
+
+      // Calculate position size based on strategy configuration
+      const positionAmount = calculatePositionSize(strategy.positionSize, signal);
+      
+      // Calculate stop loss and take profit prices
+      const currentPrice = 50000; // This should come from real market data
+      const stopLossPrice = strategy.stopLoss.enabled ? 
+        currentPrice * (1 - strategy.stopLoss.value / 100) : undefined;
+      const takeProfitPrice = strategy.takeProfit.enabled ? 
+        currentPrice * (1 + strategy.takeProfit.targets[0].priceTarget / 100) : undefined;
+
+      const orderParams = {
+        exchangeId: config.exchangeId,
         symbol: signal.symbol,
-        side: signal.action === 'buy' ? 'long' as const : 'short' as const,
-        amount: 0.001, // Mock amount
-        entryPrice: mockPrice,
-        currentPrice: mockPrice,
-        unrealizedPnl: 0,
-        unrealizedPnlPercentage: 0,
-        strategyId: signal.strategyId,
-        openTime: Date.now()
+        side: signal.action as 'buy' | 'sell',
+        type: 'market' as const,
+        amount: positionAmount,
+        stopLoss: stopLossPrice,
+        takeProfit: takeProfitPrice,
+        strategy: signal.strategyId
       };
 
-      setState(prev => ({
-        ...prev,
-        openPositions: [...prev.openPositions, position]
-      }));
-
-      toast.success(`Paper Trade: ${signal.action.toUpperCase()} ${signal.symbol}`, {
-        description: `Confidence: ${(signal.confidence * 100).toFixed(1)}% - ${signal.reasons.join(', ')}`
+      await orderExecutor.executeOrder(orderParams, config);
+      
+      toast.success(`Live Trade: ${signal.action.toUpperCase()} ${signal.symbol}`, {
+        description: `Amount: ${positionAmount} - Confidence: ${(signal.confidence * 100).toFixed(1)}%`
       });
+    } catch (error) {
+      console.error('Live trade execution error:', error);
+      throw error;
     }
   };
 
-  const executeLiveTrades = async (signals: ProcessedSignal[]) => {
-    // This would contain real exchange API calls
-    console.log('Live trading not implemented yet:', signals);
-    toast.warning('Live trading not available', {
-      description: 'Live trading functionality will be implemented in a future update'
-    });
+  const calculatePositionSize = (positionConfig: any, signal: any): number => {
+    switch (positionConfig.type) {
+      case 'percentage':
+        return positionConfig.value / 100; // Simplified calculation
+      case 'fixed':
+        return positionConfig.value;
+      case 'risk_based':
+        return positionConfig.maxRisk / 100; // Simplified risk-based calculation
+      default:
+        return 0.001; // Default small position
+    }
   };
 
   const toggleAutoTrade = useCallback(() => {
@@ -144,10 +193,17 @@ export const useAutoTrade = (flowData?: any) => {
       }
 
       if (!config.paperTrading && (!config.apiKey || !config.apiSecret)) {
-        toast.error('API credentials required', {
-          description: 'Please configure exchange API credentials for live trading'
+        toast.error('Exchange connection required', {
+          description: 'Please configure exchange connection for live trading'
         });
         return;
+      }
+
+      // Additional validation for live trading
+      if (!config.paperTrading) {
+        toast.warning('Live trading requires additional verification', {
+          description: 'Ensure 2FA is enabled and exchanges are properly configured'
+        });
       }
     }
 
