@@ -160,7 +160,9 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
         }
         
         // Add tooltip and click behavior with prediction info using native event listeners
-        nodeElement.addEventListener("mouseover", function(event) {
+        nodeElement.addEventListener("mouseover", function(event: Event) {
+          const mouseEvent = event as MouseEvent;
+          
           // Create tooltip using native DOM
           const tooltip = document.createElement("div");
           tooltip.className = "prediction-tooltip";
@@ -177,8 +179,8 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
             pointer-events: none;
             transition: opacity 0.3s;
             opacity: 0;
-            left: ${event.pageX + 10}px;
-            top: ${event.pageY + 10}px;
+            left: ${mouseEvent.pageX + 10}px;
+            top: ${mouseEvent.pageY + 10}px;
           `;
             
           // Get prediction history for this symbol
@@ -247,11 +249,12 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
           }
         });
         
-        nodeElement.addEventListener("mousemove", function(event) {
+        nodeElement.addEventListener("mousemove", function(event: Event) {
+          const mouseEvent = event as MouseEvent;
           const tooltip = document.querySelector(".prediction-tooltip") as HTMLElement;
           if (tooltip) {
-            tooltip.style.left = `${event.pageX + 10}px`;
-            tooltip.style.top = `${event.pageY + 10}px`;
+            tooltip.style.left = `${mouseEvent.pageX + 10}px`;
+            tooltip.style.top = `${mouseEvent.pageY + 10}px`;
           }
         });
         
@@ -262,7 +265,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
           }
         });
         
-        nodeElement.addEventListener("click", function(event) {
+        nodeElement.addEventListener("click", function(event: Event) {
           if (prediction.confidence >= 0.7) {
             showStrategyModal(nodeData.id, prediction);
           }
