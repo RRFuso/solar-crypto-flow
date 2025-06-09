@@ -31,14 +31,14 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
   
   // Handle window resize and initial sizing
   useEffect(() => {
-    const handleResize = () => {
+    const updateDimensions = () => {
       if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
+        const { width, height } = containerRef.current.getBoundingClientRect();
         // Ensure we get valid dimensions
-        const width = Math.max(rect.width, 300);
-        const height = Math.max(rect.height, 300);
+        const newWidth = Math.max(width, 300);
+        const newHeight = Math.max(height, 300);
         
-        setDimensions({ width, height });
+        setDimensions({ width: newWidth, height: newHeight });
       }
     };
     
@@ -59,14 +59,14 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
       resizeObserver.observe(containerRef.current);
     }
     
-    // Fallback to initial sizing
-    const timer = setTimeout(handleResize, 100);
+    // Initial dimension update
+    updateDimensions();
     
-    window.addEventListener('resize', handleResize);
+    // Fallback to window resize listener
+    window.addEventListener('resize', updateDimensions);
     
     return () => {
-      window.removeEventListener('resize', handleResize);
-      clearTimeout(timer);
+      window.removeEventListener('resize', updateDimensions);
       if (resizeObserver) {
         resizeObserver.disconnect();
       }

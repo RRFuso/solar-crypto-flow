@@ -140,7 +140,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     <div ref={containerRef} className="w-full h-full relative">
       <svg 
         ref={svgRef} 
-        className="w-full h-full absolute top-0 left-0" 
+        className="w-full h-full" 
         style={{ display: 'block' }}
         width={dimensions.width}
         height={dimensions.height}
@@ -160,7 +160,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             height={dimensions.height}
             orbitLayers={4}
             baseRadius={Math.min(dimensions.width, dimensions.height) * 0.15}
-            extendFullScreen={false}
+            extendFullScreen={true}
           />
           <LinkRendererExtended
             svg={d3.select(svgRef.current)}
