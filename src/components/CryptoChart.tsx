@@ -1,6 +1,6 @@
 
 import React, { memo } from 'react';
-import { TradingView } from 'react-tradingview-embed';
+import TradingViewWidget from 'react-tradingview-embed';
 
 interface CryptoChartProps {
   crypto: {
@@ -43,7 +43,7 @@ const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: Cryp
         </h2>
       </div>
       <div className="h-[calc(100%-4rem)]">
-        <TradingView widgetProps={widgetProps} />
+        <TradingViewWidget widgetProps={widgetProps} />
       </div>
     </div>
   );

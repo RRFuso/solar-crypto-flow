@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { TrendingUp, DollarSign, LineChart } from 'lucide-react';
-import { TradingView } from 'react-tradingview-embed';
+import TradingViewWidget from 'react-tradingview-embed';
 
 interface EconomicIndicatorsProps {
   dxy: string;
@@ -37,7 +36,7 @@ const EconomicIndicators = ({ dxy, spx, nasdaq }: EconomicIndicatorsProps) => {
       </div>
       
       <div className="h-40 overflow-hidden rounded-lg border border-gray-700 mb-4">
-        <TradingView widgetProps={dxyWidgetProps} />
+        <TradingViewWidget widgetProps={dxyWidgetProps} />
       </div>
       
       <div className="space-y-3 text-white">

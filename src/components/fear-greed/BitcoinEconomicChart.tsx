@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { LineChart, ArrowDown, ArrowUp } from 'lucide-react';
-import { TradingView } from 'react-tradingview-embed';
+import TradingViewWidget from 'react-tradingview-embed';
 
 interface BitcoinEconomicChartProps {
   btcPrice: string;
@@ -62,7 +61,7 @@ const BitcoinEconomicChart = ({
       </div>
       
       <div className="h-40 overflow-hidden rounded-lg border border-gray-700 mb-4">
-        <TradingView widgetProps={btcWidgetProps} />
+        <TradingViewWidget widgetProps={btcWidgetProps} />
       </div>
       
       <div className="grid grid-cols-2 gap-4 text-white">
