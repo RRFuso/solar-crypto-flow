@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { TrendingUp, DollarSign, LineChart } from 'lucide-react';
-import TradingViewWidget from 'react-tradingview-widget';
+import { TradingView } from 'react-tradingview-embed';
 
 interface EconomicIndicatorsProps {
   dxy: string;
@@ -10,6 +10,21 @@ interface EconomicIndicatorsProps {
 }
 
 const EconomicIndicators = ({ dxy, spx, nasdaq }: EconomicIndicatorsProps) => {
+  const dxyWidgetProps = {
+    symbol: 'FOREXCOM:DXY',
+    interval: 'D' as const,
+    timezone: 'Etc/UTC',
+    theme: 'Dark' as const,
+    locale: 'br',
+    autosize: true,
+    hide_top_toolbar: true,
+    hide_legend: true,
+    hide_side_toolbar: true,
+    allow_symbol_change: false,
+    width: '100%',
+    height: '100%'
+  };
+
   return (
     <div className="w-full max-w-md space-y-2 p-6 bg-gray-900/50 rounded-lg border border-gray-800 shadow-xl">
       <div className="flex items-center justify-between mb-4">
@@ -22,19 +37,7 @@ const EconomicIndicators = ({ dxy, spx, nasdaq }: EconomicIndicatorsProps) => {
       </div>
       
       <div className="h-40 overflow-hidden rounded-lg border border-gray-700 mb-4">
-        <TradingViewWidget
-          symbol="FOREXCOM:DXY"
-          interval="D"
-          timezone="Etc/UTC"
-          theme="Dark"
-          locale="br"
-          autosize
-          hide_top_toolbar
-          hide_legend
-          hide_side_toolbar
-          allow_symbol_change={false}
-          container_id="dxy-chart"
-        />
+        <TradingView widgetProps={dxyWidgetProps} />
       </div>
       
       <div className="space-y-3 text-white">

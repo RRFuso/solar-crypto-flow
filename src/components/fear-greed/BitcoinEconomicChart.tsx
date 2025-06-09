@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { LineChart, ArrowDown, ArrowUp } from 'lucide-react';
-import TradingViewWidget from 'react-tradingview-widget';
+import { TradingView } from 'react-tradingview-embed';
 
 interface BitcoinEconomicChartProps {
   btcPrice: string;
@@ -32,6 +32,20 @@ const BitcoinEconomicChart = ({
     neutral: <LineChart className="w-5 h-5 text-blue-500" />
   };
 
+  const btcWidgetProps = {
+    symbol: 'BTCUSD',
+    interval: 'D' as const,
+    timezone: 'Etc/UTC',
+    locale: 'br',
+    allow_symbol_change: false,
+    hide_side_toolbar: true,
+    hide_legend: true,
+    save_image: false,
+    autosize: true,
+    width: '100%',
+    height: '100%'
+  };
+
   return (
     <div className="w-full max-w-md space-y-2 p-6 bg-gray-900/50 rounded-lg border border-gray-800 shadow-xl">
       <div className="flex items-center justify-between mb-4">
@@ -48,17 +62,7 @@ const BitcoinEconomicChart = ({
       </div>
       
       <div className="h-40 overflow-hidden rounded-lg border border-gray-700 mb-4">
-        <TradingViewWidget
-          symbol="BTCUSD"
-          interval="D"
-          timezone="Etc/UTC"
-          locale="br"
-          allow_symbol_change={false}
-          hide_side_toolbar={true}
-          hide_legend={true}
-          save_image={false}
-          container_id="bitcoin-chart"
-        />
+        <TradingView widgetProps={btcWidgetProps} />
       </div>
       
       <div className="grid grid-cols-2 gap-4 text-white">

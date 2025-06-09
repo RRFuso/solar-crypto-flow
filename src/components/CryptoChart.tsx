@@ -1,6 +1,6 @@
 
 import React, { memo } from 'react';
-import TradingViewWidget from 'react-tradingview-widget';
+import { TradingView } from 'react-tradingview-embed';
 
 interface CryptoChartProps {
   crypto: {
@@ -16,7 +16,22 @@ const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: Cryp
     ? 'BTC.D'
     : 'USDT' // Now always using USDT pair except for BTC.D
   
-  const containerId = `tradingview_chart_${crypto.id}_${timeframe}`;
+  const widgetProps = {
+    symbol: `BINANCE:${crypto.id}${symbol}`,
+    theme: 'Dark' as const,
+    autosize: true,
+    interval: timeframe,
+    timezone: 'Etc/UTC',
+    style: '1' as const,
+    locale: 'pt',
+    toolbar_bg: '#1a1b1e',
+    enable_publishing: false,
+    hide_top_toolbar: false,
+    allow_symbol_change: false,
+    studies: ['RSI@tv-basicstudies', 'StochRSI@tv-basicstudies'],
+    width: '100%',
+    height: '100%'
+  };
   
   return (
     <div className="h-full bg-gray-900 rounded-lg overflow-hidden">
@@ -28,21 +43,7 @@ const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: Cryp
         </h2>
       </div>
       <div className="h-[calc(100%-4rem)]">
-        <TradingViewWidget
-          symbol={`BINANCE:${crypto.id}${symbol}`}
-          theme="Dark"
-          autosize
-          interval={timeframe}
-          timezone="Etc/UTC"
-          style="1"
-          locale="pt"
-          toolbar_bg="#1a1b1e"
-          enable_publishing={false}
-          hide_top_toolbar={false}
-          allow_symbol_change={false}
-          studies={["RSI@tv-basicstudies", "StochRSI@tv-basicstudies"]}
-          container_id={containerId}
-        />
+        <TradingView widgetProps={widgetProps} />
       </div>
     </div>
   );

@@ -21,13 +21,13 @@ export class TwoFactorAuth {
     };
   }
   
-  verifyToken(secret: string, token: string): boolean {
+  async verifyToken(secret: string, token: string): Promise<boolean> {
     const window = 2; // Allow 2 time steps before/after current
     const currentTime = Math.floor(Date.now() / 1000 / 30); // 30-second time step
     
     for (let i = -window; i <= window; i++) {
       const timeStep = currentTime + i;
-      const expectedToken = this.generateTOTP(secret, timeStep);
+      const expectedToken = await this.generateTOTP(secret, timeStep);
       if (expectedToken === token) {
         return true;
       }
