@@ -6,6 +6,7 @@ import { useOrbitalVisualization } from '@/hooks/capital-flow/useOrbitalVisualiz
 import { OrbitalNode } from '../NodePlacement';
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
 
+// Define ExtendedOrbitalNode here as well for consistency
 interface ExtendedOrbitalNode extends OrbitalNode {
   price?: string;
   volume?: number | undefined;
@@ -28,51 +29,44 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
   
   const animationRef = useRef<any | null>(null);
   
-  // Enhanced resize handling with improved timing
+  // Handle window resize and initial sizing
   useEffect(() => {
-    let resizeObserver: ResizeObserver | null = null;
-    let resizeTimeout: NodeJS.Timeout;
-    
     const handleResize = () => {
       if (containerRef.current) {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-          const rect = containerRef.current!.getBoundingClientRect();
-          const width = Math.max(rect.width, 400);
-          const height = Math.max(rect.height, 400);
-          
-          console.log('Setting dimensions:', { width, height });
-          setDimensions({ width, height });
-        }, 50); // Debounce resize events
+        const rect = containerRef.current.getBoundingClientRect();
+        // Ensure we get valid dimensions
+        const width = Math.max(rect.width, 300);
+        const height = Math.max(rect.height, 300);
+        
+        setDimensions({ width, height });
       }
     };
+    
+    // Use ResizeObserver for more accurate container size tracking
+    let resizeObserver: ResizeObserver | null = null;
     
     if (containerRef.current) {
       resizeObserver = new ResizeObserver((entries) => {
         for (const entry of entries) {
           const { width, height } = entry.contentRect;
-          clearTimeout(resizeTimeout);
-          resizeTimeout = setTimeout(() => {
-            const finalWidth = Math.max(width, 400);
-            const finalHeight = Math.max(height, 400);
-            console.log('ResizeObserver setting dimensions:', { width: finalWidth, height: finalHeight });
-            setDimensions({ width: finalWidth, height: finalHeight });
-          }, 50);
+          setDimensions({
+            width: Math.max(width, 300),
+            height: Math.max(height, 300)
+          });
         }
       });
       
       resizeObserver.observe(containerRef.current);
     }
     
-    // Initial size calculation with delay
-    const initialTimer = setTimeout(handleResize, 100);
+    // Fallback to initial sizing
+    const timer = setTimeout(handleResize, 100);
     
     window.addEventListener('resize', handleResize);
     
     return () => {
       window.removeEventListener('resize', handleResize);
-      clearTimeout(initialTimer);
-      clearTimeout(resizeTimeout);
+      clearTimeout(timer);
       if (resizeObserver) {
         resizeObserver.disconnect();
       }

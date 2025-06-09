@@ -10,9 +10,9 @@ const Index = () => {
 
   return (
     <DashboardLayout>
-      <div className="h-full w-full flex flex-col overflow-hidden">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full w-full">
-          <div className="flex-shrink-0 px-6 pt-4 w-full">
+      <div className="h-full w-full flex flex-col">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+          <div className="flex-shrink-0 px-6 pt-4">
             <TabsList className="grid w-full max-w-md grid-cols-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50">
               <TabsTrigger 
                 value="capital-flow" 
@@ -29,12 +29,12 @@ const Index = () => {
             </TabsList>
           </div>
 
-          <div className="flex-1 w-full overflow-hidden">
-            <TabsContent value="capital-flow" className="h-full w-full m-0">
+          <div className="flex-1 overflow-hidden">
+            <TabsContent value="capital-flow" className="h-full m-0">
               <CapitalFlowPanel />
             </TabsContent>
 
-            <TabsContent value="crypto" className="h-full w-full m-0">
+            <TabsContent value="crypto" className="h-full m-0">
               <CryptoPanel />
             </TabsContent>
           </div>
