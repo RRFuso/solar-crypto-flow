@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 import animatePlugin from "tailwindcss-animate";
 
@@ -11,20 +12,14 @@ const config: Config = {
   ],
   theme: {
     container: {
-      center: true,
-      padding: {
-        DEFAULT: "1rem",
-        sm: "1.5rem",
-        lg: "2rem",
-        xl: "2.5rem",
-        "2xl": "3rem",
-      },
+      center: false,
+      padding: "0",
       screens: {
         sm: "100%",
         md: "100%",
-        lg: "1024px",
-        xl: "1280px",
-        "2xl": "1536px",
+        lg: "100%",
+        xl: "100%",
+        "2xl": "100%",
       },
     },
     extend: {

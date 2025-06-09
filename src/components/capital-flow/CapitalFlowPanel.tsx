@@ -52,7 +52,7 @@ const CapitalFlowPanel = () => {
   const handleCategoryClick = (category: string) => setActiveCategory(category);
 
   return (
-    <div className="h-full w-full flex flex-row">
+    <div className="h-full w-full flex">
       {/* Left Sidebar - AI Watchlist - Largura fixa */}
       <div className="w-80 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-y-auto">
         <FlowVisualizationContent 
