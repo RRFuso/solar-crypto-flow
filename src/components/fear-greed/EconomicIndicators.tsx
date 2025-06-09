@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { TrendingUp, DollarSign, LineChart } from 'lucide-react';
-import TradingViewWidget from 'react-tradingview-embed';
 
 interface EconomicIndicatorsProps {
   dxy: string;
@@ -9,20 +8,36 @@ interface EconomicIndicatorsProps {
 }
 
 const EconomicIndicators = ({ dxy, spx, nasdaq }: EconomicIndicatorsProps) => {
-  const dxyWidgetProps = {
-    symbol: 'FOREXCOM:DXY',
-    interval: 'D' as const,
-    timezone: 'Etc/UTC',
-    theme: 'Dark' as const,
-    locale: 'br',
-    autosize: true,
-    hide_top_toolbar: true,
-    hide_legend: true,
-    hide_side_toolbar: true,
-    allow_symbol_change: false,
-    width: '100%',
-    height: '100%'
-  };
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      // Clear previous widget
+      containerRef.current.innerHTML = '';
+      
+      const script = document.createElement('script');
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-chart.js';
+      script.type = 'text/javascript';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        symbol: 'FOREXCOM:DXY',
+        width: '100%',
+        height: '100%',
+        locale: 'br',
+        dateRange: '12M',
+        colorTheme: 'dark',
+        trendLineColor: 'rgba(41, 98, 255, 1)',
+        underLineColor: 'rgba(41, 98, 255, 0.3)',
+        underLineBottomColor: 'rgba(41, 98, 255, 0)',
+        isTransparent: false,
+        autosize: true,
+        largeChartUrl: '',
+        container_id: 'dxy_chart'
+      });
+      
+      containerRef.current.appendChild(script);
+    }
+  }, []);
 
   return (
     <div className="w-full max-w-md space-y-2 p-6 bg-gray-900/50 rounded-lg border border-gray-800 shadow-xl">
@@ -36,7 +51,7 @@ const EconomicIndicators = ({ dxy, spx, nasdaq }: EconomicIndicatorsProps) => {
       </div>
       
       <div className="h-40 overflow-hidden rounded-lg border border-gray-700 mb-4">
-        <TradingViewWidget widgetProps={dxyWidgetProps} />
+        <div ref={containerRef} className="w-full h-full" id="dxy_chart"></div>
       </div>
       
       <div className="space-y-3 text-white">
