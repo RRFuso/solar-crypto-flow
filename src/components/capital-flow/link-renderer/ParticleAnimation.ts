@@ -1,6 +1,6 @@
 
 /**
- * Simple particle animation system without d3 dependency
+ * Simple particle animation system without any external dependencies
  */
 
 interface ParticleData {
@@ -83,7 +83,7 @@ export const addFlowParticles = (
     }
   });
   
-  // Setup animation loop for particles
+  // Setup animation loop for particles using requestAnimationFrame
   function animateParticles() {
     const particleElements = particleGroup.querySelectorAll(".particle");
     
