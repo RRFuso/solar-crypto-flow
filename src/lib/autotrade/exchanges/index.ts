@@ -11,15 +11,15 @@ export interface ExchangeConfig {
 }
 
 export class ExchangeManager {
-  private exchanges: Map<string, ccxt.Exchange> = new Map();
+  private exchanges: Map<string, any> = new Map();
   
-  async initializeExchange(config: ExchangeConfig): Promise<ccxt.Exchange> {
+  async initializeExchange(config: ExchangeConfig): Promise<any> {
     try {
       if (!(config.id in ccxt)) {
         throw new Error(`Exchange ${config.id} não suportado`);
       }
       
-      const ExchangeClass = ccxt[config.id as keyof typeof ccxt] as any;
+      const ExchangeClass = (ccxt as any)[config.id];
       const exchange = new ExchangeClass({
         apiKey: config.apiKey,
         secret: config.apiSecret,
@@ -70,7 +70,7 @@ export class ExchangeManager {
     return await exchange.cancelOrder(orderId, symbol);
   }
   
-  private getExchange(exchangeId: string): ccxt.Exchange {
+  private getExchange(exchangeId: string): any {
     const exchange = this.exchanges.get(exchangeId);
     if (!exchange) {
       throw new Error(`Exchange ${exchangeId} não inicializado`);
