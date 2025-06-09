@@ -13,32 +13,36 @@ export const useFlowVisualization = () => {
   const { createOrbitalPaths } = useOrbitalPaths();
   const { setupOrbitalAnimation, createStarfield } = useOrbitalAnimation();
 
-  // Create visual elements for the flow visualization
+  // Create visual elements for the flow visualization without d3
   const drawVisualization = (options: DrawOptions): VisualizationElements => {
     const { svg, nodes, links, isPredicted, dragHandlers } = options;
     
+    // Create SVG using native DOM methods
+    const svgElement = svg.node() || svg;
+    
     // Create defs for glows and clip paths
-    const defs = svg.append("defs");
-    createGlowFilter(defs);
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    svgElement.appendChild(defs);
+    createGlowFilter({ append: (el: any) => defs.appendChild(el) } as any);
     
     // Get dimensions
-    const width = parseInt(svg.style("width"));
-    const height = parseInt(svg.style("height"));
+    const width = parseInt(svgElement.getAttribute("width") || "800");
+    const height = parseInt(svgElement.getAttribute("height") || "600");
     
     // Add starfield background
-    createStarfield(svg, width, height);
+    createStarfield({ append: (el: any) => svgElement.appendChild(el) } as any, width, height);
     
     // Create orbital paths
-    createOrbitalPaths(svg, nodes, width, height);
+    createOrbitalPaths({ append: (el: any) => svgElement.appendChild(el) } as any, nodes, width, height);
     
     // Draw links with curved paths and particles
-    const { link } = createLinks(svg, links, isPredicted);
+    const { link } = createLinks({ append: (el: any) => svgElement.appendChild(el) } as any, links, isPredicted);
     
     // Add nodes, glows, logos, and labels
-    const { node } = createNodes(svg, nodes, dragHandlers, defs);
+    const { node } = createNodes({ append: (el: any) => svgElement.appendChild(el) } as any, nodes, dragHandlers, { append: (el: any) => defs.appendChild(el) } as any);
     
     // Setup element references
-    const elements: VisualizationElements = { link, node, svg };
+    const elements: VisualizationElements = { link, node, svg: { node: () => svgElement } as any };
     
     // Setup animation
     const animationFrameId = setupOrbitalAnimation(elements, nodes);
