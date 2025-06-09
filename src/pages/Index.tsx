@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import CryptoPanel from "@/components/CryptoPanel";
 import CapitalFlowPanel from "@/components/capital-flow/CapitalFlowPanel";
+import AutoTradePanel from "@/components/autotrade/AutoTradePanel";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("capital-flow");
@@ -13,7 +14,7 @@ const Index = () => {
       <div className="w-full h-full flex flex-col">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full w-full">
           <div className="flex-shrink-0 px-6 pt-4 w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50">
+            <TabsList className="grid w-full max-w-2xl grid-cols-3 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50">
               <TabsTrigger 
                 value="capital-flow" 
                 className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black"
@@ -26,6 +27,12 @@ const Index = () => {
               >
                 📊 Market Data
               </TabsTrigger>
+              <TabsTrigger 
+                value="autotrade" 
+                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black"
+              >
+                🤖 AutoTrade
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -36,6 +43,10 @@ const Index = () => {
 
             <TabsContent value="crypto" className="h-full m-0 w-full">
               <CryptoPanel />
+            </TabsContent>
+
+            <TabsContent value="autotrade" className="h-full m-0 w-full">
+              <AutoTradePanel />
             </TabsContent>
           </div>
         </Tabs>
