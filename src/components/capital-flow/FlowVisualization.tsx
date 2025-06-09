@@ -1,16 +1,7 @@
 
-import React, { useEffect, useState } from 'react';
-import * as d3 from 'd3';
+import React, { useEffect, useState, useRef } from 'react';
 import { FlowData, CryptoData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
-import { OrbitLayersComponent } from './OrbitLayers';
-import { LinkRendererExtended } from './LinkRendererExtended';
-import { NodeRendererComponent } from './NodeRenderer';
-import { OrbitalAnimationComponent } from './OrbitalAnimation';
-import { StarfieldBackground } from './visualization/StarfieldBackground';
-import PredictionOrbitalOverlay from '../ai/PredictionOrbitalOverlay';
-import { useVisualizationSetup } from './visualization/useVisualizationSetup';
-import { useVisualizationData } from './visualization/useVisualizationData';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import { usePriceActionSignals } from '@/hooks/usePriceActionSignals';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
@@ -30,89 +21,121 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   chartTimeframe = '4h',
   activeCategory = 'all'
 }) => {
-  const {
-    svgRef,
-    containerRef,
-    dimensions,
-    visualizationData,
-    setVisualizationData,
-    animationRef,
-    createOrbitalVisualization
-  } = useVisualizationSetup(flowData, zoomLevel);
-  
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+
   const { data: cryptoData, isLoading: loadingCryptoData } = useCryptoData();
   const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(['BTC', 'ETH']);
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI();
 
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  
-  const adjustedZoomLevel = zoomLevel * 1.2;
-
-  const cryptoDataMap = React.useMemo(() => {
-    const map = new Map<string, CryptoData>();
-    if (cryptoData) {
-      cryptoData.forEach(crypto => {
-        map.set(crypto.symbol, crypto);
-      });
-    }
-    return map;
-  }, [cryptoData]);
-  
-  useVisualizationData({
-    flowData,
-    cryptoDataMap,
-    priceActionSignals,
-    svgRef,
-    dimensions,
-    zoomLevel: adjustedZoomLevel,
-    setVisualizationData,
-    animationRef,
-    createOrbitalVisualization,
-    activeCategory
-  });
-
+  // Handle container resize
   useEffect(() => {
-    const handleNodeClick = (event: CustomEvent) => {
-      const nodeId = event.detail.nodeId;
-      setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
+    const handleResize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setDimensions({
+          width: rect.width || 800,
+          height: rect.height || 600
+        });
+      }
     };
-    document.addEventListener('node-click', handleNodeClick as EventListener);
-    return () => {
-      document.removeEventListener('node-click', handleNodeClick as EventListener);
-    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const getCategoryColor = (symbol: string) => {
-    const aiInsight = aiInsights.get(symbol);
-    if (aiInsight) {
-      switch (aiInsight.recommendation) {
-        case "strong_buy": return "#00FF88";
-        case "buy": return "#66FF99";
-        case "hold": return "#FFCC00";
-        case "sell": return "#FF6666";
-        case "strong_sell": return "#FF3366";
-        default: return "#8A9196";
-      }
-    }
+  // Simple canvas-based visualization
+  useEffect(() => {
+    if (!canvasRef.current || !flowData || flowData.length === 0) return;
 
-    const crypto = cryptoDataMap.get(symbol);
-    const category = crypto?.category;
-    switch (category) {
-      case "🚀 Alta": return "#00FF88";
-      case "🏃 Fuga": return "#FF3366";
-      case "🧱 Acum.": return "#FFCC00";
-      case "🔁 Rev.": return "#00CCFF";
-      case "⚠️ Alert": return "#FF9900";
-      case "Neutro": default: return "#8A9196";
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = dimensions.width;
+    canvas.height = dimensions.height;
+
+    // Clear canvas
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw starfield background
+    ctx.fillStyle = 'white';
+    for (let i = 0; i < 100; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const size = Math.random() * 2;
+      ctx.globalAlpha = Math.random() * 0.8 + 0.2;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
     }
-  };
+    ctx.globalAlpha = 1;
+
+    // Draw central node (BTC)
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    ctx.fillStyle = '#f59e0b';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 30, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw glow effect
+    const gradient = ctx.createRadialGradient(centerX, centerY, 30, centerX, centerY, 60);
+    gradient.addColorStop(0, 'rgba(245, 158, 11, 0.8)');
+    gradient.addColorStop(1, 'rgba(245, 158, 11, 0.1)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 60, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw label
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('BTC', centerX, centerY + 5);
+
+    // Draw surrounding nodes
+    const time = Date.now() * 0.001;
+    flowData.slice(0, 8).forEach((flow, index) => {
+      const angle = time * 0.1 + (index * Math.PI * 2 / 8);
+      const distance = 120 + (index % 3) * 40;
+      const x = centerX + Math.cos(angle) * distance;
+      const y = centerY + Math.sin(angle) * distance;
+
+      // Node color based on flow value
+      const color = flow.value > 0 ? '#10b981' : '#ef4444';
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, 15, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw connection line
+      ctx.strokeStyle = `${color}80`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+
+      // Draw symbol
+      ctx.fillStyle = 'white';
+      ctx.font = '12px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(flow.symbol || 'N/A', x, y + 25);
+    });
+
+  }, [flowData, dimensions, zoomLevel]);
 
   if (loadingCryptoData || loadingSignals || loadingAI) {
     return (
       <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading AI-powered visualization...</p>
+          <p className="text-slate-400">Loading visualization...</p>
         </div>
       </div>
     );
@@ -129,74 +152,13 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     );
   }
 
-  // Verificação de segurança antes de renderizar
-  const renderVisualization = svgRef.current && 
-                             dimensions.width > 0 && 
-                             visualizationData && 
-                             visualizationData.nodes && 
-                             visualizationData.nodes.length > 0;
-
   return (
     <div ref={containerRef} className="w-full h-full relative">
-      <svg 
-        ref={svgRef} 
-        className="w-full h-full" 
+      <canvas 
+        ref={canvasRef}
+        className="w-full h-full"
         style={{ display: 'block' }}
-        width={dimensions.width}
-        height={dimensions.height}
-        viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
-        preserveAspectRatio="xMidYMid meet"
       />
-      {renderVisualization && svgRef.current && (
-        <>
-          <StarfieldBackground 
-            svg={d3.select(svgRef.current)}
-            width={dimensions.width}
-            height={dimensions.height}
-          />
-          <OrbitLayersComponent 
-            svg={d3.select(svgRef.current)}
-            width={dimensions.width}
-            height={dimensions.height}
-            orbitLayers={4}
-            baseRadius={Math.min(dimensions.width, dimensions.height) * 0.15}
-            extendFullScreen={true}
-          />
-          <LinkRendererExtended
-            svg={d3.select(svgRef.current)}
-            links={visualizationData.links}
-            nodes={visualizationData.nodes}
-            selectedNodeId={selectedNodeId}
-            predictions={predictions}
-            animateWithOrbit={true}
-            getCategoryColor={getCategoryColor}
-          />
-          <NodeRendererComponent 
-            svg={d3.select(svgRef.current)}
-            nodes={visualizationData.nodes}
-            centralNode={visualizationData.centralNode}
-            selectedNodeId={selectedNodeId}
-            zoomLevel={adjustedZoomLevel}
-          />
-          <OrbitalAnimationComponent 
-            svg={d3.select(svgRef.current)}
-            nodes={visualizationData.nodes}
-            width={dimensions.width}
-            height={dimensions.height}
-            rotationSpeed={0.00001}
-            updateLinksInRealTime={true}
-          />
-          {predictions && predictions.length > 0 && (
-            <PredictionOrbitalOverlay
-              svg={d3.select(svgRef.current)}
-              nodes={visualizationData.nodes}
-              updateInterval={600000}
-              predictions={predictions}
-              chartTimeframe={chartTimeframe}
-            />
-          )}
-        </>
-      )}
     </div>
   );
 };
