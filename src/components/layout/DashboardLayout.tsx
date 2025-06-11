@@ -1,53 +1,50 @@
 
 import React from 'react';
-import UserMenu from '@/components/auth/UserMenu';
-import LoadingScreen from '@/components/ui/loading-screen';
+import { Home, BarChart, MessageCircle } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
 }
 
-const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-  const [isLoading, setIsLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
+const DashboardLayout = ({ children, activeTab = 'home', onTabChange }: DashboardLayoutProps) => {
+  const menuItems = [
+    { id: 'home', icon: Home, label: 'Home' },
+    { id: 'performance', icon: BarChart, label: 'Performance' },
+    { id: 'social-flow', icon: MessageCircle, label: 'Social Flow' },
+  ];
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black">
-      {/* Header */}
-      <header className="w-full flex-shrink-0 h-14 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-sm z-20">
-        <div className="h-full px-4 flex justify-between items-center w-full">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
-              <span className="text-black font-bold text-lg">☀</span>
-            </div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
-              Solar Crypto
-            </h1>
-            <div className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full">
-              AI Powered
-            </div>
-          </div>
-          <UserMenu />
+    <div className="flex flex-col h-screen bg-gray-900 text-white overflow-hidden">
+      {/* Top Navigation Bar */}
+      <header className="bg-gray-900/90 backdrop-blur-xl border-b border-gray-800 px-4 py-3">
+        <div className="container mx-auto flex items-center justify-between">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+            SolarCrypto
+          </h1>
+          
+          <nav className="flex items-center space-x-1">
+            {menuItems.map(({ id, icon: Icon, label }) => (
+              <button
+                key={id}
+                onClick={() => onTabChange?.(id)}
+                className={cn(
+                  "flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors text-sm",
+                  activeTab === id 
+                    ? "bg-gray-800 text-white" 
+                    : "text-gray-400 hover:bg-gray-800/50 hover:text-white"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
         </div>
       </header>
-
+      
       {/* Main Content */}
-      <main className="flex-1 flex flex-col w-full overflow-y-auto">
-        {children}
-      </main>
-    </div>
-  );
-};
-
-export default DashboardLayout;
+      <main className="flex-1 overflow-auto">
+        <div className="h-full">
