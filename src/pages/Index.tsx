@@ -1,56 +1,34 @@
 
 import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import DashboardLayout from "@/components/layout/DashboardLayout";
 import CryptoPanel from "@/components/CryptoPanel";
-import CapitalFlowPanel from "@/components/capital-flow/CapitalFlowPanel";
-import AutoTradePanel from "@/components/autotrade/AutoTradePanel";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import SocialFlowPanel from "@/components/social-flow/SocialFlowPanel";
+import HomePanel from "@/components/home/HomePanel";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("capital-flow");
+  const [activeTab, setActiveTab] = useState("home");
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "home":
+        return <HomePanel />;
+      case "performance":
+        return <CryptoPanel />;
+      case "social-flow":
+        return <SocialFlowPanel />;
+      default:
+        return (
+          <div className="text-center text-gray-400 mt-20">
+            <h2 className="text-2xl font-bold mb-4">Em breve</h2>
+            <p>Esta seção está em desenvolvimento.</p>
+          </div>
+        );
+    }
+  };
 
   return (
-    <DashboardLayout>
-      <div className="w-full h-full flex flex-col">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full w-full">
-          <div className="flex-shrink-0 px-6 pt-4 w-full">
-            <TabsList className="grid w-full max-w-2xl grid-cols-3 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50">
-              <TabsTrigger 
-                value="capital-flow" 
-                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black"
-              >
-                💰 Capital Flow AI
-              </TabsTrigger>
-              <TabsTrigger 
-                value="crypto" 
-                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black"
-              >
-                📊 Market Data
-              </TabsTrigger>
-              <TabsTrigger 
-                value="autotrade" 
-                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black"
-              >
-                🤖 AutoTrade
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <div className="flex-1 w-full">
-            <TabsContent value="capital-flow" className="h-full m-0 w-full">
-              <CapitalFlowPanel />
-            </TabsContent>
-
-            <TabsContent value="crypto" className="h-full m-0 w-full">
-              <CryptoPanel />
-            </TabsContent>
-
-            <TabsContent value="autotrade" className="h-full m-0 w-full">
-              <AutoTradePanel />
-            </TabsContent>
-          </div>
-        </Tabs>
-      </div>
+    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+      {renderContent()}
     </DashboardLayout>
   );
 };

@@ -26,6 +26,8 @@ interface FlowControlsProps {
   selectedCategory: string;
   setSelectedCategory: (category: string) => void;
   onRefresh: () => void;
+  showFlowLines: boolean;
+  setShowFlowLines: (value: boolean) => void;
 }
 
 // Crypto categories
@@ -61,10 +63,26 @@ export const FlowControls: React.FC<FlowControlsProps> = ({
   handleLimitChange,
   selectedCategory,
   setSelectedCategory,
-  onRefresh
+  onRefresh,
+  showFlowLines,
+  setShowFlowLines
 }) => {
   return (
     <div className="flex items-center gap-4">
+      {/* Flow Lines Toggle */}
+      <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-md">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="flow-lines"
+            checked={showFlowLines}
+            onCheckedChange={setShowFlowLines}
+          />
+          <Label htmlFor="flow-lines" className="text-white/80 text-xs">
+            Show flow lines
+          </Label>
+        </div>
+      </div>
+      
       {/* Strong Signal Filter */}
       <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-md">
         <div className="flex items-center space-x-2">
