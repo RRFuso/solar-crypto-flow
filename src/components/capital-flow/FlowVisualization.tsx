@@ -47,7 +47,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   const adjustedZoomLevel = zoomLevel * 0.75; // Reduce overall scale by 25%
   
   const { cryptoDataMap, isLoading: isCryptoDataLoading } = useCryptoData();
-  const { priceActionSignals, isLoading: isPriceActionSignalsLoading } = usePriceActionSignals();
+  const { signals: priceActionSignals, signalsLoading: isPriceActionSignalsLoading } = usePriceActionSignals([]);
 
   // Initialize visualization data
   useVisualizationData({
