@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Home, BarChart, MessageCircle } from 'lucide-react';
 import { cn } from "@/lib/utils";
@@ -17,7 +16,7 @@ const DashboardLayout = ({ children, activeTab = 'home', onTabChange }: Dashboar
   ];
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-gray-900 text-white">
       {/* Top Navigation Bar */}
       <header className="bg-gray-900/90 backdrop-blur-xl border-b border-gray-800 px-4 py-3">
         <div className="container mx-auto flex items-center justify-between">
@@ -48,3 +47,13 @@ const DashboardLayout = ({ children, activeTab = 'home', onTabChange }: Dashboar
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
         <div className="h-full">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default DashboardLayout;
+
+
