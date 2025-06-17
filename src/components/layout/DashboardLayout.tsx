@@ -55,5 +55,3 @@ const DashboardLayout = ({ children, activeTab = 'home', onTabChange }: Dashboar
 };
 
 export default DashboardLayout;
-
-
