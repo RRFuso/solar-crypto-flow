@@ -1,4 +1,4 @@
-mport React from 'react';
+import React from 'react';
 import { Home, BarChart, MessageCircle } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import UserMenu from '@/components/auth/UserMenu';
