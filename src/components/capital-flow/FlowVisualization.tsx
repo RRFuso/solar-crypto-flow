@@ -35,8 +35,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         setDimensions({
-          width: rect.width || 1024,
-          height: rect.height || 800
+          width: rect.width || 800,
+          height: rect.height || 600
         });
       }
     };
