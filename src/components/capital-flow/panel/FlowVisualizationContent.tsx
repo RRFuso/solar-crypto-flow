@@ -14,7 +14,7 @@ interface FlowVisualizationContentProps {
   filteredPredictions: Prediction[];
   chartTimeframe: string;
   activeCategory: string;
-  showSidebarOnly?: boolean;
+  showFlowLines: boolean;
 }
 
 export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> = ({
@@ -25,57 +25,52 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
   filteredPredictions,
   chartTimeframe,
   activeCategory,
-  showSidebarOnly = false
+  showFlowLines
 }) => {
-  if (showSidebarOnly) {
-    return (
-      <div className="h-full w-full">
-        <AIWatchlist 
-          predictions={filteredPredictions} 
-          maxItems={12} 
-          chartTimeframe={chartTimeframe}
-        />
-      </div>
-    );
-  }
-
   if (isLoading) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading AI-powered visualization...</p>
-        </div>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neon-blue"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-red-400 bg-gradient-to-br from-slate-900 via-slate-800 to-black">
-        <div className="text-center">
-          <p className="text-lg mb-2">⚠️ Failed to load market data</p>
-          <p className="text-sm text-slate-500">Please try again later</p>
-        </div>
+      <div className="flex-1 flex items-center justify-center text-neon-red">
+        Failed to load market data
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full relative">
-      {/* Main Orbital Visualization - Full container */}
-      <FlowVisualization 
-        flowData={processedFlowData} 
-        zoomLevel={zoomLevel}
-        predictions={filteredPredictions} 
-        chartTimeframe={chartTimeframe}
-        activeCategory={activeCategory}
-      />
-      
-      {/* Legend positioned at bottom center */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 pointer-events-none">
+    <div className="flex gap-6 flex-1 h-full overflow-hidden">
+      {/* Main Visualization Area */}
+      <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
+        {/* D3 Visualization with zoom level prop */}
+        <FlowVisualization 
+          flowData={processedFlowData} 
+          zoomLevel={zoomLevel}
+          predictions={filteredPredictions} 
+          chartTimeframe={chartTimeframe}
+          activeCategory={activeCategory}
+          showFlowLines={showFlowLines}
+        />
+        
+        {/* Legend */}
         <FlowLegend />
       </div>
+      
+      {/* AI Watchlist Sidebar */}
+      {filteredPredictions.length > 0 && (
+        <div className="w-64 h-full overflow-auto">
+          <AIWatchlist 
+            predictions={filteredPredictions} 
+            maxItems={8} 
+            chartTimeframe={chartTimeframe}
+          />
+        </div>
+      )}
     </div>
   );
 };
