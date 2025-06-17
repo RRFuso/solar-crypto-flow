@@ -21,9 +21,10 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   chartTimeframe = '4h',
   activeCategory = 'all'
 }) => {
-  const svgRef = useRef<SVGSVGElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const animationRef = useRef<number | null>(null);
 
   const { data: cryptoData, isLoading: loadingCryptoData } = useCryptoData();
   const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(['BTC', 'ETH']);
@@ -35,8 +36,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         setDimensions({
-          width: rect.width || 1024,
-          height: rect.height || 800
+          width: rect.width || 800,
+          height: rect.height || 600
         });
       }
     };
@@ -46,150 +47,156 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // SVG-based visualization using native DOM methods
+  // Enhanced canvas-based visualization
   useEffect(() => {
-    if (!svgRef.current || !flowData || flowData.length === 0) return;
+    if (!canvasRef.current || !flowData || flowData.length === 0) return;
 
-    const svg = svgRef.current;
-    // Clear previous content
-    while (svg.firstChild) {
-      svg.removeChild(svg.firstChild);
-    }
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    svg.setAttribute("width", dimensions.width.toString());
-    svg.setAttribute("height", dimensions.height.toString());
+    canvas.width = dimensions.width;
+    canvas.height = dimensions.height;
 
-    // Create background
-    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-    const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
-    gradient.setAttribute("id", "backgroundGradient");
-    gradient.setAttribute("cx", "50%");
-    gradient.setAttribute("cy", "50%");
-    gradient.setAttribute("r", "50%");
+    let time = 0;
 
-    const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-    stop1.setAttribute("offset", "0%");
-    stop1.setAttribute("stop-color", "#1e293b");
+    const animate = () => {
+      time += 0.01;
 
-    const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-    stop2.setAttribute("offset", "100%");
-    stop2.setAttribute("stop-color", "#0f172a");
+      // Clear canvas with dark space background
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    gradient.appendChild(stop1);
-    gradient.appendChild(stop2);
-    defs.appendChild(gradient);
-    svg.appendChild(defs);
+      // Draw animated starfield background
+      ctx.fillStyle = 'white';
+      for (let i = 0; i < 150; i++) {
+        const x = (Math.random() * canvas.width + time * 10) % canvas.width;
+        const y = (Math.random() * canvas.height + time * 5) % canvas.height;
+        const size = Math.random() * 2;
+        const opacity = Math.sin(time + i) * 0.4 + 0.6;
+        ctx.globalAlpha = opacity;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
 
-    const background = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    background.setAttribute("width", "100%");
-    background.setAttribute("height", "100%");
-    background.setAttribute("fill", "url(#backgroundGradient)");
-    svg.appendChild(background);
+      // Draw central node (BTC) with pulsing effect
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const pulseSize = 30 + Math.sin(time * 2) * 8;
+      
+      // Outer glow
+      const gradient = ctx.createRadialGradient(centerX, centerY, pulseSize, centerX, centerY, pulseSize + 40);
+      gradient.addColorStop(0, 'rgba(245, 158, 11, 0.8)');
+      gradient.addColorStop(1, 'rgba(245, 158, 11, 0.1)');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, pulseSize + 40, 0, Math.PI * 2);
+      ctx.fill();
 
-    // Draw central node (BTC)
-    const centerX = dimensions.width / 2;
-    const centerY = dimensions.height / 2;
-    
-    const centralNode = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    centralNode.setAttribute("cx", centerX.toString());
-    centralNode.setAttribute("cy", centerY.toString());
-    centralNode.setAttribute("r", "40");
-    centralNode.setAttribute("fill", "#f59e0b");
-    centralNode.setAttribute("stroke", "#ffffff");
-    centralNode.setAttribute("stroke-width", "3");
-    svg.appendChild(centralNode);
+      // Central node
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, pulseSize, 0, Math.PI * 2);
+      ctx.fill();
 
-    // Add BTC label
-    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    label.setAttribute("x", centerX.toString());
-    label.setAttribute("y", centerY.toString());
-    label.setAttribute("text-anchor", "middle");
-    label.setAttribute("dy", "0.3em");
-    label.setAttribute("fill", "white");
-    label.setAttribute("font-weight", "bold");
-    label.setAttribute("font-size", "16");
-    label.textContent = "BTC";
-    svg.appendChild(label);
+      // Draw label
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('BTC', centerX, centerY + 5);
 
-    // Filter flow data by category
-    const filteredFlowData = activeCategory === 'all' ? flowData : 
-      flowData.filter(flow => {
-        const cryptoInfo = cryptoData?.find(c => c.symbol === flow.to || c.symbol === flow.from);
-        return cryptoInfo?.category === activeCategory;
+      // Draw orbital nodes with animated movement
+      const filteredFlowData = activeCategory === 'all' ? flowData : 
+        flowData.filter(flow => {
+          const cryptoInfo = cryptoData?.find(c => c.symbol === flow.to || c.symbol === flow.from);
+          return cryptoInfo?.category === activeCategory;
+        });
+
+      filteredFlowData.slice(0, 12).forEach((flow, index) => {
+        const baseAngle = (index * Math.PI * 2 / 12);
+        const orbitRadius = 120 + (index % 3) * 50;
+        const speed = 0.3 + (index % 3) * 0.1;
+        const angle = baseAngle + time * speed;
+        
+        const x = centerX + Math.cos(angle) * orbitRadius;
+        const y = centerY + Math.sin(angle) * orbitRadius;
+
+        // Node color based on flow value and predictions
+        const prediction = predictions?.find(p => p.symbol === flow.to || p.symbol === flow.from);
+        let color = flow.value > 0 ? '#10b981' : '#ef4444';
+        
+        if (prediction) {
+          color = prediction.bullish ? '#00ff88' : '#ff3366';
+        }
+
+        // Draw orbit path
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, orbitRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Draw connection line with flow animation
+        const lineOpacity = 0.6 + Math.sin(time * 3 + index) * 0.3;
+        ctx.strokeStyle = `${color}${Math.floor(lineOpacity * 255).toString(16).padStart(2, '0')}`;
+        ctx.lineWidth = 2 + Math.abs(flow.value) * 0.1;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+
+        // Draw orbital node with glow
+        const nodeGlow = ctx.createRadialGradient(x, y, 15, x, y, 25);
+        nodeGlow.addColorStop(0, `${color}CC`);
+        nodeGlow.addColorStop(1, `${color}00`);
+        ctx.fillStyle = nodeGlow;
+        ctx.beginPath();
+        ctx.arc(x, y, 25, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, 15, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw label
+        ctx.fillStyle = 'white';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        const label = flow.to !== 'BTC' ? flow.to : flow.from;
+        ctx.fillText(label || 'N/A', x, y + 35);
+
+        // Draw value indicator
+        ctx.font = '10px Arial';
+        ctx.fillStyle = flow.value > 0 ? '#10b981' : '#ef4444';
+        const valueText = `${flow.value > 0 ? '+' : ''}${flow.value.toFixed(1)}%`;
+        ctx.fillText(valueText, x, y + 48);
       });
 
-    // Draw orbital nodes
-    filteredFlowData.slice(0, 12).forEach((flow, index) => {
-      const angle = (index * Math.PI * 2 / 12);
-      const orbitRadius = 150 + (index % 3) * 60;
-      
-      const x = centerX + Math.cos(angle) * orbitRadius;
-      const y = centerY + Math.sin(angle) * orbitRadius;
+      animationRef.current = requestAnimationFrame(animate);
+    };
 
-      // Determine node color based on predictions
-      const prediction = predictions?.find(p => p.symbol === flow.to || p.symbol === flow.from);
-      let color = flow.value > 0 ? '#10b981' : '#ef4444';
-      
-      if (prediction) {
-        color = prediction.bullish ? '#00ff88' : '#ff3366';
+    animate();
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
       }
-
-      // Draw orbit path
-      const orbitPath = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      orbitPath.setAttribute("cx", centerX.toString());
-      orbitPath.setAttribute("cy", centerY.toString());
-      orbitPath.setAttribute("r", orbitRadius.toString());
-      orbitPath.setAttribute("fill", "none");
-      orbitPath.setAttribute("stroke", "rgba(255, 255, 255, 0.1)");
-      orbitPath.setAttribute("stroke-width", "1");
-      orbitPath.setAttribute("stroke-dasharray", "5,5");
-      svg.appendChild(orbitPath);
-
-      // Draw connection line
-      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line.setAttribute("x1", centerX.toString());
-      line.setAttribute("y1", centerY.toString());
-      line.setAttribute("x2", x.toString());
-      line.setAttribute("y2", y.toString());
-      line.setAttribute("stroke", color);
-      line.setAttribute("stroke-width", "2");
-      line.setAttribute("opacity", "0.6");
-      svg.appendChild(line);
-
-      // Draw orbital node
-      const node = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      node.setAttribute("cx", x.toString());
-      node.setAttribute("cy", y.toString());
-      node.setAttribute("r", "20");
-      node.setAttribute("fill", color);
-      node.setAttribute("stroke", "#ffffff");
-      node.setAttribute("stroke-width", "2");
-      svg.appendChild(node);
-
-      // Add node label
-      const nodeLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      nodeLabel.setAttribute("x", x.toString());
-      nodeLabel.setAttribute("y", (y + 35).toString());
-      nodeLabel.setAttribute("text-anchor", "middle");
-      nodeLabel.setAttribute("fill", "white");
-      nodeLabel.setAttribute("font-size", "12");
-      const symbol = flow.to !== 'BTC' ? flow.to : flow.from;
-      nodeLabel.textContent = symbol || 'N/A';
-      svg.appendChild(nodeLabel);
-
-      // Add value indicator
-      const valueLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      valueLabel.setAttribute("x", x.toString());
-      valueLabel.setAttribute("y", (y + 50).toString());
-      valueLabel.setAttribute("text-anchor", "middle");
-      valueLabel.setAttribute("fill", flow.value > 0 ? '#10b981' : '#ef4444');
-      valueLabel.setAttribute("font-size", "10");
-      const valueText = `${flow.value > 0 ? '+' : ''}${flow.value.toFixed(1)}%`;
-      valueLabel.textContent = valueText;
-      svg.appendChild(valueLabel);
-    });
-
+    };
   }, [flowData, dimensions, zoomLevel, predictions, activeCategory, cryptoData]);
+
+  // Cleanup animation on unmount
+  useEffect(() => {
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
 
   if (loadingCryptoData || loadingSignals || loadingAI) {
     return (
@@ -215,8 +222,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
 
   return (
     <div ref={containerRef} className="w-full h-full relative">
-      <svg 
-        ref={svgRef}
+      <canvas 
+        ref={canvasRef}
         className="w-full h-full"
         style={{ display: 'block' }}
       />
