@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { FlowData, CryptoData } from '@/types/crypto';
 import { calculateNodePositions, OrbitalNode } from '../NodePlacement';
@@ -76,7 +75,7 @@ export const useVisualizationData = ({
   activeCategory = 'all'
 }: UseVisualizationDataProps) => {
   useEffect(() => {
-    if (!flowData || flowData.length === 0 || !svgRef.current || !dimensions.width) return;
+    if (!flowData || flowData.length === 0 || !svgRef.current || !dimensions.width || !cryptoDataMap) return;
 
     if (animationRef.current) {
       try {
