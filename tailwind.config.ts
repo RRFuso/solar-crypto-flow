@@ -1,24 +1,20 @@
+import type { Config } from "tailwindcss"
 
-import type { Config } from "tailwindcss";
-import animatePlugin from "tailwindcss-animate";
-
-const config: Config = {
+const config = {
   darkMode: ["class"],
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
+    "*.{js,ts,jsx,tsx,mdx}",
   ],
+  prefix: "",
   theme: {
     container: {
       center: true,
       padding: "2rem",
       screens: {
-        sm: "100%",
-        md: "100%",
-        lg: "100%",
-        xl: "100%",
         "2xl": "1400px",
       },
     },
@@ -29,14 +25,6 @@ const config: Config = {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        crypto: {
-          dark: "#0a0f1e",
-        },
-        neon: {
-          blue: "#0ea5e9",
-          green: "#00ffcc",
-          red: "#ff0066",
-        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -80,30 +68,14 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        "flow-pulse": {
-          "0%, 100%": { transform: "scale(1)", opacity: "1" },
-          "50%": { transform: "scale(1.05)", opacity: "0.8" },
-        },
-        "fade-in": {
-          "0%": { opacity: "0", transform: "translateY(10px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        "particle-flow": {
-          "0%": { opacity: "0", offset: "0%" },
-          "50%": { opacity: "1", offset: "50%" },
-          "100%": { opacity: "0", offset: "100%" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "flow-pulse": "flow-pulse 2s ease-in-out infinite",
-        "fade-in": "fade-in 0.3s ease-out",
-        "particle-flow": "particle-flow 3s linear infinite",
       },
     },
   },
-  plugins: [animatePlugin],
-};
+  plugins: [require("tailwindcss-animate")],
+} satisfies Config
 
-export default config;
+export default config
