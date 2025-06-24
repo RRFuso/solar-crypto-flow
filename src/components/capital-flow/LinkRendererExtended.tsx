@@ -1,13 +1,11 @@
 
 import React, { useEffect } from 'react';
-import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
-import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
-import { createLinkTooltip, removeLinkTooltip } from './link-renderer/LinkTooltip';
 
 export interface LinkRendererExtendedProps {
-  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  svg: SVGSVGElement;
   links: any[];
+  nodes: any[];
   selectedNodeId: string | null;
   predictions: Prediction[];
   animateWithOrbit?: boolean;
@@ -17,6 +15,7 @@ export interface LinkRendererExtendedProps {
 export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
   svg,
   links,
+  nodes,
   selectedNodeId,
   predictions,
   animateWithOrbit = false,
@@ -37,109 +36,101 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
   };
 
   useEffect(() => {
-    if (!svg || !links || links.length === 0) return;
+    if (!svg || !links || links.length === 0 || !nodes || nodes.length === 0) return;
 
-    svg.selectAll(".flow-links").remove();
-    svg.selectAll(".particles-group").remove();
+    // Clear existing links using native DOM methods
+    const existingLinks = svg.querySelectorAll('.flow-links, .particles-group');
+    existingLinks.forEach(el => el.remove());
 
-    const linkGroup = svg.append("g").attr("class", "flow-links");
+    const linkGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    linkGroup.setAttribute("class", "flow-links");
+    svg.appendChild(linkGroup);
 
-    const processedLinks = links.map(link => ({
-      ...link,
-      markerId: `marker-${link.source.id}-${link.target.id}`,
-      categoryColor: link.data?.category ? getColorForFlow(link.data.category) : null
-    }));
-
-    const handleMouseOver = (event: MouseEvent, linkData: any) => {
-      createLinkTooltip(svg, event, linkData);
-    };
-
-    const handleMouseOut = () => {
-      removeLinkTooltip(svg);
-    };
-
-    const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
-    createArrowheads(svg, processedLinks);
-
-    // Dynamic highlighting based on selectedNodeId
-    link
-      .attr("stroke-width", (d: any) => {
-        if (selectedNodeId) {
-          return (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? 2 : 0.5; // Highlight selected, dim others
-        }
-        return 1; // Default width
-      })
-      .attr("opacity", (d: any) => {
-        if (selectedNodeId) {
-          return (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? 0.9 : 0.15; // Highlight selected, dim others
-        }
-        return 0.6; // Default opacity
-      });
-
-    // === PARTICLE ANIMATION SETUP (DYNAMIC) ===
-    const particlesGroup = linkGroup.append("g").attr("class", "particles-group");
-    const particles: {
-      circle: d3.Selection<SVGCircleElement, unknown, null, undefined>;
-      link: any;
-      path: d3.Selection<SVGPathElement, unknown, null, undefined>;
-    }[] = [];
-
-    processedLinks.forEach(link => {
-      // Only create particles for links that are visible or highlighted
-      if (!selectedNodeId || link.source.id === selectedNodeId || link.target.id === selectedNodeId) {
-        const path = particlesGroup.append("path")
-          .attr("fill", "none")
-          .attr("stroke", "none");
-
-        const circle = particlesGroup.append("circle")
-          .attr("r", 3)
-          .attr("opacity", 0.9);
-
-        particles.push({ circle, link, path });
+    // Process links
+    const processedLinks = links.map(link => {
+      const sourceNode = nodes.find(n => n.id === link.source?.id || n.id === link.source);
+      const targetNode = nodes.find(n => n.id === link.target?.id || n.id === link.target);
+      
+      if (!sourceNode || !targetNode) {
+        return null;
       }
+
+      return {
+        ...link,
+        source: sourceNode,
+        target: targetNode,
+        markerId: `marker-${sourceNode.id}-${targetNode.id}`,
+        categoryColor: link.data?.category ? getColorForFlow(link.data.category) : null
+      };
+    }).filter(Boolean);
+
+    // Create defs for gradients and markers
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    svg.appendChild(defs);
+
+    // Create links
+    processedLinks.forEach((link, index) => {
+      if (!link.source || !link.target) return;
+
+      // Create gradient
+      const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+      gradient.setAttribute("id", `link-gradient-${index}`);
+      gradient.setAttribute("x1", link.source.x?.toString() || "0");
+      gradient.setAttribute("y1", link.source.y?.toString() || "0");
+      gradient.setAttribute("x2", link.target.x?.toString() || "0");
+      gradient.setAttribute("y2", link.target.y?.toString() || "0");
+
+      const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+      stop1.setAttribute("offset", "0%");
+      stop1.setAttribute("stop-color", link.categoryColor || "#4ade80");
+
+      const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+      stop2.setAttribute("offset", "100%");
+      stop2.setAttribute("stop-color", link.categoryColor || "#06b6d4");
+
+      gradient.appendChild(stop1);
+      gradient.appendChild(stop2);
+      defs.appendChild(gradient);
+
+      // Create marker
+      const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+      marker.setAttribute("id", link.markerId);
+      marker.setAttribute("viewBox", "0 -5 10 10");
+      marker.setAttribute("refX", "8");
+      marker.setAttribute("refY", "0");
+      marker.setAttribute("markerWidth", "6");
+      marker.setAttribute("markerHeight", "6");
+      marker.setAttribute("orient", "auto");
+
+      const arrowPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      arrowPath.setAttribute("fill", link.categoryColor || "#4ade80");
+      arrowPath.setAttribute("d", "M0,-5L10,0L0,5");
+      marker.appendChild(arrowPath);
+      defs.appendChild(marker);
+
+      // Create link path
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("class", "link-path");
+      const pathData = `M${link.source.x || 0},${link.source.y || 0}L${link.target.x || 0},${link.target.y || 0}`;
+      path.setAttribute("d", pathData);
+      path.setAttribute("stroke", `url(#link-gradient-${index})`);
+      path.setAttribute("stroke-width", "2");
+      path.setAttribute("fill", "none");
+      path.setAttribute("opacity", selectedNodeId ? 
+        (link.source.id === selectedNodeId || link.target.id === selectedNodeId ? "0.8" : "0.2") : 
+        "0.6"
+      );
+      path.setAttribute("marker-end", `url(#${link.markerId})`);
+
+      linkGroup.appendChild(path);
     });
 
-    if (animateWithOrbit) {
-      const updateAll = () => {
-        // Update line paths (curved)
-        link.attr("d", (d: any) => {
-          const dx = d.target.x - d.source.x;
-          const dy = d.target.y - d.source.y;
-          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-          return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-        });
-
-        // Update particles with new orbital positions
-        particles.forEach(({ circle, link, path }) => {
-          const dx = link.target.x - link.source.x;
-          const dy = link.target.y - link.source.y;
-          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-          const pathD = `M${link.source.x},${link.source.y}A${dr},${dr} 0 0,1 ${link.target.x},${link.target.y}`;
-          path.attr("d", pathD);
-
-          const totalLength = path.node()?.getTotalLength() || 0;
-          const t = ((Date.now() % 4000) / 4000); // 4s loop
-          const point = path.node()?.getPointAtLength(t * totalLength);
-
-          if (point) {
-            circle.attr("transform", `translate(${point.x},${point.y})`);
-            const r = Math.round(255 * (1 - t));
-            const g = Math.round(255 * t);
-            circle.attr("fill", `rgb(${r},${g},0)`); // red → green
-          }
-        });
-
-        requestAnimationFrame(updateAll);
-      };
-
-      requestAnimationFrame(updateAll);
-    }
-
+    // Cleanup function
     return () => {
-      svg.selectAll(".flow-links").remove();
-      svg.selectAll(".particles-group").remove();
+      const linksToRemove = svg.querySelectorAll('.flow-links, .particles-group');
+      linksToRemove.forEach(el => el.remove());
     };
-  }, [svg, links, selectedNodeId, animateWithOrbit, getCategoryColor]);
+  }, [svg, links, nodes, selectedNodeId, animateWithOrbit, getCategoryColor]);
 
   return null;
 };
