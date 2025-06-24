@@ -19,7 +19,7 @@ const config: Config = {
         md: "100%",
         lg: "100%",
         xl: "100%",
-        "2xl": "100%",
+        "2xl": "1400px",
       },
     },
     extend: {
