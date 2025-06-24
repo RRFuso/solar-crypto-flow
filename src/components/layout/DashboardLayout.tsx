@@ -52,7 +52,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         </header>
 
         {/* Conteúdo interno (tabs, gráficos, etc.) */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 flex flex-col w-full overflow-hidden">
           {children}
         </main>
       </div>
