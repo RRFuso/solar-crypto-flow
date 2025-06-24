@@ -12,7 +12,7 @@ const config: Config = {
   ],
   theme: {
     container: {
-      center: false,
+      center: true,
       padding: "2rem",
       screens: {
         sm: "100%",
