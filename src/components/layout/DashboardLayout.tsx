@@ -1,8 +1,6 @@
-
 import React from 'react';
 import UserMenu from '@/components/auth/UserMenu';
 import LoadingScreen from '@/components/ui/loading-screen';
-import Sidebar from '@/components/sidebar/Sidebar'; // ajuste o caminho conforme seu projeto
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -25,12 +23,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
   return (
     <div className="flex w-screen h-screen overflow-hidden bg-black text-white">
-      {/* Sidebar fixa à esquerda */}
-      <aside className="w-[260px] bg-gray-900 border-r border-gray-800 h-full">
-        <Sidebar />
+      {/* Sidebar substituta (simples) */}
+      <aside className="w-[260px] bg-gray-900 border-r border-gray-800 p-4">
+        <div className="text-lg font-bold text-white mb-4">☀ Solar Crypto</div>
+        <nav className="space-y-2 text-sm text-gray-300">
+          <div className="hover:text-white cursor-pointer">💰 Capital Flow</div>
+          <div className="hover:text-white cursor-pointer">📊 Market Data</div>
+          <div className="hover:text-white cursor-pointer">🤖 AutoTrade</div>
+        </nav>
       </aside>
 
-      {/* Área principal com header e conteúdo */}
+      {/* Painel principal */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Header fixo */}
         <header className="h-14 flex-shrink-0 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-sm z-20 flex items-center justify-between px-4">
@@ -48,7 +51,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           <UserMenu />
         </header>
 
-        {/* Conteúdo (ex: abas) */}
+        {/* Conteúdo interno (tabs, gráficos, etc.) */}
         <main className="flex-1 overflow-auto">
           {children}
         </main>
