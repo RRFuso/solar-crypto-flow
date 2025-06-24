@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
@@ -255,4 +254,3 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
     </div>
   );
 };
-
