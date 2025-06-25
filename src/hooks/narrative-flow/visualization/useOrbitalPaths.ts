@@ -4,7 +4,7 @@ import { NarrativeNode } from '@/types/narratives';
 export const useOrbitalPaths = () => {
   // Create orbital paths for solar system effect using native DOM methods
   const createOrbitalPaths = (
-    svg: Element,
+    svg: any,
     nodes: NarrativeNode[],
     width: number,
     height: number
@@ -42,7 +42,7 @@ export const useOrbitalPaths = () => {
         orbitGroup.appendChild(circle);
       });
       
-      svg.appendChild(orbitGroup);
+      svg.append(orbitGroup);
       return { centralNode, orbitGroup };
     }
     
