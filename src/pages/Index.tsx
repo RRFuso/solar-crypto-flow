@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -10,8 +11,8 @@ const Index = () => {
 
   return (
     <DashboardLayout>
-      <div className="w-full h-full flex flex-col m-0 p-0">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full w-full m-0 p-0">
+      <div className="w-full h-full flex flex-col">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full w-full">
           <div className="flex-shrink-0 px-6 pt-4 w-full">
             <TabsList className="grid w-full max-w-2xl grid-cols-3 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50">
               <TabsTrigger 
@@ -35,16 +36,16 @@ const Index = () => {
             </TabsList>
           </div>
 
-          <div className="flex-1 w-full m-0 p-0">
-            <TabsContent value="capital-flow" className="h-full m-0 w-full p-0">
+          <div className="flex-1 w-full">
+            <TabsContent value="capital-flow" className="h-full m-0 w-full">
               <CapitalFlowPanel />
             </TabsContent>
 
-            <TabsContent value="crypto" className="h-full m-0 w-full p-0">
+            <TabsContent value="crypto" className="h-full m-0 w-full">
               <CryptoPanel />
             </TabsContent>
 
-            <TabsContent value="autotrade" className="h-full m-0 w-full p-0">
+            <TabsContent value="autotrade" className="h-full m-0 w-full">
               <AutoTradePanel />
             </TabsContent>
           </div>
