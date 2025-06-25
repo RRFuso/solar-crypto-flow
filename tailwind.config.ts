@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 import animatePlugin from "tailwindcss-animate";
 
@@ -22,16 +23,6 @@ const config: Config = {
       },
     },
     extend: {
-      width: {
-        'screen': '100vw',
-      },
-      height: {
-        'screen': '100vh',
-      },
-      maxWidth: {
-        'none': 'none',
-        'screen': '100vw',
-      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

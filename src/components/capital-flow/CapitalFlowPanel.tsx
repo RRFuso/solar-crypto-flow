@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMarketData } from '@/lib/marketData';
@@ -51,7 +52,7 @@ const CapitalFlowPanel = () => {
   const handleCategoryClick = (category: string) => setActiveCategory(category);
 
   return (
-    <div className="h-full w-full flex m-0 p-0">
+    <div className="h-full w-full flex">
       {/* Left Sidebar - AI Watchlist - Largura fixa */}
       <div className="w-80 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-y-auto">
         <FlowVisualizationContent 
@@ -67,7 +68,7 @@ const CapitalFlowPanel = () => {
       </div>
 
       {/* Main Content Area - Ocupa o espaço restante */}
-      <div className="flex-1 flex flex-col overflow-auto m-0 p-0">
+      <div className="flex-1 flex flex-col overflow-auto">
         {/* Header Controls - Altura fixa */}
         <div className="flex-shrink-0 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm z-10">
           <div className="p-4">
@@ -106,7 +107,7 @@ const CapitalFlowPanel = () => {
         </div>
 
         {/* Main Visualization - Altura mínima garantida */}
-        <div className="flex-1 relative min-h-[600px] w-full m-0 p-0">
+        <div className="flex-1 relative min-h-[600px]">
           <FlowVisualizationContent 
             isLoading={isLoading}
             error={error}
