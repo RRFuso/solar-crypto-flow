@@ -2,7 +2,7 @@
 import React from 'react';
 import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
 import { ArrowDown, ArrowUp } from 'lucide-react';
-import { CryptoData } from '@/types/crypto';
+import { CryptoData } from '@/types/crypto'; 
 
 interface CryptoCardProps {
   crypto: CryptoData;
