@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -45,8 +44,8 @@
   html, body {
     margin: 0;
     padding: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     overflow-x: hidden;
   }
   
@@ -58,15 +57,27 @@
   
   #root {
     height: 100vh;
-    width: 100%;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
   }
 
-  /* Garante que qualquer container ocupe largura total */
+  /* Remove todas as margens e paddings de containers */
   .container {
-    width: 100% !important;
-    max-width: none !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Força elementos a ocuparem toda a largura */
+  .w-full {
+    width: 100vw !important;
+  }
+
+  /* Remove qualquer limitação de largura máxima */
+  .max-w-\* {
+    max-width: 100vw !important;
   }
 }
 
