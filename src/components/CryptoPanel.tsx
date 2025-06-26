@@ -1,5 +1,4 @@
-
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useCryptoData } from "@/hooks/useCryptoData";
 import CryptoChart from './CryptoChart';
 import { Bitcoin, Search } from 'lucide-react';
@@ -16,10 +15,15 @@ import DivergenciaBearTab from './crypto/tabs/DivergenciaBearTab';
 import CryptoSettings from './crypto/CryptoSettings';
 import { CryptoData } from '@/types/crypto';
 
-const CryptoPanel = () => {
+interface CryptoPanelProps {
+  selectedCrypto?: { id: string; name: string } | null;
+}
+
+const CryptoPanel: React.FC<CryptoPanelProps> = ({ selectedCrypto: externalSelectedCrypto }) => {
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoData>({ id: 'BTC', name: 'Bitcoin', performance: 0 });
   const [activeFilter, setActiveFilter] = useState('outperforming');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showExplosiveIndicators, setShowExplosiveIndicators] = useState(false);
   const [settings, setSettings] = useState({
     rsiOverbought: 70,
     rsiOversold: 30,
@@ -34,8 +38,21 @@ const CryptoPanel = () => {
     rsiOversold: settings.rsiOversold
   });
 
+  // Atualizar crypto selecionada quando receber de fora (navegação do Capital Flow)
+  useEffect(() => {
+    if (externalSelectedCrypto) {
+      setSelectedCrypto({
+        id: externalSelectedCrypto.id,
+        name: externalSelectedCrypto.name,
+        performance: 0
+      });
+      setShowExplosiveIndicators(true); // Mostrar indicadores explosivos quando vem do Capital Flow
+    }
+  }, [externalSelectedCrypto]);
+
   const handleSelectCrypto = useCallback((crypto: CryptoData) => {
     setSelectedCrypto(crypto);
+    setShowExplosiveIndicators(false); // Reset para indicadores padrão quando selecionado manualmente
   }, []);
 
   const getTimeframe = useCallback(() => {
@@ -84,7 +101,7 @@ const CryptoPanel = () => {
   };
 
   return (
-    <div className="flex gap-6 h-full">
+    <div className="flex gap-4 h-full p-4">
       {/* Left panel - Crypto list */}
       <div className="w-2/5 flex flex-col border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden">
         {/* Header with filters */}
@@ -127,16 +144,28 @@ const CryptoPanel = () => {
           <CryptoChart 
             crypto={selectedCrypto} 
             timeframe={getTimeframe()}
-            key={`${selectedCrypto.id}-${getTimeframe()}`}
+            showExplosiveIndicators={showExplosiveIndicators}
+            key={`${selectedCrypto.id}-${getTimeframe()}-${showExplosiveIndicators}`}
           />
         </div>
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 flex gap-2">
+          {showExplosiveIndicators && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-purple-800/50 hover:bg-purple-700/50 border-purple-700 text-purple-300"
+              onClick={() => setShowExplosiveIndicators(false)}
+            >
+              🚀 Modo Explosivo
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
             className="bg-gray-800/50 hover:bg-gray-700/50 border-gray-700"
             onClick={() => {
               setSelectedCrypto({ id: 'BTC', name: 'Bitcoin', performance: 0 });
+              setShowExplosiveIndicators(false);
             }}
           >
             <Bitcoin className="w-4 h-4 mr-2" />

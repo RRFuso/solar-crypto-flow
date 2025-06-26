@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
@@ -15,6 +14,7 @@ interface FlowVisualizationContentProps {
   chartTimeframe: string;
   activeCategory: string;
   showSidebarOnly?: boolean;
+  onNavigateToChart?: (symbol: string) => void;
 }
 
 export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> = ({
@@ -25,7 +25,8 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
   filteredPredictions,
   chartTimeframe,
   activeCategory,
-  showSidebarOnly = false
+  showSidebarOnly = false,
+  onNavigateToChart
 }) => {
   if (showSidebarOnly) {
     return (
@@ -34,6 +35,7 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
           predictions={filteredPredictions} 
           maxItems={12} 
           chartTimeframe={chartTimeframe}
+          onNavigateToChart={onNavigateToChart}
         />
       </div>
     );

@@ -1,11 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Prediction } from '@/lib/aiModel';
 import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
-// Importa useQuery para buscar dados históricos
 import { useQuery } from '@tanstack/react-query'; 
-import { supabase } from '@/integrations/supabase/client'; // Assume que o cliente supabase está aqui
+import { supabase } from '@/integrations/supabase/client';
 import { usePriceActionSignals, PriceActionSignal } from '@/hooks/usePriceActionSignals';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -16,7 +14,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-// Define a interface para os dados históricos
 interface HistoricalDataPoint {
   date: string;
   low: number;
@@ -28,16 +25,17 @@ interface AIWatchlistProps {
   predictions: Prediction[];
   maxItems?: number;
   chartTimeframe?: string;
+  onNavigateToChart?: (symbol: string) => void;
 }
 
 interface Strategy {
   symbol: string;
   name: string;
   direction: 'bullish' | 'bearish';
-  entry: string; // Ponto de entrada sugerido (ex: retração, suporte)
-  stopLoss: string; // Stop loss sugerido (ex: abaixo da mínima anterior)
-  takeProfit1: string; // TP ainda pode ser baseado em R:R
-  takeProfit2: string; // TP ainda pode ser baseado em R:R
+  entry: string;
+  stopLoss: string;
+  takeProfit1: string;
+  takeProfit2: string;
   risk: string;
   reward: string;
   overview: string;
@@ -47,10 +45,9 @@ interface Strategy {
   priceActionSignals?: string[];
 }
 
-// Função para buscar dados históricos (exemplo)
 const fetchHistoricalData = async (symbol: string, limit: number = 10): Promise<HistoricalDataPoint[]> => {
   const { data, error } = await supabase
-    .from('crypto_historical_data') // Nome da tabela de dados históricos
+    .from('crypto_historical_data')
     .select('date, low, high, close')
     .eq('symbol', symbol)
     .order('date', { ascending: false })
@@ -60,7 +57,6 @@ const fetchHistoricalData = async (symbol: string, limit: number = 10): Promise<
     console.error('Error fetching historical data:', error);
     return [];
   }
-  // Garante que os dados retornados correspondem à interface
   return (data || []).map(d => ({ 
       date: d.date, 
       low: d.low ?? 0, 
@@ -73,20 +69,19 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
   predictions,
   maxItems = 5,
   chartTimeframe = '4h',
+  onNavigateToChart
 }) => {
   const [search, setSearch] = useState('');
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [selectedSymbolForHistory, setSelectedSymbolForHistory] = useState<string | null>(null);
 
-  // Hook para buscar dados históricos quando uma estratégia é selecionada
   const { data: historicalData, isLoading: isLoadingHistory } = useQuery<HistoricalDataPoint[]>({
     queryKey: ['historicalData', selectedSymbolForHistory],
     queryFn: () => selectedSymbolForHistory ? fetchHistoricalData(selectedSymbolForHistory, 10) : Promise.resolve([]),
-    enabled: !!selectedSymbolForHistory, // Só busca quando um símbolo é selecionado
-    staleTime: 1000 * 60 * 5, // Cache de 5 minutos
+    enabled: !!selectedSymbolForHistory,
+    staleTime: 1000 * 60 * 5,
   });
 
-  // Extract symbols from predictions for the hook
   const symbols = predictions.map(p => p.symbol);
   const { signals, signalsLoading } = usePriceActionSignals(symbols);
 
@@ -148,59 +143,47 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     return result.length > 0 ? result : ['📈 Análise Técnica'];
   };
 
-  // Função para calcular estratégia com base em dados históricos (se disponíveis)
   const calculateStrategy = (p: Prediction, history: HistoricalDataPoint[] | undefined) => {
     const currentPrice = parseFloat(p.price || '0') || 1;
-    let entryPrice = currentPrice; // Entrada padrão é o preço atual
-    let stopLossPrice = p.bullish ? currentPrice * 0.97 : currentPrice * 1.03; // Stop padrão 3%
+    let entryPrice = currentPrice;
+    let stopLossPrice = p.bullish ? currentPrice * 0.97 : currentPrice * 1.03;
     let stopBasis = "(3% Padrão)";
 
     if (history && history.length > 1) {
       const recentLows = history.map(h => h.low).sort((a, b) => a - b);
       const recentHighs = history.map(h => h.high).sort((a, b) => b - a);
-      const previousLow = recentLows[0]; // Mínima mais recente do período buscado
-      const previousHigh = recentHighs[0]; // Máxima mais recente
+      const previousLow = recentLows[0];
+      const previousHigh = recentHighs[0];
 
       if (p.bullish) {
-        // Entrada: Tenta encontrar um ponto de retração/suporte (ex: média entre low e high recentes)
         const potentialSupport = (previousLow + previousHigh) / 2; 
-        // Se o suporte calculado for razoável (abaixo do preço atual mas acima da mínima)
         if (potentialSupport < currentPrice && potentialSupport > previousLow) {
              entryPrice = potentialSupport; 
         } else {
-             // Ou entra perto da mínima anterior se o preço estiver muito esticado
-             entryPrice = previousLow * 1.01; // Um pouco acima da mínima
+             entryPrice = previousLow * 1.01;
         }
-        entryPrice = Math.min(entryPrice, currentPrice); // Não entra acima do preço atual
-
-        // Stop: Abaixo da mínima anterior
-        stopLossPrice = previousLow * 0.99; // 1% abaixo da mínima
+        entryPrice = Math.min(entryPrice, currentPrice);
+        stopLossPrice = previousLow * 0.99;
         stopBasis = `(Abaixo da Mínima ${previousLow.toFixed(2)})`;
-
-      } else { // Bearish
-        // Entrada: Tenta encontrar um ponto de retração/resistência
+      } else {
         const potentialResistance = (previousLow + previousHigh) / 2;
         if (potentialResistance > currentPrice && potentialResistance < previousHigh) {
             entryPrice = potentialResistance;
         } else {
-            entryPrice = previousHigh * 0.99; // Um pouco abaixo da máxima
+            entryPrice = previousHigh * 0.99;
         }
-        entryPrice = Math.max(entryPrice, currentPrice); // Não entra abaixo do preço atual
-
-        // Stop: Acima da máxima anterior
-        stopLossPrice = previousHigh * 1.01; // 1% acima da máxima
+        entryPrice = Math.max(entryPrice, currentPrice);
+        stopLossPrice = previousHigh * 1.01;
         stopBasis = `(Acima da Máxima ${previousHigh.toFixed(2)})`;
       }
     }
 
-    // Garante que stop loss não seja zero ou negativo
     stopLossPrice = Math.max(stopLossPrice, 0.0001); 
     entryPrice = Math.max(entryPrice, 0.0001);
 
     const stopDistance = Math.abs(entryPrice - stopLossPrice);
     const stopPercent = (stopDistance / entryPrice) * 100;
 
-    // Take Profit baseado em Risco:Retorno (ex: 1:1.5 e 1:2.5)
     const takeProfit1 = p.bullish ? entryPrice + stopDistance * 1.5 : entryPrice - stopDistance * 1.5;
     const takeProfit2 = p.bullish ? entryPrice + stopDistance * 2.5 : entryPrice - stopDistance * 2.5;
     const rewardPercent = (Math.abs(takeProfit2 - entryPrice) / entryPrice) * 100;
@@ -219,7 +202,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
       symbol: p.symbol,
       name: p.name || p.symbol,
       direction: p.bullish ? 'bullish' : 'bearish',
-      entry: entryPrice.toFixed(4), // Mais casas decimais para cripto
+      entry: entryPrice.toFixed(4),
       stopLoss: stopLossPrice.toFixed(4),
       takeProfit1: Math.max(0, takeProfit1).toFixed(4),
       takeProfit2: Math.max(0, takeProfit2).toFixed(4),
@@ -233,7 +216,6 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     });
   };
 
-  // Atualiza a estratégia quando os dados históricos carregam
   useEffect(() => {
     if (strategy && selectedSymbolForHistory === strategy.symbol && historicalData && !isLoadingHistory) {
       const prediction = predictions.find(p => p.symbol === strategy.symbol);
@@ -241,13 +223,17 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
         calculateStrategy(prediction, historicalData);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [historicalData, isLoadingHistory]); // Depende do histórico e do loading
+  }, [historicalData, isLoadingHistory]);
 
-  // Função chamada ao clicar em "Ver Estratégia"
   const handleShowStrategyClick = (p: Prediction) => {
-    setSelectedSymbolForHistory(p.symbol); // Inicia busca de dados históricos
-    calculateStrategy(p, undefined); // Mostra estratégia inicial (com stops padrão)
+    setSelectedSymbolForHistory(p.symbol);
+    calculateStrategy(p, undefined);
+  };
+
+  const handleNavigateToChart = (symbol: string) => {
+    if (onNavigateToChart) {
+      onNavigateToChart(symbol);
+    }
   };
 
   const renderCard = (p: Prediction) => {
@@ -296,7 +282,6 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
             
             <div className="text-xs text-gray-400 mb-2 line-clamp-2">{p.factors[0]}</div>
             
-            {/* Price Action Signals from Supabase */}
             {signal && (signal.isBreakout || signal.isExpansion || signal.isAccelerating) && (
               <div className="flex flex-wrap gap-1 mb-2">
                 {signal.isBreakout && (
@@ -317,14 +302,22 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
               </div>
             )}
             
-            {p.confidence > 0.6 && (
+            <div className="flex gap-2">
+              {p.confidence > 0.6 && (
+                <button
+                  onClick={() => handleShowStrategyClick(p)}
+                  className="text-xs text-blue-400 hover:text-blue-300 hover:underline transition-colors"
+                >
+                  Ver Estratégia
+                </button>
+              )}
               <button
-                onClick={() => handleShowStrategyClick(p)} // Chama a função que busca histórico
-                className="text-xs text-blue-400 hover:text-blue-300 hover:underline transition-colors"
+                onClick={() => handleNavigateToChart(p.symbol)}
+                className="text-xs text-green-400 hover:text-green-300 hover:underline transition-colors"
               >
-                Ver Estratégia
+                Ver Gráfico
               </button>
-            )}
+            </div>
           </div>
         </div>
       </div>
@@ -332,7 +325,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
   };
 
   return (
-    <div className="bg-black border border-gray-700 rounded-lg h-full flex flex-col min-w-[380px] max-w-[450px]">
+    <div className="bg-black border border-gray-700 rounded-lg h-full flex flex-col min-w-[320px] max-w-[400px]">
       <div className="p-4 border-b border-gray-700">
         <h2 className="text-white text-lg font-semibold mb-3 flex items-center gap-2">
           🧠 AI Watchlist
@@ -382,7 +375,6 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
         </div>
       </div>
 
-      {/* Strategy Dialog */}
       {strategy && (
         <Dialog open={!!strategy} onOpenChange={() => setStrategy(null)}>
           <DialogContent className="bg-gray-900 border border-gray-700 max-w-lg w-full text-white">

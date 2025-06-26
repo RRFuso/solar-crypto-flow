@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -8,6 +7,13 @@ import AutoTradePanel from "@/components/autotrade/AutoTradePanel";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("capital-flow");
+  const [selectedCrypto, setSelectedCrypto] = useState<{ id: string; name: string } | null>(null);
+
+  const handleNavigateToChart = (symbol: string) => {
+    // Navegar para a aba Market Data e definir a crypto selecionada
+    setSelectedCrypto({ id: symbol, name: symbol });
+    setActiveTab("crypto");
+  };
 
   return (
     <DashboardLayout>
@@ -38,11 +44,11 @@ const Index = () => {
 
           <div className="flex-1 w-full">
             <TabsContent value="capital-flow" className="h-full m-0 w-full">
-              <CapitalFlowPanel />
+              <CapitalFlowPanel onNavigateToChart={handleNavigateToChart} />
             </TabsContent>
 
             <TabsContent value="crypto" className="h-full m-0 w-full">
-              <CryptoPanel />
+              <CryptoPanel selectedCrypto={selectedCrypto} />
             </TabsContent>
 
             <TabsContent value="autotrade" className="h-full m-0 w-full">
