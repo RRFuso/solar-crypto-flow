@@ -1,4 +1,3 @@
-
 import React from 'react';
 import UserMenu from '@/components/auth/UserMenu';
 import LoadingScreen from '@/components/ui/loading-screen';
@@ -28,8 +27,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       <header className="w-full flex-shrink-0 h-14 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-sm z-20">
         <div className="h-full px-4 flex justify-between items-center w-full">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
-              <span className="text-black font-bold text-lg">☀</span>
+            <div className="relative">
+              <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                <span className="text-black font-bold text-lg">☀</span>
+              </div>
+              {/* Solar flare effect */}
+              <div className="absolute inset-0 w-8 h-8 bg-gradient-to-br from-yellow-400/30 to-orange-500/30 rounded-full animate-ping"></div>
             </div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
               Solar Crypto
