@@ -1,8 +1,8 @@
 import { BinanceTicker, BinanceKline } from '@/types/binance';
 import { filterValidTickers } from './tickerValidation';
 
-const BINANCE_API_URL = 'https://api.binance.com/api/v3';
-const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+// Use the Vite proxy path for development, fallback to direct API for production
+const BINANCE_API_URL = import.meta.env.DEV ? '/api/binance' : 'https://api.binance.com/api/v3';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -11,7 +11,6 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): P
   
   for (let i = 0; i < retries; i++) {
     try {
-      // First try direct fetch
       const response = await fetch(url, {
         ...options,
         headers: {
@@ -20,24 +19,11 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): P
         },
       });
 
-      if (response.ok) {
-        return response;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // If direct fetch fails, try proxy
-      const proxyResponse = await fetch(`${PROXY_URL}${encodeURIComponent(url)}`, {
-        ...options,
-        headers: {
-          'Accept': 'application/json',
-          ...options.headers,
-        },
-      });
-
-      if (!proxyResponse.ok) {
-        throw new Error(`HTTP error! status: ${proxyResponse.status}`);
-      }
-
-      return proxyResponse;
+      return response;
     } catch (error) {
       console.error(`Attempt ${i + 1} failed:`, error);
       lastError = error as Error;
