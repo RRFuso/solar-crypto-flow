@@ -1,3 +1,4 @@
+
 export * from './FlowVisualization';
 export * from './FlowLegend';
 export * from './OrbitLayers';
@@ -10,5 +11,6 @@ export * from './visualization/StarfieldBackground';
 export * from './panel/FlowPanelHeader';
 export * from './panel/FlowControls';
 export * from './panel/CategoryFilters';
+export * from './panel/FlowVisualizationContent';
 export * from './panel/ApiStatusIndicator';
 export { default } from './CapitalFlowPanel';

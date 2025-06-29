@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Select,
@@ -14,18 +15,18 @@ interface CryptoFilterDropdownProps {
 
 const CryptoFilterDropdown: React.FC<CryptoFilterDropdownProps> = ({ value, onValueChange }) => {
   const filterOptions = [
-    { value: 'outperforming', label: '🚀 Destaques vs BTC' },
-    { value: 'bullish', label: '🐂 Tendência de Alta' },
-    { value: 'bearish', label: '🐻 Tendência de Baixa' },
-    { value: 'overbought', label: '📈 Sobrecomprado (RSI >70)' },
-    { value: 'oversold', label: '📉 Sobrevendido (RSI <30)' },
-    { value: 'div-bull', label: '🔄 Divergência Bullish' },
-    { value: 'div-bear', label: '🔄 Divergência Bearish' },
+    { value: 'outperforming', label: 'Destaques' },
+    { value: 'bullish', label: 'Alta' },
+    { value: 'bearish', label: 'Baixa' },
+    { value: 'overbought', label: 'Sobrecomprado' },
+    { value: 'oversold', label: 'Sobrevendido' },
+    { value: 'div-bull', label: 'Divergência Bull' },
+    { value: 'div-bear', label: 'Divergência Bear' },
   ];
 
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className="w-full bg-gray-800/50 border-gray-700 text-white hover:bg-gray-700/50 transition-colors">
+      <SelectTrigger className="w-48 bg-gray-800/50 border-gray-700 text-white hover:bg-gray-700/50 transition-colors">
         <SelectValue placeholder="Selecionar filtro" />
       </SelectTrigger>
       <SelectContent className="bg-gray-900 border-gray-700">

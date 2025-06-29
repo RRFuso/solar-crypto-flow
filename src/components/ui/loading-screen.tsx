@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 const LoadingScreen: React.FC = () => {
@@ -28,7 +29,7 @@ const LoadingScreen: React.FC = () => {
         </h1>
         
         {/* Loading text */}
-        <p className="text-gray-400 text-lg mb-6">Inicializando sistema solar...</p>
+        <p className="text-gray-400 text-lg mb-6">Inicializando sistema...</p>
         
         {/* Loading progress */}
         <div className="w-64 h-1 bg-gray-800 rounded-full overflow-hidden mx-auto">
