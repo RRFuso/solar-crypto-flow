@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Clock } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
@@ -24,22 +25,18 @@ export const FlowPanelHeader: React.FC<FlowPanelHeaderProps> = ({
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <div className="relative">
-          <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
-            <span className="text-black font-bold text-2xl">☀</span>
-          </div>
-          {/* Solar flare effect */}
-          <div className="absolute inset-0 w-12 h-12 bg-gradient-to-br from-yellow-400/30 to-orange-500/30 rounded-full animate-ping"></div>
-        </div>
+        <img 
+          src="/lovable-uploads/8b011f9d-f3aa-4409-8750-9bd757d934fc.png" 
+          alt="SolarCrypto Logo" 
+          className="h-12 object-contain"
+        />
         <div className="flex flex-col">
-          <h2 className="text-xl font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
-            Solar Crypto Capital Flow
-          </h2>
-          <p className="text-white/60 text-sm">AI-powered market capital movements in real time</p>
+          <h2 className="text-xl font-bold text-white">Crypto Capital Flow</h2>
+          <p className="text-white/60 text-sm">Market capital movements in real time</p>
         </div>
       </div>
-      <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-yellow-400/30 rounded-md">
-        <Clock size={14} className="text-yellow-400" />
+      <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-md">
+        <Clock size={14} className="text-gray-400" />
         <Select value={chartTimeframe} onValueChange={onChartTimeframeChange}>
           <SelectTrigger className="w-24 border-none bg-transparent text-white/80 h-6 py-0 px-1">
             <SelectValue />
