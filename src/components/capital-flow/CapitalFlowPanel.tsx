@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMarketData } from '@/lib/marketData';
@@ -7,7 +5,7 @@ import { toast } from 'sonner';
 import { FlowPanelHeader } from './panel/FlowPanelHeader';
 import { FlowControls } from './panel/FlowControls';
 import { CategoryFilters } from './panel/CategoryFilters';
-import { FlowVisualizationContent } from './panel/FlowVisualizationContent';
+import { FlowVisualization } from './FlowVisualization';
 import { usePredictions } from '@/hooks/capital-flow/usePredictions';
 import { useFilteredFlowData } from '@/hooks/capital-flow/useFilteredFlowData';
 import { useFlowAnalysis } from '@/hooks/capital-flow/useFlowAnalysis'; // Import the new hook
@@ -133,7 +131,7 @@ const CapitalFlowPanel = () => {
       />
 
       {/* Main Visualization Content */}
-      <FlowVisualizationContent 
+      <FlowVisualization 
         isLoading={isLoading || isAnalysisLoading}
         error={error}
         processedFlowData={enhancedFlowData}
@@ -148,5 +146,3 @@ const CapitalFlowPanel = () => {
 };
 
 export default CapitalFlowPanel;
-
-
