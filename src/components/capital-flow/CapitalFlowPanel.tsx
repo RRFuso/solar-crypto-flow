@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+
+
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMarketData } from '@/lib/marketData';
 import { toast } from 'sonner';
@@ -6,22 +8,19 @@ import { FlowPanelHeader } from './panel/FlowPanelHeader';
 import { FlowControls } from './panel/FlowControls';
 import { CategoryFilters } from './panel/CategoryFilters';
 import { FlowVisualizationContent } from './panel/FlowVisualizationContent';
-import { ExplosiveOpportunitiesPanel } from './panel/ExplosiveOpportunitiesPanel';
 import { usePredictions } from '@/hooks/capital-flow/usePredictions';
 import { useFilteredFlowData } from '@/hooks/capital-flow/useFilteredFlowData';
+import { useFlowAnalysis } from '@/hooks/capital-flow/useFlowAnalysis'; // Import the new hook
 
-interface CapitalFlowPanelProps {
-  onNavigateToChart?: (symbol: string) => void;
-}
-
-const CapitalFlowPanel: React.FC<CapitalFlowPanelProps> = ({ onNavigateToChart }) => {
+const CapitalFlowPanel = () => {
   const [timeframe, setTimeframe] = useState('24h');
   const [chartTimeframe, setChartTimeframe] = useState('4h');
-  const [zoomLevel, setZoomLevel] = useState(60);
-  const [flowLimit, setFlowLimit] = useState(30);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [zoomLevel, setZoomLevel] = useState(40); // Default zoom level at 40%
+  const [cryptoLimit, setCryptoLimit] = useState(50); // Default to 50 cryptos
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [showFlowLines, setShowFlowLines] = useState(true);
+  const [activeCategory, setActiveCategory] = useState<string>('all'); // Track active category filter
 
   const { data: flowData, isLoading, error, refetch } = useQuery({
     queryKey: ['capital-flow', timeframe],
@@ -36,9 +35,16 @@ const CapitalFlowPanel: React.FC<CapitalFlowPanelProps> = ({ onNavigateToChart }
     }
   });
 
-  const processedFlowData = useFilteredFlowData(flowData, flowLimit, activeCategory);
+  // Get processed flow data based on filters
+  const processedFlowData = useFilteredFlowData(flowData, cryptoLimit, activeCategory);
+  
+  // Get AI analysis from the FastAPI backend
+  const { data: flowAnalysisData, isLoading: isAnalysisLoading } = useFlowAnalysis(processedFlowData);
+  
+  // Get AI predictions
   const { predictions } = usePredictions(flowData, selectedCategory, chartTimeframe);
 
+  // Filter predictions based on showOnlyStrongSignals setting
   const filteredPredictions = React.useMemo(() => {
     if (showOnlyStrongSignals) {
       return predictions.filter(p => p.confidence >= 0.6);
@@ -46,95 +52,101 @@ const CapitalFlowPanel: React.FC<CapitalFlowPanelProps> = ({ onNavigateToChart }
     return predictions;
   }, [predictions, showOnlyStrongSignals]);
 
-  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 150));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 20));
-  const handleLimitChange = (value: number[]) => setFlowLimit(value[0]);
+  // Merge flow data with analysis data when available
+  const enhancedFlowData = React.useMemo(() => {
+    if (!flowAnalysisData || isAnalysisLoading) return processedFlowData;
+    
+    return processedFlowData.map(flow => {
+      const analysis = flowAnalysisData.find(analysis => 
+        analysis.fluxo_in === (flow.volume || 0) && 
+        analysis.fluxo_out === (flow.outflow || 0)
+      );
+      
+      if (analysis) {
+        return {
+          ...flow,
+          category: analysis.categoria
+        };
+      }
+      return flow;
+    });
+  }, [processedFlowData, flowAnalysisData, isAnalysisLoading]);
+
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 10, 150));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 10, 10)); // Minimum 10% zoom
+  };
+
+  const handleLimitChange = (value: number[]) => {
+    setCryptoLimit(value[0]);
+  };
+
   const handleChartTimeframeChange = (value: string) => {
     setChartTimeframe(value);
+    // Trigger prediction recalculation
     refetch();
   };
-  const handleCategoryClick = (category: string) => setActiveCategory(category);
+
+  // Handle category filter click
+  const handleCategoryClick = (category: string) => {
+    setActiveCategory(category);
+  };
 
   return (
-    <div className="h-full w-full flex flex-col">
-      {/* Header Controls - Altura fixa reduzida */}
-      <div className="flex-shrink-0 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm z-10">
-        <div className="p-3">
-          <FlowPanelHeader 
-            chartTimeframe={chartTimeframe}
-            onChartTimeframeChange={handleChartTimeframeChange}
-          />
-        </div>
+    <div className="w-full min-h-screen flex flex-col gap-6 p-6 bg-crypto-dark backdrop-blur-xl border border-white/10 rounded-xl shadow-lg">
+      {/* Header with logo and title */}
+      <FlowPanelHeader 
+        chartTimeframe={chartTimeframe}
+        onChartTimeframeChange={handleChartTimeframeChange}
+      />
+
+      <div className="flex items-center justify-between">
+        {/* Add an empty div to help with layout */}
+        <div></div>
         
-        <div className="px-3 pb-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-shrink-0">
-              <CategoryFilters 
-                activeCategory={activeCategory}
-                onCategoryClick={handleCategoryClick}
-              />
-            </div>
-            
-            <div className="flex-shrink-0">
-              <FlowControls
-                chartTimeframe={chartTimeframe}
-                showOnlyStrongSignals={showOnlyStrongSignals}
-                setShowOnlyStrongSignals={setShowOnlyStrongSignals}
-                zoomLevel={zoomLevel}
-                handleZoomIn={handleZoomIn}
-                handleZoomOut={handleZoomOut}
-                flowLimit={flowLimit}
-                handleLimitChange={handleLimitChange}
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-                onRefresh={() => refetch()}
-              />
-            </div>
-          </div>
-        </div>
+        {/* Control buttons and filters */}
+        <FlowControls
+          chartTimeframe={chartTimeframe}
+          setChartTimeframe={setChartTimeframe}
+          showOnlyStrongSignals={showOnlyStrongSignals}
+          setShowOnlyStrongSignals={setShowOnlyStrongSignals}
+          zoomLevel={zoomLevel}
+          handleZoomIn={handleZoomIn}
+          handleZoomOut={handleZoomOut}
+          cryptoLimit={cryptoLimit}
+          handleCryptoLimitChange={setCryptoLimit}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          onRefresh={() => refetch()}
+          showFlowLines={showFlowLines}
+          setShowFlowLines={setShowFlowLines}
+        />
       </div>
 
-      {/* Main Content Area - Layout horizontal otimizado */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - AI Watchlist - Largura fixa reduzida */}
-        <div className="w-72 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-y-auto">
-          <FlowVisualizationContent 
-            isLoading={isLoading}
-            error={error}
-            processedFlowData={processedFlowData}
-            zoomLevel={zoomLevel}
-            filteredPredictions={filteredPredictions}
-            chartTimeframe={chartTimeframe}
-            activeCategory={activeCategory}
-            showSidebarOnly={true}
-            onNavigateToChart={onNavigateToChart}
-          />
-        </div>
+      {/* Category Filter Badges */}
+      <CategoryFilters 
+        activeCategory={activeCategory}
+        onCategoryClick={handleCategoryClick}
+      />
 
-        {/* Center - Main Visualization */}
-        <div className="flex-1 relative min-h-0">
-          <FlowVisualizationContent 
-            isLoading={isLoading}
-            error={error}
-            processedFlowData={processedFlowData}
-            zoomLevel={zoomLevel}
-            filteredPredictions={filteredPredictions}
-            chartTimeframe={chartTimeframe}
-            activeCategory={activeCategory}
-            showSidebarOnly={false}
-          />
-        </div>
-
-        {/* Right Sidebar - Explosive Opportunities */}
-        <div className="w-80 flex-shrink-0 border-l border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-y-auto">
-          <ExplosiveOpportunitiesPanel 
-            predictions={filteredPredictions}
-            onNavigateToChart={onNavigateToChart}
-          />
-        </div>
-      </div>
+      {/* Main Visualization Content */}
+      <FlowVisualizationContent 
+        isLoading={isLoading || isAnalysisLoading}
+        error={error}
+        processedFlowData={enhancedFlowData}
+        zoomLevel={zoomLevel}
+        filteredPredictions={filteredPredictions}
+        chartTimeframe={chartTimeframe}
+        activeCategory={activeCategory}
+        showFlowLines={showFlowLines}
+      />
     </div>
   );
 };
 
 export default CapitalFlowPanel;
+
+
