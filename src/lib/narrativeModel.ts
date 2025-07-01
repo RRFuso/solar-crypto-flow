@@ -1,206 +1,142 @@
 
-import * as tf from '@tensorflow/tfjs';
 import { NarrativeData, ModelPrediction, NarrativeFlow } from '@/types/narratives';
 
-// Función para normalizar los datos
+// Simplified prediction model without TensorFlow.js
+// Uses statistical analysis and market pattern recognition
+
+// Function to normalize data between 0 and 1
 const normalizeData = (data: number[]): number[] => {
   const min = Math.min(...data);
   const max = Math.max(...data);
-  return data.map(value => (value - min) / (max - min));
+  const range = max - min;
+  
+  if (range === 0) return data.map(() => 0.5);
+  return data.map(value => (value - min) / range);
 };
 
-// Función para crear secuencias de datos para el LSTM
-const createSequences = (data: number[], sequenceLength: number): { X: number[][], y: number[] } => {
-  const X: number[][] = [];
-  const y: number[] = [];
-  
-  for (let i = 0; i < data.length - sequenceLength; i++) {
-    X.push(data.slice(i, i + sequenceLength));
-    y.push(data[i + sequenceLength]);
+// Calculate moving average for trend analysis
+const calculateMovingAverage = (data: number[], window: number): number[] => {
+  const result: number[] = [];
+  for (let i = 0; i < data.length; i++) {
+    const start = Math.max(0, i - window + 1);
+    const slice = data.slice(start, i + 1);
+    const average = slice.reduce((sum, val) => sum + val, 0) / slice.length;
+    result.push(average);
   }
-  
-  return { X, y };
+  return result;
 };
 
-// Creación y entrenamiento del modelo LSTM
-export const trainNarrativeModel = async (narrativeData: NarrativeData[]): Promise<tf.LayersModel> => {
-  // Extraer datos de marketCap para entrenamiento
-  const marketCapData = narrativeData.map(n => n.marketCap);
-  const normalizedData = normalizeData(marketCapData);
+// Generate market momentum score based on price changes and volume
+const calculateMomentumScore = (narrative: NarrativeData): number => {
+  const priceScore = (narrative.change24h + narrative.change7d * 0.3) / 2;
+  const volumeScore = Math.log(narrative.volume24h / narrative.marketCap + 1) * 10;
+  const dominanceScore = narrative.dominance * 2;
   
-  // Crear secuencias
-  const sequenceLength = 3; // Simplificado para el ejemplo
-  const { X, y } = createSequences(normalizedData, sequenceLength);
-  
-  // Convertir a tensores
-  const xTensor = tf.tensor2d(X, [X.length, sequenceLength]);
-  const yTensor = tf.tensor1d(y);
-  
-  // Reshape para LSTM
-  const reshapedX = xTensor.reshape([X.length, sequenceLength, 1]);
-  
-  // Crear modelo
-  const model = tf.sequential();
-  
-  // Añadir capas LSTM
-  model.add(tf.layers.lstm({
-    units: 10,
-    inputShape: [sequenceLength, 1],
-    returnSequences: false
-  }));
-  
-  // Añadir capa densa para la salida
-  model.add(tf.layers.dense({ units: 1 }));
-  
-  // Compilar modelo
-  model.compile({
-    optimizer: 'adam',
-    loss: 'meanSquaredError'
-  });
-  
-  // Entrenar modelo
-  await model.fit(reshapedX, yTensor, {
-    epochs: 20,
-    batchSize: 4,
-    shuffle: true,
-    verbose: 0
-  });
-  
-  return model;
+  return (priceScore + volumeScore + dominanceScore) / 3;
 };
 
-// Generar predicciones de flujos entre narrativas
+// Predict capital flows based on momentum and market conditions
 export const generateFlowPredictions = async (
-  narratives: NarrativeData[],
-  model: tf.LayersModel
+  narratives: NarrativeData[]
 ): Promise<ModelPrediction> => {
-  // Generar flujos de narrativas basados en predicciones del modelo
   const flowsData: NarrativeFlow[] = [];
   
-  // Crear matriz para guardar las predicciones de cambios en market cap
-  const predictedChanges: { id: string, change: number }[] = [];
+  // Calculate momentum scores for all narratives
+  const momentumScores = narratives.map(narrative => ({
+    id: narrative.id,
+    score: calculateMomentumScore(narrative),
+    marketCap: narrative.marketCap,
+    change24h: narrative.change24h
+  }));
   
-  // Encontrar narrativa Layer 1
-  const l1Narrative = narratives.find(n => n.id === 'l1');
-  const l1Index = l1Narrative ? narratives.indexOf(l1Narrative) : -1;
+  // Sort by momentum score
+  const sortedByMomentum = [...momentumScores].sort((a, b) => b.score - a.score);
   
-  // Para cada narrativa, hacer una predicción
-  for (const narrative of narratives) {
-    // Obtener datos históricos para predecir (simplificado)
-    const sequenceLength = 3;
-    const historyData = [
-      narrative.marketCap * 0.98, 
-      narrative.marketCap * 0.99, 
-      narrative.marketCap
-    ];
-    const normalizedHistory = normalizeData(historyData);
+  // Identify outperforming and underperforming narratives
+  const avgMomentum = momentumScores.reduce((sum, n) => sum + n.score, 0) / momentumScores.length;
+  const outperformers = sortedByMomentum.filter(n => n.score > avgMomentum * 1.2);
+  const underperformers = sortedByMomentum.filter(n => n.score < avgMomentum * 0.8);
+  
+  // Generate flows from underperformers to outperformers
+  underperformers.forEach(source => {
+    const sourceNarrative = narratives.find(n => n.id === source.id);
+    if (!sourceNarrative) return;
     
-    // Crear tensor para la predicción
-    // Fix: Reshape the array to match the expected tensor shape [batch, timesteps, features]
-    const reshapedInput = [normalizedHistory.map(value => [value])];
-    const inputTensor = tf.tensor3d(reshapedInput);
+    // Determine flow targets (prioritize Layer 1 if it's outperforming)
+    const l1Target = outperformers.find(t => t.id === 'l1');
+    const targets = l1Target 
+      ? [l1Target, ...outperformers.filter(t => t.id !== 'l1').slice(0, 1)]
+      : outperformers.slice(0, 2);
     
-    // Hacer predicción
-    const prediction = model.predict(inputTensor) as tf.Tensor;
-    const predictedValue = prediction.dataSync()[0];
-    
-    // Ajustar a un porcentaje de cambio (entre -5% y +7%)
-    let changePercent = ((predictedValue - normalizedHistory[normalizedHistory.length - 1]) * 10) - 2.5;
-    
-    // Boost para Layer 1 basado en condiciones de mercado actuales
-    if (narrative.id === 'l1') {
-      // Layer 1 tiene un cambio más positivo en las predicciones
-      changePercent = Math.min(7.0, changePercent + 4.0);
-    }
-    
-    predictedChanges.push({
-      id: narrative.id,
-      change: changePercent
+    targets.forEach(target => {
+      const flowPercentage = Math.abs(source.score - target.score) * 0.5;
+      const flowValue = (sourceNarrative.marketCap * flowPercentage) / 100;
+      
+      // Apply boost for Layer 1 flows
+      const boostFactor = target.id === 'l1' ? 1.4 : 1.0;
+      
+      flowsData.push({
+        from: source.id,
+        to: target.id,
+        value: flowValue * boostFactor,
+        percentage: flowPercentage,
+        predicted: true
+      });
     });
-  }
+  });
   
-  // Ordenar narrativas por cambio predicho
-  const sortedPredictions = [...predictedChanges].sort((a, b) => b.change - a.change);
+  // Add some cross-flows between similar-performing narratives
+  const midPerformers = sortedByMomentum.filter(n => 
+    n.score >= avgMomentum * 0.8 && n.score <= avgMomentum * 1.2
+  );
   
-  // Crear flujos de capital de narrativas con cambio negativo a positivo
-  for (let i = 0; i < predictedChanges.length; i++) {
-    const source = predictedChanges[i];
+  for (let i = 0; i < Math.min(3, midPerformers.length - 1); i++) {
+    const source = midPerformers[i];
+    const target = midPerformers[i + 1];
     
-    // Si el cambio es negativo, crear flujos hacia narrativas con cambio positivo
-    if (source.change < 0) {
-      const positiveTargets = sortedPredictions.filter(p => p.change > 0);
+    if (source.score < target.score) {
+      const flowPercentage = (target.score - source.score) * 0.3;
+      const flowValue = (source.marketCap * flowPercentage) / 100;
       
-      // Priorizar flujos hacia Layer 1 si está en los objetivos positivos
-      const l1Target = positiveTargets.find(t => t.id === 'l1');
-      const targetFlows = l1Target 
-        ? [l1Target, ...positiveTargets.filter(t => t.id !== 'l1').slice(0, 1)] // Layer 1 + uno más
-        : positiveTargets.slice(0, 2); // Los 2 mejores si no hay Layer 1
-      
-      for (let j = 0; j < targetFlows.length; j++) {
-        const target = targetFlows[j];
-        const sourceNarrative = narratives.find(n => n.id === source.id);
-        
-        if (sourceNarrative) {
-          // Calcular el flujo basado en el cambio negativo
-          const flowValue = (Math.abs(source.change) * sourceNarrative.marketCap) / 100;
-          
-          // Boost para flujos hacia Layer 1
-          const boostFactor = target.id === 'l1' ? 1.5 : 1.0;
-          
-          flowsData.push({
-            from: source.id,
-            to: target.id,
-            value: flowValue * boostFactor,
-            percentage: Math.abs(source.change),
-            predicted: true
-          });
-        }
-      }
+      flowsData.push({
+        from: source.id,
+        to: target.id,
+        value: flowValue,
+        percentage: flowPercentage,
+        predicted: true
+      });
     }
   }
   
   return {
-    narrativeFlows: flowsData,
+    narrativeFlows: flowsData.slice(0, 8), // Limit to top 8 flows
     timestamp: new Date().toISOString(),
-    confidence: 0.6 + Math.random() * 0.3 // Confianza entre 60-90%
+    confidence: 0.65 + Math.random() * 0.25 // 65-90% confidence
   };
 };
 
-// Función para cargar o entrenar el modelo
-export const loadNarrativeModel = async (narratives: NarrativeData[]): Promise<tf.LayersModel> => {
-  let model: tf.LayersModel;
-  
-  try {
-    // Intentar cargar el modelo desde localStorage
-    model = await tf.loadLayersModel('localstorage://narrative-flow-model');
-    console.log('Modelo LSTM cargado de localStorage');
-  } catch (error) {
-    // Si no existe, crear y entrenar uno nuevo
-    console.log('Entrenando nuevo modelo LSTM...');
-    model = await trainNarrativeModel(narratives);
-    // Guardar el modelo para uso futuro
-    await model.save('localstorage://narrative-flow-model');
-  }
-  
-  return model;
-};
-
-// Predecir flujos de narrativas usando el modelo LSTM
+// Main prediction function
 export const predictWithModel = async (narratives: NarrativeData[]): Promise<ModelPrediction> => {
   try {
-    // Cargar o entrenar el modelo
-    const model = await loadNarrativeModel(narratives);
-    
-    // Generar predicciones
-    const predictions = await generateFlowPredictions(narratives, model);
-    
+    const predictions = await generateFlowPredictions(narratives);
     return predictions;
   } catch (error) {
-    console.error('Error al predecir flujos de narrativas:', error);
+    console.error('Error generating narrative flow predictions:', error);
     return {
       narrativeFlows: [],
       timestamp: new Date().toISOString(),
       confidence: 0
     };
   }
+};
+
+// Legacy function stubs for compatibility (no longer used)
+export const trainNarrativeModel = async (narrativeData: NarrativeData[]): Promise<any> => {
+  console.warn('trainNarrativeModel is deprecated - using statistical model instead');
+  return Promise.resolve(null);
+};
+
+export const loadNarrativeModel = async (narratives: NarrativeData[]): Promise<any> => {
+  console.warn('loadNarrativeModel is deprecated - using statistical model instead');
+  return Promise.resolve(null);
 };
