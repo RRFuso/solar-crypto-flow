@@ -7,27 +7,16 @@ interface CategoryFiltersProps {
   onCategoryClick: (category: string) => void;
 }
 
-// Crypto categories (same as in FlowControls)
-const CATEGORIES = [
-  { value: 'all', label: 'All Categories' },
-  { value: 'layer1', label: 'Layer 1' },
-  { value: 'layer2', label: 'Layer 2' },
+// Crypto categories principais para exibição horizontal
+const MAIN_CATEGORIES = [
+  { value: 'all', label: 'All' },
+  { value: 'layer1', label: 'L1' },
+  { value: 'layer2', label: 'L2' },
   { value: 'defi', label: 'DeFi' },
-  { value: 'memecoin', label: 'Memecoins' },
-  { value: 'stablecoin', label: 'Stablecoins' },
-  { value: 'gaming', label: 'Gaming' },
+  { value: 'memecoin', label: 'Meme' },
   { value: 'ai', label: 'AI' },
-  { value: 'privacy', label: 'Privacy' },
-  { value: 'solana', label: 'Solana Chain' },
-  { value: 'ethereum', label: 'ETH Chain' },
-  { value: 'bitcoin', label: 'BTC Chain' },
-  { value: 'bnb', label: 'BNB Chain' },
+  { value: 'gaming', label: 'Gaming' },
   { value: 'rwa', label: 'RWA' },
-  { value: 'payments', label: 'Payments' },
-  { value: 'metaverse', label: 'Metaverse' },
-  { value: 'nft', label: 'NFT' },
-  { value: 'storage', label: 'Storage' },
-  { value: 'infrastructure', label: 'Infrastructure' },
 ];
 
 export const CategoryFilters: React.FC<CategoryFiltersProps> = ({
@@ -35,22 +24,23 @@ export const CategoryFilters: React.FC<CategoryFiltersProps> = ({
   onCategoryClick
 }) => {
   return (
-    <div className="flex flex-wrap gap-2 mb-2">
-      <Badge 
-        className={`cursor-pointer hover:bg-white/20 ${activeCategory === 'all' ? 'bg-white/20 border-white' : 'bg-white/5 border-white/10'}`}
-        onClick={() => onCategoryClick('all')}
-      >
-        All Categories
-      </Badge>
-      {CATEGORIES.filter(c => c.value !== 'all').map(category => (
-        <Badge 
-          key={category.value}
-          className={`cursor-pointer hover:bg-white/20 ${activeCategory === category.value ? 'bg-white/20 border-white' : 'bg-white/5 border-white/10'}`}
-          onClick={() => onCategoryClick(category.value)}
-        >
-          {category.label}
-        </Badge>
-      ))}
+    <div className="flex items-center gap-2">
+      <span className="text-white/60 text-sm mr-2">Categories:</span>
+      <div className="flex gap-1.5">
+        {MAIN_CATEGORIES.map(category => (
+          <Badge 
+            key={category.value}
+            className={`cursor-pointer hover:bg-white/20 text-xs px-2 py-1 transition-all ${
+              activeCategory === category.value 
+                ? 'bg-gradient-to-r from-orange-500 to-yellow-500 text-black font-medium' 
+                : 'bg-white/5 border-white/10 text-white/80 hover:text-white'
+            }`}
+            onClick={() => onCategoryClick(category.value)}
+          >
+            {category.label}
+          </Badge>
+        ))}
+      </div>
     </div>
   );
 };
