@@ -1,5 +1,5 @@
+
 import React, { useEffect } from 'react';
-import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
 import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
@@ -12,7 +12,7 @@ interface ExtendedOrbitalNode extends OrbitalNode {
 }
 
 interface NodeRendererProps {
-  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  svg: SVGSVGElement;
   nodes: ExtendedOrbitalNode[];
   centralNode: ExtendedOrbitalNode | null;
   selectedNodeId: string | null;
@@ -162,7 +162,7 @@ const createEnhancedTooltip = (node: ExtendedOrbitalNode, aiInsights: Map<string
 };
 
 class NodeRendererClass {
-  private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  private svg: SVGSVGElement;
   private nodes: ExtendedOrbitalNode[];
   private centralNode: ExtendedOrbitalNode | null;
   private selectedNodeId: string | null;
@@ -180,232 +180,227 @@ class NodeRendererClass {
   }
 
   private renderNodes() {
-    this.svg.selectAll('.nodes-group').remove();
-    const nodesGroup = this.svg.append("g").attr("class", "nodes-group");
+    // Remove existing nodes using native DOM methods
+    const existingNodesGroup = this.svg.querySelector('.nodes-group');
+    if (existingNodesGroup) {
+      existingNodesGroup.remove();
+    }
+
+    const nodesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    nodesGroup.setAttribute("class", "nodes-group");
+    this.svg.appendChild(nodesGroup);
 
     this.createNodePatterns(this.svg, this.nodes);
 
     // AI-powered glow effects with corrected radius calculation
-    nodesGroup.selectAll('circle.node-glow')
-      .data(this.nodes)
-      .enter()
-      .append('circle')
-      .attr('class', 'node-glow')
-      .attr('cx', d => d.x)
-      .attr('cy', d => d.y)
-      .attr('r', d => {
-        const isCentral = d.id === this.centralNode?.id;
-        const nodeRadius = calculateNodeRadius(d, this.zoomLevel, isCentral);
-        return nodeRadius * 1.5; // Glow slightly larger than node
-      })
-      .attr('fill', d => getAIGlowColor(d, this.aiInsights))
-      .attr('filter', 'blur(8px)')
-      .attr('opacity', d => {
-        const aiInsight = this.aiInsights.get(d.id);
-        return aiInsight?.opportunityScore > 75 ? 0.8 : 0.5;
-      });
+    this.nodes.forEach(node => {
+      const glowCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      glowCircle.setAttribute("class", "node-glow");
+      glowCircle.setAttribute("cx", node.x.toString());
+      glowCircle.setAttribute("cy", node.y.toString());
+      
+      const isCentral = node.id === this.centralNode?.id;
+      const nodeRadius = calculateNodeRadius(node, this.zoomLevel, isCentral);
+      glowCircle.setAttribute("r", (nodeRadius * 1.5).toString());
+      
+      glowCircle.setAttribute("fill", getAIGlowColor(node, this.aiInsights));
+      glowCircle.setAttribute("filter", "blur(8px)");
+      
+      const aiInsight = this.aiInsights.get(node.id);
+      const opacity = aiInsight?.opportunityScore > 75 ? 0.8 : 0.5;
+      glowCircle.setAttribute("opacity", opacity.toString());
+      
+      nodesGroup.appendChild(glowCircle);
+    });
 
     // Main node groups
-    const node = nodesGroup.selectAll('g.node')
-      .data(this.nodes)
-      .enter()
-      .append('g')
-      .attr('class', 'node')
-      .attr('transform', d => `translate(${d.x},${d.y})`)
-      .attr('data-id', d => d.id)
-      .style('cursor', 'pointer')
-      .on('mouseenter', (event: MouseEvent, d: ExtendedOrbitalNode) => {
-        this.showTooltip(d);
-      })
-      .on('mouseleave', () => this.hideTooltip())
-      .on('click', (event: MouseEvent, d: ExtendedOrbitalNode) => {
-        const clickEvent = new CustomEvent('node-click', { detail: { nodeId: d.id } });
+    this.nodes.forEach(node => {
+      const nodeGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      nodeGroup.setAttribute("class", "node");
+      nodeGroup.setAttribute("transform", `translate(${node.x},${node.y})`);
+      nodeGroup.setAttribute("data-id", node.id);
+      nodeGroup.style.cursor = "pointer";
+      
+      // Add event listeners
+      nodeGroup.addEventListener('mouseenter', () => {
+        this.showTooltip(node);
+      });
+      nodeGroup.addEventListener('mouseleave', () => this.hideTooltip());
+      nodeGroup.addEventListener('click', () => {
+        const clickEvent = new CustomEvent('node-click', { detail: { nodeId: node.id } });
         document.dispatchEvent(clickEvent);
       });
 
-    // Main node circles with CORRECTED sizing
-    node.append('circle')
-      .attr('class', 'node-circle')
-      .attr('r', d => {
-        const isCentral = d.id === this.centralNode?.id;
-        return calculateNodeRadius(d, this.zoomLevel, isCentral);
-      })
-      .attr('fill', d => `url(#logo-${d.id})`)
-      .attr('stroke', d => {
-        if (this.selectedNodeId === d.id) return '#ffffff';
-        
-        const aiInsight = this.aiInsights.get(d.id);
+      // Main node circles with CORRECTED sizing
+      const nodeCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      nodeCircle.setAttribute("class", "node-circle");
+      
+      const isCentral = node.id === this.centralNode?.id;
+      const radius = calculateNodeRadius(node, this.zoomLevel, isCentral);
+      nodeCircle.setAttribute("r", radius.toString());
+      nodeCircle.setAttribute("fill", `url(#logo-${node.id})`);
+      
+      // Set stroke color based on AI insights
+      let strokeColor = '#00b5d8';
+      if (this.selectedNodeId === node.id) {
+        strokeColor = '#ffffff';
+      } else {
+        const aiInsight = this.aiInsights.get(node.id);
         if (aiInsight) {
-          return getAIRecommendationColor(aiInsight.recommendation);
+          strokeColor = getAIRecommendationColor(aiInsight.recommendation);
+        } else {
+          const signal = node.priceActionSignal;
+          if (signal?.explosivePotential === 'High') strokeColor = '#FFD700';
+          if (signal?.isBreakout) strokeColor = '#FF4500';
+          
+          if (node.inflow && node.outflow) {
+            if (node.inflow > node.outflow) strokeColor = '#00ffcc';
+            if (node.outflow > node.inflow) strokeColor = '#ff0066';
+          }
         }
-        
-        const signal = d.priceActionSignal;
-        if (signal?.explosivePotential === 'High') return '#FFD700';
-        if (signal?.isBreakout) return '#FF4500';
-        
-        if (d.inflow && d.outflow) {
-          if (d.inflow > d.outflow) return '#00ffcc';
-          if (d.outflow > d.inflow) return '#ff0066';
-        }
-        return '#00b5d8';
-      })
-      .attr('stroke-width', d => {
-        const baseWidth = this.selectedNodeId === d.id ? 4 : 2;
-        const aiInsight = this.aiInsights.get(d.id);
-        
-        // Thicker stroke for strong AI recommendations
-        if (aiInsight?.recommendation === 'strong_buy' || aiInsight?.recommendation === 'strong_sell') {
-          return baseWidth + 1;
-        }
-        
-        return baseWidth;
-      })
-      .attr('stroke-opacity', 0.9)
-      .attr('filter', d => {
-        const aiInsight = this.aiInsights.get(d.id);
-        if (aiInsight?.opportunityScore > 80) {
-          return 'drop-shadow(0 0 12px rgba(0, 255, 136, 0.8))';
-        }
-        return 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.3))';
-      });
+      }
+      
+      nodeCircle.setAttribute("stroke", strokeColor);
+      
+      const baseWidth = this.selectedNodeId === node.id ? 4 : 2;
+      const aiInsight = this.aiInsights.get(node.id);
+      const strokeWidth = (aiInsight?.recommendation === 'strong_buy' || aiInsight?.recommendation === 'strong_sell') ? 
+        baseWidth + 1 : baseWidth;
+      
+      nodeCircle.setAttribute("stroke-width", strokeWidth.toString());
+      nodeCircle.setAttribute("stroke-opacity", "0.9");
+      
+      const filter = aiInsight?.opportunityScore > 80 ? 
+        'drop-shadow(0 0 12px rgba(0, 255, 136, 0.8))' : 
+        'drop-shadow(0 0 6px rgba(255, 255, 255, 0.3))';
+      nodeCircle.setAttribute("filter", filter);
+      
+      nodeGroup.appendChild(nodeCircle);
 
-    // Node labels with corrected positioning
-    node.append('text')
-      .attr('text-anchor', 'middle')
-      .attr('dy', d => {
-        const isCentral = d.id === this.centralNode?.id;
-        const nodeRadius = calculateNodeRadius(d, this.zoomLevel, isCentral);
-        return nodeRadius + 16; // Position below the node
-      })
-      .attr('fill', 'white')
-      .attr('font-size', '12px')
-      .attr('font-weight', 'bold')
-      .style('pointer-events', 'none')
-      .style('text-shadow', '1px 1px 2px rgba(0,0,0,0.8)')
-      .text(d => {
-        const aiInsight = this.aiInsights.get(d.id);
-        if (aiInsight?.recommendation === 'strong_buy') return `${d.id} 🚀`;
-        if (aiInsight?.recommendation === 'strong_sell') return `${d.id} ⚠️`;
-        return d.id;
-      });
+      // Node labels with corrected positioning
+      const nodeText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      nodeText.setAttribute("text-anchor", "middle");
+      nodeText.setAttribute("dy", (radius + 16).toString());
+      nodeText.setAttribute("fill", "white");
+      nodeText.setAttribute("font-size", "12px");
+      nodeText.setAttribute("font-weight", "bold");
+      nodeText.style.pointerEvents = "none";
+      nodeText.style.textShadow = "1px 1px 2px rgba(0,0,0,0.8)";
+      
+      let labelText = node.id;
+      if (aiInsight?.recommendation === 'strong_buy') labelText = `${node.id} 🚀`;
+      if (aiInsight?.recommendation === 'strong_sell') labelText = `${node.id} ⚠️`;
+      nodeText.textContent = labelText;
+      
+      nodeGroup.appendChild(nodeText);
 
-    // AI recommendation badges for strong signals
-    node.filter(d => {
-      const aiInsight = this.aiInsights.get(d.id);
-      return aiInsight?.recommendation === 'strong_buy' || aiInsight?.recommendation === 'strong_sell';
-    })
-    .append('circle')
-    .attr('class', 'ai-badge')
-    .attr('cx', d => {
-      const isCentral = d.id === this.centralNode?.id;
-      const nodeRadius = calculateNodeRadius(d, this.zoomLevel, isCentral);
-      return nodeRadius * 0.7;
-    })
-    .attr('cy', d => {
-      const isCentral = d.id === this.centralNode?.id;
-      const nodeRadius = calculateNodeRadius(d, this.zoomLevel, isCentral);
-      return -nodeRadius * 0.7;
-    })
-    .attr('r', 8)
-    .attr('fill', d => {
-      const aiInsight = this.aiInsights.get(d.id);
-      return aiInsight?.recommendation === 'strong_buy' ? '#00FF88' : '#FF3366';
-    })
-    .attr('stroke', 'white')
-    .attr('stroke-width', 2);
+      // AI recommendation badges for strong signals
+      const aiInsight2 = this.aiInsights.get(node.id);
+      if (aiInsight2?.recommendation === 'strong_buy' || aiInsight2?.recommendation === 'strong_sell') {
+        const badge = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        badge.setAttribute("class", "ai-badge");
+        badge.setAttribute("cx", (radius * 0.7).toString());
+        badge.setAttribute("cy", (-radius * 0.7).toString());
+        badge.setAttribute("r", "8");
+        badge.setAttribute("fill", aiInsight2.recommendation === 'strong_buy' ? '#00FF88' : '#FF3366');
+        badge.setAttribute("stroke", "white");
+        badge.setAttribute("stroke-width", "2");
+        nodeGroup.appendChild(badge);
 
-    node.filter(d => {
-      const aiInsight = this.aiInsights.get(d.id);
-      return aiInsight?.recommendation === 'strong_buy' || aiInsight?.recommendation === 'strong_sell';
-    })
-    .append('text')
-    .attr('class', 'ai-badge-text')
-    .attr('x', d => {
-      const isCentral = d.id === this.centralNode?.id;
-      const nodeRadius = calculateNodeRadius(d, this.zoomLevel, isCentral);
-      return nodeRadius * 0.7;
-    })
-    .attr('y', d => {
-      const isCentral = d.id === this.centralNode?.id;
-      const nodeRadius = calculateNodeRadius(d, this.zoomLevel, isCentral);
-      return -nodeRadius * 0.7;
-    })
-    .attr('text-anchor', 'middle')
-    .attr('dy', '0.3em')
-    .attr('fill', 'white')
-    .attr('font-size', '10px')
-    .attr('font-weight', 'bold')
-    .text('AI');
+        const badgeText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        badgeText.setAttribute("class", "ai-badge-text");
+        badgeText.setAttribute("x", (radius * 0.7).toString());
+        badgeText.setAttribute("y", (-radius * 0.7).toString());
+        badgeText.setAttribute("text-anchor", "middle");
+        badgeText.setAttribute("dy", "0.3em");
+        badgeText.setAttribute("fill", "white");
+        badgeText.setAttribute("font-size", "10px");
+        badgeText.setAttribute("font-weight", "bold");
+        badgeText.textContent = "AI";
+        nodeGroup.appendChild(badgeText);
+      }
+
+      nodesGroup.appendChild(nodeGroup);
+    });
   }
 
-  private createNodePatterns(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, nodes: ExtendedOrbitalNode[]) {
-    svg.select('defs').remove();
-    const defs = svg.append('defs');
+  private createNodePatterns(svg: SVGSVGElement, nodes: ExtendedOrbitalNode[]) {
+    const existingDefs = svg.querySelector('defs');
+    if (existingDefs) {
+      existingDefs.remove();
+    }
+    
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    svg.appendChild(defs);
     
     nodes.forEach(node => {
-      const pattern = defs.append('pattern')
-        .attr('id', `logo-${node.id}`)
-        .attr('width', 1)
-        .attr('height', 1)
-        .attr('patternContentUnits', 'objectBoundingBox');
+      const pattern = document.createElementNS("http://www.w3.org/2000/svg", "pattern");
+      pattern.setAttribute('id', `logo-${node.id}`);
+      pattern.setAttribute('width', '1');
+      pattern.setAttribute('height', '1');
+      pattern.setAttribute('patternContentUnits', 'objectBoundingBox');
 
       const logoUrl = getCryptoLogoUrl(node.id);
-      pattern.append('image')
-        .attr('href', logoUrl)
-        .attr('width', 1)
-        .attr('height', 1)
-        .attr('preserveAspectRatio', 'xMidYMid slice')
-        .on('error', function () {
-          d3.select(this).attr('href', getFallbackLogoUrl());
-        });
+      const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
+      image.setAttribute('href', logoUrl);
+      image.setAttribute('width', '1');
+      image.setAttribute('height', '1');
+      image.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+      image.addEventListener('error', () => {
+        image.setAttribute('href', getFallbackLogoUrl());
+      });
+      
+      pattern.appendChild(image);
+      defs.appendChild(pattern);
     });
   }
 
   private showTooltip(node: ExtendedOrbitalNode) {
-    this.svg.selectAll('.node-tooltip').remove();
+    const existingTooltip = this.svg.querySelector('.node-tooltip');
+    if (existingTooltip) {
+      existingTooltip.remove();
+    }
     
     const isCentral = node.id === this.centralNode?.id;
     const nodeRadius = calculateNodeRadius(node, this.zoomLevel, isCentral);
     
-    const tooltip = this.svg.append('g')
-      .attr('class', 'node-tooltip')
-      .attr('transform', `translate(${node.x},${node.y - nodeRadius - 20})`);
+    const tooltip = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    tooltip.setAttribute('class', 'node-tooltip');
+    tooltip.setAttribute('transform', `translate(${node.x},${node.y - nodeRadius - 20})`);
 
     const textLines = createEnhancedTooltip(node, this.aiInsights);
     const padding = 12;
     const lineHeight = 18;
     const tooltipHeight = textLines.length * lineHeight + padding * 2;
     
-    let maxWidth = 0;
-    const tempText = tooltip.append('text').style('opacity', 0);
-    textLines.forEach(line => {
-      const textNode = tempText.text(line).node();
-      const w = textNode?.getComputedTextLength() || 0;
-      if (w > maxWidth) maxWidth = w;
-    });
-    tempText.remove();
-    
-    const tooltipWidth = Math.max(280, maxWidth + padding * 2);
+    // Calculate tooltip width
+    const tooltipWidth = Math.max(280, 200 + padding * 2);
 
     // Tooltip background with AI-themed styling
-    tooltip.append('rect')
-      .attr('rx', 12)
-      .attr('ry', 12)
-      .attr('x', -tooltipWidth / 2)
-      .attr('y', -tooltipHeight + padding / 2)
-      .attr('width', tooltipWidth)
-      .attr('height', tooltipHeight)
-      .attr('fill', 'rgba(15, 23, 42, 0.95)')
-      .attr('stroke', () => {
-        const aiInsight = this.aiInsights.get(node.id);
-        if (aiInsight) return getAIRecommendationColor(aiInsight.recommendation);
-        return '#475569';
-      })
-      .attr('stroke-width', 2)
-      .attr('filter', 'drop-shadow(0 8px 32px rgba(0, 0, 0, 0.8))');
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute('rx', '12');
+    rect.setAttribute('ry', '12');
+    rect.setAttribute('x', (-tooltipWidth / 2).toString());
+    rect.setAttribute('y', (-tooltipHeight + padding / 2).toString());
+    rect.setAttribute('width', tooltipWidth.toString());
+    rect.setAttribute('height', tooltipHeight.toString());
+    rect.setAttribute('fill', 'rgba(15, 23, 42, 0.95)');
+    
+    const aiInsight = this.aiInsights.get(node.id);
+    const strokeColor = aiInsight ? getAIRecommendationColor(aiInsight.recommendation) : '#475569';
+    rect.setAttribute('stroke', strokeColor);
+    rect.setAttribute('stroke-width', '2');
+    rect.setAttribute('filter', 'drop-shadow(0 8px 32px rgba(0, 0, 0, 0.8))');
+    tooltip.appendChild(rect);
 
     // Render tooltip text with enhanced styling
     textLines.forEach((line, i) => {
+      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      text.setAttribute('x', '0');
+      text.setAttribute('y', (-tooltipHeight + padding * 2 + i * lineHeight).toString());
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-family', 'Inter, system-ui, sans-serif');
+      
       let fillColor = '#FFFFFF';
       let fontWeight = 'normal';
       let fontSize = '12px';
@@ -434,20 +429,21 @@ class NodeRendererClass {
         fontSize = '13px';
       }
 
-      tooltip.append('text')
-        .attr('x', 0)
-        .attr('y', -tooltipHeight + padding * 2 + i * lineHeight)
-        .attr('text-anchor', 'middle')
-        .attr('fill', fillColor)
-        .attr('font-size', fontSize)
-        .attr('font-weight', fontWeight)
-        .attr('font-family', 'Inter, system-ui, sans-serif')
-        .text(line);
+      text.setAttribute('fill', fillColor);
+      text.setAttribute('font-size', fontSize);
+      text.setAttribute('font-weight', fontWeight);
+      text.textContent = line;
+      tooltip.appendChild(text);
     });
+
+    this.svg.appendChild(tooltip);
   }
 
   private hideTooltip() {
-    this.svg.selectAll('.node-tooltip').remove();
+    const existingTooltip = this.svg.querySelector('.node-tooltip');
+    if (existingTooltip) {
+      existingTooltip.remove();
+    }
   }
 }
 
@@ -466,8 +462,14 @@ export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
     });
     
     return () => {
-      props.svg.selectAll('.nodes-group').remove();
-      props.svg.selectAll('.node-tooltip').remove();
+      const existingNodesGroup = props.svg.querySelector('.nodes-group');
+      if (existingNodesGroup) {
+        existingNodesGroup.remove();
+      }
+      const existingTooltip = props.svg.querySelector('.node-tooltip');
+      if (existingTooltip) {
+        existingTooltip.remove();
+      }
     };
   }, [props.nodes, props.selectedNodeId, props.zoomLevel, props.svg, aiInsights]);
 
