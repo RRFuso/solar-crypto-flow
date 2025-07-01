@@ -5,6 +5,9 @@ import { Prediction } from '@/lib/aiModel';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import { usePriceActionSignals } from '@/hooks/usePriceActionSignals';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
+import { OrbitLayersComponent } from './OrbitLayers';
+import { NodeRendererComponent } from './NodeRenderer';
+import { OrbitalNode } from './NodePlacement';
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
@@ -16,29 +19,31 @@ interface FlowVisualizationProps {
 
 export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
   flowData, 
-  zoomLevel = 60,
+  zoomLevel = 80,
   predictions = [],
   chartTimeframe = '4h',
   activeCategory = 'all'
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-  const animationRef = useRef<number | null>(null);
+  const [nodes, setNodes] = useState<OrbitalNode[]>([]);
+  const [centralNode, setCentralNode] = useState<OrbitalNode | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const { data: cryptoData, isLoading: loadingCryptoData } = useCryptoData();
   const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(['BTC', 'ETH']);
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI();
 
-  // Handle container resize
+  // Handle container resize with proper full viewport usage
   useEffect(() => {
     const handleResize = () => {
       if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setDimensions({
-          width: rect.width || 800,
-          height: rect.height || 600
-        });
+        // Use full viewport for better solar system display
+        const width = window.innerWidth;
+        const height = window.innerHeight - 120; // Account for header/controls
+        
+        setDimensions({ width, height });
       }
     };
 
@@ -47,163 +52,88 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Enhanced canvas-based visualization (without Three.js dependencies)
+  // Create orbital nodes from flow data
   useEffect(() => {
-    if (!canvasRef.current || !flowData || flowData.length === 0) return;
+    if (!flowData || flowData.length === 0 || !cryptoData) return;
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = dimensions.width;
-    canvas.height = dimensions.height;
-
-    let time = 0;
-
-    const animate = () => {
-      time += 0.01;
-
-      // Clear canvas with dark space background
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Draw animated starfield background
-      ctx.fillStyle = 'white';
-      for (let i = 0; i < 150; i++) {
-        const x = (Math.random() * canvas.width + time * 10) % canvas.width;
-        const y = (Math.random() * canvas.height + time * 5) % canvas.height;
-        const size = Math.random() * 2;
-        const opacity = Math.sin(time + i) * 0.4 + 0.6;
-        ctx.globalAlpha = opacity;
-        ctx.beginPath();
-        ctx.arc(x, y, size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-
-      // Draw central node (BTC) with pulsing effect
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-      const pulseSize = 30 + Math.sin(time * 2) * 8;
-      
-      // Outer glow
-      const gradient = ctx.createRadialGradient(centerX, centerY, pulseSize, centerX, centerY, pulseSize + 40);
-      gradient.addColorStop(0, 'rgba(245, 158, 11, 0.8)');
-      gradient.addColorStop(1, 'rgba(245, 158, 11, 0.1)');
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, pulseSize + 40, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Central node
-      ctx.fillStyle = '#f59e0b';
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, pulseSize, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Draw label
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 16px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('BTC', centerX, centerY + 5);
-
-      // Draw orbital nodes with animated movement
-      const filteredFlowData = activeCategory === 'all' ? flowData : 
-        flowData.filter(flow => {
-          const cryptoInfo = cryptoData?.find(c => c.symbol === flow.to || c.symbol === flow.from);
-          return cryptoInfo?.category === activeCategory;
-        });
-
-      filteredFlowData.slice(0, 12).forEach((flow, index) => {
-        const baseAngle = (index * Math.PI * 2 / 12);
-        const orbitRadius = 120 + (index % 3) * 50;
-        const speed = 0.3 + (index % 3) * 0.1;
-        const angle = baseAngle + time * speed;
-        
-        const x = centerX + Math.cos(angle) * orbitRadius;
-        const y = centerY + Math.sin(angle) * orbitRadius;
-
-        // Node color based on flow value and predictions
-        const prediction = predictions?.find(p => p.symbol === flow.to || p.symbol === flow.from);
-        let color = flow.value > 0 ? '#10b981' : '#ef4444';
-        
-        if (prediction) {
-          color = prediction.bullish ? '#00ff88' : '#ff3366';
-        }
-
-        // Draw orbit path
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([5, 5]);
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, orbitRadius, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Draw connection line with flow animation
-        const lineOpacity = 0.6 + Math.sin(time * 3 + index) * 0.3;
-        ctx.strokeStyle = `${color}${Math.floor(lineOpacity * 255).toString(16).padStart(2, '0')}`;
-        ctx.lineWidth = 2 + Math.abs(flow.value) * 0.1;
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-
-        // Draw orbital node with glow
-        const nodeGlow = ctx.createRadialGradient(x, y, 15, x, y, 25);
-        nodeGlow.addColorStop(0, `${color}CC`);
-        nodeGlow.addColorStop(1, `${color}00`);
-        ctx.fillStyle = nodeGlow;
-        ctx.beginPath();
-        ctx.arc(x, y, 25, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(x, y, 15, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Draw label
-        ctx.fillStyle = 'white';
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'center';
-        const label = flow.to !== 'BTC' ? flow.to : flow.from;
-        ctx.fillText(label || 'N/A', x, y + 35);
-
-        // Draw value indicator
-        ctx.font = '10px Arial';
-        ctx.fillStyle = flow.value > 0 ? '#10b981' : '#ef4444';
-        const valueText = `${flow.value > 0 ? '+' : ''}${flow.value.toFixed(1)}%`;
-        ctx.fillText(valueText, x, y + 48);
+    const filteredFlowData = activeCategory === 'all' ? flowData : 
+      flowData.filter(flow => {
+        const cryptoInfo = cryptoData.find(c => c.symbol === flow.to || c.symbol === flow.from);
+        return cryptoInfo?.category === activeCategory;
       });
 
-      animationRef.current = requestAnimationFrame(animate);
+    // Create central node (BTC)
+    const btcData = cryptoData.find(c => c.symbol === 'BTC');
+    const central: OrbitalNode = {
+      id: 'BTC',
+      name: 'Bitcoin',
+      x: dimensions.width / 2,
+      y: dimensions.height / 2,
+      volume: btcData?.volume_24h || 50000000000,
+      inflow: filteredFlowData.filter(f => f.to === 'BTC').reduce((sum, f) => sum + Math.abs(f.value), 0),
+      outflow: filteredFlowData.filter(f => f.from === 'BTC').reduce((sum, f) => sum + Math.abs(f.value), 0)
     };
 
-    animate();
+    setCentralNode(central);
 
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [flowData, dimensions, zoomLevel, predictions, activeCategory, cryptoData]);
+    // Create orbital nodes with proper positioning
+    const orbitNodes: OrbitalNode[] = [];
+    const uniqueSymbols = new Set<string>();
+    
+    filteredFlowData.forEach(flow => {
+      [flow.from, flow.to].forEach(symbol => {
+        if (symbol !== 'BTC' && !uniqueSymbols.has(symbol)) {
+          uniqueSymbols.add(symbol);
+          const cryptoInfo = cryptoData.find(c => c.symbol === symbol);
+          
+          orbitNodes.push({
+            id: symbol,
+            name: cryptoInfo?.name || symbol,
+            x: 0, // Will be positioned by orbital calculation
+            y: 0,
+            volume: cryptoInfo?.volume_24h || 1000000,
+            inflow: filteredFlowData.filter(f => f.to === symbol).reduce((sum, f) => sum + Math.abs(f.value), 0),
+            outflow: filteredFlowData.filter(f => f.from === symbol).reduce((sum, f) => sum + Math.abs(f.value), 0)
+          });
+        }
+      });
+    });
 
-  // Cleanup animation on unmount
+    // Position nodes in orbital layers
+    const centerX = dimensions.width / 2;
+    const centerY = dimensions.height / 2;
+    const maxRadius = Math.min(dimensions.width, dimensions.height) * 0.35;
+    const orbitLayers = Math.min(4, Math.ceil(orbitNodes.length / 8));
+    
+    orbitNodes.forEach((node, index) => {
+      const layer = Math.floor(index / 8) + 1;
+      const angleStep = (Math.PI * 2) / Math.min(8, orbitNodes.length - (layer - 1) * 8);
+      const angle = (index % 8) * angleStep + (layer * 0.3); // Offset each layer
+      const radius = (maxRadius / orbitLayers) * layer;
+      
+      node.x = centerX + Math.cos(angle) * radius;
+      node.y = centerY + Math.sin(angle) * radius;
+    });
+
+    setNodes([central, ...orbitNodes]);
+  }, [flowData, cryptoData, activeCategory, dimensions]);
+
+  // Handle node selection
   useEffect(() => {
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+    const handleNodeClick = (event: CustomEvent) => {
+      setSelectedNodeId(event.detail.nodeId);
     };
+
+    document.addEventListener('node-click', handleNodeClick as EventListener);
+    return () => document.removeEventListener('node-click', handleNodeClick as EventListener);
   }, []);
 
   if (loadingCryptoData || loadingSignals || loadingAI) {
     return (
-      <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
+      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading visualization...</p>
+          <p className="text-slate-400">Loading solar system...</p>
         </div>
       </div>
     );
@@ -211,7 +141,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
 
   if (!flowData || flowData.length === 0) {
     return (
-      <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
+      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
         <div className="text-center">
           <p className="text-slate-400 text-lg">🌌 No flow data available</p>
           <p className="text-slate-500 text-sm">Waiting for market data...</p>
@@ -221,26 +151,83 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   }
 
   return (
-    <div ref={containerRef} className="w-full h-full relative">
-      <canvas 
-        ref={canvasRef}
-        className="w-full h-full"
-        style={{ display: 'block' }}
-      />
+    <div 
+      ref={containerRef} 
+      className="w-full h-full relative overflow-hidden"
+      style={{ margin: 0, padding: 0 }}
+    >
+      {/* Main Solar System SVG - Centered and Scaled */}
+      <div 
+        className="absolute inset-0 flex items-center justify-center"
+        style={{
+          transform: `scale(${Math.max(0.5, Math.min(1.2, zoomLevel / 100))})`,
+          transformOrigin: 'center center'
+        }}
+      >
+        <svg 
+          ref={svgRef}
+          width={dimensions.width}
+          height={dimensions.height}
+          className="absolute"
+          style={{ 
+            background: 'radial-gradient(ellipse at center, #1a1a2e 0%, #16213e 35%, #0f0f23 100%)',
+            overflow: 'visible'
+          }}
+        >
+          {/* Starfield Background */}
+          <defs>
+            <radialGradient id="starGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="white" stopOpacity="1"/>
+              <stop offset="100%" stopColor="white" stopOpacity="0"/>
+            </radialGradient>
+          </defs>
+          
+          {/* Stars */}
+          {Array.from({ length: 200 }, (_, i) => (
+            <circle
+              key={`star-${i}`}
+              cx={Math.random() * dimensions.width}
+              cy={Math.random() * dimensions.height}
+              r={Math.random() * 1.5 + 0.5}
+              fill="url(#starGlow)"
+              opacity={Math.random() * 0.8 + 0.2}
+            />
+          ))}
+          
+          {/* Orbital Layers */}
+          {svgRef.current && (
+            <OrbitLayersComponent
+              svg={svgRef.current}
+              width={dimensions.width}
+              height={dimensions.height}
+              orbitLayers={4}
+              baseRadius={Math.min(dimensions.width, dimensions.height) * 0.1}
+            />
+          )}
+          
+          {/* Node Renderer */}
+          {svgRef.current && nodes.length > 0 && (
+            <NodeRendererComponent
+              svg={svgRef.current}
+              nodes={nodes}
+              centralNode={centralNode}
+              selectedNodeId={selectedNodeId}
+              zoomLevel={zoomLevel}
+            />
+          )}
+        </svg>
+      </div>
       
-      {/* Overlay controls */}
-      <div className="absolute top-4 right-4 bg-black/20 backdrop-blur-sm rounded-lg p-2">
-        <div className="text-xs text-white/60">
-          Zoom: {zoomLevel}%
+      {/* Control Overlay - Fixed position */}
+      <div className="absolute top-4 right-4 bg-black/20 backdrop-blur-sm rounded-lg p-3 z-10">
+        <div className="text-xs text-white/70 space-y-1">
+          <div>Zoom: {zoomLevel}%</div>
+          <div>Nodes: {nodes.length}</div>
+          <div>Timeframe: {chartTimeframe}</div>
+          {activeCategory !== 'all' && (
+            <div>Category: {activeCategory}</div>
+          )}
         </div>
-        <div className="text-xs text-white/60">
-          Timeframe: {chartTimeframe}
-        </div>
-        {activeCategory !== 'all' && (
-          <div className="text-xs text-white/60">
-            Category: {activeCategory}
-          </div>
-        )}
       </div>
     </div>
   );

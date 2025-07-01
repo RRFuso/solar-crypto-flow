@@ -1,61 +1,58 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchMarketData } from '@/lib/marketData';
-import { toast } from 'sonner';
 import { FlowPanelHeader } from './panel/FlowPanelHeader';
 import { FlowControls } from './panel/FlowControls';
-import { CategoryFilters } from './panel/CategoryFilters';
 import { FlowVisualizationContent } from './panel/FlowVisualizationContent';
-import { usePredictions } from '@/hooks/capital-flow/usePredictions';
+import { CategoryFilters } from './panel/CategoryFilters';
+import { ApiStatusIndicator } from './panel/ApiStatusIndicator';
 import { useFilteredFlowData } from '@/hooks/capital-flow/useFilteredFlowData';
+import { usePredictions } from '@/hooks/capital-flow/usePredictions';
+import { fetchCapitalFlowData } from '@/lib/api/capitalFlowApi';
 
 const CapitalFlowPanel = () => {
-  const [timeframe, setTimeframe] = useState('24h');
+  const [zoomLevel, setZoomLevel] = useState(80);
   const [chartTimeframe, setChartTimeframe] = useState('4h');
-  const [zoomLevel, setZoomLevel] = useState(60);
-  const [flowLimit, setFlowLimit] = useState(30);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [showSidebarOnly, setShowSidebarOnly] = useState(false);
 
-  const { data: flowData, isLoading, error, refetch } = useQuery({
-    queryKey: ['capital-flow', timeframe],
-    queryFn: () => fetchMarketData(timeframe),
+  const { data: flowData, isLoading, error } = useQuery({
+    queryKey: ['capitalFlow', chartTimeframe],
+    queryFn: () => fetchCapitalFlowData(chartTimeframe),
     refetchInterval: 30000,
-    meta: {
-      onError: () => {
-        toast("Failed to fetch market data. Please try again later.", {
-          description: "An error occurred while fetching market data."
-        });
-      }
-    }
   });
 
-  const processedFlowData = useFilteredFlowData(flowData, flowLimit, activeCategory);
-  const { predictions } = usePredictions(flowData, selectedCategory, chartTimeframe);
-
-  const filteredPredictions = React.useMemo(() => {
-    if (showOnlyStrongSignals) {
-      return predictions.filter(p => p.confidence >= 0.6);
-    }
-    return predictions;
-  }, [predictions, showOnlyStrongSignals]);
-
-  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 150));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 20));
-  const handleLimitChange = (value: number[]) => setFlowLimit(value[0]);
-  const handleChartTimeframeChange = (value: string) => {
-    setChartTimeframe(value);
-    refetch();
-  };
-  const handleCategoryClick = (category: string) => setActiveCategory(category);
+  const { processedFlowData } = useFilteredFlowData(flowData || [], activeCategory);
+  const { filteredPredictions } = usePredictions(chartTimeframe);
 
   return (
-    <div className="h-full w-full flex">
-      {/* Left Sidebar - AI Watchlist - Largura otimizada */}
-      <div className="w-96 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-y-auto">
-        <FlowVisualizationContent 
+    <div className="w-full h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-black">
+      {/* Fixed Header - No margin/padding issues */}
+      <div className="flex-shrink-0 p-4 border-b border-gray-800/50">
+        <FlowPanelHeader />
+        
+        <div className="flex flex-wrap items-center justify-between gap-4 mt-4">
+          <CategoryFilters 
+            activeCategory={activeCategory} 
+            onCategoryChange={setActiveCategory} 
+          />
+          
+          <FlowControls
+            zoomLevel={zoomLevel}
+            onZoomChange={setZoomLevel}
+            chartTimeframe={chartTimeframe}
+            onTimeframeChange={setChartTimeframe}
+            showSidebarOnly={showSidebarOnly}
+            onToggleSidebar={setShowSidebarOnly}
+          />
+          
+          <ApiStatusIndicator isLoading={isLoading} error={error} />
+        </div>
+      </div>
+
+      {/* Full Screen Main Content - Remove all constraining containers */}
+      <div className="flex-1 relative overflow-hidden" style={{ margin: 0, padding: 0 }}>
+        <FlowVisualizationContent
           isLoading={isLoading}
           error={error}
           processedFlowData={processedFlowData}
@@ -63,66 +60,8 @@ const CapitalFlowPanel = () => {
           filteredPredictions={filteredPredictions}
           chartTimeframe={chartTimeframe}
           activeCategory={activeCategory}
-          showSidebarOnly={true}
+          showSidebarOnly={showSidebarOnly}
         />
-      </div>
-
-      {/* Main Content Area - Ocupa o espaço restante */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header com Controles Integrados */}
-        <div className="flex-shrink-0 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm">
-          <div className="p-4 space-y-4">
-            {/* Cabeçalho Principal com Timeframe */}
-            <div className="flex items-center justify-between">
-              <FlowPanelHeader 
-                chartTimeframe={chartTimeframe}
-                onChartTimeframeChange={handleChartTimeframeChange}
-              />
-            </div>
-            
-            {/* Linha de Controles - Tudo em uma linha horizontal */}
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Categorias */}
-              <div className="flex items-center gap-2">
-                <CategoryFilters 
-                  activeCategory={activeCategory}
-                  onCategoryClick={handleCategoryClick}
-                />
-              </div>
-              
-              {/* Controles principais */}
-              <div className="flex items-center gap-3 ml-auto">
-                <FlowControls
-                  chartTimeframe={chartTimeframe}
-                  showOnlyStrongSignals={showOnlyStrongSignals}
-                  setShowOnlyStrongSignals={setShowOnlyStrongSignals}
-                  zoomLevel={zoomLevel}
-                  handleZoomIn={handleZoomIn}
-                  handleZoomOut={handleZoomOut}
-                  flowLimit={flowLimit}
-                  handleLimitChange={handleLimitChange}
-                  selectedCategory={selectedCategory}
-                  setSelectedCategory={setSelectedCategory}
-                  onRefresh={() => refetch()}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Visualization - Altura flexível */}
-        <div className="flex-1 relative overflow-hidden">
-          <FlowVisualizationContent 
-            isLoading={isLoading}
-            error={error}
-            processedFlowData={processedFlowData}
-            zoomLevel={zoomLevel}
-            filteredPredictions={filteredPredictions}
-            chartTimeframe={chartTimeframe}
-            activeCategory={activeCategory}
-            showSidebarOnly={false}
-          />
-        </div>
       </div>
     </div>
   );
