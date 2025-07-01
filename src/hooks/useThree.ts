@@ -52,11 +52,11 @@ const mockFlowData: CapitalFlow[] = [
 export function useThree() {
   let animationFrameId: number;
   
-  // Mock implementation without Three.js dependencies
+  // Canvas-based visualization without external dependencies
   const init = useCallback((container: HTMLDivElement) => {
-    console.log('Three.js mock implementation initialized');
+    console.log('Crypto visualization initialized');
     
-    // Create a simple canvas-based visualization
+    // Create a canvas-based visualization
     const canvas = document.createElement('canvas');
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
@@ -67,7 +67,7 @@ export function useThree() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return { cleanup: () => {} };
     
-    // Draw a simple representation of the crypto ecosystem
+    // Draw the crypto ecosystem visualization
     const drawVisualization = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       

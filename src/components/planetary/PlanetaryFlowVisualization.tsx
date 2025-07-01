@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { useThree } from '@/hooks/useThree';
 import {
@@ -66,6 +65,7 @@ const PlanetaryFlowVisualization: React.FC = () => {
 
         <div className="mt-4 space-y-4">
           <div className="flex flex-wrap justify-between gap-6 p-3 bg-gray-900/50 rounded-md">
+            
             <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-1/3">
               <Label htmlFor="flow-intensity" className="text-xs text-gray-400 w-32 shrink-0">Flow Intensity</Label>
               <Slider
