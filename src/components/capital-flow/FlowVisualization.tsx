@@ -47,7 +47,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Enhanced canvas-based visualization
+  // Enhanced canvas-based visualization (without Three.js dependencies)
   useEffect(() => {
     if (!canvasRef.current || !flowData || flowData.length === 0) return;
 
