@@ -1,9 +1,8 @@
 
 import React, { useEffect } from 'react';
-import * as d3 from 'd3';
 
 interface OrbitLayersProps {
-  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  svg: SVGSVGElement;
   width: number;
   height: number;
   orbitLayers: number;
@@ -23,9 +22,13 @@ export const OrbitLayersComponent: React.FC<OrbitLayersProps> = ({
     if (!svg) return;
 
     // Remove existing orbit layers
-    svg.selectAll('.orbit-layer').remove();
+    const existingLayers = svg.querySelectorAll('.orbit-layer');
+    existingLayers.forEach(layer => layer.remove());
 
-    const orbitGroup = svg.append('g').attr('class', 'orbit-layers');
+    const orbitGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    orbitGroup.setAttribute('class', 'orbit-layers');
+    svg.appendChild(orbitGroup);
+
     const centerX = width / 2;
     const centerY = height / 2;
 
@@ -42,16 +45,17 @@ export const OrbitLayersComponent: React.FC<OrbitLayersProps> = ({
       if (radius > maxRadius) continue;
       
       // Create orbit circle with enhanced visibility
-      orbitGroup.append('circle')
-        .attr('class', 'orbit-layer')
-        .attr('cx', centerX)
-        .attr('cy', centerY)
-        .attr('r', radius)
-        .attr('fill', 'none')
-        .attr('stroke', `rgba(255, 255, 255, ${Math.max(0.1, 0.25 - i * 0.03)})`) // More visible
-        .attr('stroke-width', Math.max(1, 2 - i * 0.1)) // Thicker lines
-        .attr('stroke-dasharray', `${Math.max(3, 6 - i)},${Math.max(3, 6 - i)}`) // Cleaner dash pattern
-        .style('pointer-events', 'none');
+      const orbitCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      orbitCircle.setAttribute('class', 'orbit-layer');
+      orbitCircle.setAttribute('cx', centerX.toString());
+      orbitCircle.setAttribute('cy', centerY.toString());
+      orbitCircle.setAttribute('r', radius.toString());
+      orbitCircle.setAttribute('fill', 'none');
+      orbitCircle.setAttribute('stroke', `rgba(255, 255, 255, ${Math.max(0.1, 0.25 - i * 0.03)})`);
+      orbitCircle.setAttribute('stroke-width', Math.max(1, 2 - i * 0.1).toString());
+      orbitCircle.setAttribute('stroke-dasharray', `${Math.max(3, 6 - i)},${Math.max(3, 6 - i)}`);
+      orbitCircle.style.pointerEvents = 'none';
+      orbitGroup.appendChild(orbitCircle);
 
       // **Orbital markers for reference points**
       const markerCount = Math.max(4, i * 2); // More markers for outer orbits
@@ -60,27 +64,30 @@ export const OrbitLayersComponent: React.FC<OrbitLayersProps> = ({
         const x = centerX + Math.cos(angle) * radius;
         const y = centerY + Math.sin(angle) * radius;
         
-        orbitGroup.append('circle')
-          .attr('class', 'orbit-marker')
-          .attr('cx', x)
-          .attr('cy', y)
-          .attr('r', Math.max(0.5, 1.5 - i * 0.1)) // Visible markers
-          .attr('fill', `rgba(255, 255, 255, ${Math.max(0.08, 0.15 - i * 0.02)})`)
-          .style('pointer-events', 'none');
+        const marker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        marker.setAttribute('class', 'orbit-marker');
+        marker.setAttribute('cx', x.toString());
+        marker.setAttribute('cy', y.toString());
+        marker.setAttribute('r', Math.max(0.5, 1.5 - i * 0.1).toString());
+        marker.setAttribute('fill', `rgba(255, 255, 255, ${Math.max(0.08, 0.15 - i * 0.02)})`);
+        marker.style.pointerEvents = 'none';
+        orbitGroup.appendChild(marker);
       }
     }
 
     // **Enhanced central reference point**
-    orbitGroup.append('circle')
-      .attr('class', 'central-reference')
-      .attr('cx', centerX)
-      .attr('cy', centerY)
-      .attr('r', 2) // Slightly larger for visibility
-      .attr('fill', 'rgba(255, 255, 255, 0.4)')
-      .style('pointer-events', 'none');
+    const centralRef = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    centralRef.setAttribute('class', 'central-reference');
+    centralRef.setAttribute('cx', centerX.toString());
+    centralRef.setAttribute('cy', centerY.toString());
+    centralRef.setAttribute('r', '2');
+    centralRef.setAttribute('fill', 'rgba(255, 255, 255, 0.4)');
+    centralRef.style.pointerEvents = 'none';
+    orbitGroup.appendChild(centralRef);
 
     return () => {
-      svg.selectAll('.orbit-layers').remove();
+      const layers = svg.querySelectorAll('.orbit-layers');
+      layers.forEach(layer => layer.remove());
     };
   }, [svg, width, height, orbitLayers, baseRadius, extendFullScreen]);
 
