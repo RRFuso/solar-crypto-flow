@@ -15,6 +15,7 @@ interface FlowVisualizationContentProps {
   chartTimeframe: string;
   activeCategory: string;
   showSidebarOnly?: boolean;
+  showLines?: boolean;
 }
 
 export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> = ({
@@ -25,14 +26,15 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
   filteredPredictions,
   chartTimeframe,
   activeCategory,
-  showSidebarOnly = false
+  showSidebarOnly = false,
+  showLines = true
 }) => {
   if (showSidebarOnly) {
     return (
-      <div className="h-full w-full overflow-y-auto overflow-x-hidden">
+      <div className="h-full w-full">
         <AIWatchlist 
           predictions={filteredPredictions} 
-          maxItems={15} 
+          maxItems={12} 
           chartTimeframe={chartTimeframe}
         />
       </div>
@@ -70,6 +72,7 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
         predictions={filteredPredictions} 
         chartTimeframe={chartTimeframe}
         activeCategory={activeCategory}
+        showLines={showLines}
       />
       
       {/* Legend positioned at bottom center */}

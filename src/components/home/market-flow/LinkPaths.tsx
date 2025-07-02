@@ -1,124 +1,40 @@
 
-import React from 'react';
-import * as d3 from 'd3';
-
-interface LinkPathsProps {
-  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  links: any[];
-}
-
-export const createLinkPaths = (props: LinkPathsProps) => {
-  const { svg, links } = props;
-
-  // Add global glow filter
-  const defs = svg.append("defs");
-  defs.append("filter")
-    .attr("id", "glow")
-    .append("feGaussianBlur")
-    .attr("stdDeviation", "2.5")
-    .attr("result", "coloredBlur");
+export const createLinkPaths = (options: { svg: any; links: any[] }) => {
+  const { svg, links } = options;
   
-  // Create gradients and markers for each link
-  links.forEach((link, i) => {
-    const markerId = `arrow-${i}`;
-    const gradientId = `link-gradient-${i}`;
+  // Create link group
+  const linkGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  linkGroup.setAttribute("class", "links");
+  svg.appendChild(linkGroup);
+  
+  const linkElements: SVGPathElement[] = [];
+  
+  links.forEach((link, index) => {
+    if (!link.source || !link.target) return;
     
-    // Create gradient for color transition - red to green for outflows, green to red for inflows
-    const startColor = link.percentage > 0 ? "#ff3366" : "#4ade80"; // Red to Green
-    const endColor = link.percentage > 0 ? "#4ade80" : "#ff3366"; // Green to Red
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("class", "link");
+    path.setAttribute("stroke", link.percentage > 0 ? "#4ade80" : "#f43f5e");
+    path.setAttribute("stroke-width", (2 + Math.abs(link.percentage) * 0.1).toString());
+    path.setAttribute("fill", "none");
+    path.setAttribute("opacity", "0.6");
+    path.setAttribute("stroke-dasharray", "5,5");
     
-    const gradient = defs.append("linearGradient")
-      .attr("id", gradientId)
-      .attr("gradientUnits", "userSpaceOnUse")
-      .attr("x1", link.source.x)
-      .attr("y1", link.source.y)
-      .attr("x2", link.target.x)
-      .attr("y2", link.target.y);
-      
-    gradient.append("stop")
-      .attr("offset", "0%")
-      .attr("stop-color", startColor)
-      .attr("stop-opacity", 0.9);
-      
-    gradient.append("stop")
-      .attr("offset", "100%")
-      .attr("stop-color", endColor)
-      .attr("stop-opacity", 0.9);
+    // Calculate curved path
+    const dx = (link.target.x || 0) - (link.source.x || 0);
+    const dy = (link.target.y || 0) - (link.source.y || 0);
+    const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
+    const pathData = `M${link.source.x || 0},${link.source.y || 0}A${dr},${dr} 0 0,1 ${link.target.x || 0},${link.target.y || 0}`;
+    path.setAttribute("d", pathData);
     
-    // Create arrowhead markers
-    defs.append("marker")
-      .attr("id", markerId)
-      .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 20)
-      .attr("refY", 0)
-      .attr("markerWidth", 6)
-      .attr("markerHeight", 6)
-      .attr("orient", "auto")
-      .append("path")
-      .attr("fill", link.percentage > 0 ? "#4ade80" : "#ff3366")
-      .attr("d", "M0,-5L10,0L0,5");
+    linkGroup.appendChild(path);
+    linkElements.push(path);
   });
-
-  // Draw links with enhanced visibility and animation
-  const link = svg.append("g")
-    .attr("class", "links")
-    .selectAll("path")
-    .data(links)
-    .enter()
-    .append("path")
-    .attr("class", "link-path")
-    .attr("stroke", (d, i) => `url(#link-gradient-${i})`)
-    .attr("stroke-width", d => 2 + Math.min(8, Math.sqrt(Math.abs(d.value)) / 3)) // Thickness based on volume
-    .attr("fill", "none")
-    .attr("stroke-dasharray", "8,4") // Dashed pattern
-    .attr("opacity", 0.85) // Higher opacity for better visibility
-    .attr("marker-end", (d, i) => `url(#arrow-${i})`)
-    .attr("filter", "url(#glow)");
   
-  return link;
+  return linkElements;
 };
 
-// Update link paths based on node positions with enhanced curves
-export const updateLinkPaths = (link: d3.Selection<SVGPathElement, any, SVGGElement, unknown>) => {
-  if (!link) return; // Guard against null
-  
-  link.attr("d", (d: any) => {
-    if (!d || !d.source || !d.target) return "";
-    
-    const sourceX = d.source.x || 0;
-    const sourceY = d.source.y || 0;
-    const targetX = d.target.x || 0;
-    const targetY = d.target.y || 0;
-    
-    // Calculate distance for better curve adjustment
-    const dx = targetX - sourceX;
-    const dy = targetY - sourceY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    
-    // More pronounced curve for visual appeal
-    const curveFactor = Math.min(distance / 2.5, 100); // Increased curve factor
-    
-    // Calculate perpendicular offset for curve
-    const normX = -dy / distance;
-    const normY = dx / distance;
-    
-    const curveX = (sourceX + targetX) / 2 + normX * curveFactor;
-    const curveY = (sourceY + targetY) / 2 + normY * curveFactor;
-    
-    return `M${sourceX},${sourceY} Q${curveX},${curveY} ${targetX},${targetY}`;
-  });
-  
-  // Update gradients positions
-  link.each(function(d: any, i: number) {
-    if (!d || !d.source || !d.target) return;
-    
-    const gradient = d3.select(`#link-gradient-${i}`);
-    if (!gradient.empty()) {
-      gradient
-        .attr("x1", d.source.x)
-        .attr("y1", d.source.y)
-        .attr("x2", d.target.x)
-        .attr("y2", d.target.y);
-    }
-  });
+export const updateLinkPaths = (linkElements: SVGPathElement[]) => {
+  // Links are updated in the animation loop
+  return linkElements;
 };
