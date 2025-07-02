@@ -61,37 +61,12 @@
     width: 100%;
   }
 
-  /* Layout system - full viewport usage */
+  /* Garante que qualquer container ocupe largura total */
   .container {
     width: 100% !important;
     max-width: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  
-  /* Modern responsive containers */
-  .solar-container {
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-  }
-  
-  .responsive-wrapper {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    max-width: 100%;
-    overflow-x: auto;
-  }
-  
-  .sidebar-constraint {
-    max-width: 300px;
-    overflow-x: auto;
-    flex-direction: column;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 }
 

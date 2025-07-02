@@ -23,15 +23,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   }
 
   return (
-    <div className="w-full h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-black overflow-hidden">
+    <div className="flex flex-col w-full min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black">
       {/* Header */}
-      <header className="w-full flex-shrink-0 h-14 border-b border-slate-700/50 bg-slate-900/90 backdrop-blur-sm z-20">
-        <div className="h-full px-3 sm:px-6 flex justify-between items-center w-full">
-          <div className="responsive-wrapper">
+      <header className="w-full flex-shrink-0 h-14 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-sm z-20">
+        <div className="h-full px-4 flex justify-between items-center w-full">
+          <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
               <span className="text-black font-bold text-lg">☀</span>
             </div>
-            <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
               Solar Crypto
             </h1>
             <div className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full">
@@ -42,8 +42,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      {/* Main Content - Full viewport usage */}
-      <main className="flex-1 w-full h-full overflow-hidden">
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col w-full overflow-y-auto">
         {children}
       </main>
     </div>
