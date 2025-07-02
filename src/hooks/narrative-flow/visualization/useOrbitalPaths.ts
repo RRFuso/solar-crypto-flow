@@ -1,10 +1,11 @@
 
+import * as d3 from 'd3';
 import { NarrativeNode } from '@/types/narratives';
 
 export const useOrbitalPaths = () => {
-  // Create orbital paths for solar system effect using native DOM methods
+  // Create orbital paths for solar system effect
   const createOrbitalPaths = (
-    svg: Element,
+    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
     nodes: NarrativeNode[],
     width: number,
     height: number
@@ -18,8 +19,7 @@ export const useOrbitalPaths = () => {
     
     if (centralNode) {
       // Draw orbital circles
-      const orbitGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      orbitGroup.setAttribute("class", "orbit-paths");
+      const orbitGroup = svg.append("g").attr("class", "orbit-paths");
       const nonCentralNodes = nodes.filter(n => n !== centralNode);
       
       // Calculate distance from central node for each other node
@@ -30,19 +30,16 @@ export const useOrbitalPaths = () => {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         // Draw orbit circle
-        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circle.setAttribute("cx", centerX.toString());
-        circle.setAttribute("cy", centerY.toString());
-        circle.setAttribute("r", distance.toString());
-        circle.setAttribute("fill", "none");
-        circle.setAttribute("stroke", "rgba(255, 255, 255, 0.1)");
-        circle.setAttribute("stroke-width", "1");
-        circle.setAttribute("stroke-dasharray", "3,3");
-        
-        orbitGroup.appendChild(circle);
+        orbitGroup.append("circle")
+          .attr("cx", centerX)
+          .attr("cy", centerY)
+          .attr("r", distance)
+          .attr("fill", "none")
+          .attr("stroke", "rgba(255, 255, 255, 0.1)")
+          .attr("stroke-width", 1)
+          .attr("stroke-dasharray", "3,3");
       });
       
-      svg.appendChild(orbitGroup);
       return { centralNode, orbitGroup };
     }
     

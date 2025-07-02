@@ -1,10 +1,11 @@
 
+import * as d3 from 'd3';
 import { NarrativeNode } from '@/types/narratives';
 
 export const useOrbitalPaths = () => {
-  // Create orbital paths for solar system effect using native DOM methods
+  // Create orbital paths for solar system effect
   const createOrbitalPaths = (
-    svg: any,
+    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
     nodes: NarrativeNode[],
     width: number,
     height: number
@@ -18,8 +19,7 @@ export const useOrbitalPaths = () => {
     
     if (centralNode) {
       // Draw orbital circles
-      const orbitGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      orbitGroup.setAttribute("class", "orbit-paths");
+      const orbitGroup = svg.append("g").attr("class", "orbit-paths");
       const nonCentralNodes = nodes.filter(n => n !== centralNode);
       
       // Calculate distance from central node for each other node
@@ -30,19 +30,16 @@ export const useOrbitalPaths = () => {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         // Draw orbit circle
-        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circle.setAttribute("cx", centerX.toString());
-        circle.setAttribute("cy", centerY.toString());
-        circle.setAttribute("r", distance.toString());
-        circle.setAttribute("fill", "none");
-        circle.setAttribute("stroke", "rgba(255, 255, 255, 0.1)");
-        circle.setAttribute("stroke-width", "1");
-        circle.setAttribute("stroke-dasharray", "3,3");
-        
-        orbitGroup.appendChild(circle);
+        orbitGroup.append("circle")
+          .attr("cx", centerX)
+          .attr("cy", centerY)
+          .attr("r", distance)
+          .attr("fill", "none")
+          .attr("stroke", "rgba(255, 255, 255, 0.1)")
+          .attr("stroke-width", 1)
+          .attr("stroke-dasharray", "3,3");
       });
       
-      svg.appendChild(orbitGroup);
       return { centralNode, orbitGroup };
     }
     
@@ -56,7 +53,7 @@ export const useOrbitalPaths = () => {
 
 // Export the functions directly for backward compatibility
 export const createOrbitalPaths = (
-  svg: any,
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   nodes: any[],
   width: number,
   height: number,
@@ -66,36 +63,31 @@ export const createOrbitalPaths = (
   const centerY = height / 2;
   
   // Draw orbital circles based on provided radii
-  const orbitGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  orbitGroup.setAttribute("class", "orbit-paths");
+  const orbitGroup = svg.append("g").attr("class", "orbit-paths");
   
   orbitRadii.forEach((radius, index) => {
     if (radius > 0) {
-      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      circle.setAttribute("cx", centerX.toString());
-      circle.setAttribute("cy", centerY.toString());
-      circle.setAttribute("r", radius.toString());
-      circle.setAttribute("fill", "none");
-      circle.setAttribute("stroke", "rgba(255, 255, 255, 0.1)");
-      circle.setAttribute("stroke-width", "1");
-      circle.setAttribute("stroke-dasharray", "3,3");
-      
-      orbitGroup.appendChild(circle);
+      orbitGroup.append("circle")
+        .attr("cx", centerX)
+        .attr("cy", centerY)
+        .attr("r", radius)
+        .attr("fill", "none")
+        .attr("stroke", "rgba(255, 255, 255, 0.1)")
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "3,3");
     }
   });
   
-  svg.appendChild(orbitGroup);
   return orbitGroup;
 };
 
 export const createStarfield = (
-  svg: any,
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   width: number,
   height: number,
   numStars: number = 200
 ) => {
-  const starGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  starGroup.setAttribute("class", "starfield");
+  const starGroup = svg.append("g").attr("class", "starfield");
   
   for (let i = 0; i < numStars; i++) {
     const x = Math.random() * width;
@@ -104,26 +96,22 @@ export const createStarfield = (
     const opacity = Math.random() * 0.6 + 0.1;
     
     // Create a star
-    const star = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    star.setAttribute("cx", x.toString());
-    star.setAttribute("cy", y.toString());
-    star.setAttribute("r", size.toString());
-    star.setAttribute("fill", "white");
-    star.setAttribute("opacity", opacity.toString());
-    
-    starGroup.appendChild(star);
+    const star = starGroup.append("circle")
+      .attr("cx", x)
+      .attr("cy", y)
+      .attr("r", size)
+      .attr("fill", "white")
+      .attr("opacity", opacity);
       
     // Add subtle twinkle animation to some stars
     if (Math.random() > 0.7) {
-      const animate = document.createElementNS("http://www.w3.org/2000/svg", "animate");
-      animate.setAttribute("attributeName", "opacity");
-      animate.setAttribute("values", `${opacity};${opacity * 0.4};${opacity}`);
-      animate.setAttribute("dur", `${2 + Math.random() * 6}s`);
-      animate.setAttribute("repeatCount", "indefinite");
-      star.appendChild(animate);
+      star.append("animate")
+        .attr("attributeName", "opacity")
+        .attr("values", `${opacity};${opacity * 0.4};${opacity}`)
+        .attr("dur", `${2 + Math.random() * 6}s`)
+        .attr("repeatCount", "indefinite");
     }
   }
   
-  svg.appendChild(starGroup);
   return starGroup;
 };

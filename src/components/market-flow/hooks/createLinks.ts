@@ -1,6 +1,8 @@
 
+import * as d3 from 'd3';
+
 export const createLinks = (
-  svg: any,
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   flows: any[],
   nodes: any[]
 ) => {
@@ -12,78 +14,92 @@ export const createLinks = (
     percentage: flow.percentage
   })).filter(link => link.source && link.target);
   
-  // Create defs for markers
-  const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-  svg.appendChild(defs);
+  // Create markers (arrows)
+  svg.append("defs").selectAll("marker")
+    .data(links)
+    .enter().append("marker")
+    .attr("id", (d, i) => `arrow-${i}`)
+    .attr("viewBox", "0 -5 10 10")
+    .attr("refX", 25)
+    .attr("refY", 0)
+    .attr("markerWidth", 6)
+    .attr("markerHeight", 6)
+    .attr("orient", "auto")
+    .append("path")
+    .attr("fill", d => d.percentage > 0 ? "#00ffcc" : "#ff0066")
+    .attr("d", "M0,-5L10,0L0,5");
   
-  links.forEach((d, i) => {
-    const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
-    marker.setAttribute("id", `arrow-${i}`);
-    marker.setAttribute("viewBox", "0 -5 10 10");
-    marker.setAttribute("refX", "25");
-    marker.setAttribute("refY", "0");
-    marker.setAttribute("markerWidth", "6");
-    marker.setAttribute("markerHeight", "6");
-    marker.setAttribute("orient", "auto");
-    
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("fill", d.percentage > 0 ? "#00ffcc" : "#ff0066");
-    path.setAttribute("d", "M0,-5L10,0L0,5");
-    marker.appendChild(path);
-    defs.appendChild(marker);
-  });
+  // Draw links with flow animation
+  const linkGroup = svg.append("g").attr("class", "links");
   
-  // Create link group
-  const linkGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  linkGroup.setAttribute("class", "links");
-  svg.appendChild(linkGroup);
+  const link = linkGroup.selectAll("path")
+    .data(links)
+    .enter()
+    .append("path")
+    .attr("class", "link")
+    .attr("stroke", d => d.percentage > 0 ? "#00ffcc" : "#ff0066")
+    .attr("stroke-width", d => 2 + (Math.abs(d.value) / 10) * 6)
+    .attr("fill", "none")
+    .attr("stroke-dasharray", "10,10")
+    .attr("opacity", 0.7)
+    .attr("d", (d: any) => {
+      // Create curved paths between nodes
+      const dx = (d.target.x || 0) - (d.source.x || 0);
+      const dy = (d.target.y || 0) - (d.source.y || 0);
+      const dr = Math.sqrt(dx * dx + dy * dy) * 2;
+      return `M${d.source.x || 0},${d.source.y || 0}A${dr},${dr} 0 0,1 ${d.target.x || 0},${d.target.y || 0}`;
+    })
+    .attr("marker-end", (d, i) => `url(#arrow-${i})`);
   
-  const linkElements: SVGPathElement[] = [];
-  
-  links.forEach((d, i) => {
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("class", "link");
-    path.setAttribute("stroke", d.percentage > 0 ? "#00ffcc" : "#ff0066");
-    path.setAttribute("stroke-width", (2 + (Math.abs(d.value) / 10) * 6).toString());
-    path.setAttribute("fill", "none");
-    path.setAttribute("stroke-dasharray", "10,10");
-    path.setAttribute("opacity", "0.7");
-    path.setAttribute("marker-end", `url(#arrow-${i})`);
-    
-    // Create curved path
-    const dx = (d.target.x || 0) - (d.source.x || 0);
-    const dy = (d.target.y || 0) - (d.source.y || 0);
-    const dr = Math.sqrt(dx * dx + dy * dy) * 2;
-    const pathData = `M${d.source.x || 0},${d.source.y || 0}A${dr},${dr} 0 0,1 ${d.target.x || 0},${d.target.y || 0}`;
-    path.setAttribute("d", pathData);
-    
-    linkGroup.appendChild(path);
-    linkElements.push(path);
-  });
-  
-  // Add flow particles
+  // Add animated flow particles
   addFlowParticles(svg, links);
   
-  return linkElements;
+  return link;
 };
 
-function addFlowParticles(svg: any, links: any[]) {
+function addFlowParticles(
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+  links: any[]
+) {
   links.forEach((d, i) => {
     // Create particle group for this link
-    const particleGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    particleGroup.setAttribute("class", "flow-particles");
-    svg.appendChild(particleGroup);
+    const particles = svg.append("g")
+      .attr("class", "flow-particles")
+      .selectAll("circle")
+      .data(d3.range(5)) // 5 particles per link
+      .enter()
+      .append("circle")
+      .attr("r", 2)
+      .attr("fill", d.percentage > 0 ? "#00ffcc" : "#ff0066")
+      .attr("opacity", 0.8);
     
-    // Create 5 particles per link
-    for (let j = 0; j < 5; j++) {
-      const particle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      particle.setAttribute("r", "2");
-      particle.setAttribute("fill", d.percentage > 0 ? "#00ffcc" : "#ff0066");
-      particle.setAttribute("opacity", "0.8");
-      particleGroup.appendChild(particle);
+    // Animate particles along the path
+    function animateParticles() {
+      const path = svg.selectAll("path.link").nodes()[i];
+      if (!path) return;
+      
+      const pathLength = path.getTotalLength();
+      
+      particles
+        .attr("transform", function(d: any, j: number) {
+          // Stagger the particles
+          let offset = (j / 5) * pathLength;
+          
+          // Add time-based offset that loops
+          offset += (Date.now() / 50) % pathLength;
+          if (d.percentage !== undefined && d.percentage <= 0) { 
+            offset = pathLength - offset; // Reverse direction for outflows
+          }
+          
+          // Loop back to start when reaching the end
+          offset = offset % pathLength;
+          
+          // Get point along the path
+          const point = path.getPointAtLength(offset);
+          return `translate(${point.x}, ${point.y})`;
+        });
     }
     
-    // Simple animation using CSS
-    particleGroup.style.animation = `flowParticles${i} 3s linear infinite`;
+    animateParticles();
   });
 }

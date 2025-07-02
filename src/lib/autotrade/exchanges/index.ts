@@ -1,4 +1,6 @@
 
+import ccxt from 'ccxt';
+
 export interface ExchangeConfig {
   id: string;
   name: string;
@@ -9,21 +11,27 @@ export interface ExchangeConfig {
 }
 
 export class ExchangeManager {
-  private configs: Map<string, ExchangeConfig> = new Map();
+  private exchanges: Map<string, ccxt.Exchange> = new Map();
   
-  async initializeExchange(config: ExchangeConfig): Promise<any> {
+  async initializeExchange(config: ExchangeConfig): Promise<ccxt.Exchange> {
     try {
-      // Store the configuration for later use
-      this.configs.set(config.id, config);
+      if (!(config.id in ccxt)) {
+        throw new Error(`Exchange ${config.id} não suportado`);
+      }
       
-      console.log(`Exchange ${config.name} configurado com sucesso`);
+      const ExchangeClass = ccxt[config.id as keyof typeof ccxt] as any;
+      const exchange = new ExchangeClass({
+        apiKey: config.apiKey,
+        secret: config.apiSecret,
+        ...config.additionalParams,
+        ...(config.testMode ? { testnet: true, sandbox: true } : {})
+      });
       
-      // Return a mock exchange object for now
-      return {
-        id: config.id,
-        name: config.name,
-        testMode: config.testMode
-      };
+      await exchange.loadMarkets();
+      this.exchanges.set(config.id, exchange);
+      
+      console.log(`Exchange ${config.name} inicializado com sucesso`);
+      return exchange;
     } catch (error) {
       console.error(`Erro ao inicializar exchange ${config.id}:`, error);
       throw error;
@@ -31,30 +39,13 @@ export class ExchangeManager {
   }
   
   async fetchBalance(exchangeId: string): Promise<any> {
-    const config = this.getConfig(exchangeId);
-    
-    // For now, return mock balance data
-    // In a real implementation, you would make API calls to the exchange
-    return {
-      free: { USDT: 1000, BTC: 0.1 },
-      used: { USDT: 0, BTC: 0 },
-      total: { USDT: 1000, BTC: 0.1 }
-    };
+    const exchange = this.getExchange(exchangeId);
+    return await exchange.fetchBalance();
   }
   
   async fetchTicker(exchangeId: string, symbol: string): Promise<any> {
-    const config = this.getConfig(exchangeId);
-    
-    // Mock ticker data
-    return {
-      symbol,
-      last: 50000,
-      bid: 49999,
-      ask: 50001,
-      high: 51000,
-      low: 49000,
-      volume: 1000
-    };
+    const exchange = this.getExchange(exchangeId);
+    return await exchange.fetchTicker(symbol);
   }
   
   async createOrder(
@@ -65,44 +56,26 @@ export class ExchangeManager {
     amount: number, 
     price?: number
   ): Promise<any> {
-    const config = this.getConfig(exchangeId);
-    
-    // Mock order creation
-    return {
-      id: Date.now().toString(),
-      symbol,
-      type,
-      side,
-      amount,
-      price,
-      status: 'open',
-      timestamp: Date.now()
-    };
+    const exchange = this.getExchange(exchangeId);
+    return await exchange.createOrder(symbol, type, side, amount, price);
   }
   
   async fetchOpenOrders(exchangeId: string, symbol?: string): Promise<any> {
-    const config = this.getConfig(exchangeId);
-    
-    // Mock open orders
-    return [];
+    const exchange = this.getExchange(exchangeId);
+    return await exchange.fetchOpenOrders(symbol);
   }
   
   async cancelOrder(exchangeId: string, orderId: string, symbol?: string): Promise<any> {
-    const config = this.getConfig(exchangeId);
-    
-    // Mock order cancellation
-    return {
-      id: orderId,
-      status: 'canceled'
-    };
+    const exchange = this.getExchange(exchangeId);
+    return await exchange.cancelOrder(orderId, symbol);
   }
   
-  private getConfig(exchangeId: string): ExchangeConfig {
-    const config = this.configs.get(exchangeId);
-    if (!config) {
+  private getExchange(exchangeId: string): ccxt.Exchange {
+    const exchange = this.exchanges.get(exchangeId);
+    if (!exchange) {
       throw new Error(`Exchange ${exchangeId} não inicializado`);
     }
-    return config;
+    return exchange;
   }
   
   getSupportedExchanges(): string[] {
