@@ -17,6 +17,16 @@ interface FlowVisualizationProps {
   activeCategory?: string;
 }
 
+// Helper function to safely convert volume to number
+const getVolumeAsNumber = (volume: string | number | undefined): number => {
+  if (typeof volume === 'number') return volume;
+  if (typeof volume === 'string') {
+    const parsed = parseFloat(volume);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+};
+
 export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
   flowData, 
   zoomLevel = 80,
@@ -72,7 +82,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
       radius: 30,
       marketCap: btcData?.marketCap || 1000000000000,
       type: 'central',
-      volume: btcData?.volume || 50000000000,
+      volume: getVolumeAsNumber(btcData?.volume),
       inflow: filteredFlowData.filter(f => f.to === 'BTC').reduce((sum, f) => sum + Math.abs(f.value), 0),
       outflow: filteredFlowData.filter(f => f.from === 'BTC').reduce((sum, f) => sum + Math.abs(f.value), 0)
     };
@@ -97,7 +107,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             radius: 15,
             marketCap: cryptoInfo?.marketCap || 1000000000,
             type: 'orbital',
-            volume: cryptoInfo?.volume || 1000000,
+            volume: getVolumeAsNumber(cryptoInfo?.volume),
             inflow: filteredFlowData.filter(f => f.to === symbol).reduce((sum, f) => sum + Math.abs(f.value), 0),
             outflow: filteredFlowData.filter(f => f.from === symbol).reduce((sum, f) => sum + Math.abs(f.value), 0)
           });

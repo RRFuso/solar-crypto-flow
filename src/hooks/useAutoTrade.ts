@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { AutoTradeConfig, AutoTradeState, TradingStrategy } from '@/types/autotrade';
 import { usePriceActionSignals } from '@/hooks/usePriceActionSignals';
@@ -48,7 +47,7 @@ export const useAutoTrade = (flowData?: any) => {
   // Get all symbols from active strategies
   const allSymbols = config.strategies.flatMap(s => s.symbols);
   const { signals } = usePriceActionSignals(allSymbols);
-  const { predictions } = usePredictions(flowData, 'all', '4h');
+  const { filteredPredictions } = usePredictions('4h');
 
   // Process signals and execute trades
   useEffect(() => {
@@ -58,7 +57,7 @@ export const useAutoTrade = (flowData?: any) => {
       try {
         const processedSignals = SignalProcessor.processSignals(
           signals,
-          predictions,
+          filteredPredictions,
           config.strategies
         );
 
@@ -100,7 +99,7 @@ export const useAutoTrade = (flowData?: any) => {
     processSignals();
 
     return () => clearInterval(interval);
-  }, [config, signals, predictions, state.isRunning]);
+  }, [config, signals, filteredPredictions, state.isRunning]);
 
   const simulateTrade = async (signal: any) => {
     // Check if we already have a position for this symbol
