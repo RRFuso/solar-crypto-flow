@@ -1,42 +1,39 @@
 
+import * as d3 from 'd3';
 import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
 
 export const createNodePatterns = (
-  svg: any,
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   nodes: any[]
 ) => {
-  // Create defs for logo image patterns using native DOM methods
-  const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-  svg.appendChild(defs);
+  // Create defs for logo image patterns
+  const defs = svg.append("defs");
   
   // Create patterns for each node to hold the logo
   nodes.forEach(node => {
     const patternId = `logo-${node.id}`;
-    const pattern = document.createElementNS("http://www.w3.org/2000/svg", "pattern");
-    pattern.setAttribute("id", patternId);
-    pattern.setAttribute("width", "1");
-    pattern.setAttribute("height", "1");
-    pattern.setAttribute("patternUnits", "objectBoundingBox");
+    const pattern = defs.append("pattern")
+      .attr("id", patternId)
+      .attr("width", 1)
+      .attr("height", 1)
+      .attr("patternUnits", "objectBoundingBox");
       
     // Add image to pattern
-    const image = document.createElementNS("http://www.w3.org/2000/svg", "image");
-    const logoUrl = getCryptoLogoUrl(node.id.toLowerCase()) || 
-                  getFallbackLogoUrl() ||
-                  `https://cryptocurrencyliveprices.com/img/${node.id.toLowerCase()}.png`;
-    
-    image.setAttribute("href", logoUrl);
-    image.setAttribute("width", (node.radius * 2 * 0.8).toString());
-    image.setAttribute("height", (node.radius * 2 * 0.8).toString());
-    image.setAttribute("x", (node.radius * 0.2).toString());
-    image.setAttribute("y", (node.radius * 0.2).toString());
-    image.setAttribute("preserveAspectRatio", "xMidYMid slice");
-    
-    image.addEventListener("error", function() {
-      // Fallback to alternative source if primary logo fails to load
-      image.setAttribute("href", getFallbackLogoUrl());
-    });
-    
-    pattern.appendChild(image);
-    defs.appendChild(pattern);
+    pattern.append("image")
+      .attr("xlink:href", () => {
+        // Try to get logo URL, fallback to a color if unavailable
+        const logoUrl = getCryptoLogoUrl(node.id.toLowerCase()) || 
+                      getFallbackLogoUrl();
+        return logoUrl || `https://cryptocurrencyliveprices.com/img/${node.id.toLowerCase()}.png`;
+      })
+      .attr("width", node.radius * 2 * 0.8) // 80% of the circle's diameter
+      .attr("height", node.radius * 2 * 0.8)
+      .attr("x", node.radius * 0.2) // Center the image
+      .attr("y", node.radius * 0.2)
+      .attr("preserveAspectRatio", "xMidYMid slice")
+      .on("error", function() {
+        // Fallback to alternative source if primary logo fails to load
+        d3.select(this).attr("xlink:href", getFallbackLogoUrl());
+      });
   });
 };

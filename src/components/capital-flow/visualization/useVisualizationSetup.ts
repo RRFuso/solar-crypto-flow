@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useRef } from 'react';
+import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
 import { useOrbitalVisualization } from '@/hooks/capital-flow/useOrbitalVisualization';
 import { OrbitalNode } from '../NodePlacement';

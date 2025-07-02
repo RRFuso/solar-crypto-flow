@@ -1,17 +1,21 @@
 
 import React, { useEffect } from 'react';
+import * as d3 from 'd3';
+import { createLinkTooltip, removeLinkTooltip } from './link-renderer/LinkTooltip';
+import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
+import { addFlowParticles } from './link-renderer/ParticleAnimation';
 import { Prediction } from '@/lib/aiModel';
 
 interface LinkRendererProps {
-  svg: SVGSVGElement;
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   links: any[];
   selectedNodeId?: string | null;
   predictions?: Prediction[];
-  animateWithOrbit?: boolean;
+  animateWithOrbit?: boolean; // New prop to control orbital animation
 }
 
 export class LinkRenderer {
-  private svg: SVGSVGElement;
+  private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private links: any[];
   private animationFrameId: number | null = null;
   
@@ -22,14 +26,20 @@ export class LinkRenderer {
   }
   
   private renderLinks({ svg, links, selectedNodeId, predictions = [], animateWithOrbit = false }: LinkRendererProps) {
-    // Clear existing links
-    const existingLinks = svg.querySelectorAll('.links-group');
-    existingLinks.forEach(el => el.remove());
+    // Clear any existing links first
+    svg.selectAll('.links-group').remove();
     
     // Create links group
-    const linkGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    linkGroup.setAttribute("class", "links-group");
-    svg.appendChild(linkGroup);
+    const linkGroup = svg.append("g").attr("class", "links-group");
+    
+    // Handle link hover events
+    const handleMouseOver = (event: MouseEvent, linkData: any) => {
+      createLinkTooltip(svg, event, linkData);
+    };
+    
+    const handleMouseOut = (event: MouseEvent, linkData: any) => {
+      removeLinkTooltip(svg);
+    };
     
     // Process links for visualization with prediction data
     const processedLinks = links.map(link => {
@@ -42,7 +52,7 @@ export class LinkRenderer {
       
       // Color based on source prediction if it has high confidence
       if (sourcePrediction && sourcePrediction.confidence >= 0.6) {
-        predictionColor = sourcePrediction.bullish ? "#00ff80" : "#ff3232";
+        predictionColor = sourcePrediction.bullish ? "#00ff80" : "#ff3232"; // Neon green or neon red
       }
       // If target has higher confidence, use that
       if (targetPrediction && targetPrediction.confidence >= 0.6) {
@@ -59,49 +69,71 @@ export class LinkRenderer {
       };
     });
     
-    // Create defs for markers
-    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-    svg.appendChild(defs);
+    // Draw links with curved paths and hover effects
+    const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
     
-    // Draw links with curved paths
-    processedLinks.forEach(link => {
-      if (!link.source || !link.target) return;
+    // Create arrowheads for directional flow
+    createArrowheads(svg, processedLinks);
+    
+    // Apply the markers to links
+    link.attr("marker-end", d => `url(#${d.markerId})`);
+    
+    // Add animated particles for flow visualization
+    addFlowParticles(svg, linkGroup, processedLinks, selectedNodeId);
+    
+    // If orbital animation is enabled, update link positions in real-time
+    if (animateWithOrbit) {
+      this.setupLinkUpdates(linkGroup, processedLinks, selectedNodeId);
+    }
+  }
+  
+  // New method to update link positions with orbital movements
+  private setupLinkUpdates(linkGroup: d3.Selection<SVGGElement, unknown, null, undefined>, links: any[], selectedNodeId: string | null) {
+    // Cancel any existing animation
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
+    
+    const updateLinksPosition = () => {
+      // Update each link path
+      this.svg.selectAll("path.link-path")
+        .attr("d", (d: any) => {
+          const dx = d.target.x - d.source.x;
+          const dy = d.target.y - d.source.y;
+          const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
+          return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+        })
+        .attr("opacity", (d: any) => {
+          if (selectedNodeId) {
+            return d.source.id === selectedNodeId || d.target.id === selectedNodeId ? 0.9 : 0.15;
+          }
+          return d.predictionColor ? 0.9 : 0.6;
+        });
       
-      // Create marker
-      const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
-      marker.setAttribute("id", link.markerId);
-      marker.setAttribute("viewBox", "0 -5 10 10");
-      marker.setAttribute("refX", "8");
-      marker.setAttribute("refY", "0");
-      marker.setAttribute("markerWidth", "6");
-      marker.setAttribute("markerHeight", "6");
-      marker.setAttribute("orient", "auto");
-
-      const arrowPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      arrowPath.setAttribute("fill", link.predictionColor || "#4ade80");
-      arrowPath.setAttribute("d", "M0,-5L10,0L0,5");
-      marker.appendChild(arrowPath);
-      defs.appendChild(marker);
+      // Update link gradients
+      this.svg.selectAll("linearGradient")
+        .attr("x1", (d: any) => d?.source?.x || 0)
+        .attr("y1", (d: any) => d?.source?.y || 0)
+        .attr("x2", (d: any) => d?.target?.x || 0)
+        .attr("y2", (d: any) => d?.target?.y || 0);
       
-      // Create link path
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("class", "link-path");
-      const dx = (link.target.x || 0) - (link.source.x || 0);
-      const dy = (link.target.y || 0) - (link.source.y || 0);
-      const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
-      const pathData = `M${link.source.x || 0},${link.source.y || 0}A${dr},${dr} 0 0,1 ${link.target.x || 0},${link.target.y || 0}`;
-      path.setAttribute("d", pathData);
-      path.setAttribute("stroke", link.predictionColor || "#4ade80");
-      path.setAttribute("stroke-width", "2");
-      path.setAttribute("fill", "none");
-      path.setAttribute("opacity", link.isHighlighted ? "0.8" : "0.3");
-      path.setAttribute("marker-end", `url(#${link.markerId})`);
+      // Update arrowheads position
+      this.svg.selectAll("marker")
+        .attr("refX", (d: any) => {
+          // Adjust refX based on target node radius
+          return 8 + (d?.target?.radius || 20) * 0.8;
+        });
       
-      linkGroup.appendChild(path);
-    });
+      // Continue animation
+      this.animationFrameId = requestAnimationFrame(updateLinksPosition);
+    };
+    
+    // Start animation
+    this.animationFrameId = requestAnimationFrame(updateLinksPosition);
   }
   
   public cleanup() {
+    // Cancel any active animation frame
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
@@ -109,14 +141,16 @@ export class LinkRenderer {
   }
 }
 
+// Fix component export for Fast Refresh compatibility
 export const LinkRendererComponent = React.memo((props: LinkRendererProps) => {
   useEffect(() => {
     const renderer = new LinkRenderer(props);
     
+    // Cleanup on unmount or when props change
     return () => {
       renderer.cleanup();
-      const existingLinks = props.svg.querySelectorAll(".links-group, defs");
-      existingLinks.forEach(el => el.remove());
+      props.svg.selectAll(".links-group").remove();
+      props.svg.selectAll("defs").remove();
     };
   }, [props]);
   

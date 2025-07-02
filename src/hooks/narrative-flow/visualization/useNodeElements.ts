@@ -1,143 +1,166 @@
 
+import * as d3 from 'd3';
 import { NarrativeNode } from '@/types/narratives';
 import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
 import { useFiltersAndEffects } from './useFiltersAndEffects';
+import { TokenLogo } from './types';
 
 export const useNodeElements = () => {
   const { createClipPath } = useFiltersAndEffects();
   
-  // Create node elements for the visualization using native DOM methods
+  // Create node elements for the visualization
   const createNodes = (
-    svg: any,
+    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
     nodes: NarrativeNode[],
     dragHandlers: any,
-    defs: any
+    defs: d3.Selection<SVGDefsElement, unknown, null, undefined>
   ) => {
     // Add nodes
-    const nodeGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    nodeGroup.setAttribute("class", "nodes");
-    svg.appendChild(nodeGroup);
+    const nodeGroup = svg.append("g").attr("class", "nodes");
     
-    const nodeElements: SVGGElement[] = [];
+    const node = nodeGroup.selectAll("g")
+      .data(nodes)
+      .enter()
+      .append("g")
+      .attr("class", "node")
+      .attr("data-id", d => d.id)
+      .call(d3.drag()
+        .on("start", dragHandlers.dragstarted)
+        .on("drag", dragHandlers.dragged)
+        .on("end", dragHandlers.dragended));
+
+    // Add glowing effect around nodes (planetary look)
+    node.append("circle")
+      .attr("class", "node-glow")
+      .attr("r", d => d.radius * 1.5)
+      .attr("fill", d => d.color)
+      .attr("opacity", 0.3)
+      .attr("filter", "url(#glow)");
+      
+    // Add node circles
+    node.append("circle")
+      .attr("r", d => d.radius)
+      .attr("fill", d => d.color)
+      .attr("stroke", d => d.attentionScore && d.attentionScore > 50 ? "#ffffff" : "rgba(255,255,255,0.5)")
+      .attr("stroke-width", d => d.attentionScore && d.attentionScore > 50 ? 3 : 2)
+      .attr("opacity", 0.7)
+      .attr("filter", "url(#glow)");
+      
+    addAttentionIndicators(node);
+    addTokenLogos(node, defs);
+    addNodeLabels(node);
     
-    nodes.forEach(d => {
-      const node = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      node.setAttribute("class", "node");
-      node.setAttribute("data-id", d.id);
-      node.setAttribute("transform", `translate(${d.x},${d.y})`);
+    return { node, nodeGroup };
+  };
+  
+  // Add pulsing effect for high attention narratives
+  const addAttentionIndicators = (
+    node: d3.Selection<SVGGElement, NarrativeNode, SVGGElement, unknown>
+  ) => {
+    // Add attention indicator pulse for high attention narratives
+    node.filter(d => d.attentionScore && d.attentionScore > 70)
+      .append("circle")
+      .attr("r", d => d.radius + 5)
+      .attr("fill", "none")
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 2)
+      .attr("opacity", 0.5)
+      .attr("class", "attention-pulse");
       
-      // Add glowing effect around nodes
-      const glow = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      glow.setAttribute("class", "node-glow");
-      glow.setAttribute("r", (d.radius * 1.5).toString());
-      glow.setAttribute("fill", d.color);
-      glow.setAttribute("opacity", "0.3");
-      glow.setAttribute("filter", "url(#glow)");
-      node.appendChild(glow);
+    // Add animation to attention pulse
+    node.selectAll(".attention-pulse")
+      .append("animate")
+      .attr("attributeName", "r")
+      .attr("values", d => `${d.radius + 5};${d.radius + 15};${d.radius + 5}`)
+      .attr("dur", "2s")
+      .attr("repeatCount", "indefinite");
+  };
+  
+  // Add logos of representative tokens
+  const addTokenLogos = (
+    node: d3.Selection<SVGGElement, NarrativeNode, SVGGElement, unknown>,
+    defs: d3.Selection<SVGDefsElement, unknown, null, undefined>
+  ) => {
+    // Add representative token logos
+    node.each(function(d) {
+      if (!d.representativeTokens || d.representativeTokens.length === 0) return;
       
-      // Add node circle
-      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      circle.setAttribute("r", d.radius.toString());
-      circle.setAttribute("fill", d.color);
-      circle.setAttribute("stroke", d.attentionScore && d.attentionScore > 50 ? "#ffffff" : "rgba(255,255,255,0.5)");
-      circle.setAttribute("stroke-width", d.attentionScore && d.attentionScore > 50 ? "3" : "2");
-      circle.setAttribute("opacity", "0.7");
-      circle.setAttribute("filter", "url(#glow)");
-      node.appendChild(circle);
+      const numLogos = Math.min(d.representativeTokens.length, 3);
+      const logoRadius = d.radius * 0.25;
       
-      // Add attention indicators
-      if (d.attentionScore && d.attentionScore > 70) {
-        const pulse = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        pulse.setAttribute("r", (d.radius + 5).toString());
-        pulse.setAttribute("fill", "none");
-        pulse.setAttribute("stroke", "#ffffff");
-        pulse.setAttribute("stroke-width", "2");
-        pulse.setAttribute("opacity", "0.5");
-        pulse.setAttribute("class", "attention-pulse");
+      // Position logos in a circle around the center
+      d.representativeTokens.slice(0, numLogos).forEach((token, i) => {
+        // Create clip path for circular logos
+        const clipId = `clip-${d.id}-${token.symbol}`;
+        createClipPath(defs, clipId, logoRadius);
         
-        const animate = document.createElementNS("http://www.w3.org/2000/svg", "animate");
-        animate.setAttribute("attributeName", "r");
-        animate.setAttribute("values", `${d.radius + 5};${d.radius + 15};${d.radius + 5}`);
-        animate.setAttribute("dur", "2s");
-        animate.setAttribute("repeatCount", "indefinite");
-        pulse.appendChild(animate);
+        // Calculate position in a circle
+        const angle = (2 * Math.PI * i) / numLogos;
+        // Place logos at 60% of the way from center to edge
+        const distance = d.radius * 0.6;
+        const x = Math.sin(angle) * distance;
+        const y = Math.cos(angle) * distance;
         
-        node.appendChild(pulse);
-      }
-      
-      // Add token logos
-      if (d.representativeTokens && d.representativeTokens.length > 0) {
-        const numLogos = Math.min(d.representativeTokens.length, 3);
-        const logoRadius = d.radius * 0.25;
+        // Add circular background for the logo
+        d3.select(this)
+          .append("circle")
+          .attr("cx", x)
+          .attr("cy", y)
+          .attr("r", logoRadius)
+          .attr("fill", "white")
+          .attr("opacity", 0.9);
         
-        d.representativeTokens.slice(0, numLogos).forEach((token, i) => {
-          const clipId = `clip-${d.id}-${token.symbol}`;
-          createClipPath(defs, clipId, logoRadius);
-          
-          const angle = (2 * Math.PI * i) / numLogos;
-          const distance = d.radius * 0.6;
-          const x = Math.sin(angle) * distance;
-          const y = Math.cos(angle) * distance;
-          
-          // Add circular background
-          const bg = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-          bg.setAttribute("cx", x.toString());
-          bg.setAttribute("cy", y.toString());
-          bg.setAttribute("r", logoRadius.toString());
-          bg.setAttribute("fill", "white");
-          bg.setAttribute("opacity", "0.9");
-          node.appendChild(bg);
-          
-          // Add logo image
-          const img = document.createElementNS("http://www.w3.org/2000/svg", "image");
-          img.setAttribute("x", (x - logoRadius).toString());
-          img.setAttribute("y", (y - logoRadius).toString());
-          img.setAttribute("width", (logoRadius * 2).toString());
-          img.setAttribute("height", (logoRadius * 2).toString());
-          img.setAttribute("href", getCryptoLogoUrl(token.symbol));
-          img.setAttribute("clip-path", `url(#${clipId})`);
-          img.setAttribute("preserveAspectRatio", "xMidYMid slice");
-          
-          img.addEventListener("error", () => {
-            img.setAttribute("href", getFallbackLogoUrl());
-          });
-          
-          node.appendChild(img);
+        // Get the correct logo URL from our cryptoLogos utility
+        const logoUrl = getCryptoLogoUrl(token.symbol);
+        
+        // Add the logo image with error handling
+        const img = d3.select(this)
+          .append("image")
+          .attr("x", x - logoRadius)
+          .attr("y", y - logoRadius)
+          .attr("width", logoRadius * 2)
+          .attr("height", logoRadius * 2)
+          .attr("href", logoUrl)
+          .attr("clip-path", `url(#${clipId})`)
+          .attr("preserveAspectRatio", "xMidYMid slice");
+        
+        // Add error handling for the image
+        img.on("error", function() {
+          d3.select(this).attr("href", getFallbackLogoUrl());
         });
-      }
-      
-      // Add node labels
-      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      label.setAttribute("text-anchor", "middle");
-      label.setAttribute("dy", (d.radius + 15).toString());
-      label.setAttribute("fill", "white");
-      label.setAttribute("font-weight", "bold");
-      label.setAttribute("font-size", Math.min(d.radius * 0.4, 14).toString());
-      label.textContent = d.name;
-      node.appendChild(label);
-      
-      // Add attention score
-      if (d.attentionScore && d.attentionScore > 30) {
-        const scoreText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        scoreText.setAttribute("text-anchor", "middle");
-        scoreText.setAttribute("dy", "-5");
-        scoreText.setAttribute("fill", "white");
-        scoreText.setAttribute("font-weight", "bold");
-        scoreText.setAttribute("font-size", "12");
-        scoreText.textContent = `${d.attentionScore}%`;
-        node.appendChild(scoreText);
-      }
-      
-      nodeGroup.appendChild(node);
-      nodeElements.push(node);
+      });
     });
-    
-    return { node: nodeElements, nodeGroup };
+  };
+  
+  // Add text labels for nodes
+  const addNodeLabels = (
+    node: d3.Selection<SVGGElement, NarrativeNode, SVGGElement, unknown>
+  ) => {
+    // Add node labels
+    node.append("text")
+      .attr("text-anchor", "middle")
+      .attr("dy", d => d.radius + 15)
+      .attr("fill", "white")
+      .attr("font-weight", "bold")
+      .attr("font-size", d => Math.min(d.radius * 0.4, 14))
+      .text(d => d.name);
+
+    // Add attention score for nodes with high attention
+    node.filter(d => d.attentionScore && d.attentionScore > 30)
+      .append("text")
+      .attr("text-anchor", "middle")
+      .attr("dy", -5)
+      .attr("fill", "white")
+      .attr("font-weight", "bold")
+      .attr("font-size", "12px")
+      .text(d => `${d.attentionScore}%`);
   };
 
   // Update node positions
-  const updateNodePositions = (nodeElements: SVGGElement[]) => {
-    // Positions are managed by the animation system
+  const updateNodePositions = (
+    node: d3.Selection<SVGGElement, NarrativeNode, SVGGElement, unknown>
+  ) => {
+    node.attr("transform", d => `translate(${d.x},${d.y})`);
   };
 
   return {
