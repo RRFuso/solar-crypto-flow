@@ -137,16 +137,23 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
                              visualizationData.nodes.length > 0;
 
   return (
-    <div ref={containerRef} className="w-full h-full relative">
-      <svg 
-        ref={svgRef} 
-        className="w-full h-full" 
-        style={{ display: 'block' }}
-        width={dimensions.width}
-        height={dimensions.height}
-        viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
-        preserveAspectRatio="xMidYMid meet"
-      />
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden">
+      <div 
+        className="w-full h-full flex items-center justify-center"
+        style={{ 
+          transform: 'scale(0.8)', 
+          transformOrigin: 'center center'
+        }}
+      >
+        <svg 
+          ref={svgRef} 
+          className="w-full h-full" 
+          style={{ display: 'block' }}
+          width={dimensions.width}
+          height={dimensions.height}
+          viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+          preserveAspectRatio="xMidYMid meet"
+        />
       {renderVisualization && svgRef.current && (
         <>
           <StarfieldBackground 
@@ -159,7 +166,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             width={dimensions.width}
             height={dimensions.height}
             orbitLayers={4}
-            baseRadius={Math.min(dimensions.width, dimensions.height) * 0.15}
+            baseRadius={Math.min(dimensions.width, dimensions.height) * 0.12}
             extendFullScreen={true}
           />
           <LinkRendererExtended
@@ -197,6 +204,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
           )}
         </>
       )}
+      </div>
     </div>
   );
 };
