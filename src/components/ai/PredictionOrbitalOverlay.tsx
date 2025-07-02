@@ -237,16 +237,16 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
           document.body.appendChild(tooltip);
           setTimeout(() => tooltip.style.opacity = "1", 10);
           
-          // Add event listener to strategy button
-          if (prediction.confidence >= 0.7) {
-            const strategyButton = tooltip.querySelector(`#view-strategy-${nodeData.id}`);
-            if (strategyButton) {
-              strategyButton.addEventListener("click", function(e) {
-                e.stopPropagation();
-                showStrategyModal(nodeData.id, prediction);
-              });
-            }
+        // Add event listener to strategy button
+        if (prediction.confidence >= 0.7) {
+          const strategyButton = tooltip.querySelector(`#view-strategy-${nodeData.id}`);
+          if (strategyButton) {
+            strategyButton.addEventListener("click", function(e: Event) {
+              e.stopPropagation();
+              showStrategyModal(nodeData.id, prediction);
+            });
           }
+        }
         });
         
         nodeElement.addEventListener("mousemove", function(event: Event) {

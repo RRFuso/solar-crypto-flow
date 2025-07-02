@@ -53,7 +53,7 @@ export const useCapitalFlowVisualization = () => {
     const simulation = d3.forceSimulation(nodes)
       .force("charge", d3.forceManyBody().strength(-500)) // Increased repulsion force
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(d => (d as CapitalFlowNode).radius! + 25)) // Increased collision radius
+      .force("collision", d3.forceCollide().radius(d => ((d as CapitalFlowNode).radius || 20) + 25)) // Increased collision radius
       .force("x", d3.forceX(width / 2).strength(0.08))
       .force("y", d3.forceY(height / 2).strength(0.08));
     
@@ -153,7 +153,7 @@ export const useCapitalFlowVisualization = () => {
     node.selectAll("circle")
       .append("animate")
       .attr("attributeName", "r")
-      .attr("values", (d: CapitalFlowNode) => `${d.radius!};${d.radius! * 1.05};${d.radius!}`)
+      .attr("values", (d: CapitalFlowNode) => `${d.radius || 20};${(d.radius || 20) * 1.05};${d.radius || 20}`)
       .attr("dur", "3s")
       .attr("repeatCount", "indefinite");
     
@@ -192,7 +192,7 @@ export const useCapitalFlowVisualization = () => {
           if (!path) return "";
           
           try {
-            const point = path.getPointAtLength(path.getTotalLength() * t);
+            const point = (path as SVGPathElement).getPointAtLength((path as SVGPathElement).getTotalLength() * t);
             return `translate(${point.x}, ${point.y})`;
           } catch (e) {
             return "";
