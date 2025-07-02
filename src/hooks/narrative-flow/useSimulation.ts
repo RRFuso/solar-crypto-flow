@@ -1,6 +1,5 @@
 
 import { useEffect } from 'react';
-import * as d3 from 'd3';
 import { NarrativeNode } from '@/types/narratives';
 import { CryptoData } from '@/types/crypto';
 
@@ -13,7 +12,7 @@ interface SimulationConfig {
 
 export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height }: SimulationConfig) => {
 
-  // Find BTC node (central node)
+  // Find BTC node (central node) using native JavaScript
   const findCentralNode = () => {
     if (nodes.length === 0) return null;
     // Prioritize finding BTC by symbol or name
@@ -38,7 +37,7 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
 
   const centralNode = findCentralNode();
 
-  // --- Enhanced Logic for Volume-based Orbital Distribution ---
+  // Enhanced Logic for Volume-based Orbital Distribution using native JavaScript
   let rankedNodesByVolume: { node: NarrativeNode; volume: number; rank: number }[] = [];
   if (centralNode && cryptoDataMap.size > 0) {
       const nonCentralNodes = nodes.filter(n => n !== centralNode);
@@ -55,28 +54,21 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
   
   const volumeRankMap = new Map(rankedNodesByVolume.map(item => [item.node.id, item.rank]));
 
-  // **CRITICAL: Perfect scale for 40% zoom visibility with compact orbital radii**
+  // Calculate orbital radius by volume rank using native calculations
   const calculateOrbitalRadiusByVolumeRank = (node: NarrativeNode, central: NarrativeNode | null) => {
     if (!central || node === central) return 0;
 
     const rank = volumeRankMap.get(node.id);
-    // **OPTIMIZED: Perfect base size for 40% zoom at default settings**
-    const baseSize = Math.min(width, height) * 0.35; // Increased from 0.3 to 0.35
+    const baseSize = Math.min(width, height) * 0.35;
 
-    // **CRITICAL: Much more compact and uniform orbital radii**
     const orbitRadii = [
-      baseSize * 0.25, // Orbit 1 (Highest Volume) - increased from 0.12
-      baseSize * 0.40, // Orbit 2 - increased from 0.22
-      baseSize * 0.55, // Orbit 3 - increased from 0.32
-      baseSize * 0.70  // Orbit 4 - increased from 0.40
+      baseSize * 0.25, // Orbit 1 (Highest Volume)
+      baseSize * 0.40, // Orbit 2
+      baseSize * 0.55, // Orbit 3
+      baseSize * 0.70  // Orbit 4
     ];
 
-    // **ENHANCED: Better distribution with more generous thresholds**
-    const rankThresholds = [
-      6,  // Rank 1-6 -> Orbit 1 (reduced from 8)
-      15, // Rank 7-15 -> Orbit 2 (reduced from 20)
-      30  // Rank 16-30 -> Orbit 3 (reduced from 40)
-    ];
+    const rankThresholds = [6, 15, 30];
 
     if (rank === undefined || rank <= 0) {
         return orbitRadii[orbitRadii.length - 1];
@@ -93,7 +85,7 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
     }
   };
 
-  // **ENHANCED: Simplified positioning with perfect angular distribution**
+  // Position nodes using native JavaScript calculations
   const positionNodes = () => {
     if (!centralNode) return;
     centralNode.x = width / 2;
@@ -114,7 +106,7 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
     // Position nodes within each orbit with perfect spacing
     orbitGroups.forEach((nodesInOrbit, radius) => {
       const angleStep = (2 * Math.PI) / nodesInOrbit.length;
-      const startAngle = Math.random() * Math.PI * 2; // Random start to avoid clustering
+      const startAngle = Math.random() * Math.PI * 2;
       
       nodesInOrbit.forEach((node, index) => {
         const angle = startAngle + (index * angleStep);
@@ -124,61 +116,98 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
     });
   };
 
-  // **ENHANCED: Streamlined D3 Force Simulation**
-  const simulation = d3.forceSimulation(nodes)
-    // **OPTIMIZED: Enhanced collision with better spacing**
-    .force("collision", d3.forceCollide().radius((d: NarrativeNode) => (d.radius || 8) + 12).strength(1.0))
-    // **OPTIMIZED: Reduced charge for better clustering**
-    .force("charge", d3.forceManyBody().strength(-15).distanceMax(width * 0.2))
-    // **ENHANCED: Strong radial force to maintain perfect orbits**
-    .force("orbit", d3.forceRadial(
-        (d: NarrativeNode) => calculateOrbitalRadiusByVolumeRank(d, centralNode), 
-        width / 2, 
-        height / 2
-      ).strength(2.0)) // Increased from 1.5 to 2.0 for stronger orbital constraint
-    .alphaDecay(0.0228) 
-    .velocityDecay(0.4);
+  // Simple physics simulation using native JavaScript
+  const simulation = {
+    nodes: nodes,
+    alpha: 1,
+    alphaTarget: 0,
+    alphaDecay: 0.0228,
+    velocityDecay: 0.4,
+    restart: function() {
+      this.alpha = 0.6;
+      return this;
+    },
+    stop: function() {
+      this.alpha = 0;
+      return this;
+    }
+  };
+
+  // Apply collision detection and orbital forces
+  const applyForces = () => {
+    nodes.forEach(node => {
+      if (node === centralNode) return;
+      
+      // Apply orbital force
+      const targetRadius = calculateOrbitalRadiusByVolumeRank(node, centralNode);
+      const dx = (node.x || 0) - width / 2;
+      const dy = (node.y || 0) - height / 2;
+      const currentRadius = Math.sqrt(dx * dx + dy * dy);
+      
+      if (currentRadius > 0) {
+        const force = (targetRadius - currentRadius) * 0.1;
+        const angle = Math.atan2(dy, dx);
+        node.x = (node.x || 0) + Math.cos(angle) * force;
+        node.y = (node.y || 0) + Math.sin(angle) * force;
+      }
+      
+      // Apply collision detection
+      nodes.forEach(otherNode => {
+        if (node === otherNode) return;
+        const dx = (node.x || 0) - (otherNode.x || 0);
+        const dy = (node.y || 0) - (otherNode.y || 0);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const minDistance = (node.radius || 8) + (otherNode.radius || 8) + 12;
+        
+        if (distance < minDistance && distance > 0) {
+          const force = (minDistance - distance) * 0.1;
+          const angle = Math.atan2(dy, dx);
+          node.x = (node.x || 0) + Math.cos(angle) * force;
+          node.y = (node.y || 0) + Math.sin(angle) * force;
+        }
+      });
+    });
+  };
 
   // Fix the central node's position
   useEffect(() => {
       if (centralNode) {
-          centralNode.fx = width / 2;
-          centralNode.fy = height / 2;
+          centralNode.x = width / 2;
+          centralNode.y = height / 2;
       }
-      simulation.nodes(nodes); 
       positionNodes(); 
-      simulation.alpha(0.6).restart(); 
+      // Start simple animation loop
+      const animate = () => {
+        applyForces();
+        requestAnimationFrame(animate);
+      };
+      animate();
   }, [nodes, cryptoDataMap, centralNode, width, height]); 
 
-  // **ENHANCED: Apply bounds with better margin**
+  // Apply bounds using native calculations
   const applyBounds = () => {
     nodes.forEach(node => {
       if (node === centralNode) return;
       const radius = node.radius || 8;
-      const margin = radius + 15; // Increased margin for better spacing
+      const margin = radius + 15;
       node.x = typeof node.x === 'number' ? Math.max(margin, Math.min(width - margin, node.x)) : width / 2;
       node.y = typeof node.y === 'number' ? Math.max(margin, Math.min(height - margin, node.y)) : height / 2;
     });
   };
 
-  // Drag handlers (no changes needed)
+  // Drag handlers using native event handling
   const dragHandlers = {
     dragstarted: (event: any) => {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      event.subject.fx = event.subject.x;
-      event.subject.fy = event.subject.y;
+      event.subject.x = event.x;
+      event.subject.y = event.y;
     },
     dragged: (event: any) => {
       if (event.subject === centralNode) return;
-      event.subject.fx = event.x;
-      event.subject.fy = event.y;
+      event.subject.x = event.x;
+      event.subject.y = event.y;
     },
     dragended: (event: any) => {
-      if (!event.active) simulation.alphaTarget(0);
-      if (event.subject !== centralNode) {
-        event.subject.fx = null;
-        event.subject.fy = null;
-      }
+      // End drag
     }
   };
 

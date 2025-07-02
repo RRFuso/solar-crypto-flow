@@ -36,16 +36,16 @@ const Index = () => {
             </TabsList>
           </div>
 
-          <div className="flex-1 w-full overflow-hidden">
-            <TabsContent value="capital-flow" className="h-full w-full m-0 p-0">
+          <div className="flex-1 w-full">
+            <TabsContent value="capital-flow" className="h-full m-0 w-full">
               <CapitalFlowPanel />
             </TabsContent>
 
-            <TabsContent value="crypto" className="h-full w-full m-0 p-0">
+            <TabsContent value="crypto" className="h-full m-0 w-full">
               <CryptoPanel />
             </TabsContent>
 
-            <TabsContent value="autotrade" className="h-full w-full m-0 p-0">
+            <TabsContent value="autotrade" className="h-full m-0 w-full">
               <AutoTradePanel />
             </TabsContent>
           </div>

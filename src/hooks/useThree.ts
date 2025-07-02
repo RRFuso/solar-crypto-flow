@@ -52,11 +52,11 @@ const mockFlowData: CapitalFlow[] = [
 export function useThree() {
   let animationFrameId: number;
   
-  // Canvas-based visualization without external dependencies
+  // Mock implementation without Three.js
   const init = useCallback((container: HTMLDivElement) => {
-    console.log('Crypto visualization initialized');
+    console.log('Three.js mock implementation initialized');
     
-    // Create a canvas-based visualization
+    // Create a simple canvas-based visualization
     const canvas = document.createElement('canvas');
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
@@ -67,7 +67,7 @@ export function useThree() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return { cleanup: () => {} };
     
-    // Draw the crypto ecosystem visualization
+    // Draw a simple representation of the crypto ecosystem
     const drawVisualization = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
@@ -152,20 +152,11 @@ export function useThree() {
       ctx.fillText('Bitcoin', centerX, centerY + 50);
     };
     
-    // Initial draw
     drawVisualization();
-    
-    // Animation loop
-    const animate = () => {
-      drawVisualization();
-      animationFrameId = requestAnimationFrame(animate);
-    };
-    
-    animate();
     
     // Handle window resize
     const handleResize = () => {
-      if (!container || !canvas) return;
+      if (!container) return;
       
       canvas.width = container.clientWidth;
       canvas.height = container.clientHeight;
@@ -177,19 +168,20 @@ export function useThree() {
     return {
       cleanup: () => {
         window.removeEventListener('resize', handleResize);
+        if (container.contains(canvas)) {
+          container.removeChild(canvas);
+        }
         if (animationFrameId) {
           cancelAnimationFrame(animationFrameId);
-        }
-        if (container && container.contains(canvas)) {
-          container.removeChild(canvas);
         }
       }
     };
   }, []);
   
-  // Animation is handled within the init function
+  // Animation loop with canvas-based animation
   const animate = useCallback(() => {
-    // Animation is handled within the init function
+    animationFrameId = requestAnimationFrame(animate);
+    // Animation is handled in the drawVisualization function called during init
   }, []);
   
   return { init, animate };

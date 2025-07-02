@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Prediction } from '@/lib/aiModel';
 import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
@@ -117,9 +118,9 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     const badge = config[explosivePotential as keyof typeof config];
     if (!badge) return null;
     return (
-      <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-bold border ${badge.color}`}>
-        <span className="text-xs">{badge.icon}</span>
-        <span className="text-xs">{badge.label}</span>
+      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold border ${badge.color}`}>
+        <span>{badge.icon}</span>
+        <span>{badge.label}</span>
       </div>
     );
   };
@@ -254,13 +255,13 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     
     if (signalsLoading) {
       return (
-        <div key={p.symbol} className="bg-gray-800 rounded-lg p-2.5 border border-gray-700">
-          <div className="flex items-start gap-2">
-            <Skeleton className="w-6 h-6 rounded-full flex-shrink-0" />
-            <div className="flex-1 space-y-1.5 min-w-0">
+        <div key={p.symbol} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+          <div className="flex items-start gap-3">
+            <Skeleton className="w-8 h-8 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-3 w-full" />
               <Skeleton className="h-3 w-16" />
-              <Skeleton className="h-2.5 w-full" />
-              <Skeleton className="h-2.5 w-12" />
             </div>
           </div>
         </div>
@@ -270,46 +271,47 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     return (
       <div
         key={p.symbol}
-        className="bg-gray-800 rounded-lg p-2.5 hover:bg-gray-700 transition-colors text-white border border-gray-700 relative"
+        className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors text-white border border-gray-700 relative"
       >
         {signal?.explosivePotential && signal.explosivePotential !== 'None' && (
-          <div className="absolute -top-1 -right-1 z-10">
+          <div className="absolute -top-2 -right-2 z-10">
             {getExplosiveBadge(signal.explosivePotential)}
           </div>
         )}
         
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-3">
           <img
             src={getCryptoLogoUrl(p.symbol)}
             alt={p.symbol}
-            className="w-6 h-6 rounded-full flex-shrink-0 mt-0.5"
+            className="w-8 h-8 rounded-full flex-shrink-0 mt-1"
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
-              <span className="font-bold text-xs truncate">{p.symbol}</span>
+              <span className="font-bold text-sm truncate">{p.symbol}</span>
               <div className={`flex items-center gap-1 ${p.bullish ? 'text-green-400' : 'text-red-400'}`}>
-                {p.bullish ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                {p.bullish ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                 <span className="text-xs font-medium">{Math.round(p.confidence * 100)}%</span>
               </div>
             </div>
             
-            <div className="text-xs text-gray-400 mb-1.5 line-clamp-1 leading-tight">{p.factors[0]}</div>
+            <div className="text-xs text-gray-400 mb-2 line-clamp-2">{p.factors[0]}</div>
             
+            {/* Price Action Signals from Supabase */}
             {signal && (signal.isBreakout || signal.isExpansion || signal.isAccelerating) && (
-              <div className="flex flex-wrap gap-1 mb-1.5">
+              <div className="flex flex-wrap gap-1 mb-2">
                 {signal.isBreakout && (
-                  <span className="text-xs bg-red-900/30 text-red-300 px-1 py-0.5 rounded border border-red-400/30">
-                    💥
+                  <span className="text-xs bg-red-900/30 text-red-300 px-1.5 py-0.5 rounded border border-red-400/30">
+                    💥 Breakout
                   </span>
                 )}
                 {signal.isExpansion && (
-                  <span className="text-xs bg-orange-900/30 text-orange-300 px-1 py-0.5 rounded border border-orange-400/30">
-                    📊
+                  <span className="text-xs bg-orange-900/30 text-orange-300 px-1.5 py-0.5 rounded border border-orange-400/30">
+                    📊 Expansão
                   </span>
                 )}
                 {signal.isAccelerating && (
-                  <span className="text-xs bg-blue-900/30 text-blue-300 px-1 py-0.5 rounded border border-blue-400/30">
-                    🚀
+                  <span className="text-xs bg-blue-900/30 text-blue-300 px-1.5 py-0.5 rounded border border-blue-400/30">
+                    🚀 Aceleração
                   </span>
                 )}
               </div>
@@ -330,33 +332,33 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
   };
 
   return (
-    <div className="bg-black border border-gray-700 rounded-lg h-full flex flex-col w-full">
-      <div className="p-3 border-b border-gray-700">
-        <h2 className="text-white text-base font-semibold mb-2 flex items-center gap-2">
+    <div className="bg-black border border-gray-700 rounded-lg h-full flex flex-col min-w-[380px] max-w-[450px]">
+      <div className="p-4 border-b border-gray-700">
+        <h2 className="text-white text-lg font-semibold mb-3 flex items-center gap-2">
           🧠 AI Watchlist
-          <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">
+          <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full">
             Price Action
           </span>
         </h2>
         <input
-          className="w-full p-2 rounded-md bg-gray-900 border border-gray-600 text-white text-xs placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+          className="w-full p-2 rounded-md bg-gray-900 border border-gray-600 text-white text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none"
           placeholder="🔍 Buscar ativo..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
-      <div className="flex-1 p-3 overflow-y-auto">
-        <div className="space-y-3">
+      <div className="flex-1 p-4 overflow-y-auto">
+        <div className="space-y-4">
           <div>
-            <h3 className="text-green-400 text-sm font-medium mb-2 flex items-center gap-2">
+            <h3 className="text-green-400 text-sm font-medium mb-3 flex items-center gap-2">
               🐂 Bullish Signals
             </h3>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {bullish.length ? (
                 bullish.map(renderCard)
               ) : (
-                <div className="text-gray-500 text-xs text-center py-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                <div className="text-gray-500 text-xs text-center py-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
                   Nenhum sinal bullish disponível
                 </div>
               )}
@@ -364,14 +366,14 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
           </div>
 
           <div>
-            <h3 className="text-red-400 text-sm font-medium mb-2 flex items-center gap-2">
+            <h3 className="text-red-400 text-sm font-medium mb-3 flex items-center gap-2">
               🐻 Bearish Signals
             </h3>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {bearish.length ? (
                 bearish.map(renderCard)
               ) : (
-                <div className="text-gray-500 text-xs text-center py-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                <div className="text-gray-500 text-xs text-center py-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
                   Nenhum sinal bearish disponível
                 </div>
               )}

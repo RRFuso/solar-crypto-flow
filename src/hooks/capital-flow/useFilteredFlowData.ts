@@ -4,6 +4,7 @@ import { FlowData } from '@/types/crypto';
 
 export const useFilteredFlowData = (
   flowData: FlowData[] | undefined, 
+  flowLimit: number, 
   activeCategory: string
 ) => {
   // Filter and process flow data
@@ -24,9 +25,9 @@ export const useFilteredFlowData = (
       });
     }
     
-    // Limit to the top 50 flows to reduce visual clutter
-    return sortedFlows.slice(0, 50);
-  }, [flowData, activeCategory]);
+    // Limit to the top N flows to reduce visual clutter
+    return sortedFlows.slice(0, flowLimit);
+  }, [flowData, flowLimit, activeCategory]);
 
-  return { processedFlowData };
+  return processedFlowData;
 };

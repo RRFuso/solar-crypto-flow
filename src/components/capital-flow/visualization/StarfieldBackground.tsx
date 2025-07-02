@@ -1,26 +1,26 @@
 
 import React, { useEffect } from 'react';
+import * as d3 from 'd3';
 
 interface StarfieldBackgroundProps {
-  // TODO: Replace with native canvas implementation
-  // Previously used d3.Selection<SVGSVGElement> - removed D3 dependency
-  svg: any;
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   width: number;
   height: number;
 }
 
 /**
- * Starfield background using native canvas instead of D3/SVG
- * TODO: Convert to canvas-based implementation
+ * Starfield desativado para melhorar performance.
  */
 export const StarfieldBackground: React.FC<StarfieldBackgroundProps> = ({ svg, width, height }) => {
   useEffect(() => {
-    // TODO: Implement canvas-based starfield
-    // Previously used D3.js for SVG stars - dependency removed
-    console.log('StarfieldBackground - D3 dependency removed, using canvas implementation');
+    // Remove qualquer fundo anterior
+    svg.selectAll('.starfield').remove();
+
+    // Se desejar manter a estrutura para reativar no futuro:
+    svg.append("g").attr("class", "starfield");
 
     return () => {
-      // Cleanup placeholder
+      svg.selectAll('.starfield').remove();
     };
   }, [svg, width, height]);
 

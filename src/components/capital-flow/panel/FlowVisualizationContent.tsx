@@ -44,7 +44,7 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading solar system...</p>
+          <p className="text-slate-400">Loading AI-powered visualization...</p>
         </div>
       </div>
     );
@@ -62,8 +62,8 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
   }
 
   return (
-    <div className="w-full h-full relative" style={{ margin: 0, padding: 0 }}>
-      {/* Full Screen Solar System - No containers constraining width */}
+    <div className="w-full h-full relative">
+      {/* Main Orbital Visualization - Full container */}
       <FlowVisualization 
         flowData={processedFlowData} 
         zoomLevel={zoomLevel}
@@ -72,8 +72,8 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
         activeCategory={activeCategory}
       />
       
-      {/* Legend positioned at bottom center, not interfering with main view */}
-      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none">
+      {/* Legend positioned at bottom center */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 pointer-events-none">
         <FlowLegend />
       </div>
     </div>
