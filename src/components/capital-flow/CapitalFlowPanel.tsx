@@ -18,7 +18,6 @@ const CapitalFlowPanel = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [showLines, setShowLines] = useState(true);
 
   const { data: flowData, isLoading, error, refetch } = useQuery({
     queryKey: ['capital-flow', timeframe],
@@ -54,8 +53,8 @@ const CapitalFlowPanel = () => {
 
   return (
     <div className="h-full w-full flex">
-      {/* Left Sidebar - AI Watchlist - Largura otimizada */}
-      <div className="w-72 max-w-[300px] flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-y-auto overflow-x-hidden">
+      {/* Left Sidebar - AI Watchlist - Largura fixa */}
+      <div className="w-80 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-y-auto">
         <FlowVisualizationContent 
           isLoading={isLoading}
           error={error}
@@ -80,15 +79,15 @@ const CapitalFlowPanel = () => {
           </div>
           
           <div className="px-4 pb-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 max-w-full overflow-x-auto">
-              <div className="flex-shrink-0 min-w-0">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-shrink-0">
                 <CategoryFilters 
                   activeCategory={activeCategory}
                   onCategoryClick={handleCategoryClick}
                 />
               </div>
               
-              <div className="flex-shrink-0 min-w-0">
+              <div className="flex-shrink-0">
                 <FlowControls
                   chartTimeframe={chartTimeframe}
                   showOnlyStrongSignals={showOnlyStrongSignals}
@@ -101,8 +100,6 @@ const CapitalFlowPanel = () => {
                   selectedCategory={selectedCategory}
                   setSelectedCategory={setSelectedCategory}
                   onRefresh={() => refetch()}
-                  showLines={showLines}
-                  setShowLines={setShowLines}
                 />
               </div>
             </div>
@@ -120,7 +117,6 @@ const CapitalFlowPanel = () => {
             chartTimeframe={chartTimeframe}
             activeCategory={activeCategory}
             showSidebarOnly={false}
-            showLines={showLines}
           />
         </div>
       </div>
