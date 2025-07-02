@@ -4,6 +4,9 @@ import { Prediction } from '@/lib/aiModel';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import { usePriceActionSignals } from '@/hooks/usePriceActionSignals';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
+import { SimulationProvider, useSimulation } from './SimulationContext';
+import NodeRendererComponent from './NodeRendererComponent';
+import LinkRendererComponent from './LinkRendererComponent';
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
@@ -27,7 +30,7 @@ interface OrbitNode {
   isCentral?: boolean;
 }
 
-export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
+const FlowVisualizationCore: React.FC<FlowVisualizationProps> = ({ 
   flowData, 
   zoomLevel = 70,
   predictions = [],
@@ -333,6 +336,30 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     );
   }
 
+  const simulation = useSimulation();
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+
+  // Update simulation when data changes
+  useEffect(() => {
+    simulation.actions.setDimensions(dimensions);
+  }, [dimensions, simulation.actions]);
+
+  useEffect(() => {
+    simulation.actions.setZoom(zoomLevel);
+  }, [zoomLevel, simulation.actions]);
+
+  useEffect(() => {
+    simulation.actions.toggleLines(showLines);
+  }, [showLines, simulation.actions]);
+
+  const handleNodeClick = (nodeId: string) => {
+    setSelectedNodeId(prev => prev === nodeId ? null : nodeId);
+  };
+
+  const handleNodeHover = (nodeId: string | null) => {
+    simulation.actions.hoverNode(nodeId);
+  };
+
   return (
     <div ref={containerRef} className="w-full h-full relative">
       <svg 
@@ -341,13 +368,36 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
         style={{ display: 'block', background: 'linear-gradient(to bottom, #0a0f2c, #1a1a40)' }}
       />
       
+      {/* Enhanced Node Renderer */}
+      <NodeRendererComponent
+        nodes={simulation.state.nodes}
+        centralNode={simulation.state.centralNode}
+        svgRef={svgRef}
+        zoomLevel={zoomLevel}
+        predictions={predictions}
+        aiInsights={aiInsights}
+        onNodeClick={handleNodeClick}
+        onNodeHover={handleNodeHover}
+      />
+      
+      {/* Enhanced Link Renderer */}
+      <LinkRendererComponent
+        nodes={simulation.state.nodes}
+        centralNode={simulation.state.centralNode}
+        flowData={flowData}
+        svgRef={svgRef}
+        showLines={showLines}
+        selectedNodeId={selectedNodeId}
+        predictions={predictions}
+      />
+      
       {/* **RESTORED: Enhanced overlay controls** */}
       <div className="absolute top-4 right-4 bg-black/20 backdrop-blur-sm rounded-lg p-3 border border-white/10">
         <div className="text-xs text-white/70 font-medium mb-1">
           ☀️ Solar System View
         </div>
         <div className="text-xs text-white/60">
-          Zoom: {zoomLevel}% | Nodes: {nodes.length}
+          Zoom: {zoomLevel}% | Nodes: {simulation.state.nodes.length}
         </div>
         <div className="text-xs text-white/60">
           Timeframe: {chartTimeframe}
@@ -355,6 +405,11 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
         {activeCategory !== 'all' && (
           <div className="text-xs text-white/60">
             Category: {activeCategory}
+          </div>
+        )}
+        {selectedNodeId && (
+          <div className="text-xs text-yellow-400">
+            Selected: {selectedNodeId}
           </div>
         )}
       </div>
@@ -368,5 +423,13 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
         </div>
       )}
     </div>
+  );
+};
+
+export const FlowVisualization: React.FC<FlowVisualizationProps> = (props) => {
+  return (
+    <SimulationProvider flowData={props.flowData} predictions={props.predictions}>
+      <FlowVisualizationCore {...props} />
+    </SimulationProvider>
   );
 };

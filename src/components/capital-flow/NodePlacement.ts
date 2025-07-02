@@ -13,6 +13,8 @@ export interface OrbitalNode {
   outflow?: number;
   marketCap: number;
   type: "central" | "orbital";
+  angle?: number;
+  orbitRadius?: number;
 }
 
 interface CalculateNodePositionsProps {
