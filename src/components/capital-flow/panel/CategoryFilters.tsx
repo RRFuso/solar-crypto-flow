@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface CategoryFiltersProps {
   activeCategory: string;
-  onCategoryClick: (category: string) => void;
+  onCategoryChange: (category: string) => void;
 }
 
 // Crypto categories principais para exibição horizontal
@@ -21,7 +21,7 @@ const MAIN_CATEGORIES = [
 
 export const CategoryFilters: React.FC<CategoryFiltersProps> = ({
   activeCategory,
-  onCategoryClick
+  onCategoryChange
 }) => {
   return (
     <div className="flex items-center gap-2">
@@ -35,7 +35,7 @@ export const CategoryFilters: React.FC<CategoryFiltersProps> = ({
                 ? 'bg-gradient-to-r from-orange-500 to-yellow-500 text-black font-medium' 
                 : 'bg-white/5 border-white/10 text-white/80 hover:text-white'
             }`}
-            onClick={() => onCategoryClick(category.value)}
+            onClick={() => onCategoryChange(category.value)}
           >
             {category.label}
           </Badge>

@@ -69,7 +69,10 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
       name: 'Bitcoin',
       x: dimensions.width / 2,
       y: dimensions.height / 2,
-      volume: btcData?.volume_24h || 50000000000,
+      radius: 30,
+      marketCap: btcData?.marketCap || 1000000000000,
+      type: 'central',
+      volume: btcData?.volume || 50000000000,
       inflow: filteredFlowData.filter(f => f.to === 'BTC').reduce((sum, f) => sum + Math.abs(f.value), 0),
       outflow: filteredFlowData.filter(f => f.from === 'BTC').reduce((sum, f) => sum + Math.abs(f.value), 0)
     };
@@ -91,7 +94,10 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             name: cryptoInfo?.name || symbol,
             x: 0, // Will be positioned by orbital calculation
             y: 0,
-            volume: cryptoInfo?.volume_24h || 1000000,
+            radius: 15,
+            marketCap: cryptoInfo?.marketCap || 1000000000,
+            type: 'orbital',
+            volume: cryptoInfo?.volume || 1000000,
             inflow: filteredFlowData.filter(f => f.to === symbol).reduce((sum, f) => sum + Math.abs(f.value), 0),
             outflow: filteredFlowData.filter(f => f.from === symbol).reduce((sum, f) => sum + Math.abs(f.value), 0)
           });

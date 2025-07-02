@@ -5,14 +5,16 @@ import { WifiOff, Wifi } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ApiStatusIndicatorProps {
-  isConnected: boolean;
   isLoading: boolean;
+  error?: unknown;
 }
 
 export const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ 
-  isConnected,
-  isLoading
+  isLoading,
+  error
 }) => {
+  const isConnected = !error && !isLoading;
+  
   return (
     <TooltipProvider>
       <Tooltip>

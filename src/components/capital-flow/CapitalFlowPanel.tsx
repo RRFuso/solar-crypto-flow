@@ -29,7 +29,10 @@ const CapitalFlowPanel = () => {
     <div className="w-full h-full flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-black">
       {/* Fixed Header - No margin/padding issues */}
       <div className="flex-shrink-0 p-4 border-b border-gray-800/50">
-        <FlowPanelHeader />
+        <FlowPanelHeader 
+          chartTimeframe={chartTimeframe}
+          onChartTimeframeChange={setChartTimeframe}
+        />
         
         <div className="flex flex-wrap items-center justify-between gap-4 mt-4">
           <CategoryFilters 

@@ -1,44 +1,23 @@
 
 import { useState, useEffect } from 'react';
-import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
 import { fetchCryptoData } from '@/lib/dataFetcher';
 import { normalizeFeatures, extractFeatures } from '@/lib/featureExtractor';
 import { predictPriceMovements } from '@/lib/aiModel';
 import { toast } from 'sonner';
 
-export const usePredictions = (
-  flowData: FlowData[] | undefined, 
-  selectedCategory: string, 
-  chartTimeframe: string
-) => {
+export const usePredictions = (chartTimeframe: string) => {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
 
   useEffect(() => {
     const updatePredictions = async () => {
-      if (!flowData || flowData.length === 0) return;
-      
       try {
-        // Get unique crypto symbols from the flow data
-        const symbols = [...new Set([
-          ...flowData.map(flow => flow.from),
-          ...flowData.map(flow => flow.to)
-        ])];
-        
-        // Get crypto data for these symbols
+        // Get crypto data
         const cryptoData = await fetchCryptoData();
-        const relevantCryptos = cryptoData.filter(
-          crypto => symbols.includes(crypto.symbol)
-        );
         
-        if (relevantCryptos.length > 0) {
-          // Apply category filter if needed
-          const categoryFilteredCryptos = selectedCategory !== 'all' 
-            ? relevantCryptos.filter(crypto => crypto.category === selectedCategory)
-            : relevantCryptos;
-            
+        if (cryptoData.length > 0) {
           // Get features and make predictions with the selected chart timeframe
-          const features = await extractFeatures(categoryFilteredCryptos, flowData, chartTimeframe);
+          const features = await extractFeatures(cryptoData, [], chartTimeframe);
           const newPredictions = predictPriceMovements(features, chartTimeframe);
           setPredictions(newPredictions);
           
@@ -51,13 +30,12 @@ export const usePredictions = (
     };
     
     updatePredictions();
-    // Update predictions whenever flow data, category, or chart timeframe changes
-    // Use a shorter interval for shorter timeframes
+    // Update predictions whenever chart timeframe changes
     const intervalTime = chartTimeframe === '5m' || chartTimeframe === '15m' ? 60000 : 300000;
     const interval = setInterval(updatePredictions, intervalTime);
     
     return () => clearInterval(interval);
-  }, [flowData, selectedCategory, chartTimeframe]);
+  }, [chartTimeframe]);
 
   // Show notifications for high confidence predictions
   const showPredictionAlerts = (predictions: Prediction[], timeframe: string) => {
@@ -76,5 +54,5 @@ export const usePredictions = (
     });
   };
 
-  return { predictions };
+  return { filteredPredictions: predictions };
 };

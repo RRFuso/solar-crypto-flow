@@ -15,6 +15,43 @@ interface FlowAnalysisOutput extends FlowAnalysisInput {
   categoria: string;
 }
 
+// Mock capital flow data generator
+const generateMockFlowData = (timeframe: string): FlowData[] => {
+  const cryptos = ['BTC', 'ETH', 'SOL', 'ADA', 'DOT', 'AVAX', 'MATIC', 'LINK', 'UNI', 'AAVE'];
+  const flows: FlowData[] = [];
+  
+  for (let i = 0; i < 20; i++) {
+    const from = cryptos[Math.floor(Math.random() * cryptos.length)];
+    let to = cryptos[Math.floor(Math.random() * cryptos.length)];
+    while (to === from) {
+      to = cryptos[Math.floor(Math.random() * cryptos.length)];
+    }
+    
+    flows.push({
+      from,
+      to,
+      value: Math.random() * 1000000000,
+      percentage: Math.random() * 10,
+      volume: Math.random() * 500000000,
+      price: Math.random() * 50000,
+      previousPrice: Math.random() * 48000,
+      category: ['DeFi', 'Layer1', 'Gaming', 'AI'][Math.floor(Math.random() * 4)]
+    });
+  }
+  
+  return flows;
+};
+
+export const fetchCapitalFlowData = async (timeframe: string = '4h'): Promise<FlowData[]> => {
+  try {
+    // For now, return mock data
+    return generateMockFlowData(timeframe);
+  } catch (error) {
+    console.error("Error fetching capital flow data:", error);
+    return generateMockFlowData(timeframe);
+  }
+};
+
 export const fetchFlowAnalysis = async (flowData: FlowData[]): Promise<FlowAnalysisOutput[]> => {
   try {
     // Transform FlowData to the format expected by the API
