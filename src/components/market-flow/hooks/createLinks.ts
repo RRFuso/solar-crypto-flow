@@ -78,7 +78,7 @@ function addFlowParticles(
       const path = svg.selectAll("path.link").nodes()[i];
       if (!path) return;
       
-      const pathLength = path.getTotalLength();
+      const pathLength = (path as SVGPathElement).getTotalLength();
       
       particles
         .attr("transform", function(d: any, j: number) {
@@ -95,7 +95,7 @@ function addFlowParticles(
           offset = offset % pathLength;
           
           // Get point along the path
-          const point = path.getPointAtLength(offset);
+          const point = (path as SVGPathElement).getPointAtLength(offset);
           return `translate(${point.x}, ${point.y})`;
         });
     }
