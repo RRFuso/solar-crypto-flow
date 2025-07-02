@@ -15,7 +15,6 @@ interface FlowVisualizationContentProps {
   chartTimeframe: string;
   activeCategory: string;
   showSidebarOnly?: boolean;
-  showLines?: boolean;
 }
 
 export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> = ({
@@ -26,8 +25,7 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
   filteredPredictions,
   chartTimeframe,
   activeCategory,
-  showSidebarOnly = false,
-  showLines = true
+  showSidebarOnly = false
 }) => {
   if (showSidebarOnly) {
     return (
@@ -72,7 +70,6 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
         predictions={filteredPredictions} 
         chartTimeframe={chartTimeframe}
         activeCategory={activeCategory}
-        showLines={showLines}
       />
       
       {/* Legend positioned at bottom center */}
