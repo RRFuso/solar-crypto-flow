@@ -12,7 +12,6 @@ interface FlowVisualizationProps {
   predictions?: Prediction[];
   chartTimeframe?: string;
   activeCategory?: string;
-  showLines?: boolean;
 }
 
 export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
@@ -20,8 +19,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   zoomLevel = 60,
   predictions = [],
   chartTimeframe = '4h',
-  activeCategory = 'all',
-  showLines = true
+  activeCategory = 'all'
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -147,18 +145,16 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
       orbitPath.setAttribute("stroke-dasharray", "5,5");
       svg.appendChild(orbitPath);
 
-      // Draw connection line (conditionally)
-      if (showLines) {
-        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", centerX.toString());
-        line.setAttribute("y1", centerY.toString());
-        line.setAttribute("x2", x.toString());
-        line.setAttribute("y2", y.toString());
-        line.setAttribute("stroke", color);
-        line.setAttribute("stroke-width", "2");
-        line.setAttribute("opacity", "0.6");
-        svg.appendChild(line);
-      }
+      // Draw connection line
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", centerX.toString());
+      line.setAttribute("y1", centerY.toString());
+      line.setAttribute("x2", x.toString());
+      line.setAttribute("y2", y.toString());
+      line.setAttribute("stroke", color);
+      line.setAttribute("stroke-width", "2");
+      line.setAttribute("opacity", "0.6");
+      svg.appendChild(line);
 
       // Draw orbital node
       const node = document.createElementNS("http://www.w3.org/2000/svg", "circle");
