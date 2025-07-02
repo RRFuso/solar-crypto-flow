@@ -1,10 +1,10 @@
-
 import React, { useEffect } from 'react';
+import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
 import { Prediction } from '@/lib/aiModel';
 
 interface Props {
-  svg: SVGSVGElement;
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   nodes: OrbitalNode[];
   predictions: Prediction[];
   zoomLevel: number;
@@ -20,48 +20,29 @@ export const PredictionOrbitalOverlay: React.FC<Props> = ({
     if (!svg || !nodes || !predictions.length) return;
 
     // Remove previous overlays
-    const existingOverlays = svg.querySelectorAll('.prediction-pulse-group');
-    existingOverlays.forEach(el => el.remove());
+    svg.selectAll('.prediction-pulse-group').remove();
 
     // Map predictions
     const predictionMap = new Map(predictions.map(p => [p.symbol.toUpperCase(), p]));
 
-    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    group.setAttribute('class', 'prediction-pulse-group');
-    svg.appendChild(group);
+    const group = svg.append('g')
+      .attr('class', 'prediction-pulse-group');
 
     nodes.forEach(node => {
       const prediction = predictionMap.get(node.id.toUpperCase());
       if (!prediction) return;
 
-      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      circle.setAttribute('class', 'prediction-pulse');
-      circle.setAttribute('cx', (node.x || 0).toString());
-      circle.setAttribute('cy', (node.y || 0).toString());
-      circle.setAttribute('r', (node.radius * 1.6 * (zoomLevel / 100)).toString());
-      circle.setAttribute('fill', 'none');
-      circle.setAttribute('stroke', prediction.bullish ? '#00ffcc' : '#ff0066');
-      circle.setAttribute('stroke-width', '2');
-      circle.setAttribute('stroke-opacity', '0.7');
-      circle.style.pointerEvents = 'none';
-
-      // Add CSS animation
-      const style = document.createElement('style');
-      style.textContent = `
-        .prediction-pulse {
-          animation: flow-pulse 2s ease-in-out infinite;
-        }
-        @keyframes flow-pulse {
-          0%, 100% { stroke-opacity: 0.7; }
-          50% { stroke-opacity: 0.3; }
-        }
-      `;
-      if (!document.head.querySelector('style[data-prediction-pulse]')) {
-        style.setAttribute('data-prediction-pulse', 'true');
-        document.head.appendChild(style);
-      }
-
-      group.appendChild(circle);
+      group.append('circle')
+        .attr('class', 'prediction-pulse')
+        .attr('cx', node.x)
+        .attr('cy', node.y)
+        .attr('r', node.radius * 1.6 * (zoomLevel / 100))
+        .attr('fill', 'none')
+        .attr('stroke', prediction.bullish ? '#00ffcc' : '#ff0066')
+        .attr('stroke-width', 2)
+        .attr('stroke-opacity', 0.7)
+        .style('pointer-events', 'none')
+        .style('animation', 'flow-pulse 2s ease-in-out infinite');
     });
 
   }, [svg, nodes, predictions, zoomLevel]);

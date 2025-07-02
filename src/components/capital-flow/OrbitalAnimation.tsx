@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
 
 type OrbitalLink = {
@@ -10,7 +11,7 @@ type OrbitalLink = {
 };
 
 interface OrbitalAnimationProps {
-  svg: SVGSVGElement;
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   nodes: OrbitalNode[];
   width: number;
   height: number;
@@ -48,95 +49,62 @@ export class OrbitalAnimation {
       
       // SYNCHRONIZED: Update all visual elements together
       // Update node positions
-      const nodeElements = svg.querySelectorAll('.node');
-      nodeElements.forEach((nodeElement, index) => {
-        const node = nodes[index] as OrbitalNode;
-        if (node) {
-          nodeElement.setAttribute('transform', `translate(${node.x || 0},${node.y || 0})`);
-        }
-      });
+      svg.selectAll(".node")
+        .attr("transform", (d: any) => `translate(${d.x || 0},${d.y || 0})`);
       
       // FIXED: Synchronize glow positions with nodes
-      const glowElements = svg.querySelectorAll('.node-glow');
-      glowElements.forEach((glowElement, index) => {
-        const node = nodes[index] as OrbitalNode;
-        if (node) {
-          glowElement.setAttribute('cx', (node.x || 0).toString());
-          glowElement.setAttribute('cy', (node.y || 0).toString());
-        }
-      });
+      svg.selectAll(".node-glow")
+        .attr("cx", (d: any) => d.x || 0)
+        .attr("cy", (d: any) => d.y || 0);
         
       // FIXED: Synchronize pulse circles for central node
-      const pulseElements = svg.querySelectorAll('.pulse-circle');
-      pulseElements.forEach((pulseElement, index) => {
-        const node = nodes[index] as OrbitalNode;
-        if (node) {
-          pulseElement.setAttribute('cx', (node.x || 0).toString());
-          pulseElement.setAttribute('cy', (node.y || 0).toString());
-        }
-      });
+      svg.selectAll(".pulse-circle")
+        .attr("cx", (d: any) => d.x || 0)
+        .attr("cy", (d: any) => d.y || 0);
       
       // CRITICAL FIX: Synchronize signal rings with their parent nodes
-      const signalRings = svg.querySelectorAll('.signal-ring');
-      signalRings.forEach((ring) => {
-        const nodeId = ring.getAttribute('data-node-id');
-        const node = nodes.find(n => n.id === nodeId);
-        if (node) {
-          ring.setAttribute('transform', `translate(${node.x || 0}, ${node.y || 0})`);
-        }
-      });
+      svg.selectAll(".signal-ring")
+        .attr("transform", (d: any) => {
+          // Each signal ring should follow its parent node exactly
+          return `translate(${d.x || 0}, ${d.y || 0})`;
+        });
       
       // CRITICAL FIX: Synchronize flow indicators with nodes
-      const flowIndicators = svg.querySelectorAll('.flow-indicator');
-      flowIndicators.forEach((indicator) => {
-        const nodeId = indicator.getAttribute('data-node-id');
-        const node = nodes.find(n => n.id === nodeId);
-        if (node) {
-          indicator.setAttribute('transform', `translate(${node.x || 0}, ${node.y || 0})`);
-        }
-      });
+      svg.selectAll(".flow-indicator")
+        .attr("transform", (d: any) => `translate(${d.x || 0}, ${d.y || 0})`);
       
       // SYNCHRONIZED: Update link positions in real-time if enabled
       if (updateLinksInRealTime) {
-        const links = svg.querySelectorAll("path.link-path, path.flow-link");
-        links.forEach((linkElement) => {
-          const sourceId = linkElement.getAttribute('data-source-id');
-          const targetId = linkElement.getAttribute('data-target-id');
-          
-          const sourceNode = nodes.find(n => n.id === sourceId);
-          const targetNode = nodes.find(n => n.id === targetId);
-          
-          if (sourceNode && targetNode) {
-            const sourceX = sourceNode.x || 0;
-            const sourceY = sourceNode.y || 0;
-            const targetX = targetNode.x || 0;
-            const targetY = targetNode.y || 0;
+        const links = svg.selectAll("path.link-path, path.flow-link");
+        if (!links.empty()) {
+          links.attr("d", (d: any) => {
+            if (!d || !d.source || !d.target) return "";
+            
+            const sourceX = d.source.x || 0;
+            const sourceY = d.source.y || 0;
+            const targetX = d.target.x || 0;
+            const targetY = d.target.y || 0;
             
             // Calculate curved path that follows node movement
             const dx = targetX - sourceX;
             const dy = targetY - sourceY;
             const dr = Math.sqrt(dx * dx + dy * dy) * 1.2; // Reduced curve for better visual clarity
             
-            linkElement.setAttribute('d', `M${sourceX},${sourceY} A${dr},${dr} 0 0,1 ${targetX},${targetY}`);
-          }
-        });
-        
-        // SYNCHRONIZED: Update link gradients to follow node positions
-        const gradients = svg.querySelectorAll("linearGradient");
-        gradients.forEach((gradient) => {
-          const sourceId = gradient.getAttribute('data-source-id');
-          const targetId = gradient.getAttribute('data-target-id');
+            return `M${sourceX},${sourceY} A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
+          });
           
-          const sourceNode = nodes.find(n => n.id === sourceId);
-          const targetNode = nodes.find(n => n.id === targetId);
-          
-          if (sourceNode && targetNode) {
-            gradient.setAttribute('x1', (sourceNode.x || 0).toString());
-            gradient.setAttribute('y1', (sourceNode.y || 0).toString());
-            gradient.setAttribute('x2', (targetNode.x || 0).toString());
-            gradient.setAttribute('y2', (targetNode.y || 0).toString());
-          }
-        });
+          // SYNCHRONIZED: Update link gradients to follow node positions
+          svg.selectAll("linearGradient")
+            .each(function(d: any) {
+              if (!d || !d.source || !d.target) return;
+              
+              d3.select(this)
+                .attr("x1", d.source.x || 0)
+                .attr("y1", d.source.y || 0)
+                .attr("x2", d.target.x || 0)
+                .attr("y2", d.target.y || 0);
+            });
+        }
       }
       
       // Continue animation
@@ -202,87 +170,69 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
       });
 
       // SYNCHRONIZED: Update all visual elements together
-      const nodeElements = svg.querySelectorAll('.node-group, .node');
-      nodeElements.forEach((nodeElement) => {
-        const nodeId = nodeElement.getAttribute('data-id');
-        const node = nodes.find(n => n.id === nodeId);
-        if (node) {
-          // Update main node position
-          nodeElement.setAttribute('transform', `translate(${node.x || 0}, ${node.y || 0})`);
-        }
-      });
+      const nodeElements = svg.selectAll('.node-group, .node').data(nodes, (d: any) => d.id);
       
-      // CRITICAL FIX: Synchronize signal rings with exact node position
-      const signalRings = svg.querySelectorAll('.signal-ring');
-      signalRings.forEach((ring) => {
-        const nodeId = ring.getAttribute('data-node-id');
-        const node = nodes.find(n => n.id === nodeId);
-        if (node) {
-          // Keep ring perfectly centered on node with synchronized rotation
-          const ringRotation = deltaTime * 0.0003;
-          ring.setAttribute('transform', `translate(${node.x || 0}, ${node.y || 0}) rotate(${ringRotation * 180 / Math.PI})`);
-          
-          // Update ring colors with synchronized pulsing
-          if (node.divergenceBullish) {
-            ring.setAttribute('stroke', '#00ff88');
-            ring.setAttribute('stroke-opacity', (0.7 + Math.sin(deltaTime * 0.002) * 0.2).toString());
-          } else if (node.divergenceBearish) {
-            ring.setAttribute('stroke', '#ff3366');
-            ring.setAttribute('stroke-opacity', (0.7 + Math.sin(deltaTime * 0.002) * 0.2).toString());
-          }
+      nodeElements.each(function(d) {
+        const nodeGroup = d3.select(this);
+        
+        // Update main node position
+        nodeGroup.attr('transform', `translate(${d.x || 0}, ${d.y || 0})`);
+        
+        // CRITICAL FIX: Synchronize signal rings with exact node position
+        const signalRings = nodeGroup.selectAll('.signal-ring');
+        if (!signalRings.empty()) {
+          signalRings.each(function(ringData: any) {
+            const ring = d3.select(this);
+            
+            // Keep ring perfectly centered on node with synchronized rotation
+            const ringRotation = deltaTime * 0.0003;
+            ring.attr('transform', `rotate(${ringRotation * 180 / Math.PI})`);
+            
+            // Update ring colors with synchronized pulsing
+            if (d.divergenceBullish) {
+              ring.attr('stroke', '#00ff88').attr('stroke-opacity', 0.7 + Math.sin(deltaTime * 0.002) * 0.2);
+            } else if (d.divergenceBearish) {
+              ring.attr('stroke', '#ff3366').attr('stroke-opacity', 0.7 + Math.sin(deltaTime * 0.002) * 0.2);
+            }
+          });
         }
-      });
-      
-      // SYNCHRONIZED: Update flow indicators
-      const flowIndicators = svg.querySelectorAll('.flow-indicator');
-      flowIndicators.forEach((indicator) => {
-        const nodeId = indicator.getAttribute('data-node-id');
-        const node = nodes.find(n => n.id === nodeId);
-        if (node) {
-          // Synchronize flow indicator animations with node movement
-          indicator.setAttribute('transform', `translate(${node.x || 0}, ${node.y || 0})`);
-          
-          if (node.inflow && node.inflow > (node.outflow || 0)) {
-            indicator.setAttribute('fill', '#00ff88');
-            indicator.setAttribute('opacity', (0.5 + Math.sin(deltaTime * 0.003) * 0.2).toString());
-          } else if (node.outflow && node.outflow > (node.inflow || 0)) {
-            indicator.setAttribute('fill', '#ff3366');
-            indicator.setAttribute('opacity', (0.5 + Math.sin(deltaTime * 0.003) * 0.2).toString());
-          }
+        
+        // SYNCHRONIZED: Update flow indicators
+        const flowIndicators = nodeGroup.selectAll('.flow-indicator');
+        if (!flowIndicators.empty()) {
+          flowIndicators.each(function(flowData: any) {
+            const indicator = d3.select(this);
+            
+            // Synchronize flow indicator animations with node movement
+            if (d.inflow && d.inflow > (d.outflow || 0)) {
+              indicator
+                .attr('fill', '#00ff88')
+                .attr('opacity', 0.5 + Math.sin(deltaTime * 0.003) * 0.2);
+            } else if (d.outflow && d.outflow > (d.inflow || 0)) {
+              indicator
+                .attr('fill', '#ff3366')
+                .attr('opacity', 0.5 + Math.sin(deltaTime * 0.003) * 0.2);
+            }
+          });
         }
       });
 
       // SYNCHRONIZED: Update links in real-time with node movement
       if (updateLinksInRealTime) {
-        const linkElements = svg.querySelectorAll('.flow-link, .link-path');
-        linkElements.forEach((linkElement) => {
-          const sourceId = linkElement.getAttribute('data-source-id');
-          const targetId = linkElement.getAttribute('data-target-id');
-          
-          const sourceNode = nodes.find(n => n.id === sourceId);
-          const targetNode = nodes.find(n => n.id === targetId);
-          
-          if (sourceNode && targetNode) {
-            // Create smooth curved path that follows node movement
-            const dx = targetNode.x - sourceNode.x;
-            const dy = targetNode.y - sourceNode.y;
-            const dr = Math.sqrt(dx * dx + dy * dy) * 1.2;
-            const path = `M${sourceNode.x},${sourceNode.y} A${dr},${dr} 0 0,1 ${targetNode.x},${targetNode.y}`;
-            linkElement.setAttribute('d', path);
-            
-            // Update any associated gradient
-            const gradientId = linkElement.getAttribute('data-gradient-id');
-            if (gradientId) {
-              const gradient = svg.querySelector(`#${gradientId}`);
-              if (gradient) {
-                gradient.setAttribute('x1', sourceNode.x.toString());
-                gradient.setAttribute('y1', sourceNode.y.toString());
-                gradient.setAttribute('x2', targetNode.x.toString());
-                gradient.setAttribute('y2', targetNode.y.toString());
-              }
+        const linkElements = svg.selectAll('.flow-link, .link-path');
+        if (!linkElements.empty()) {
+          linkElements.each(function(d: any) {
+            if (d.source && d.target && d.source.x && d.target.x) {
+              const link = d3.select(this);
+              // Create smooth curved path that follows node movement
+              const dx = d.target.x - d.source.x;
+              const dy = d.target.y - d.source.y;
+              const dr = Math.sqrt(dx * dx + dy * dy) * 1.2;
+              const path = `M${d.source.x},${d.source.y} A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+              link.select('path').attr('d', path);
             }
-          }
-        });
+          });
+        }
       }
 
       animationFrameId = requestAnimationFrame(animate);
