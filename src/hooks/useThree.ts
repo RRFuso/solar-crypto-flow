@@ -52,7 +52,7 @@ const mockFlowData: CapitalFlow[] = [
 export function useThree() {
   let animationFrameId: number;
   
-  // Mock implementation without Three.js dependencies
+  // Canvas-based implementation without external dependencies
   const init = useCallback((container: HTMLDivElement) => {
     console.log('Canvas-based visualization initialized');
     
