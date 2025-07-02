@@ -13,39 +13,46 @@ const Index = () => {
     <DashboardLayout>
       <div className="w-full h-full flex flex-col">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full w-full">
-          <div className="flex-shrink-0 px-6 pt-4 w-full">
-            <TabsList className="grid w-full max-w-2xl grid-cols-3 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50">
-              <TabsTrigger 
-                value="capital-flow" 
-                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black"
-              >
-                💰 Capital Flow AI
-              </TabsTrigger>
-              <TabsTrigger 
-                value="crypto" 
-                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black"
-              >
-                📊 Market Data
-              </TabsTrigger>
-              <TabsTrigger 
-                value="autotrade" 
-                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black"
-              >
-                🤖 AutoTrade
-              </TabsTrigger>
-            </TabsList>
+          {/* Responsive Tab Navigation */}
+          <div className="flex-shrink-0 p-3 sm:px-6 sm:pt-4 w-full">
+            <div className="responsive-wrapper justify-center sm:justify-start">
+              <TabsList className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-0 w-full max-w-2xl bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 rounded-xl">
+                <TabsTrigger 
+                  value="capital-flow" 
+                  className="text-white font-medium text-sm sm:text-base data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black transition-all duration-200 rounded-lg"
+                >
+                  <span className="hidden sm:inline">💰 Capital Flow AI</span>
+                  <span className="sm:hidden">💰 Capital AI</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="crypto" 
+                  className="text-white font-medium text-sm sm:text-base data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black transition-all duration-200 rounded-lg"
+                >
+                  <span className="hidden sm:inline">📊 Market Data</span>
+                  <span className="sm:hidden">📊 Market</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="autotrade" 
+                  className="text-white font-medium text-sm sm:text-base data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black transition-all duration-200 rounded-lg"
+                >
+                  <span className="hidden sm:inline">🤖 AutoTrade</span>
+                  <span className="sm:hidden">🤖 Auto</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </div>
 
-          <div className="flex-1 w-full">
-            <TabsContent value="capital-flow" className="h-full m-0 w-full">
+          {/* Tab Content - Full space usage */}
+          <div className="flex-1 w-full overflow-hidden">
+            <TabsContent value="capital-flow" className="h-full m-0 w-full data-[state=active]:flex">
               <CapitalFlowPanel />
             </TabsContent>
 
-            <TabsContent value="crypto" className="h-full m-0 w-full">
+            <TabsContent value="crypto" className="h-full m-0 w-full data-[state=active]:flex">
               <CryptoPanel />
             </TabsContent>
 
-            <TabsContent value="autotrade" className="h-full m-0 w-full">
+            <TabsContent value="autotrade" className="h-full m-0 w-full data-[state=active]:flex">
               <AutoTradePanel />
             </TabsContent>
           </div>
