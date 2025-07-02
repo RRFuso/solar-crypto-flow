@@ -52,9 +52,9 @@ const CapitalFlowPanel = () => {
   const handleCategoryClick = (category: string) => setActiveCategory(category);
 
   return (
-    <div className="h-full w-full flex overflow-hidden">
-      {/* Left Sidebar - AI Watchlist - Largura responsiva */}
-      <div className="w-72 lg:w-80 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-y-auto">
+    <div className="h-full w-full flex">
+      {/* Left Sidebar - AI Watchlist - Largura fixa */}
+      <div className="w-80 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-y-auto">
         <FlowVisualizationContent 
           isLoading={isLoading}
           error={error}
@@ -68,26 +68,26 @@ const CapitalFlowPanel = () => {
       </div>
 
       {/* Main Content Area - Ocupa o espaço restante */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-auto">
         {/* Header Controls - Altura fixa */}
         <div className="flex-shrink-0 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm z-10">
-          <div className="p-2 lg:p-3">
+          <div className="p-4">
             <FlowPanelHeader 
               chartTimeframe={chartTimeframe}
               onChartTimeframeChange={handleChartTimeframeChange}
             />
           </div>
           
-          <div className="px-2 lg:px-3 pb-2 lg:pb-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 lg:gap-4">
-              <div className="flex-shrink-0 order-1">
+          <div className="px-4 pb-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-shrink-0">
                 <CategoryFilters 
                   activeCategory={activeCategory}
                   onCategoryClick={handleCategoryClick}
                 />
               </div>
               
-              <div className="flex-shrink-0 order-2 lg:order-2">
+              <div className="flex-shrink-0">
                 <FlowControls
                   chartTimeframe={chartTimeframe}
                   showOnlyStrongSignals={showOnlyStrongSignals}
@@ -106,8 +106,8 @@ const CapitalFlowPanel = () => {
           </div>
         </div>
 
-        {/* Main Visualization - Altura flexível */}
-        <div className="flex-1 relative overflow-hidden">
+        {/* Main Visualization - Altura mínima garantida */}
+        <div className="flex-1 relative min-h-[600px]">
           <FlowVisualizationContent 
             isLoading={isLoading}
             error={error}
