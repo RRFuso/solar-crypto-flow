@@ -13,40 +13,32 @@ export const useFlowVisualization = () => {
   const { createOrbitalPaths } = useOrbitalPaths();
   const { setupOrbitalAnimation, createStarfield } = useOrbitalAnimation();
 
-  // Create visual elements for the flow visualization without d3
+  // Create visual elements for the flow visualization
   const drawVisualization = (options: DrawOptions): VisualizationElements => {
     const { svg, nodes, links, isPredicted, dragHandlers } = options;
     
-    // Get SVG element properly
-    const svgElement = svg.node() ? svg.node()! : (svg as any) as SVGSVGElement;
-    
     // Create defs for glows and clip paths
-    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-    svgElement.appendChild(defs);
-    createGlowFilter({ append: (el: any) => defs.appendChild(el) } as any);
+    const defs = svg.append("defs");
+    createGlowFilter(defs);
     
     // Get dimensions
-    const width = parseInt(svgElement.getAttribute("width") || "800");
-    const height = parseInt(svgElement.getAttribute("height") || "600");
+    const width = parseInt(svg.style("width"));
+    const height = parseInt(svg.style("height"));
     
     // Add starfield background
-    createStarfield({ append: (el: any) => svgElement.appendChild(el) } as any, width, height);
+    createStarfield(svg, width, height);
     
     // Create orbital paths
-    createOrbitalPaths({ append: (el: any) => svgElement.appendChild(el) } as any, nodes, width, height);
+    createOrbitalPaths(svg, nodes, width, height);
     
-    // Draw links with curved paths and particles - return arrays instead of d3 selections
-    const linkElements = createLinks({ append: (el: any) => svgElement.appendChild(el) } as any, links, isPredicted);
+    // Draw links with curved paths and particles
+    const { link } = createLinks(svg, links, isPredicted);
     
-    // Add nodes, glows, logos, and labels - return arrays instead of d3 selections
-    const nodeElements = createNodes({ append: (el: any) => svgElement.appendChild(el) } as any, nodes, dragHandlers, { append: (el: any) => defs.appendChild(el) } as any);
+    // Add nodes, glows, logos, and labels
+    const { node } = createNodes(svg, nodes, dragHandlers, defs);
     
-    // Setup element references with mock d3 selections
-    const elements: VisualizationElements = { 
-      link: linkElements as any, 
-      node: nodeElements as any, 
-      svg: { node: () => svgElement } as any 
-    };
+    // Setup element references
+    const elements: VisualizationElements = { link, node, svg };
     
     // Setup animation
     const animationFrameId = setupOrbitalAnimation(elements, nodes);
@@ -59,14 +51,14 @@ export const useFlowVisualization = () => {
   const updatePositions = (elements: VisualizationElements, nodes: any[], links: any[]) => {
     const { link, node, svg } = elements;
     
-    // Update link paths - pass arrays directly
-    updateLinkPaths(link as any);
+    // Update link paths
+    updateLinkPaths(link);
 
     // Update flow particles
     updateFlowParticles(svg, links);
 
-    // Update node positions - pass arrays directly
-    updateNodePositions(node as any);
+    // Update node positions
+    updateNodePositions(node);
   };
 
   return {

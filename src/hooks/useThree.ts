@@ -1,7 +1,9 @@
 
 import { useCallback } from 'react';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-// Mock types for crypto data
+// Types for crypto data
 interface CryptoNode {
   id: string;
   name: string;
@@ -50,122 +52,477 @@ const mockFlowData: CapitalFlow[] = [
 ];
 
 export function useThree() {
+  let scene: THREE.Scene;
+  let camera: THREE.PerspectiveCamera;
+  let renderer: THREE.WebGLRenderer;
+  let controls: OrbitControls;
+  let cryptoObjects: Map<string, THREE.Object3D> = new Map();
+  let flowObjects: THREE.Object3D[] = [];
   let animationFrameId: number;
+  let accretionDisk: THREE.Mesh;
   
-  // Canvas-based implementation without external dependencies
-  const init = useCallback((container: HTMLDivElement) => {
-    console.log('Canvas-based visualization initialized');
-    
-    // Create a simple canvas-based visualization
-    const canvas = document.createElement('canvas');
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
-    canvas.style.background = 'linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%)';
-    
-    container.appendChild(canvas);
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return { cleanup: () => {} };
-    
-    // Draw a simple representation of the crypto ecosystem
-    const drawVisualization = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Draw stars background
-      for (let i = 0; i < 100; i++) {
-        const x = Math.random() * canvas.width;
-        const y = Math.random() * canvas.height;
-        const size = Math.random() * 2;
-        
-        ctx.fillStyle = 'white';
-        ctx.globalAlpha = Math.random() * 0.8 + 0.2;
-        ctx.beginPath();
-        ctx.arc(x, y, size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      
-      ctx.globalAlpha = 1;
-      
-      // Draw central black hole (BTC)
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-      
-      ctx.fillStyle = '#000000';
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, 30, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Draw accretion disk
-      const gradient = ctx.createRadialGradient(centerX, centerY, 30, centerX, centerY, 80);
-      gradient.addColorStop(0, 'rgba(255, 150, 0, 0.8)');
-      gradient.addColorStop(1, 'rgba(255, 50, 0, 0.1)');
-      
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Draw orbiting layer1 cryptos
-      const time = Date.now() * 0.001;
-      const layer1Cryptos = mockCryptoData.filter(c => c.type === 'layer1');
-      
-      layer1Cryptos.forEach((crypto, index) => {
-        const angle = time * 0.2 + (index * Math.PI * 2 / layer1Cryptos.length);
-        const distance = 150 + (index * 40);
-        const x = centerX + Math.cos(angle) * distance;
-        const y = centerY + Math.sin(angle) * distance;
-        
-        // Draw orbit path
-        ctx.strokeStyle = 'rgba(100, 100, 100, 0.3)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, distance, 0, Math.PI * 2);
-        ctx.stroke();
-        
-        // Draw crypto node
-        const color = '#' + crypto.color.toString(16).padStart(6, '0');
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(x, y, 15, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Draw glow
-        const nodeGradient = ctx.createRadialGradient(x, y, 15, x, y, 25);
-        nodeGradient.addColorStop(0, color + '80');
-        nodeGradient.addColorStop(1, color + '00');
-        ctx.fillStyle = nodeGradient;
-        ctx.beginPath();
-        ctx.arc(x, y, 25, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Draw label
-        ctx.fillStyle = 'white';
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(crypto.name, x, y + 35);
+  // Create realistic materials based on type
+  const createMaterial = (crypto: CryptoNode) => {
+    if (crypto.type === 'blackhole') {
+      // Black hole is completely black
+      return new THREE.MeshBasicMaterial({ 
+        color: 0x000000,
+        transparent: true,
+        opacity: 1.0
       });
+    } else {
+      // For stars (Layer 1) and planets (tokens), create shiny materials
+      return new THREE.MeshStandardMaterial({
+        color: crypto.color,
+        metalness: 0.3,
+        roughness: 0.4,
+        emissive: crypto.color,
+        emissiveIntensity: crypto.type === 'layer1' ? 0.5 : 0.2,
+      });
+    }
+  };
+  
+  // Calculate sizes based on market cap
+  const getNodeSize = (marketCap: number, type: CryptoNode['type']) => {
+    const baseSize = type === 'blackhole' ? 10 : type === 'layer1' ? 5 : 2;
+    return baseSize * Math.sqrt(marketCap) / 5;
+  };
+  
+  // Calculate orbital distance based on type
+  const getOrbitalDistance = (type: CryptoNode['type'], index: number) => {
+    if (type === 'blackhole') return 0;
+    if (type === 'layer1') return 40 + (index * 15);
+    return 15; // Distance from parent layer1
+  };
+  
+  // Create accretion disk for black hole
+  const createAccretionDisk = (blackHoleSize: number) => {
+    const diskRadius = blackHoleSize * 3;
+    const diskGeometry = new THREE.TorusGeometry(diskRadius, diskRadius/2, 32, 100);
+    
+    // Create custom shader material for the accretion disk
+    const diskMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        varying vec2 vUv;
+        
+        void main() {
+          // Create swirling hot colors for the accretion disk
+          float r = length(vUv - vec2(0.5));
+          float angle = atan(vUv.y - 0.5, vUv.x - 0.5);
+          float swirl = sin(angle * 10.0 + time * 2.0) * 0.5 + 0.5;
+          
+          vec3 color1 = vec3(1.0, 0.8, 0.0); // Yellow
+          vec3 color2 = vec3(1.0, 0.3, 0.0); // Orange-red
+          
+          vec3 finalColor = mix(color1, color2, swirl);
+          
+          // Fade out at edges
+          float opacity = smoothstep(0.8, 0.2, abs(r - 0.5));
+          
+          gl_FragColor = vec4(finalColor, opacity * 0.7);
+        }
+      `,
+      transparent: true,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending
+    });
+    
+    const disk = new THREE.Mesh(diskGeometry, diskMaterial);
+    disk.rotation.x = Math.PI / 2;
+    
+    return disk;
+  };
+  
+  // Create texture for planets
+  const createPlanetTexture = (color: number) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const context = canvas.getContext('2d');
+    
+    if (!context) return null;
+    
+    // Fill with base color
+    context.fillStyle = '#' + color.toString(16).padStart(6, '0');
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Add some noise/texture
+    for (let i = 0; i < 1000; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const radius = Math.random() * 2;
       
-      // Draw BTC label
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 16px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('Bitcoin', centerX, centerY + 50);
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.15})`;
+      context.fill();
+    }
+    
+    return new THREE.CanvasTexture(canvas);
+  };
+  
+  // Create crypto object (planet/star)
+  const createCryptoObject = (crypto: CryptoNode, index: number) => {
+    const size = getNodeSize(crypto.marketCap, crypto.type);
+    
+    // Create the sphere for the crypto
+    const geometry = new THREE.SphereGeometry(size, 32, 32);
+    const material = createMaterial(crypto);
+    
+    // Add texture for planets and stars
+    if (crypto.type !== 'blackhole') {
+      const texture = createPlanetTexture(crypto.color);
+      if (texture) {
+        material.map = texture;
+      }
+    }
+    
+    const mesh = new THREE.Mesh(geometry, material);
+    
+    // Position based on type
+    if (crypto.type === 'blackhole') {
+      mesh.position.set(0, 0, 0);
+      
+      // Add accretion disk around black hole
+      accretionDisk = createAccretionDisk(size);
+      scene.add(accretionDisk);
+    } else if (crypto.type === 'layer1') {
+      const distance = getOrbitalDistance(crypto.type, index);
+      const angle = index * (Math.PI * 2 / mockCryptoData.filter(c => c.type === 'layer1').length);
+      mesh.position.x = distance * Math.cos(angle);
+      mesh.position.z = distance * Math.sin(angle);
+    }
+    
+    // Add atmospheric glow for stars and planets
+    if (crypto.type !== 'blackhole') {
+      const glowSize = size * 1.3;
+      const glowGeometry = new THREE.SphereGeometry(glowSize, 32, 32);
+      const glowMaterial = new THREE.MeshBasicMaterial({
+        color: crypto.color,
+        transparent: true,
+        opacity: 0.15,
+        side: THREE.BackSide
+      });
+      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+      mesh.add(glow);
+    }
+    
+    // Add orbit path for layer1 cryptos
+    if (crypto.type === 'layer1') {
+      const distance = getOrbitalDistance(crypto.type, index);
+      const orbitGeometry = new THREE.RingGeometry(distance - 0.1, distance + 0.1, 64);
+      const orbitMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0x444444, 
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.3
+      });
+      const orbit = new THREE.Mesh(orbitGeometry, orbitMaterial);
+      orbit.rotation.x = Math.PI / 2;
+      scene.add(orbit);
+    }
+    
+    // Create object group
+    const group = new THREE.Group();
+    group.add(mesh);
+    
+    // Add label for larger objects
+    if (crypto.type !== 'token') {
+      const textSprite = createTextSprite(crypto.name);
+      textSprite.position.y = size + 2;
+      group.add(textSprite);
+    }
+    
+    return group;
+  };
+  
+  // Create text label
+  const createTextSprite = (text: string) => {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    if (!context) return new THREE.Sprite();
+    
+    canvas.width = 256;
+    canvas.height = 128;
+    
+    context.font = 'bold 24px Arial';
+    context.fillStyle = 'white';
+    context.textAlign = 'center';
+    context.fillText(text, 128, 64);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ 
+      map: texture,
+      transparent: true,
+      depthTest: false
+    });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(10, 5, 1);
+    
+    return sprite;
+  };
+  
+  // Create flow line between nodes
+  const createFlowLine = (flow: CapitalFlow) => {
+    const sourceObject = cryptoObjects.get(flow.from);
+    const targetObject = cryptoObjects.get(flow.to);
+    
+    if (!sourceObject || !targetObject) return null;
+    
+    const sourcePosition = sourceObject.position;
+    const targetPosition = targetObject.position;
+    
+    // Calculate curve control point
+    const midPoint = new THREE.Vector3().lerpVectors(sourcePosition, targetPosition, 0.5);
+    const direction = new THREE.Vector3().subVectors(targetPosition, sourcePosition).normalize();
+    const perpendicular = new THREE.Vector3(direction.z, 0, -direction.x).normalize();
+    
+    // Adjust height of control point
+    midPoint.y = Math.min(30, sourcePosition.distanceTo(targetPosition) * 0.5);
+    
+    // Create curved line with particles
+    const curve = new THREE.QuadraticBezierCurve3(
+      sourcePosition.clone(),
+      midPoint,
+      targetPosition.clone()
+    );
+    
+    const points = curve.getPoints(50);
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    
+    // Create particle flow using points
+    const particleCount = Math.floor(flow.value * 10);
+    const particlePositions = new Float32Array(particleCount * 3);
+    const particleSizes = new Float32Array(particleCount);
+    
+    for (let i = 0; i < particleCount; i++) {
+      const t = (i / particleCount); // Position along curve
+      const point = curve.getPoint(t);
+      
+      particlePositions[i * 3] = point.x;
+      particlePositions[i * 3 + 1] = point.y;
+      particlePositions[i * 3 + 2] = point.z;
+      
+      particleSizes[i] = Math.random() * 0.8 + 0.5;
+    }
+    
+    geometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+    geometry.setAttribute('size', new THREE.BufferAttribute(particleSizes, 1));
+    
+    // Use shaders for animated particles
+    const particleMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        color: { value: new THREE.Color(flow.isInflow ? 0x00ff00 : 0xff0000) },
+        pointTexture: { value: createParticleTexture() },
+        time: { value: 0 }
+      },
+      vertexShader: `
+        attribute float size;
+        uniform float time;
+        varying vec3 vColor;
+        
+        void main() {
+          // Moving particles along the curve
+          float speed = 0.5; // Speed of flow
+          
+          // Calculate position with offset based on time
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = size * (300.0 / -mvPosition.z);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 color;
+        uniform sampler2D pointTexture;
+        
+        void main() {
+          gl_FragColor = vec4(color, 1.0) * texture2D(pointTexture, gl_PointCoord);
+        }
+      `,
+      blending: THREE.AdditiveBlending,
+      depthTest: false,
+      transparent: true
+    });
+    
+    const particleSystem = new THREE.Points(geometry, particleMaterial);
+    
+    // Also draw the curve as a line
+    const lineWidth = Math.max(0.5, Math.min(3, flow.value / 2));
+    const lineColor = flow.isInflow ? 0x00ff00 : 0xff0000;
+    
+    const lineMaterial = new THREE.LineBasicMaterial({ 
+      color: lineColor, 
+      transparent: true,
+      opacity: 0.3,
+      linewidth: lineWidth
+    });
+    
+    const line = new THREE.Line(geometry.clone(), lineMaterial);
+    
+    // Group the particle system and line
+    const group = new THREE.Group();
+    group.add(particleSystem);
+    group.add(line);
+    
+    // Store reference to flow data
+    group.userData = { 
+      flow, 
+      curve,
+      particleSystem,
+      time: 0
     };
     
-    const animate = () => {
-      drawVisualization();
-      animationFrameId = requestAnimationFrame(animate);
-    };
+    return group;
+  };
+  
+  // Create a circular texture for particles
+  const createParticleTexture = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const context = canvas.getContext('2d');
     
-    animate();
+    if (!context) return new THREE.Texture();
+    
+    const gradient = context.createRadialGradient(
+      canvas.width / 2, canvas.height / 2, 0,
+      canvas.width / 2, canvas.height / 2, canvas.width / 2
+    );
+    
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    
+    return texture;
+  };
+  
+  // Initialize Three.js scene
+  const init = useCallback((container: HTMLDivElement) => {
+    // Reset previous objects if any
+    cryptoObjects = new Map();
+    flowObjects = [];
+    
+    // Create scene
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x070710);
+    
+    // Create camera
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+    camera.position.set(0, 80, 100);
+    
+    // Create renderer
+    renderer = new THREE.WebGLRenderer({ 
+      antialias: true,
+      alpha: true
+    });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    container.appendChild(renderer.domElement);
+    
+    // Add orbit controls
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 30;
+    controls.maxDistance = 200;
+    
+    // Add ambient lighting for base illumination
+    const ambientLight = new THREE.AmbientLight(0x222233, 0.3);
+    scene.add(ambientLight);
+    
+    // Add directional light for shadows and definition
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    directionalLight.position.set(100, 100, 100);
+    scene.add(directionalLight);
+    
+    // Add point light at black hole position
+    const blackHoleLight = new THREE.PointLight(0xff9900, 1.5, 100);
+    blackHoleLight.position.set(0, 0, 0);
+    scene.add(blackHoleLight);
+    
+    // Create stars background
+    createStarsBackground();
+    
+    // Create crypto objects
+    mockCryptoData.forEach((crypto, index) => {
+      const object = createCryptoObject(crypto, index);
+      scene.add(object);
+      cryptoObjects.set(crypto.id, object);
+      
+      // Position token around its parent
+      if (crypto.type === 'token' && crypto.parentId) {
+        const parent = cryptoObjects.get(crypto.parentId);
+        if (parent) {
+          const tokenIndex = mockCryptoData
+            .filter(c => c.type === 'token' && c.parentId === crypto.parentId)
+            .findIndex(c => c.id === crypto.id);
+          
+          const tokenCount = mockCryptoData
+            .filter(c => c.type === 'token' && c.parentId === crypto.parentId)
+            .length;
+          
+          const angle = tokenIndex * (Math.PI * 2 / tokenCount);
+          const distance = getOrbitalDistance(crypto.type, 0);
+          
+          object.position.x = parent.position.x + distance * Math.cos(angle);
+          object.position.z = parent.position.z + distance * Math.sin(angle);
+          
+          // Add orbit path for tokens
+          const orbitGeometry = new THREE.RingGeometry(distance - 0.1, distance + 0.1, 32);
+          const orbitMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x222222, 
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.3
+          });
+          const orbit = new THREE.Mesh(orbitGeometry, orbitMaterial);
+          orbit.rotation.x = Math.PI / 2;
+          orbit.position.copy(parent.position);
+          scene.add(orbit);
+        }
+      }
+    });
+    
+    // Create flow lines
+    mockFlowData.forEach(flow => {
+      const flowLine = createFlowLine(flow);
+      if (flowLine) {
+        scene.add(flowLine);
+        flowObjects.push(flowLine);
+      }
+    });
     
     // Handle window resize
     const handleResize = () => {
       if (!container) return;
       
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
-      drawVisualization();
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
     };
     
     window.addEventListener('resize', handleResize);
@@ -173,19 +530,145 @@ export function useThree() {
     return {
       cleanup: () => {
         window.removeEventListener('resize', handleResize);
-        if (container.contains(canvas)) {
-          container.removeChild(canvas);
-        }
-        if (animationFrameId) {
-          cancelAnimationFrame(animationFrameId);
-        }
+        container.removeChild(renderer.domElement);
+        cancelAnimationFrame(animationFrameId);
       }
     };
   }, []);
   
-  // Animation loop with canvas-based animation
+  // Create starry background
+  const createStarsBackground = () => {
+    const starsGeometry = new THREE.BufferGeometry();
+    const starsMaterial = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 0.7,
+      transparent: true,
+      opacity: 0.8
+    });
+    
+    const starsVertices = [];
+    for (let i = 0; i < 3000; i++) {
+      const x = (Math.random() - 0.5) * 2000;
+      const y = (Math.random() - 0.5) * 2000;
+      const z = (Math.random() - 0.5) * 2000;
+      starsVertices.push(x, y, z);
+    }
+    
+    starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+    const stars = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(stars);
+  };
+  
+  // Animation loop
   const animate = useCallback(() => {
-    // Animation is handled in the init function
+    animationFrameId = requestAnimationFrame(animate);
+    
+    if (!scene || !camera || !renderer || !controls) return;
+    
+    // Update accretion disk shader time
+    if (accretionDisk && accretionDisk.material instanceof THREE.ShaderMaterial) {
+      accretionDisk.material.uniforms.time.value += 0.01;
+      accretionDisk.rotation.z += 0.002;
+    }
+    
+    // Rotate layer1 cryptos around BTC
+    const layer1Cryptos = mockCryptoData.filter(c => c.type === 'layer1');
+    layer1Cryptos.forEach((crypto, index) => {
+      const object = cryptoObjects.get(crypto.id);
+      if (object) {
+        const angle = Date.now() * 0.0001 + index * (Math.PI * 2 / layer1Cryptos.length);
+        const distance = getOrbitalDistance(crypto.type, index);
+        
+        object.position.x = distance * Math.cos(angle);
+        object.position.z = distance * Math.sin(angle);
+        
+        // Rotate tokens around their layer1 parent
+        const tokens = mockCryptoData.filter(c => c.type === 'token' && c.parentId === crypto.id);
+        tokens.forEach((token, tokenIndex) => {
+          const tokenObject = cryptoObjects.get(token.id);
+          if (tokenObject) {
+            const tokenAngle = Date.now() * 0.0005 + tokenIndex * (Math.PI * 2 / tokens.length);
+            const tokenDistance = getOrbitalDistance('token', 0);
+            
+            tokenObject.position.x = object.position.x + tokenDistance * Math.cos(tokenAngle);
+            tokenObject.position.z = object.position.z + tokenDistance * Math.sin(tokenAngle);
+          }
+        });
+      }
+    });
+    
+    // Update flow lines positions
+    flowObjects.forEach((flowObject) => {
+      const userData = flowObject.userData;
+      
+      if (userData && userData.flow) {
+        const sourceObject = cryptoObjects.get(userData.flow.from);
+        const targetObject = cryptoObjects.get(userData.flow.to);
+        
+        if (sourceObject && targetObject) {
+          const sourcePosition = sourceObject.position;
+          const targetPosition = targetObject.position;
+          
+          // Calculate curve control point
+          const midPoint = new THREE.Vector3().lerpVectors(sourcePosition, targetPosition, 0.5);
+          midPoint.y = Math.min(30, sourcePosition.distanceTo(targetPosition) * 0.5);
+          
+          // Update curve
+          const curve = new THREE.QuadraticBezierCurve3(
+            sourcePosition.clone(),
+            midPoint,
+            targetPosition.clone()
+          );
+          
+          // Update particle positions
+          const particleSystem = userData.particleSystem;
+          if (particleSystem && particleSystem.geometry instanceof THREE.BufferGeometry) {
+            const positions = particleSystem.geometry.attributes.position;
+            const particleCount = positions.count;
+            
+            // Update time
+            userData.time = (userData.time || 0) + 0.01;
+            const timeOffset = userData.time;
+            
+            for (let i = 0; i < particleCount; i++) {
+              // Calculate position with offset based on particle index and time
+              let t = (i / particleCount + timeOffset * 0.1) % 1.0;
+              
+              // Reverse direction if outflow
+              if (!userData.flow.isInflow) {
+                t = 1.0 - t;
+              }
+              
+              const point = curve.getPoint(t);
+              
+              positions.setXYZ(i, point.x, point.y, point.z);
+            }
+            
+            positions.needsUpdate = true;
+          }
+          
+          // Update line positions
+          flowObject.children.forEach(child => {
+            if (child instanceof THREE.Line) {
+              const linePositions = [];
+              const linePoints = curve.getPoints(50);
+              
+              for (const point of linePoints) {
+                linePositions.push(point.x, point.y, point.z);
+              }
+              
+              const lineGeometry = new THREE.BufferGeometry();
+              lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+              child.geometry.dispose();
+              child.geometry = lineGeometry;
+            }
+          });
+        }
+      }
+    });
+    
+    controls.update();
+    renderer.render(scene, camera);
   }, []);
   
   return { init, animate };

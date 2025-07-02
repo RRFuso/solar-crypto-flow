@@ -1,10 +1,12 @@
 
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
+import { useEffect, useRef } from 'react';
+import * as d3 from 'd3';
 import { IndexRotationResult } from '@/types/indices';
-import { useOrbitalCalculations } from './market-flow/useOrbitalCalculations';
 import { createLinkPaths, updateLinkPaths } from './market-flow/LinkPaths';
 import { createNodeElements } from './market-flow/node-elements';
 import { createOrbitalPaths, createStarfield } from './market-flow/OrbitalPaths';
+import { useOrbitalCalculations } from './market-flow/useOrbitalCalculations';
 
 interface IndexFlowChartProps {
   data: IndexRotationResult;
@@ -14,26 +16,24 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
-  const { calculateOrbitalPositions, positionNodesInOrbits } = useOrbitalCalculations();
+  const linkRef = useRef<d3.Selection<SVGPathElement, any, SVGGElement, unknown> | null>(null);
+  const { calculateOrbitalPositions, positionNodesInOrbits, createStarfield } = useOrbitalCalculations();
 
   useEffect(() => {
     if (!data || !svgRef.current || !containerRef.current) return;
     
-    // Clear previous SVG content using native DOM methods
-    const svg = svgRef.current;
-    while (svg.firstChild) {
-      svg.removeChild(svg.firstChild);
-    }
+    // Clear previous SVG content
+    d3.select(svgRef.current).selectAll("*").remove();
     
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
     
-    // Set SVG attributes
-    svg.setAttribute("width", width.toString());
-    svg.setAttribute("height", height.toString());
+    const svg = d3.select(svgRef.current)
+      .attr("width", width)
+      .attr("height", height);
     
     // Add starfield background
-    createStarfield({ appendChild: (el: any) => svg.appendChild(el) } as any, width, height, 300);
+    createStarfield(svg, width, height, 300);
     
     // Find central index (BTC)
     const centralIndex = data.indices.find(index => index.id === 'BTC') || 
@@ -72,19 +72,20 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
     // Calculate orbital distances based on market cap
     const orbitRadii = calculateOrbitalPositions(nodes, width, height);
     
-    // Draw orbit paths
-    createOrbitalPaths({ appendChild: (el: any) => svg.appendChild(el) } as any, nodes, width, height, orbitRadii);
+    // Draw orbit paths - Fixed to pass 5 arguments
+    createOrbitalPaths(svg, nodes, width, height, orbitRadii);
     
     // Position nodes in orbital arrangement based on market cap
     positionNodesInOrbits(nodes, width, height, orbitRadii);
     
-    // Draw links (connections)
-    const link = createLinkPaths({ svg: { appendChild: (el: any) => svg.appendChild(el) }, links });
+    // Draw links (connections) with animated dashed lines
+    const link = createLinkPaths({ svg, links });
+    linkRef.current = link;
     
     // Draw nodes (circles with logos)
-    const node = createNodeElements({ svg: { appendChild: (el: any) => svg.appendChild(el) }, nodes });
+    const node = createNodeElements({ svg, nodes });
     
-    // Update link positions
+    // Update link positions initially
     updateLinkPaths(link);
     
     // Animation for orbital movement
@@ -102,15 +103,15 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
         }
       });
       
-      // Update node positions using native DOM methods
-      node.forEach((nodeElement: any, i: number) => {
-        if (nodeElement && nodes[i]) {
-          const nodeData = nodes[i] as any;
-          nodeElement.setAttribute("transform", `translate(${nodeData.x || 0},${nodeData.y || 0})`);
-        }
-      });
+      // Update node positions
+      node.attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
       
-      // Update link positions
+      // Update glow circles
+      svg.selectAll(".node-glow")
+        .attr("cx", (d: any) => d.x || 0)
+        .attr("cy", (d: any) => d.y || 0);
+      
+      // Update link positions with animations
       updateLinkPaths(link);
       
       // Continue animation
@@ -126,7 +127,7 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [data, calculateOrbitalPositions, positionNodesInOrbits]);
+  }, [data]);
 
   return (
     <div ref={containerRef} className="w-full h-full">
