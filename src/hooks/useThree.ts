@@ -52,9 +52,9 @@ const mockFlowData: CapitalFlow[] = [
 export function useThree() {
   let animationFrameId: number;
   
-  // Mock implementation without Three.js
+  // Mock implementation without Three.js dependencies
   const init = useCallback((container: HTMLDivElement) => {
-    console.log('Three.js mock implementation initialized');
+    console.log('Canvas-based visualization initialized');
     
     // Create a simple canvas-based visualization
     const canvas = document.createElement('canvas');
@@ -152,7 +152,12 @@ export function useThree() {
       ctx.fillText('Bitcoin', centerX, centerY + 50);
     };
     
-    drawVisualization();
+    const animate = () => {
+      drawVisualization();
+      animationFrameId = requestAnimationFrame(animate);
+    };
+    
+    animate();
     
     // Handle window resize
     const handleResize = () => {
@@ -180,8 +185,7 @@ export function useThree() {
   
   // Animation loop with canvas-based animation
   const animate = useCallback(() => {
-    animationFrameId = requestAnimationFrame(animate);
-    // Animation is handled in the drawVisualization function called during init
+    // Animation is handled in the init function
   }, []);
   
   return { init, animate };
