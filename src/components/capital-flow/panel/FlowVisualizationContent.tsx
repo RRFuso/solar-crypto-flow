@@ -29,10 +29,10 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
 }) => {
   if (showSidebarOnly) {
     return (
-      <div className="h-full w-full">
+      <div className="h-full w-full overflow-y-auto overflow-x-hidden">
         <AIWatchlist 
           predictions={filteredPredictions} 
-          maxItems={12} 
+          maxItems={15} 
           chartTimeframe={chartTimeframe}
         />
       </div>

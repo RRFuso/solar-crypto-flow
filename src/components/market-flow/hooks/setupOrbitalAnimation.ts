@@ -30,26 +30,26 @@ export function setupOrbitalAnimation(
     const nodeSelection = svg.selectAll(".node");
     
     // Update node group positions
-    nodeSelection.attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
+    nodeSelection.attr("transform", (d: any) => `translate(${d.x || 0},${d.y || 0})`);
     
     // **CRITICAL FIX: Update gradient background positions to match nodes exactly**
     svg.selectAll(".node-background")
-      .attr("cx", d => d.x || 0)
-      .attr("cy", d => d.y || 0);
+      .attr("cx", (d: any) => d.x || 0)
+      .attr("cy", (d: any) => d.y || 0);
       
     // **CRITICAL FIX: Update central pulse position to match central node exactly**
     svg.selectAll(".central-pulse")
-      .attr("cx", d => d.isCentral ? (d.x || 0) : null)
-      .attr("cy", d => d.isCentral ? (d.y || 0) : null);
+      .attr("cx", (d: any) => d.isCentral ? (d.x || 0) : null)
+      .attr("cy", (d: any) => d.isCentral ? (d.y || 0) : null);
     
     // **ENHANCED: Update all node visual elements (logos, glows, etc.)**
     svg.selectAll(".node-glow")
-      .attr("cx", d => d.x || 0)
-      .attr("cy", d => d.y || 0);
+      .attr("cx", (d: any) => d.x || 0)
+      .attr("cy", (d: any) => d.y || 0);
     
     svg.selectAll(".node-logo")
-      .attr("x", d => (d.x || 0) - (d.radius || 20) / 2)
-      .attr("y", d => (d.y || 0) - (d.radius || 20) / 2);
+      .attr("x", (d: any) => (d.x || 0) - (d.radius || 20) / 2)
+      .attr("y", (d: any) => (d.y || 0) - (d.radius || 20) / 2);
     
     // Update link positions with smoother curves
     link.attr("d", (d: any) => {

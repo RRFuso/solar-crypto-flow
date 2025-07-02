@@ -224,8 +224,8 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
           
           // Add event listener to strategy button
           if (prediction.confidence >= 0.7) {
-            d3.select(`#view-strategy-${d.id}`).on("click", function() {
-              d3.event.stopPropagation();
+            d3.select(`#view-strategy-${d.id}`).on("click", function(event) {
+              event.stopPropagation();
               showStrategyModal(d.id, prediction);
             });
           }
