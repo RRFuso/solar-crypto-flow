@@ -50,34 +50,34 @@ export class OrbitalAnimation {
       // SYNCHRONIZED: Update all visual elements together
       // Update node positions
       svg.selectAll(".node")
-        .attr("transform", (d: any) => `translate(${d.x || 0},${d.y || 0})`);
+        .attr("transform", d => `translate(${d.x},${d.y})`);
       
       // FIXED: Synchronize glow positions with nodes
       svg.selectAll(".node-glow")
-        .attr("cx", (d: any) => d.x || 0)
-        .attr("cy", (d: any) => d.y || 0);
+        .attr("cx", d => d.x)
+        .attr("cy", d => d.y);
         
       // FIXED: Synchronize pulse circles for central node
       svg.selectAll(".pulse-circle")
-        .attr("cx", (d: any) => d.x || 0)
-        .attr("cy", (d: any) => d.y || 0);
+        .attr("cx", d => d.x)
+        .attr("cy", d => d.y);
       
       // CRITICAL FIX: Synchronize signal rings with their parent nodes
       svg.selectAll(".signal-ring")
-        .attr("transform", (d: any) => {
+        .attr("transform", d => {
           // Each signal ring should follow its parent node exactly
           return `translate(${d.x || 0}, ${d.y || 0})`;
         });
       
       // CRITICAL FIX: Synchronize flow indicators with nodes
       svg.selectAll(".flow-indicator")
-        .attr("transform", (d: any) => `translate(${d.x || 0}, ${d.y || 0})`);
+        .attr("transform", d => `translate(${d.x || 0}, ${d.y || 0})`);
       
       // SYNCHRONIZED: Update link positions in real-time if enabled
       if (updateLinksInRealTime) {
         const links = svg.selectAll("path.link-path, path.flow-link");
         if (!links.empty()) {
-          links.attr("d", (d: any) => {
+          links.attr("d", d => {
             if (!d || !d.source || !d.target) return "";
             
             const sourceX = d.source.x || 0;

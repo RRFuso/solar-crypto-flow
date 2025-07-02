@@ -108,8 +108,8 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       
       // Update glow circles
       svg.selectAll(".node-glow")
-        .attr("cx", (d: any) => d.x || 0)
-        .attr("cy", (d: any) => d.y || 0);
+        .attr("cx", d => d.x || 0)
+        .attr("cy", d => d.y || 0);
       
       // Update link positions with animations
       updateLinkPaths(link);

@@ -86,8 +86,8 @@ export const stylizeLinks = (
         d3.select(this)
           .transition()
           .duration(200)
-          .attr("stroke-width", (d: any) => {
-            const baseWidth = 1.5 + Math.min(6, Math.sqrt(Math.abs(d.value || 0)) / 10);
+          .attr("stroke-width", d => {
+            const baseWidth = 1.5 + Math.min(6, Math.sqrt(Math.abs(d.value)) / 10);
             return baseWidth * 1.8;
           })
           .attr("opacity", 1);
@@ -99,13 +99,13 @@ export const stylizeLinks = (
         d3.select(this)
           .transition()
           .duration(200)
-          .attr("stroke-width", (d: any) => {
-            const baseWidth = 1.5 + Math.min(6, Math.sqrt(Math.abs(d.value || 0)) / 10);
-            return selectedNodeId && (d.source?.id === selectedNodeId || d.target?.id === selectedNodeId) ? baseWidth * 1.5 : baseWidth;
+          .attr("stroke-width", d => {
+            const baseWidth = 1.5 + Math.min(6, Math.sqrt(Math.abs(d.value)) / 10);
+            return selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? baseWidth * 1.5 : baseWidth;
           })
-          .attr("opacity", (d: any) => {
+          .attr("opacity", d => {
             if (selectedNodeId) {
-              return d.source?.id === selectedNodeId || d.target?.id === selectedNodeId ? 0.9 : 0.15;
+              return d.source.id === selectedNodeId || d.target.id === selectedNodeId ? 0.9 : 0.15;
             }
             return 0.8;
           });

@@ -71,7 +71,7 @@ export const useNodeElements = () => {
     node.selectAll(".attention-pulse")
       .append("animate")
       .attr("attributeName", "r")
-      .attr("values", (d: any) => `${d.radius + 5};${d.radius + 15};${d.radius + 5}`)
+      .attr("values", d => `${d.radius + 5};${d.radius + 15};${d.radius + 5}`)
       .attr("dur", "2s")
       .attr("repeatCount", "indefinite");
   };
