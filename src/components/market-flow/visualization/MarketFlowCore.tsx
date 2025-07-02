@@ -1,6 +1,5 @@
 
 import React, { useEffect, useRef } from 'react';
-import * as d3 from 'd3';
 import { IndexRotationResult } from '@/types/indices';
 import { useMarketFlowAnimation } from '../hooks/useMarketFlowAnimation';
 
@@ -17,8 +16,11 @@ export const MarketFlowCore: React.FC<MarketFlowCoreProps> = ({ data, width, hei
   useEffect(() => {
     if (!data || !svgRef.current) return;
     
-    // Clear previous SVG content
-    d3.select(svgRef.current).selectAll("*").remove();
+    // Clear previous SVG content using native DOM methods
+    const svg = svgRef.current;
+    while (svg.firstChild) {
+      svg.removeChild(svg.firstChild);
+    }
     
     // Initialize the visualization
     const animationFrameId = initializeVisualization(svgRef.current, data, width, height);

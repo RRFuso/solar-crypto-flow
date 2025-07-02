@@ -1,6 +1,5 @@
 
-import React, { memo } from 'react';
-import TradingViewWidget from 'react-tradingview-widget';
+import React, { memo, useEffect, useRef } from 'react';
 
 interface CryptoChartProps {
   crypto: {
@@ -12,11 +11,40 @@ interface CryptoChartProps {
 }
 
 const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: CryptoChartProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const symbol = showBtcDominance 
     ? 'BTC.D'
     : 'USDT' // Now always using USDT pair except for BTC.D
-  
-  const containerId = `tradingview_chart_${crypto.id}_${timeframe}`;
+
+  useEffect(() => {
+    if (containerRef.current) {
+      // Clear previous widget
+      containerRef.current.innerHTML = '';
+      
+      const script = document.createElement('script');
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+      script.type = 'text/javascript';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        autosize: true,
+        symbol: `BINANCE:${crypto.id}${symbol}`,
+        interval: timeframe,
+        timezone: 'Etc/UTC',
+        theme: 'dark',
+        style: '1',
+        locale: 'pt',
+        toolbar_bg: '#1a1b1e',
+        enable_publishing: false,
+        hide_top_toolbar: false,
+        allow_symbol_change: false,
+        studies: ['RSI@tv-basicstudies', 'StochRSI@tv-basicstudies'],
+        container_id: 'tradingview_chart'
+      });
+      
+      containerRef.current.appendChild(script);
+    }
+  }, [crypto.id, symbol, timeframe]);
   
   return (
     <div className="h-full bg-gray-900 rounded-lg overflow-hidden">
@@ -28,21 +56,7 @@ const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: Cryp
         </h2>
       </div>
       <div className="h-[calc(100%-4rem)]">
-        <TradingViewWidget
-          symbol={`BINANCE:${crypto.id}${symbol}`}
-          theme="Dark"
-          autosize
-          interval={timeframe}
-          timezone="Etc/UTC"
-          style="1"
-          locale="pt"
-          toolbar_bg="#1a1b1e"
-          enable_publishing={false}
-          hide_top_toolbar={false}
-          allow_symbol_change={false}
-          studies={["RSI@tv-basicstudies", "StochRSI@tv-basicstudies"]}
-          container_id={containerId}
-        />
+        <div ref={containerRef} className="w-full h-full" id="tradingview_chart"></div>
       </div>
     </div>
   );
