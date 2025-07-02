@@ -68,6 +68,16 @@
     margin-left: 0 !important;
     margin-right: 0 !important;
   }
+
+  /* Layout responsivo e centralizado */
+  .solar-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
 }
 
 /* Flow animation keyframes */
