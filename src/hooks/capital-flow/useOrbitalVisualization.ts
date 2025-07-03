@@ -1,5 +1,6 @@
 
 import { useCallback } from 'react';
+import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
 import { OrbitalNode } from '@/components/capital-flow/NodePlacement';
 
@@ -18,15 +19,14 @@ export const useOrbitalVisualization = () => {
     width: number,
     height: number
   ) => {
-    // Clear previous SVG content
-    while (svgElement.firstChild) {
-      svgElement.removeChild(svgElement.firstChild);
-    }
+    // Create D3 selection
+    const svg = d3.select(svgElement)
+      .attr("width", width)
+      .attr("height", height)
+      .attr("viewBox", `0 0 ${width} ${height}`);
     
-    // Set SVG attributes
-    svgElement.setAttribute("width", width.toString());
-    svgElement.setAttribute("height", height.toString());
-    svgElement.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    // Clear previous SVG content
+    svg.selectAll("*").remove();
     
     // Extract unique assets for nodes
     const assets = Array.from(new Set([
@@ -34,7 +34,7 @@ export const useOrbitalVisualization = () => {
       ...flowData.map(d => d.to)
     ]));
     
-    // Compute total volume per asset
+    // Compute total volume per asset to determine market cap if not provided
     const assetVolumes = new Map<string, number>();
     
     flowData.forEach(flow => {
@@ -45,12 +45,12 @@ export const useOrbitalVisualization = () => {
       assetVolumes.set(flow.to, toVolume + (flow.volume || 0));
     });
     
-    // Create nodes with orbital positioning
+    // Create nodes with better orbital positioning
     const centerX = width / 2;
     const centerY = height / 2;
     const maxRadius = Math.min(width, height) * 0.35;
     
-    // Sort assets by volume
+    // Sort assets by volume for better orbital arrangement
     const sortedAssets = assets.sort((a, b) => {
       const volumeA = assetVolumes.get(a) || 0;
       const volumeB = assetVolumes.get(b) || 0;
@@ -63,7 +63,12 @@ export const useOrbitalVisualization = () => {
       
       const isBTC = id === 'BTC';
       
+      // Create multiple orbital layers for better distribution
+      const totalNodes = sortedAssets.length;
+      let orbitRadius, angle;
+      
       if (isBTC) {
+        // Central position for BTC
         return {
           id,
           marketCap,
@@ -73,14 +78,16 @@ export const useOrbitalVisualization = () => {
           y: centerY
         };
       } else {
-        const nodeIndex = index - 1;
+        // Distribute other nodes in orbital layers
+        const nodeIndex = index - 1; // Subtract 1 for BTC
         const nodesPerOrbit = 8;
         const orbitLayer = Math.floor(nodeIndex / nodesPerOrbit);
         const nodeInOrbit = nodeIndex % nodesPerOrbit;
         
-        const orbitRadius = 120 + (orbitLayer * 80);
-        const angle = (nodeInOrbit / nodesPerOrbit) * 2 * Math.PI;
+        orbitRadius = 120 + (orbitLayer * 80); // Multiple orbital layers
+        angle = (nodeInOrbit / nodesPerOrbit) * 2 * Math.PI;
         
+        // Add some randomness for more natural positioning
         const radiusVariation = (Math.random() - 0.5) * 20;
         const angleVariation = (Math.random() - 0.5) * 0.3;
         
@@ -98,7 +105,7 @@ export const useOrbitalVisualization = () => {
       }
     });
     
-    // Create links
+    // Create links but don't render them as blue lines
     const links = flowData.map(flow => ({
       source: nodes.find(n => n.id === flow.from),
       target: nodes.find(n => n.id === flow.to),
@@ -107,8 +114,10 @@ export const useOrbitalVisualization = () => {
       percentage: flow.percentage
     })).filter(link => link.source && link.target) as OrbitalLink[];
     
+    // Don't render the blue lines - let the LinkRenderer handle the dotted flow lines
+    
     return {
-      svg: { node: () => svgElement },
+      svg,
       width,
       height,
       nodes,

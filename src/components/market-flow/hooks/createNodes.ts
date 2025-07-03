@@ -1,6 +1,8 @@
 
+import * as d3 from 'd3';
+
 export const createNodes = (
-  svg: any,
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   indices: any[],
   centralIndex: any,
   width: number,
@@ -29,7 +31,7 @@ export const createNodes = (
     centralNode.y = height / 2;
   }
   
-  // Draw orbit circles using native DOM methods
+  // Draw orbit circles
   const nonCentralNodes = nodes.filter(n => !n.isCentral)
     .sort((a, b) => b.value - a.value);
   
@@ -38,15 +40,14 @@ export const createNodes = (
   
   for (let i = 1; i <= orbitLayers; i++) {
     const orbitRadius = i * baseRadius;
-    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    circle.setAttribute("cx", (width / 2).toString());
-    circle.setAttribute("cy", (height / 2).toString());
-    circle.setAttribute("r", orbitRadius.toString());
-    circle.setAttribute("fill", "none");
-    circle.setAttribute("stroke", "rgba(255, 255, 255, 0.1)");
-    circle.setAttribute("stroke-width", "1");
-    circle.setAttribute("stroke-dasharray", "5,5");
-    svg.appendChild(circle);
+    svg.append("circle")
+      .attr("cx", width / 2)
+      .attr("cy", height / 2)
+      .attr("r", orbitRadius)
+      .attr("fill", "none")
+      .attr("stroke", "rgba(255, 255, 255, 0.1)")
+      .attr("stroke-width", 1)
+      .attr("stroke-dasharray", "5,5");
   }
   
   // Position nodes with anti-collision logic
@@ -106,140 +107,130 @@ export const createNodes = (
     }
   });
   
-  // Create gradient definitions for each node using native DOM methods
-  const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-  svg.appendChild(defs);
+  // Create gradient definitions for each node
+  const defs = svg.append("defs");
   
   nodes.forEach(node => {
     // Normalize the change value to a range of -1 to 1
+    // Assuming typical market changes are within -10% to +10%
     const normalizedChange = Math.min(Math.max(node.change / 10, -1), 1);
     
     // Create unique gradient ID for each node
     const gradientId = `gradient-${node.id}`;
     
-    // Create radial gradient
-    const gradient = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
-    gradient.setAttribute("id", gradientId);
-    gradient.setAttribute("cx", "0.5");
-    gradient.setAttribute("cy", "0.5");
-    gradient.setAttribute("r", "0.5");
-    gradient.setAttribute("fx", "0.5");
-    gradient.setAttribute("fy", "0.5");
+    // Create linear gradient
+    const gradient = defs.append("radialGradient")
+      .attr("id", gradientId)
+      .attr("cx", "0.5")
+      .attr("cy", "0.5")
+      .attr("r", "0.5")
+      .attr("fx", "0.5")
+      .attr("fy", "0.5");
     
     // Add gradient stops based on normalized change
-    const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-    const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-    
     if (normalizedChange >= 0) {
       // Green gradient for positive change
       const intensity = Math.floor(normalizedChange * 255);
-      stop1.setAttribute("offset", "0%");
-      stop1.setAttribute("stop-color", `rgba(0, ${intensity}, 0, 0.8)`);
-      stop2.setAttribute("offset", "100%");
-      stop2.setAttribute("stop-color", "rgba(0, 0, 0, 0.3)");
+      gradient.append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", `rgba(0, ${intensity}, 0, 0.8)`);
+      gradient.append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", "rgba(0, 0, 0, 0.3)");
     } else {
       // Red gradient for negative change
       const intensity = Math.floor(-normalizedChange * 255);
-      stop1.setAttribute("offset", "0%");
-      stop1.setAttribute("stop-color", `rgba(${intensity}, 0, 0, 0.8)`);
-      stop2.setAttribute("offset", "100%");
-      stop2.setAttribute("stop-color", "rgba(0, 0, 0, 0.3)");
+      gradient.append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", `rgba(${intensity}, 0, 0, 0.8)`);
+      gradient.append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", "rgba(0, 0, 0, 0.3)");
     }
-    
-    gradient.appendChild(stop1);
-    gradient.appendChild(stop2);
-    defs.appendChild(gradient);
   });
   
   // Draw nodes (circles) with gradient backgrounds
-  const nodeGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  nodeGroup.setAttribute("class", "nodes");
-  svg.appendChild(nodeGroup);
+  const nodeGroup = svg.append("g").attr("class", "nodes");
   
   // Add background circles with gradient fill
-  nodes.forEach(node => {
-    const bgCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    bgCircle.setAttribute("class", "node-background");
-    bgCircle.setAttribute("cx", (node.x || 0).toString());
-    bgCircle.setAttribute("cy", (node.y || 0).toString());
-    bgCircle.setAttribute("r", (node.radius * 1.4).toString());
-    bgCircle.setAttribute("fill", `url(#gradient-${node.id})`);
-    bgCircle.setAttribute("opacity", "0.9");
-    nodeGroup.appendChild(bgCircle);
-  });
+  nodeGroup.selectAll(".node-background")
+    .data(nodes)
+    .enter()
+    .append("circle")
+    .attr("class", "node-background")
+    .attr("cx", d => d.x || 0)
+    .attr("cy", d => d.y || 0)
+    .attr("r", d => d.radius * 1.4)
+    .attr("fill", d => `url(#gradient-${d.id})`)
+    .attr("opacity", 0.9);
   
-  const nodeElements: SVGGElement[] = [];
+  const node = nodeGroup.selectAll(".node")
+    .data(nodes)
+    .enter()
+    .append("g")
+    .attr("class", "node")
+    .attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
   
-  nodes.forEach(node => {
-    const nodeElement = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    nodeElement.setAttribute("class", "node");
-    nodeElement.setAttribute("transform", `translate(${node.x || 0},${node.y || 0})`);
-    
-    // Add circles with index colors
-    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    circle.setAttribute("r", node.radius.toString());
-    circle.setAttribute("fill", node.color);
-    circle.setAttribute("stroke", "#ffffff");
-    circle.setAttribute("stroke-width", "2");
-    circle.setAttribute("opacity", "0.8");
-    nodeElement.appendChild(circle);
-    
-    // Add text (index name)
-    const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    nameText.setAttribute("text-anchor", "middle");
-    nameText.setAttribute("dy", ".3em");
-    nameText.setAttribute("fill", "white");
-    nameText.setAttribute("font-weight", "bold");
-    nameText.setAttribute("font-size", node.isCentral ? "14px" : "12px");
-    nameText.textContent = node.name;
-    nodeElement.appendChild(nameText);
-    
-    // Add percentage text
-    const percentText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    percentText.setAttribute("text-anchor", "middle");
-    percentText.setAttribute("dy", "1.6em");
-    percentText.setAttribute("fill", node.change >= 0 ? "#00ffcc" : "#ff0066");
-    percentText.setAttribute("font-weight", "bold");
-    percentText.setAttribute("font-size", "10px");
-    percentText.textContent = (node.change >= 0 ? "+" : "") + node.change + "%";
-    nodeElement.appendChild(percentText);
-    
-    nodeGroup.appendChild(nodeElement);
-    nodeElements.push(nodeElement);
-  });
+  // Add circles with index colors
+  node.append("circle")
+    .attr("r", d => d.radius)
+    .attr("fill", d => d.color)
+    .attr("stroke", "#ffffff")
+    .attr("stroke-width", 2)
+    .attr("opacity", 0.8);
+  
+  // Add text (index name)
+  node.append("text")
+    .attr("text-anchor", "middle")
+    .attr("dy", ".3em")
+    .attr("fill", "white")
+    .attr("font-weight", "bold")
+    .attr("font-size", d => d.isCentral ? "14px" : "12px")
+    .text(d => d.name);
+  
+  // Add percentage text
+  node.append("text")
+    .attr("text-anchor", "middle")
+    .attr("dy", "1.6em")
+    .attr("fill", d => d.change >= 0 ? "#00ffcc" : "#ff0066")
+    .attr("font-weight", "bold")
+    .attr("font-size", "10px")
+    .text(d => (d.change >= 0 ? "+" : "") + d.change + "%");
   
   // Add pulsating effect for central node
   if (centralNode) {
-    const centralPulse = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    centralPulse.setAttribute("class", "central-pulse");
-    centralPulse.setAttribute("cx", centralNode.x.toString());
-    centralPulse.setAttribute("cy", centralNode.y.toString());
-    centralPulse.setAttribute("r", (centralNode.radius * 1.2).toString());
-    centralPulse.setAttribute("fill", "none");
-    centralPulse.setAttribute("stroke", "#F7931A");
-    centralPulse.setAttribute("stroke-width", "2");
-    centralPulse.setAttribute("stroke-opacity", "0.5");
-    
-    // Add CSS animation for central node pulse
-    const style = document.createElement("style");
-    style.textContent = `
-      .central-pulse {
-        animation: centralPulse 4s ease-in-out infinite;
-      }
-      @keyframes centralPulse {
-        0%, 100% { 
-          r: ${centralNode.radius * 1.2}px; 
-          stroke-opacity: 0.5; 
-        }
-        50% { 
-          r: ${centralNode.radius * 1.6}px; 
-          stroke-opacity: 0.1; 
-        }
-      }
-    `;
-    document.head.appendChild(style);
-    
-    nodeGroup.appendChild(centralPulse);
+    const centralPulse = nodeGroup.append("circle")
+      .attr("class", "central-pulse")
+      .attr("cx", centralNode.x)
+      .attr("cy", centralNode.y)
+      .attr("r", centralNode.radius * 1.2)
+      .attr("fill", "none")
+      .attr("stroke", "#F7931A")
+      .attr("stroke-width", 2)
+      .attr("stroke-opacity", 0.5);
+      
+    // Add animation for central node pulse
+    centralPulse
+      .transition()
+      .duration(2000)
+      .attr("r", centralNode.radius * 1.6)
+      .attr("stroke-opacity", 0.1)
+      .transition()
+      .duration(2000)
+      .attr("r", centralNode.radius * 1.2)
+      .attr("stroke-opacity", 0.5)
+      .on("end", function repeat() {
+        d3.select(this)
+          .transition()
+          .duration(2000)
+          .attr("r", centralNode.radius * 1.6)
+          .attr("stroke-opacity", 0.1)
+          .transition()
+          .duration(2000)
+          .attr("r", centralNode.radius * 1.2)
+          .attr("stroke-opacity", 0.5)
+          .on("end", repeat);
+      });
   }
   
   return nodes;
