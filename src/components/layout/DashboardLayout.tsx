@@ -23,7 +23,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   }
 
   return (
-    <div className="flex flex-col w-screen min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black overflow-hidden">
+    <div className="flex flex-col w-screen min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black">
       {/* Header */}
       <header className="w-full flex-shrink-0 h-14 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-sm z-20">
         <div className="h-full px-4 flex justify-between items-center w-full">
@@ -43,7 +43,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col w-full h-[calc(100vh-3.5rem)] overflow-hidden">
+      <main className="flex-1 flex flex-col w-full h-[calc(100vh-3.5rem)] overflow-y-auto">
         {children}
       </main>
     </div>
