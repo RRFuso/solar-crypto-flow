@@ -1,6 +1,5 @@
 
-import { useEffect } from 'react';
-import * as d3 from 'd3';
+import React, { useEffect } from 'react';
 import { FlowData, CryptoData } from '@/types/crypto';
 import { calculateNodePositions, OrbitalNode } from '../NodePlacement';
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
@@ -90,7 +89,11 @@ export const useVisualizationData = ({
       animationRef.current = null;
     }
 
-    d3.select(svgRef.current).selectAll("*").remove();
+    // Clear SVG using native DOM methods
+    const svg = svgRef.current;
+    while (svg.firstChild) {
+      svg.removeChild(svg.firstChild);
+    }
 
     const width = dimensions.width;
     const height = dimensions.height;
@@ -186,7 +189,10 @@ export const useVisualizationData = ({
 
     return () => {
       if (svgRef.current) {
-        d3.select(svgRef.current).selectAll("*").remove();
+        const svg = svgRef.current;
+        while (svg.firstChild) {
+          svg.removeChild(svg.firstChild);
+        }
       }
     };
   }, [flowData, cryptoDataMap, priceActionSignals, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory, svgRef]); 

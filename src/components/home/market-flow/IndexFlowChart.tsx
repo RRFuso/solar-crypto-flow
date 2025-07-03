@@ -1,6 +1,5 @@
 
 import React, { useEffect, useRef } from 'react';
-import * as d3 from 'd3';
 import { IndexRotationResult } from '@/types/indices';
 import { useOrbitalCalculations } from './useOrbitalCalculations';
 import { createLinkPaths, updateLinkPaths } from './LinkPaths';
@@ -20,18 +19,21 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
   useEffect(() => {
     if (!data || !svgRef.current || !containerRef.current) return;
     
-    // Clear previous SVG content
-    d3.select(svgRef.current).selectAll("*").remove();
+    // Clear previous SVG content using native DOM methods
+    const svg = svgRef.current;
+    while (svg.firstChild) {
+      svg.removeChild(svg.firstChild);
+    }
     
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
     
-    const svg = d3.select(svgRef.current)
-      .attr("width", width)
-      .attr("height", height);
+    // Set SVG attributes
+    svg.setAttribute("width", width.toString());
+    svg.setAttribute("height", height.toString());
     
     // Add starfield background
-    createStarfield(svg, width, height, 300); // Increased star count for better space visualization
+    createStarfield({ appendChild: (el: any) => svg.appendChild(el) } as any, width, height, 300);
     
     // Find central index (BTC)
     const centralIndex = data.indices.find(index => index.id === 'BTC') || 
@@ -70,17 +72,17 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
     // Calculate orbital distances based on market cap
     const orbitRadii = calculateOrbitalPositions(nodes, width, height);
     
-    // Draw orbit paths - Fixed to pass 5 arguments
-    createOrbitalPaths(svg, nodes, width, height, orbitRadii);
+    // Draw orbit paths
+    createOrbitalPaths({ appendChild: (el: any) => svg.appendChild(el) } as any, nodes, width, height, orbitRadii);
     
     // Position nodes in orbital arrangement based on market cap
     positionNodesInOrbits(nodes, width, height, orbitRadii);
     
     // Draw links (connections)
-    const link = createLinkPaths({ svg, links });
+    const link = createLinkPaths({ svg: { appendChild: (el: any) => svg.appendChild(el) }, links });
     
     // Draw nodes (circles with logos)
-    const node = createNodeElements({ svg, nodes });
+    const node = createNodeElements({ svg: { appendChild: (el: any) => svg.appendChild(el) }, nodes });
     
     // Update link positions
     updateLinkPaths(link);
@@ -100,8 +102,12 @@ export const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
         }
       });
       
-      // Update node positions
-      node.attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
+      // Update node positions using native DOM methods
+      node.forEach((nodeElement: any, i: number) => {
+        if (nodeElement && nodes[i]) {
+          nodeElement.setAttribute("transform", `translate(${nodes[i].x || 0},${nodes[i].y || 0})`);
+        }
+      });
       
       // Update link positions
       updateLinkPaths(link);

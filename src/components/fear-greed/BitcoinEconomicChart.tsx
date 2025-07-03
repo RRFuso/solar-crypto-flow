@@ -1,7 +1,6 @@
-
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { LineChart, ArrowDown, ArrowUp } from 'lucide-react';
-import TradingViewWidget from 'react-tradingview-widget';
+import TradingViewWidget from 'react-tradingview-embed';
 
 interface BitcoinEconomicChartProps {
   btcPrice: string;
@@ -14,6 +13,8 @@ const BitcoinEconomicChart = ({
   btcChange, 
   marketSentiment 
 }: BitcoinEconomicChartProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const sentimentColors = {
     bullish: 'from-green-500 to-green-300',
     bearish: 'from-red-500 to-red-300',
@@ -32,6 +33,35 @@ const BitcoinEconomicChart = ({
     neutral: <LineChart className="w-5 h-5 text-blue-500" />
   };
 
+  useEffect(() => {
+    if (containerRef.current) {
+      // Clear previous widget
+      containerRef.current.innerHTML = '';
+      
+      const script = document.createElement('script');
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-chart.js';
+      script.type = 'text/javascript';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        symbol: 'BTCUSD',
+        width: '100%',
+        height: '100%',
+        locale: 'br',
+        dateRange: '12M',
+        colorTheme: 'dark',
+        trendLineColor: 'rgba(41, 98, 255, 1)',
+        underLineColor: 'rgba(41, 98, 255, 0.3)',
+        underLineBottomColor: 'rgba(41, 98, 255, 0)',
+        isTransparent: false,
+        autosize: true,
+        largeChartUrl: '',
+        container_id: 'btc_chart'
+      });
+      
+      containerRef.current.appendChild(script);
+    }
+  }, []);
+
   return (
     <div className="w-full max-w-md space-y-2 p-6 bg-gray-900/50 rounded-lg border border-gray-800 shadow-xl">
       <div className="flex items-center justify-between mb-4">
@@ -48,17 +78,7 @@ const BitcoinEconomicChart = ({
       </div>
       
       <div className="h-40 overflow-hidden rounded-lg border border-gray-700 mb-4">
-        <TradingViewWidget
-          symbol="BTCUSD"
-          interval="D"
-          timezone="Etc/UTC"
-          locale="br"
-          allow_symbol_change={false}
-          hide_side_toolbar={true}
-          hide_legend={true}
-          save_image={false}
-          container_id="bitcoin-chart"
-        />
+        <div ref={containerRef} className="w-full h-full" id="btc_chart"></div>
       </div>
       
       <div className="grid grid-cols-2 gap-4 text-white">

@@ -1,7 +1,5 @@
-
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { TrendingUp, DollarSign, LineChart } from 'lucide-react';
-import TradingViewWidget from 'react-tradingview-widget';
 
 interface EconomicIndicatorsProps {
   dxy: string;
@@ -10,6 +8,37 @@ interface EconomicIndicatorsProps {
 }
 
 const EconomicIndicators = ({ dxy, spx, nasdaq }: EconomicIndicatorsProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      // Clear previous widget
+      containerRef.current.innerHTML = '';
+      
+      const script = document.createElement('script');
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-chart.js';
+      script.type = 'text/javascript';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        symbol: 'FOREXCOM:DXY',
+        width: '100%',
+        height: '100%',
+        locale: 'br',
+        dateRange: '12M',
+        colorTheme: 'dark',
+        trendLineColor: 'rgba(41, 98, 255, 1)',
+        underLineColor: 'rgba(41, 98, 255, 0.3)',
+        underLineBottomColor: 'rgba(41, 98, 255, 0)',
+        isTransparent: false,
+        autosize: true,
+        largeChartUrl: '',
+        container_id: 'dxy_chart'
+      });
+      
+      containerRef.current.appendChild(script);
+    }
+  }, []);
+
   return (
     <div className="w-full max-w-md space-y-2 p-6 bg-gray-900/50 rounded-lg border border-gray-800 shadow-xl">
       <div className="flex items-center justify-between mb-4">
@@ -22,19 +51,7 @@ const EconomicIndicators = ({ dxy, spx, nasdaq }: EconomicIndicatorsProps) => {
       </div>
       
       <div className="h-40 overflow-hidden rounded-lg border border-gray-700 mb-4">
-        <TradingViewWidget
-          symbol="FOREXCOM:DXY"
-          interval="D"
-          timezone="Etc/UTC"
-          theme="Dark"
-          locale="br"
-          autosize
-          hide_top_toolbar
-          hide_legend
-          hide_side_toolbar
-          allow_symbol_change={false}
-          container_id="dxy-chart"
-        />
+        <div ref={containerRef} className="w-full h-full" id="dxy_chart"></div>
       </div>
       
       <div className="space-y-3 text-white">
