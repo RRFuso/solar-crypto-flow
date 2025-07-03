@@ -1,38 +1,44 @@
 
-import * as d3 from 'd3';
-
 export const useFiltersAndEffects = () => {
-  // Create filter effects for the visualization
-  const createGlowFilter = (defs: d3.Selection<SVGDefsElement, unknown, null, undefined>) => {
+  // Create filter effects for the visualization using native DOM methods
+  const createGlowFilter = (defs: Element) => {
     // Create glow filter
-    const filter = defs.append("filter")
-      .attr("id", "glow")
-      .attr("x", "-50%")
-      .attr("y", "-50%")
-      .attr("width", "200%")
-      .attr("height", "200%");
+    const filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+    filter.setAttribute("id", "glow");
+    filter.setAttribute("x", "-50%");
+    filter.setAttribute("y", "-50%");
+    filter.setAttribute("width", "200%");
+    filter.setAttribute("height", "200%");
 
-    filter.append("feGaussianBlur")
-      .attr("stdDeviation", "3")
-      .attr("result", "coloredBlur");
+    const feGaussianBlur = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+    feGaussianBlur.setAttribute("stdDeviation", "3");
+    feGaussianBlur.setAttribute("result", "coloredBlur");
+    filter.appendChild(feGaussianBlur);
 
-    const feMerge = filter.append("feMerge");
-    feMerge.append("feMergeNode").attr("in", "coloredBlur");
-    feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+    const feMerge = document.createElementNS("http://www.w3.org/2000/svg", "feMerge");
+    const feMergeNode1 = document.createElementNS("http://www.w3.org/2000/svg", "feMergeNode");
+    feMergeNode1.setAttribute("in", "coloredBlur");
+    const feMergeNode2 = document.createElementNS("http://www.w3.org/2000/svg", "feMergeNode");
+    feMergeNode2.setAttribute("in", "SourceGraphic");
+    feMerge.appendChild(feMergeNode1);
+    feMerge.appendChild(feMergeNode2);
+    filter.appendChild(feMerge);
     
+    defs.appendChild(filter);
     return filter;
   };
 
   // Create clip paths for circular elements
-  const createClipPath = (
-    defs: d3.Selection<SVGDefsElement, unknown, null, undefined>, 
-    id: string, 
-    radius: number
-  ) => {
-    return defs.append("clipPath")
-      .attr("id", id)
-      .append("circle")
-      .attr("r", radius);
+  const createClipPath = (defs: Element, id: string, radius: number) => {
+    const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+    clipPath.setAttribute("id", id);
+    
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("r", radius.toString());
+    clipPath.appendChild(circle);
+    
+    defs.appendChild(clipPath);
+    return clipPath;
   };
 
   return {
