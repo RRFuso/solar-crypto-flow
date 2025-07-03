@@ -1,6 +1,10 @@
 
 import { useEffect, RefObject } from 'react';
+import * as d3 from 'd3';
 import { NarrativeFlow, NarrativeData } from '@/types/narratives';
+import { useNodeSizing } from './narrative-flow/useNodeSizing';
+import { useSimulation } from './narrative-flow/useSimulation';
+import { useFlowVisualization } from './narrative-flow/useFlowVisualization';
 
 interface VisualizationConfig {
   width: number;
@@ -16,115 +20,146 @@ export const useNarrativeFlowVisualization = (
   config: VisualizationConfig
 ) => {
   const { width, height, narratives, flowData, isPredicted } = config;
+  
+  // Use our custom hooks to create and prepare nodes
+  const { createNodes, scaleNodeSizes } = useNodeSizing(narratives);
+  const nodes = createNodes(flowData);
+  scaleNodeSizes(nodes);
+  
+  // Create links from flow data
+  const links = flowData.map(flow => ({
+    source: nodes.find(n => n.id === flow.from),
+    target: nodes.find(n => n.id === flow.to),
+    value: flow.value,
+    percentage: flow.percentage,
+    predicted: flow.predicted
+  }));
+
+  // Create a mock crypto data map for backward compatibility
+  const cryptoDataMap = new Map();
+  nodes.forEach(node => {
+    cryptoDataMap.set(node.id, {
+      marketCap: node.value || 0,
+      price: 0,
+      volume: 0,
+      change24h: 0
+    });
+  });
+
+  // Call useSimulation at the top level
+  const { simulation, positionNodes, applyBounds, dragHandlers } = useSimulation({
+    nodes,
+    cryptoDataMap,
+    width,
+    height
+  });
 
   useEffect(() => {
     if (!flowData || flowData.length === 0 || !svgRef.current || !containerRef.current) return;
     
-    // Simple SVG-based visualization without d3
-    const svg = svgRef.current;
+    // Clear previous SVG content
+    d3.select(svgRef.current).selectAll("*").remove();
     
-    // Clear previous content
-    while (svg.firstChild) {
-      svg.removeChild(svg.firstChild);
-    }
+    const svg = d3.select(svgRef.current)
+      .attr("width", width)
+      .attr("height", height)
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .attr("style", "max-width: 100%; height: auto;");
     
-    svg.setAttribute("width", width.toString());
-    svg.setAttribute("height", height.toString());
-    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    svg.setAttribute("style", "max-width: 100%; height: auto;");
+    // Add starfield background first (before other elements)
+    createStarfield(svg, width, height);
     
-    // Create starfield background
-    const starGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    starGroup.setAttribute("class", "starfield");
+    // Apply initial positioning
+    positionNodes();
+
+    // Use flow visualization hook to draw elements
+    const { drawVisualization, updatePositions } = useFlowVisualization();
+    const elements = drawVisualization({
+      svg,
+      nodes,
+      links,
+      isPredicted,
+      dragHandlers
+    });
+
+    // Update positions on simulation tick
+    simulation.on("tick", () => {
+      applyBounds();
+      updatePositions(elements, nodes, links);
+    });
+
+    return () => {
+      simulation.stop();
+      // Clean up animation frame if it exists
+      if (elements.animationFrameId) {
+        cancelAnimationFrame(elements.animationFrameId);
+      }
+    };
+  }, [config, svgRef, containerRef, simulation, positionNodes, applyBounds, dragHandlers, nodes, links]);
+  
+  // Helper function to create starfield background
+  const createStarfield = (
+    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+    width: number, 
+    height: number
+  ) => {
+    const starGroup = svg.append("g").attr("class", "starfield");
+    const numStars = 180; // Increased number of stars
     
-    for (let i = 0; i < 180; i++) {
+    for (let i = 0; i < numStars; i++) {
       const x = Math.random() * width;
       const y = Math.random() * height;
       const size = Math.random() * 1.5 + 0.1;
       const opacity = Math.random() * 0.6 + 0.1;
       
-      const star = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      star.setAttribute("cx", x.toString());
-      star.setAttribute("cy", y.toString());
-      star.setAttribute("r", size.toString());
-      star.setAttribute("fill", "white");
-      star.setAttribute("opacity", opacity.toString());
-      
-      starGroup.appendChild(star);
+      // Create a star
+      const star = starGroup.append("circle")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", size)
+        .attr("fill", "white")
+        .attr("opacity", opacity);
+        
+      // Add subtle twinkle animation to some stars
+      if (Math.random() > 0.7) {
+        star.append("animate")
+          .attr("attributeName", "opacity")
+          .attr("values", `${opacity};${opacity * 0.4};${opacity}`)
+          .attr("dur", `${2 + Math.random() * 6}s`)
+          .attr("repeatCount", "indefinite");
+      }
     }
     
-    svg.appendChild(starGroup);
+    // Add subtle color variations to some stars
+    for (let i = 0; i < 15; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const size = Math.random() * 2 + 0.5;
+      const opacity = Math.random() * 0.3 + 0.1;
+      
+      const colors = ["#f0f8ff", "#fffaf0", "#e6e6fa", "#f5f5dc"];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      
+      starGroup.append("circle")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", size)
+        .attr("fill", color)
+        .attr("opacity", opacity);
+    }
     
-    // Create nodes from narratives
-    const centerX = width / 2;
-    const centerY = height / 2;
-    
-    narratives.forEach((narrative, index) => {
-      const angle = (index * Math.PI * 2) / narratives.length;
-      const distance = Math.min(width, height) * 0.3;
-      const x = centerX + Math.cos(angle) * distance;
-      const y = centerY + Math.sin(angle) * distance;
-      const radius = Math.max(20, Math.min(50, Math.sqrt(narrative.marketCap) * 2));
+    // Add a few distant "galaxies" (blurred star clusters)
+    for (let i = 0; i < 3; i++) {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      const galaxySize = 30 + Math.random() * 60;
       
-      // Create node circle
-      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      circle.setAttribute("cx", x.toString());
-      circle.setAttribute("cy", y.toString());
-      circle.setAttribute("r", radius.toString());
-      circle.setAttribute("fill", narrative.color);
-      circle.setAttribute("opacity", "0.8");
-      circle.setAttribute("stroke", "white");
-      circle.setAttribute("stroke-width", "2");
-      
-      svg.appendChild(circle);
-      
-      // Create label
-      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      text.setAttribute("x", x.toString());
-      text.setAttribute("y", (y + 5).toString());
-      text.setAttribute("text-anchor", "middle");
-      text.setAttribute("fill", "white");
-      text.setAttribute("font-size", "12");
-      text.setAttribute("font-family", "Arial");
-      text.textContent = narrative.name;
-      
-      svg.appendChild(text);
-    });
-    
-    // Create flow connections
-    flowData.forEach(flow => {
-      const sourceNarrative = narratives.find(n => n.id === flow.from);
-      const targetNarrative = narratives.find(n => n.id === flow.to);
-      
-      if (sourceNarrative && targetNarrative) {
-        const sourceIndex = narratives.indexOf(sourceNarrative);
-        const targetIndex = narratives.indexOf(targetNarrative);
-        
-        const sourceAngle = (sourceIndex * Math.PI * 2) / narratives.length;
-        const targetAngle = (targetIndex * Math.PI * 2) / narratives.length;
-        const distance = Math.min(width, height) * 0.3;
-        
-        const sourceX = centerX + Math.cos(sourceAngle) * distance;
-        const sourceY = centerY + Math.sin(sourceAngle) * distance;
-        const targetX = centerX + Math.cos(targetAngle) * distance;
-        const targetY = centerY + Math.sin(targetAngle) * distance;
-        
-        // Create flow line
-        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.setAttribute("x1", sourceX.toString());
-        line.setAttribute("y1", sourceY.toString());
-        line.setAttribute("x2", targetX.toString());
-        line.setAttribute("y2", targetY.toString());
-        line.setAttribute("stroke", flow.predicted ? "#ff6b35" : "#4ade80");
-        line.setAttribute("stroke-width", Math.max(1, Math.abs(flow.value) / 100).toString());
-        line.setAttribute("opacity", "0.6");
-        
-        svg.appendChild(line);
-      }
-    });
-    
-    return () => {
-      // Cleanup function
-    };
-  }, [config, svgRef, containerRef, width, height, narratives, flowData, isPredicted]);
+      starGroup.append("circle")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", galaxySize)
+        .attr("fill", "rgba(100, 100, 180, 0.02)")
+        .attr("filter", "blur(12px)");
+    }
+  };
 };

@@ -11,20 +11,7 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): P
   
   for (let i = 0; i < retries; i++) {
     try {
-      // First try direct fetch
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          'Accept': 'application/json',
-          ...options.headers,
-        },
-      });
-
-      if (response.ok) {
-        return response;
-      }
-
-      // If direct fetch fails, try proxy
+      // First try proxy to handle CORS issues
       const proxyResponse = await fetch(`${PROXY_URL}${encodeURIComponent(url)}`, {
         ...options,
         headers: {
@@ -33,11 +20,24 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): P
         },
       });
 
-      if (!proxyResponse.ok) {
-        throw new Error(`HTTP error! status: ${proxyResponse.status}`);
+      if (proxyResponse.ok) {
+        return proxyResponse;
       }
 
-      return proxyResponse;
+      // If proxy fails, try direct fetch as fallback
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Accept': 'application/json',
+          ...options.headers,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return response;
     } catch (error) {
       console.error(`Attempt ${i + 1} failed:`, error);
       lastError = error as Error;
