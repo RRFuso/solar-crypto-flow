@@ -53,8 +53,8 @@ const CapitalFlowPanel = () => {
 
   return (
     <div className="h-full w-full flex overflow-hidden">
-      {/* Left Sidebar - AI Watchlist - Largura reduzida e scroll vertical */}
-      <div className="w-64 max-w-[280px] flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-y-auto overflow-x-hidden">
+      {/* Left Sidebar - AI Watchlist - Largura controlada */}
+      <div className="w-72 max-w-[300px] flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-y-auto">
         <FlowVisualizationContent 
           isLoading={isLoading}
           error={error}
