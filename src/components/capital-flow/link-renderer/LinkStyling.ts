@@ -88,7 +88,7 @@ export const stylizeLinks = (
           .transition()
           .duration(200)
           .attr("stroke-width", () => {
-            const baseWidth = 1.5 + Math.min(6, Math.sqrt(Math.abs((d as CapitalFlowLink).value)) / 10);
+            const baseWidth = 1.5 + Math.min(6, Math.sqrt(Math.abs(d.value)) / 10);
             return baseWidth * 1.8;
           })
           .attr("opacity", 1);
@@ -101,14 +101,12 @@ export const stylizeLinks = (
           .transition()
           .duration(200)
           .attr("stroke-width", () => {
-            const linkData = d as CapitalFlowLink;
-            const baseWidth = 1.5 + Math.min(6, Math.sqrt(Math.abs(linkData.value)) / 10);
-            return selectedNodeId && (linkData.source.id === selectedNodeId || linkData.target.id === selectedNodeId) ? baseWidth * 1.5 : baseWidth;
+            const baseWidth = 1.5 + Math.min(6, Math.sqrt(Math.abs(d.value)) / 10);
+            return selectedNodeId && (d.source.id === selectedNodeId || d.target.id === selectedNodeId) ? baseWidth * 1.5 : baseWidth;
           })
           .attr("opacity", () => {
-            const linkData = d as CapitalFlowLink;
             if (selectedNodeId) {
-              return linkData.source.id === selectedNodeId || linkData.target.id === selectedNodeId ? 0.9 : 0.15;
+              return d.source.id === selectedNodeId || d.target.id === selectedNodeId ? 0.9 : 0.15;
             }
             return 0.8;
           });
