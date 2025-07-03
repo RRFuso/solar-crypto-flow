@@ -50,7 +50,7 @@ export class OrbitalAnimation {
       // Update node positions
       const nodeElements = svg.querySelectorAll('.node');
       nodeElements.forEach((nodeElement, index) => {
-        const node = nodes[index];
+        const node = nodes[index] as OrbitalNode;
         if (node) {
           nodeElement.setAttribute('transform', `translate(${node.x || 0},${node.y || 0})`);
         }
@@ -59,7 +59,7 @@ export class OrbitalAnimation {
       // FIXED: Synchronize glow positions with nodes
       const glowElements = svg.querySelectorAll('.node-glow');
       glowElements.forEach((glowElement, index) => {
-        const node = nodes[index];
+        const node = nodes[index] as OrbitalNode;
         if (node) {
           glowElement.setAttribute('cx', (node.x || 0).toString());
           glowElement.setAttribute('cy', (node.y || 0).toString());
@@ -69,7 +69,7 @@ export class OrbitalAnimation {
       // FIXED: Synchronize pulse circles for central node
       const pulseElements = svg.querySelectorAll('.pulse-circle');
       pulseElements.forEach((pulseElement, index) => {
-        const node = nodes[index];
+        const node = nodes[index] as OrbitalNode;
         if (node) {
           pulseElement.setAttribute('cx', (node.x || 0).toString());
           pulseElement.setAttribute('cy', (node.y || 0).toString());

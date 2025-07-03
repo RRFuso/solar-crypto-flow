@@ -105,7 +105,8 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       // Update node positions using native DOM methods
       node.forEach((nodeElement: any, i: number) => {
         if (nodeElement && nodes[i]) {
-          nodeElement.setAttribute("transform", `translate(${nodes[i].x || 0},${nodes[i].y || 0})`);
+          const nodeData = nodes[i] as any;
+          nodeElement.setAttribute("transform", `translate(${nodeData.x || 0},${nodeData.y || 0})`);
         }
       });
       

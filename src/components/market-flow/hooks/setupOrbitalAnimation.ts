@@ -25,7 +25,8 @@ export function setupOrbitalAnimation(
     const nodeElements = svg.querySelectorAll(".node");
     nodeElements.forEach((nodeElement: any, i: number) => {
       if (nodes[i]) {
-        nodeElement.setAttribute("transform", `translate(${nodes[i].x || 0},${nodes[i].y || 0})`);
+        const node = nodes[i] as any;
+        nodeElement.setAttribute("transform", `translate(${node.x || 0},${node.y || 0})`);
       }
     });
     
@@ -33,17 +34,21 @@ export function setupOrbitalAnimation(
     const backgroundElements = svg.querySelectorAll(".node-background");
     backgroundElements.forEach((bg: any, i: number) => {
       if (nodes[i]) {
-        bg.setAttribute("cx", nodes[i].x || 0);
-        bg.setAttribute("cy", nodes[i].y || 0);
+        const node = nodes[i] as any;
+        bg.setAttribute("cx", node.x || 0);
+        bg.setAttribute("cy", node.y || 0);
       }
     });
     
     // Update pulse elements
     const pulseElements = svg.querySelectorAll(".central-pulse");
     pulseElements.forEach((pulse: any, i: number) => {
-      if (nodes[i] && nodes[i].isCentral) {
-        pulse.setAttribute("cx", nodes[i].x || 0);
-        pulse.setAttribute("cy", nodes[i].y || 0);
+      if (nodes[i]) {
+        const node = nodes[i] as any;
+        if (node.isCentral) {
+          pulse.setAttribute("cx", node.x || 0);
+          pulse.setAttribute("cy", node.y || 0);
+        }
       }
     });
     
@@ -51,8 +56,9 @@ export function setupOrbitalAnimation(
     const glowElements = svg.querySelectorAll(".node-glow");
     glowElements.forEach((glow: any, i: number) => {
       if (nodes[i]) {
-        glow.setAttribute("cx", nodes[i].x || 0);
-        glow.setAttribute("cy", nodes[i].y || 0);
+        const node = nodes[i] as any;
+        glow.setAttribute("cx", node.x || 0);
+        glow.setAttribute("cy", node.y || 0);
       }
     });
     
@@ -60,8 +66,9 @@ export function setupOrbitalAnimation(
     const logoElements = svg.querySelectorAll(".node-logo");
     logoElements.forEach((logo: any, i: number) => {
       if (nodes[i]) {
-        logo.setAttribute("x", (nodes[i].x || 0) - (nodes[i].radius || 20) / 2);
-        logo.setAttribute("y", (nodes[i].y || 0) - (nodes[i].radius || 20) / 2);
+        const node = nodes[i] as any;
+        logo.setAttribute("x", (node.x || 0) - (node.radius || 20) / 2);
+        logo.setAttribute("y", (node.y || 0) - (node.radius || 20) / 2);
       }
     });
     

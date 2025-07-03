@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { FlowData, CryptoData } from '@/types/crypto';
 import { calculateNodePositions, OrbitalNode } from '../NodePlacement';
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
