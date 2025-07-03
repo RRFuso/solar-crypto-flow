@@ -332,7 +332,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
   };
 
   return (
-    <div className="bg-black border border-gray-700 rounded-lg h-full flex flex-col w-full max-w-full">
+    <div className="bg-black border border-gray-700 rounded-lg h-full flex flex-col min-w-[380px] max-w-[450px]">
       <div className="p-4 border-b border-gray-700">
         <h2 className="text-white text-lg font-semibold mb-3 flex items-center gap-2">
           🧠 AI Watchlist
