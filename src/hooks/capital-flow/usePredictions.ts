@@ -38,7 +38,7 @@ export const usePredictions = (
             : relevantCryptos;
             
           // Get features and make predictions with the selected chart timeframe
-          const features = await extractFeatures(categoryFilteredCryptos, flowData, chartTimeframe);
+          const features = categoryFilteredCryptos.map(c => extractFeatures(c));
           const newPredictions = predictPriceMovements(features, chartTimeframe);
           setPredictions(newPredictions);
           
