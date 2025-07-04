@@ -81,10 +81,6 @@ const CapitalFlowPanel = () => {
                   chartTimeframe={chartTimeframe}
                   onChartTimeframeChange={handleChartTimeframeChange}
                 />
-                <CategoryFilters 
-                  activeCategory={activeCategory}
-                  onCategoryClick={handleCategoryClick}
-                />
               </div>
               
               <div className="flex-shrink-0">
