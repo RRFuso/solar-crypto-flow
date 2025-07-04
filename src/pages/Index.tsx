@@ -11,44 +11,38 @@ const Index = () => {
 
   return (
     <DashboardLayout>
-      <div className="w-full h-full flex flex-col">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full w-full">
-          <div className="flex-shrink-0 px-4 pt-3 w-full">
-            <TabsList className="grid w-full max-w-xl grid-cols-3 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 h-10">
-              <TabsTrigger 
-                value="capital-flow" 
-                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-sm"
-              >
-                💰 Capital Flow AI
-              </TabsTrigger>
-              <TabsTrigger 
-                value="crypto" 
-                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-sm"
-              >
-                📊 Market Data
-              </TabsTrigger>
-              <TabsTrigger 
-                value="autotrade" 
-                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-sm"
-              >
-                🤖 AutoTrade
-              </TabsTrigger>
-            </TabsList>
-          </div>
+      <div className="w-full h-full flex flex-col p-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 h-full w-full">
+          <TabsList className="grid w-full max-w-xl grid-cols-3 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 h-10 mb-4">
+            <TabsTrigger 
+              value="capital-flow" 
+              className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-sm"
+            >
+              💰 Capital Flow AI
+            </TabsTrigger>
+            <TabsTrigger 
+              value="crypto" 
+              className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-sm"
+            >
+              📊 Market Data
+            </TabsTrigger>
+            <TabsTrigger 
+              value="autotrade" 
+              className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-sm"
+            >
+              🤖 AutoTrade
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="flex-1 w-full overflow-hidden">
-            <TabsContent value="capital-flow" className="h-full m-0 w-full data-[state=active]:block hidden">
-              <CapitalFlowPanel />
-            </TabsContent>
-
-            <TabsContent value="crypto" className="h-full m-0 w-full data-[state=active]:block hidden">
-              <CryptoPanel />
-            </TabsContent>
-
-            <TabsContent value="autotrade" className="h-full m-0 w-full data-[state=active]:block hidden">
-              <AutoTradePanel />
-            </TabsContent>
-          </div>
+          <TabsContent value="capital-flow" className="flex-1 h-full w-full overflow-hidden">
+            <CapitalFlowPanel />
+          </TabsContent>
+          <TabsContent value="crypto" className="flex-1 h-full w-full overflow-hidden">
+            <CryptoPanel />
+          </TabsContent>
+          <TabsContent value="autotrade" className="flex-1 h-full w-full overflow-hidden">
+            <AutoTradePanel />
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
