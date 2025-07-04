@@ -130,7 +130,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
   width,
   height,
   rotationSpeed = 0.00008, // Reduced for smoother animation
-  updateLinksInRealTime = true
+  updateLinksInRealTime = false
 }) => {
   useEffect(() => {
     if (!svg || nodes.length === 0) return;

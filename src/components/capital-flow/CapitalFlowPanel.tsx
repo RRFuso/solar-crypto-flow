@@ -22,7 +22,8 @@ const CapitalFlowPanel = () => {
   const { data: flowData, isLoading, error, refetch } = useQuery({
     queryKey: ['capital-flow', timeframe],
     queryFn: () => fetchMarketData(timeframe),
-    refetchInterval: 30000,
+    refetchOnWindowFocus: false, // Opcional: previne refetch ao focar na janela
+    staleTime: 1000 * 60 * 5, // 5 minutos
     meta: {
       onError: () => {
         toast("Failed to fetch market data. Please try again later.", {
