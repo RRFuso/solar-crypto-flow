@@ -18,6 +18,7 @@ const CapitalFlowPanel = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [showLines, setShowLines] = useState(true);
 
   const { data: flowData, isLoading, error, refetch } = useQuery({
     queryKey: ['capital-flow', timeframe],
@@ -65,6 +66,7 @@ const CapitalFlowPanel = () => {
           chartTimeframe={chartTimeframe}
           activeCategory={activeCategory}
           showSidebarOnly={true}
+          showLines={showLines}
         />
       </div>
 
@@ -98,6 +100,8 @@ const CapitalFlowPanel = () => {
                   selectedCategory={selectedCategory}
                   setSelectedCategory={setSelectedCategory}
                   onRefresh={() => refetch()}
+                  showLines={showLines}
+                  setShowLines={setShowLines}
                 />
               </div>
             </div>
@@ -115,6 +119,7 @@ const CapitalFlowPanel = () => {
             chartTimeframe={chartTimeframe}
             activeCategory={activeCategory}
             showSidebarOnly={false}
+            showLines={showLines}
           />
         </div>
       </div>

@@ -13,6 +13,7 @@ export interface LinkRendererExtendedProps {
   predictions: Prediction[];
   animateWithOrbit?: boolean;
   getCategoryColor?: (category: string) => string;
+  showLines: boolean;
 }
 
 export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
@@ -22,7 +23,8 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
   selectedNodeId,
   predictions,
   animateWithOrbit = false,
-  getCategoryColor
+  getCategoryColor,
+  showLines
 }) => {
   const getColorForFlow = (category: string) => {
     if (getCategoryColor) {
@@ -45,6 +47,9 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
     svg.selectAll(".particles-group").remove();
 
     const linkGroup = svg.append("g").attr("class", "flow-links");
+
+    // Set visibility based on showLines prop
+    linkGroup.style("visibility", showLines ? "visible" : "hidden");
 
     // Ensure links have valid source and target nodes with current positions
     const processedLinks = links.map(link => {
@@ -150,7 +155,7 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
       svg.selectAll(".flow-links").remove();
       svg.selectAll(".particles-group").remove();
     };
-  }, [svg, links, nodes, selectedNodeId, animateWithOrbit, getCategoryColor]);
+  }, [svg, links, nodes, selectedNodeId, animateWithOrbit, getCategoryColor, showLines]);
 
   return null;
 };

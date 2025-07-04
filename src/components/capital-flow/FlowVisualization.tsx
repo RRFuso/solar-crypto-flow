@@ -21,6 +21,7 @@ interface FlowVisualizationProps {
   predictions?: Prediction[];
   chartTimeframe?: string;
   activeCategory?: string;
+  showLines: boolean;
 }
 
 export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
@@ -28,7 +29,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   zoomLevel = 60,
   predictions = [],
   chartTimeframe = '4h',
-  activeCategory = 'all'
+  activeCategory = 'all',
+  showLines
 }) => {
   const {
     svgRef,
@@ -171,6 +173,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             predictions={predictions}
             animateWithOrbit={true}
             getCategoryColor={getCategoryColor}
+            showLines={showLines}
           />
           <NodeRendererComponent 
             svg={d3.select(svgRef.current)}
