@@ -44,6 +44,7 @@ export const calculateNodePositions = ({
     .sort((a, b) => b.marketCap - a.marketCap);
 
   // **CRITICAL FIX: Dramatically reduced scale for perfect viewport fit**
+  // **CRITICAL FIX: Dramatically reduced scale for perfect viewport fit**
   const placedNodes: Array<{x: number, y: number, radius: number}> = [
     { x: centralNode.x, y: centralNode.y, radius: centralNode.radius * 1.5 } // Reduced from 2 to 1.5
   ];
