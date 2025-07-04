@@ -291,11 +291,12 @@ class NodeRendererClass {
       });
 
     // AI recommendation badges for strong signals
-    node.filter(d => {
+    const badges = node.filter(d => {
       const aiInsight = this.aiInsights.get(d.id);
       return aiInsight?.recommendation === 'strong_buy' || aiInsight?.recommendation === 'strong_sell';
-    })
-    .append('circle')
+    });
+
+    badges.append('circle')
     .attr('class', 'ai-badge')
     .attr('cx', d => {
       const isCentral = d.id === this.centralNode?.id;
@@ -315,11 +316,7 @@ class NodeRendererClass {
     .attr('stroke', 'white')
     .attr('stroke-width', 2);
 
-    node.filter(d => {
-      const aiInsight = this.aiInsights.get(d.id);
-      return aiInsight?.recommendation === 'strong_buy' || aiInsight?.recommendation === 'strong_sell';
-    })
-    .append('text')
+    badges.append('text')
     .attr('class', 'ai-badge-text')
     .attr('x', d => {
       const isCentral = d.id === this.centralNode?.id;
@@ -406,17 +403,15 @@ class NodeRendererClass {
       .attr('filter', 'drop-shadow(0 8px 32px rgba(0, 0, 0, 0.8))');
 
     // Add pulsing effect for explosive potential
-    node.filter(d => d.explosivePotential === 'high' || d.explosivePotential === 'medium')
-      .append('circle')
-      .attr('class', 'node-pulse')
-      .attr('r', d => {
-        const isCentral = d.id === this.centralNode?.id;
-        return calculateNodeRadius(d, this.zoomLevel, isCentral);
-      })
-      .attr('fill', 'none')
-      .attr('stroke', d => d.predictionDirection === 'up' ? '#FFD700' : '#FF4500')
-      .attr('stroke-width', 2)
-      .style('animation', d => `pulse ${d.explosivePotential === 'high' ? '1.5s' : '2.5s'} infinite ease-out`);
+    if (node.priceActionSignal?.explosivePotential === 'High' || node.priceActionSignal?.explosivePotential === 'Medium') {
+      tooltip.append('circle')
+        .attr('class', 'node-pulse')
+        .attr('r', nodeRadius)
+        .attr('fill', 'none')
+        .attr('stroke', (node.priceChange24h ?? 0) > 0 ? '#FFD700' : '#FF4500')
+        .attr('stroke-width', 2)
+        .style('animation', `pulse ${node.priceActionSignal?.explosivePotential === 'High' ? '1.5s' : '2.5s'} infinite ease-out`);
+    }
 
     // Render tooltip text with enhanced styling
     textLines.forEach((line, i) => {
