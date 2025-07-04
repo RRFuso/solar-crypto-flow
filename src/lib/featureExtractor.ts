@@ -1,155 +1,69 @@
-import { CryptoData, FlowData } from '@/types/crypto';
-import { fetchTechnicalIndicators, fetchOnChainData } from './dataFetcher';
+import { HistoricalDataPoint } from '@/types/crypto';
 
-interface NormalizedFeature {
-  symbol: string;
-  id: string;
-  price: number;
-  volume: number;
-  rsi: number;
-  rsi4h: number;
-  macd: number;
-  macdSignal: number;
-  macdHistogram: number;
-  aboveMA: boolean;
-  priceChange1h: number;
-  priceChange24h: number;
-  volumeChange24h: number;
-  obv: number;
-  netFlowPercentage: number;
-  incomingFlows: number;
-  outgoingFlows: number;
-  exchangeInflow: number;
-  exchangeOutflow: number;
-  divergenceBullish: boolean;
-  divergenceBearish: boolean;
-}
+/**
+ * Calculates Bollinger Bands.
+ * @param data - Array of historical data points.
+ * @param period - The period to calculate the bands over (e.g., 20).
+ * @returns An array of objects containing the moving average, upper band, and lower band.
+ */
+const calculateBollingerBands = (data: number[], period: number) => {
+  const results: { ma: number; upper: number; lower: number }[] = [];
+  for (let i = period - 1; i < data.length; i++) {
+    const slice = data.slice(i - period + 1, i + 1);
+    const ma = slice.reduce((a, b) => a + b, 0) / period;
+    const stdDev = Math.sqrt(slice.map(x => Math.pow(x - ma, 2)).reduce((a, b) => a + b, 0) / period);
+    results.push({
+      ma,
+      upper: ma + stdDev * 2,
+      lower: ma - stdDev * 2,
+    });
+  }
+  return results;
+};
 
-export interface CryptoFeatures extends NormalizedFeature {}
+/**
+ * Calculates Volatility Compression using Bollinger Band Width.
+ * A value closer to 1 indicates higher compression (tighter bands).
+ * @param historicalData - Array of historical OHLCV data points.
+ * @param period - The period for Bollinger Bands calculation (default 20).
+ * @returns A score from 0 to 1.
+ */
+export const calculateVolatilityCompression = (historicalData: HistoricalDataPoint[], period: number = 20): number => {
+  if (historicalData.length < period) return 0;
 
-export async function extractFeatures(
-  cryptos: CryptoData[], 
-  flowData: FlowData[], 
-  timeframe: string
-): Promise<CryptoFeatures[]> {
-  const featuresPromises = cryptos.map(async (crypto) => {
-    try {
-      // Get technical indicators for this crypto
-      const indicators = await fetchTechnicalIndicators(crypto.symbol, timeframe);
-      
-      // Get on-chain data
-      const onChainData = await fetchOnChainData(crypto.symbol);
-      
-      // Calculate flow-related metrics from flowData
-      const relevantFlows = flowData.filter(
-        flow => flow.from === crypto.symbol || flow.to === crypto.symbol
-      );
-      
-      const incomingFlows = relevantFlows
-        .filter(flow => flow.to === crypto.symbol)
-        .reduce((sum, flow) => sum + Math.abs(flow.value), 0);
-        
-      const outgoingFlows = relevantFlows
-        .filter(flow => flow.from === crypto.symbol)
-        .reduce((sum, flow) => sum + Math.abs(flow.value), 0);
-      
-      // Build the feature object
-      const feature: CryptoFeatures = {
-        symbol: crypto.symbol,
-        id: crypto.id,
-        price: parseFloat(crypto.price) || 0,
-        volume: parseFloat(crypto.volume) || 0,
-        rsi: indicators.rsi,
-        rsi4h: indicators.rsi4h,
-        macd: indicators.macd.value,
-        macdSignal: indicators.macd.signal,
-        macdHistogram: indicators.macd.histogram,
-        aboveMA: parseFloat(crypto.price) > indicators.ema26,
-        priceChange1h: crypto.priceChange1h || 0,
-        priceChange24h: crypto.priceChange24h || 0,
-        volumeChange24h: crypto.volumeChange24h || 0,
-        obv: indicators.obv,
-        netFlowPercentage: incomingFlows + outgoingFlows > 0 
-          ? ((incomingFlows - outgoingFlows) / (incomingFlows + outgoingFlows)) * 100 
-          : 0,
-        incomingFlows,
-        outgoingFlows,
-        exchangeInflow: onChainData.exchangeInflow,
-        exchangeOutflow: onChainData.exchangeOutflow,
-        divergenceBullish: false, // Will be calculated below
-        divergenceBearish: false, // Will be calculated below
-      };
-      
-      // Calculate divergences
-      feature.divergenceBullish = 
-        feature.priceChange1h < 0 &&
-        feature.rsi > 50 &&
-        feature.obv > 0 &&
-        feature.macdHistogram > 0;
+  const closePrices = historicalData.map(d => d.close);
+  const bands = calculateBollingerBands(closePrices, period);
+  if (bands.length === 0) return 0;
 
-      feature.divergenceBearish = 
-        feature.priceChange1h > 0 &&
-        feature.rsi < 50 &&
-        feature.obv < 0 &&
-        feature.macdHistogram < 0;
-      
-      return feature;
-    } catch (error) {
-      console.error(`Error extracting features for ${crypto.symbol}:`, error);
-      // Return a default feature object if there's an error
-      return {
-        symbol: crypto.symbol,
-        id: crypto.id,
-        price: parseFloat(crypto.price) || 0,
-        volume: parseFloat(crypto.volume) || 0,
-        rsi: 50,
-        rsi4h: 50,
-        macd: 0,
-        macdSignal: 0,
-        macdHistogram: 0,
-        aboveMA: false,
-        priceChange1h: crypto.priceChange1h || 0,
-        priceChange24h: crypto.priceChange24h || 0,
-        volumeChange24h: crypto.volumeChange24h || 0,
-        obv: 0,
-        netFlowPercentage: 0,
-        incomingFlows: 0,
-        outgoingFlows: 0,
-        exchangeInflow: 0,
-        exchangeOutflow: 0,
-        divergenceBullish: false,
-        divergenceBearish: false,
-      } as CryptoFeatures;
-    }
-  });
-  
-  return Promise.all(featuresPromises);
-}
+  const lastBand = bands[bands.length - 1];
+  const bandwidth = (lastBand.upper - lastBand.lower) / lastBand.ma;
 
-export function normalizeFeatures(features: CryptoFeatures[]): NormalizedFeature[] {
-  return features.map((feature) => {
-    return {
-      symbol: feature.symbol,
-      id: feature.id,
-      price: feature.price,
-      volume: feature.volume,
-      rsi: feature.rsi,
-      rsi4h: feature.rsi4h,
-      macd: feature.macd,
-      macdSignal: feature.macdSignal,
-      macdHistogram: feature.macdHistogram,
-      aboveMA: feature.aboveMA,
-      priceChange1h: feature.priceChange1h,
-      priceChange24h: feature.priceChange24h,
-      volumeChange24h: feature.volumeChange24h,
-      obv: feature.obv,
-      netFlowPercentage: feature.netFlowPercentage,
-      incomingFlows: feature.incomingFlows,
-      outgoingFlows: feature.outgoingFlows,
-      exchangeInflow: feature.exchangeInflow,
-      exchangeOutflow: feature.exchangeOutflow,
-      divergenceBullish: feature.divergenceBullish,
-      divergenceBearish: feature.divergenceBearish,
-    };
-  });
-}
+  // Normalize the bandwidth. Lower is better.
+  // This is a heuristic normalization. A bandwidth of 0.05 (5%) is considered very tight.
+  const normalizedScore = 1 - Math.min(1, bandwidth / 0.25); 
+  return Math.max(0, Math.min(1, normalizedScore)); // Clamp between 0 and 1
+};
+
+/**
+ * Detects a recent volume spike compared to a moving average.
+ * @param historicalData - Array of historical OHLCV data points.
+ * @param lookback - The number of recent periods to check for a spike (default 3).
+ * @param smaPeriod - The period for the simple moving average of volume (default 30).
+ * @returns A score from 0 to 1 indicating the significance of the spike.
+ */
+export const detectVolumeSpike = (historicalData: HistoricalDataPoint[], lookback: number = 3, smaPeriod: number = 30): number => {
+  if (historicalData.length < smaPeriod + lookback) return 0;
+
+  const volumes = historicalData.map(d => d.volume || 0);
+  const recentVolumes = volumes.slice(-lookback);
+  const averageVolume = volumes.slice(-smaPeriod, -lookback).reduce((a, b) => a + b, 0) / (smaPeriod - lookback);
+
+  if (averageVolume === 0) return 0;
+
+  const maxRecentVolume = Math.max(...recentVolumes);
+  const spikeRatio = maxRecentVolume / averageVolume;
+
+  // Normalize the ratio. A spike 3x the average is significant.
+  const normalizedScore = Math.min(1, (spikeRatio - 1) / 3);
+  return Math.max(0, Math.min(1, normalizedScore)); // Clamp between 0 and 1
+};

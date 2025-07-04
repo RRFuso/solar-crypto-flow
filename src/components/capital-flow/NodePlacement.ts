@@ -13,6 +13,9 @@ export interface OrbitalNode {
   outflow?: number;
   marketCap: number;
   type: "central" | "orbital";
+  explosivePotential?: 'high' | 'medium' | 'low';
+  predictionDirection?: 'up' | 'down';
+  predictionConfidence?: number;
 }
 
 interface CalculateNodePositionsProps {

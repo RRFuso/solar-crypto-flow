@@ -9,6 +9,7 @@ import { CategoryFilters } from './panel/CategoryFilters';
 import { FlowVisualizationContent } from './panel/FlowVisualizationContent';
 import { usePredictions } from '@/hooks/capital-flow/usePredictions';
 import { useFilteredFlowData } from '@/hooks/capital-flow/useFilteredFlowData';
+import { useExplosiveSignals } from '@/hooks/useExplosiveSignals';
 
 const CapitalFlowPanel = () => {
   const [timeframe, setTimeframe] = useState('24h');
@@ -37,6 +38,25 @@ const CapitalFlowPanel = () => {
   const processedFlowData = useFilteredFlowData(flowData, flowLimit, activeCategory);
   const { predictions } = usePredictions(flowData, selectedCategory, chartTimeframe);
 
+  const symbols = React.useMemo(() => processedFlowData.map(d => d.id).filter(Boolean) as string[], [processedFlowData]);
+  const { data: explosiveSignals } = useExplosiveSignals(symbols);
+
+  const processedFlowDataWithSignals = React.useMemo(() => {
+    if (!explosiveSignals) return processedFlowData;
+    return processedFlowData.map(node => {
+      const signal = explosiveSignals.get(node.id as string);
+      if (signal) {
+        return {
+          ...node,
+          explosivePotential: signal.explosivePotential,
+          predictionDirection: signal.predictionDirection,
+          predictionConfidence: signal.predictionConfidence,
+        };
+      }
+      return node;
+    });
+  }, [processedFlowData, explosiveSignals]);
+  
   const filteredPredictions = React.useMemo(() => {
     if (showOnlyStrongSignals) {
       return predictions.filter(p => p.confidence >= 0.6);
@@ -60,7 +80,7 @@ const CapitalFlowPanel = () => {
         <FlowVisualizationContent 
           isLoading={isLoading}
           error={error}
-          processedFlowData={processedFlowData}
+          processedFlowData={processedFlowDataWithSignals}
           zoomLevel={zoomLevel}
           filteredPredictions={filteredPredictions}
           chartTimeframe={chartTimeframe}
@@ -109,7 +129,7 @@ const CapitalFlowPanel = () => {
           <FlowVisualizationContent 
             isLoading={isLoading}
             error={error}
-            processedFlowData={processedFlowData}
+            processedFlowData={processedFlowDataWithSignals}
             zoomLevel={zoomLevel}
             filteredPredictions={filteredPredictions}
             chartTimeframe={chartTimeframe}
