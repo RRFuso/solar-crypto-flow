@@ -138,13 +138,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
 
   return (
     <div ref={containerRef} className="w-full h-full relative overflow-hidden">
-      <div 
-        className="w-full h-full flex items-center justify-center"
-        style={{ 
-          transform: 'scale(0.8)', 
-          transformOrigin: 'center center'
-        }}
-      >
+      <div className="w-full h-full flex items-center justify-center">
         <svg 
           ref={svgRef} 
           className="w-full h-full" 
