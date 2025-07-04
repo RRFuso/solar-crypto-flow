@@ -1,6 +1,5 @@
 
 import { CryptoFeatures, normalizeFeatures } from "./featureExtractor";
-import { HistoricalDataPoint } from "@src/types/crypto";
 
 export interface Prediction {
   symbol: string;
