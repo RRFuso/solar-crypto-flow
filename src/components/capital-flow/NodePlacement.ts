@@ -60,32 +60,31 @@ export const calculateNodePositions = ({
 
   Object.entries(marketCapTiers).forEach(([tierStr, tierNodes]) => {
     const tier = parseInt(tierStr);
-    // **CRITICAL FIX: Reduced orbit spacing from 1.8x to 1.2x for much tighter orbits**
-    const orbitRadius = baseRadius * (tier + 1) * 1.2;
+    // **CRITICAL FIX: Further compressed outer orbits with non-linear scaling**
+    const orbitRadius = baseRadius * Math.pow(tier + 1, 0.75) * 1.1;
     
     tierNodes.forEach((node, nodeIndex) => {
       const nodesInTier = tierNodes.length;
       const baseAngle = (nodeIndex / nodesInTier) * 2 * Math.PI;
       
-      // **Reduced angle offset for better spacing in smaller scale**
-      const angleOffset = (Math.random() - 0.5) * (Math.PI / Math.max(8, nodesInTier)); // Increased denominator
+      const angleOffset = (Math.random() - 0.5) * (Math.PI / Math.max(8, nodesInTier));
       let angle = baseAngle + angleOffset;
       
       let attempts = 0;
       let found = false;
-      const maxAttempts = 40; // Reduced attempts for faster placement
+      const maxAttempts = 40;
       
       while (!found && attempts < maxAttempts) {
         const testX = width / 2 + Math.cos(angle) * orbitRadius;
         const testY = height / 2 + Math.sin(angle) * orbitRadius;
         
-        // **Reduced collision detection margins for tighter but clear spacing**
         let collision = false;
         for (const placed of placedNodes) {
           const dx = testX - placed.x;
           const dy = testY - placed.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
-          const minDistance = placed.radius + node.radius * 2.0; // Reduced from 2.5 to 2.0
+          // **Tighter collision for denser packing**
+          const minDistance = placed.radius + node.radius * 1.8;
           
           if (distance < minDistance) {
             collision = true;
@@ -96,25 +95,25 @@ export const calculateNodePositions = ({
         if (!collision) {
           node.x = testX;
           node.y = testY;
-          placedNodes.push({ x: testX, y: testY, radius: node.radius * 1.8 }); // Reduced from 2 to 1.8
+          placedNodes.push({ x: testX, y: testY, radius: node.radius * 1.8 });
           found = true;
         } else {
-          angle += Math.PI / (nodesInTier * 2.5); // Increased denominator for smaller angle steps
+          angle += Math.PI / (nodesInTier * 2.5);
           attempts++;
         }
       }
       
-      // **Fallback positioning with smaller increments**
       if (!found) {
-        const fallbackRadius = orbitRadius + (attempts * 10); // Reduced from 15 to 10
-        const fallbackAngle = baseAngle + (Math.random() * Math.PI / 3); // Reduced angle range
+        // **Reduced fallback radius to keep nodes from flying off**
+        const fallbackRadius = orbitRadius + (attempts * 5);
+        const fallbackAngle = baseAngle + (Math.random() * Math.PI / 3);
         
         node.x = width / 2 + Math.cos(fallbackAngle) * fallbackRadius;
         node.y = height / 2 + Math.sin(fallbackAngle) * fallbackRadius;
         placedNodes.push({ 
           x: node.x, 
           y: node.y, 
-          radius: node.radius * 1.8 // Consistent with above
+          radius: node.radius * 1.8
         });
       }
     });
