@@ -12,7 +12,7 @@ const Index = () => {
 
   return (
     <DashboardLayout>
-      <div className="w-full h-full flex flex-col">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
         {/* Unified Header */}
         <header className="flex-shrink-0 px-4 h-16 flex items-center justify-between border-b border-slate-700/50">
           <div className="flex items-center space-x-3">
@@ -53,18 +53,18 @@ const Index = () => {
           <UserMenu />
         </header>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 h-full w-full overflow-hidden">
-          <TabsContent value="capital-flow" className="flex-1 h-full w-full overflow-hidden">
+        <div className="flex-1 w-full overflow-hidden">
+          <TabsContent value="capital-flow" className="h-full w-full">
             <CapitalFlowPanel />
           </TabsContent>
-          <TabsContent value="crypto" className="flex-1 h-full w-full overflow-hidden">
+          <TabsContent value="crypto" className="h-full w-full">
             <CryptoPanel />
           </TabsContent>
-          <TabsContent value="autotrade" className="flex-1 h-full w-full overflow-hidden">
+          <TabsContent value="autotrade" className="h-full w-full">
             <AutoTradePanel />
           </TabsContent>
-        </Tabs>
-      </div>
+        </div>
+      </Tabs>
     </DashboardLayout>
   );
 };
