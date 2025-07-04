@@ -54,9 +54,9 @@ const CapitalFlowPanel = () => {
   const handleCategoryClick = (category: string) => setActiveCategory(category);
 
   return (
-    <div className="h-full w-full flex overflow-hidden">
+    <div className="h-full w-full flex overflow-hidden p-4 gap-4">
       {/* Left Sidebar - AI Watchlist - Largura reduzida e scroll vertical */}
-      <div className="w-64 max-w-[280px] flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm overflow-y-auto overflow-x-hidden">
+      <div className="w-80 md:w-96 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm rounded-lg overflow-hidden">
         <FlowVisualizationContent 
           isLoading={isLoading}
           error={error}
@@ -71,7 +71,7 @@ const CapitalFlowPanel = () => {
       </div>
 
       {/* Main Content Area - Ocupa o espaço restante */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden rounded-lg">
         {/* Header Controls - Compacto em linha única */}
         <div className="flex-shrink-0 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm z-10">
           <div className="p-3">
