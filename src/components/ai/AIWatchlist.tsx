@@ -332,33 +332,33 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
   };
 
   return (
-    <div className="bg-black border border-gray-700 rounded-lg h-full flex flex-col min-w-[380px] max-w-[450px]">
-      <div className="p-4 border-b border-gray-700">
-        <h2 className="text-white text-lg font-semibold mb-3 flex items-center gap-2">
+    <div className="bg-black border border-gray-700 rounded-lg h-full flex flex-col w-full">
+      <div className="p-3 border-b border-gray-700">
+        <h2 className="text-white text-base font-semibold mb-2 flex items-center gap-2">
           🧠 AI Watchlist
-          <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full">
+          <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full">
             Price Action
           </span>
         </h2>
         <input
-          className="w-full p-2 rounded-md bg-gray-900 border border-gray-600 text-white text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none"
-          placeholder="🔍 Buscar ativo..."
+          className="w-full p-1.5 rounded-md bg-gray-900 border border-gray-600 text-white text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+          placeholder="🔍 Buscar..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
-      <div className="flex-1 p-4 overflow-y-auto">
-        <div className="space-y-4">
+      <div className="flex-1 p-3 overflow-y-auto">
+        <div className="space-y-3">
           <div>
-            <h3 className="text-green-400 text-sm font-medium mb-3 flex items-center gap-2">
-              🐂 Bullish Signals
+            <h3 className="text-green-400 text-xs font-medium mb-2 flex items-center gap-1.5">
+              <ArrowUpRight size={14} /> Bullish Signals
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {bullish.length ? (
                 bullish.map(renderCard)
               ) : (
-                <div className="text-gray-500 text-xs text-center py-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                <div className="text-gray-500 text-xs text-center py-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
                   Nenhum sinal bullish disponível
                 </div>
               )}
@@ -366,14 +366,14 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
           </div>
 
           <div>
-            <h3 className="text-red-400 text-sm font-medium mb-3 flex items-center gap-2">
-              🐻 Bearish Signals
+            <h3 className="text-red-400 text-xs font-medium mb-2 flex items-center gap-1.5">
+              <ArrowDownRight size={14} /> Bearish Signals
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {bearish.length ? (
                 bearish.map(renderCard)
               ) : (
-                <div className="text-gray-500 text-xs text-center py-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                <div className="text-gray-500 text-xs text-center py-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
                   Nenhum sinal bearish disponível
                 </div>
               )}
