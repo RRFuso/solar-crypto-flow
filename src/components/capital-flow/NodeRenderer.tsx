@@ -350,15 +350,33 @@ class NodeRendererClass {
         .attr('height', 1)
         .attr('patternContentUnits', 'objectBoundingBox');
 
-      const logoUrl = getCryptoLogoUrl(node.id);
-      pattern.append('image')
-        .attr('href', logoUrl)
-        .attr('width', 1)
-        .attr('height', 1)
-        .attr('preserveAspectRatio', 'xMidYMid slice')
-        .on('error', function () {
-          d3.select(this).attr('href', getFallbackLogoUrl());
-        });
+      const logoUrls = getLogoUrls(node.id);
+      let currentUrlIndex = 0;
+
+      const loadImage = () => {
+        if (currentUrlIndex >= logoUrls.length) {
+          // This should not happen if the fallback SVG is always last
+          return; 
+        }
+        
+        const imageUrl = logoUrls[currentUrlIndex];
+        
+        // Remove previous image if any
+        pattern.select('image').remove();
+
+        pattern.append('image')
+          .attr('href', imageUrl)
+          .attr('width', 1)
+          .attr('height', 1)
+          .attr('preserveAspectRatio', 'xMidYMid slice')
+          .on('error', () => {
+            // If the image fails to load, try the next URL in the list
+            currentUrlIndex++;
+            loadImage();
+          });
+      };
+
+      loadImage(); // Start loading the first image
     });
   }
 
