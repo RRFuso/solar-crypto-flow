@@ -406,7 +406,7 @@ class NodeRendererClass {
       .attr('filter', 'drop-shadow(0 8px 32px rgba(0, 0, 0, 0.8))');
 
     // Add pulsing effect for explosive potential
-    node.filter(d => d.explosivePotential === 'high' || d.explosivePotential === 'medium')
+    node.filter(d => d.priceActionSignal?.explosivePotential === 'High' || d.priceActionSignal?.explosivePotential === 'Medium')
       .append('circle')
       .attr('class', 'node-pulse')
       .attr('r', d => {
@@ -414,9 +414,9 @@ class NodeRendererClass {
         return calculateNodeRadius(d, this.zoomLevel, isCentral);
       })
       .attr('fill', 'none')
-      .attr('stroke', d => d.predictionDirection === 'up' ? '#FFD700' : '#FF4500')
+      .attr('stroke', d => d.priceActionSignal?.isBreakout ? '#FFD700' : '#FF4500')
       .attr('stroke-width', 2)
-      .style('animation', d => `pulse ${d.explosivePotential === 'high' ? '1.5s' : '2.5s'} infinite ease-out`);
+      .style('animation', d => `pulse ${d.priceActionSignal?.explosivePotential === 'High' ? '1.5s' : '2.5s'} infinite ease-out`);
 
     // Render tooltip text with enhanced styling
     textLines.forEach((line, i) => {

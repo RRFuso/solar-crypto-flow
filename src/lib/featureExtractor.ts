@@ -1,4 +1,110 @@
+
 import { HistoricalDataPoint } from '@/types/crypto';
+
+// Inferred interfaces based on usage in the project
+export interface CryptoData {
+  id: string;
+  symbol: string;
+  name: string;
+  price: number;
+  market_cap: number;
+  total_volume: number;
+  price_change_percentage_1h_in_currency?: number;
+  price_change_percentage_24h_in_currency?: number;
+  price_change_percentage_7d_in_currency?: number;
+  sparkline_in_7d?: { price: number[] };
+  category?: string;
+  rsi?: number;
+  rsi_4h?: number;
+  macd?: number;
+  macd_signal?: number;
+  macd_hist?: number;
+  obv?: number;
+}
+
+export interface FlowData {
+  from: string;
+  to: string;
+  amount: number;
+}
+
+export interface CryptoFeatures {
+  symbol: string;
+  id: string;
+  price: number;
+  volume: number;
+  rsi: number;
+  rsi4h: number;
+  macd: number;
+  macdSignal: number;
+  macdHistogram: number;
+  obv: number;
+  aboveMA: boolean;
+  priceChange1h: number;
+  priceChange24h: number;
+  volumeChange24h: number;
+  netFlowPercentage: number;
+  incomingFlows: number;
+  outgoingFlows: number;
+  exchangeInflow: number;
+  exchangeOutflow: number;
+}
+
+/**
+ * Extracts and calculates features for a given set of cryptocurrencies.
+ */
+export async function extractFeatures(
+  cryptos: CryptoData[],
+  flows: FlowData[],
+  timeframe: string
+): Promise<CryptoFeatures[]> {
+  const features: CryptoFeatures[] = [];
+
+  for (const crypto of cryptos) {
+    const incomingFlows = flows.filter(f => f.to === crypto.symbol).reduce((sum, f) => sum + f.amount, 0);
+    const outgoingFlows = flows.filter(f => f.from === crypto.symbol).reduce((sum, f) => sum + f.amount, 0);
+    const totalFlow = incomingFlows + outgoingFlows;
+    const netFlowPercentage = totalFlow > 0 ? ((incomingFlows - outgoingFlows) / totalFlow) * 100 : 0;
+
+    // Simplified moving average calculation from sparkline
+    const prices7d = crypto.sparkline_in_7d?.price || [];
+    const ma7 = prices7d.length > 0 ? prices7d.reduce((a, b) => a + b, 0) / prices7d.length : 0;
+
+    features.push({
+      symbol: crypto.symbol,
+      id: crypto.id,
+      price: crypto.price || 0,
+      volume: crypto.total_volume || 0,
+      rsi: crypto.rsi || 50,
+      rsi4h: crypto.rsi_4h || 50,
+      macd: crypto.macd || 0,
+      macdSignal: crypto.macd_signal || 0,
+      macdHistogram: crypto.macd_hist || 0,
+      obv: crypto.obv || 0,
+      aboveMA: crypto.price > ma7,
+      priceChange1h: crypto.price_change_percentage_1h_in_currency || 0,
+      priceChange24h: crypto.price_change_percentage_24h_in_currency || 0,
+      volumeChange24h: 0, // Placeholder, as this data isn't directly available
+      netFlowPercentage,
+      incomingFlows,
+      outgoingFlows,
+      exchangeInflow: 0, // Placeholder
+      exchangeOutflow: 0, // Placeholder
+    });
+  }
+  return features;
+}
+
+/**
+ * Normalizes features to a common scale (e.g., 0-1).
+ * This is a placeholder implementation. A real implementation would use min-max scaling or z-score standardization.
+ */
+export function normalizeFeatures(features: CryptoFeatures[]): CryptoFeatures[] {
+  // For now, we'll just return the features as is.
+  // A real implementation would require calculating min/max for each feature across the dataset.
+  return features;
+}
+
 
 /**
  * Calculates Bollinger Bands.
@@ -29,7 +135,7 @@ const calculateBollingerBands = (data: number[], period: number) => {
  * @returns A score from 0 to 1.
  */
 export const calculateVolatilityCompression = (historicalData: HistoricalDataPoint[], period: number = 20): number => {
-  if (historicalData.length < period) return 0;
+  if (.length < period) return 0;
 
   const closePrices = historicalData.map(d => d.close);
   const bands = calculateBollingerBands(closePrices, period);
@@ -40,7 +146,7 @@ export const calculateVolatilityCompression = (historicalData: HistoricalDataPoi
 
   // Normalize the bandwidth. Lower is better.
   // This is a heuristic normalization. A bandwidth of 0.05 (5%) is considered very tight.
-  const normalizedScore = 1 - Math.min(1, bandwidth / 0.25); 
+  const normalizedScore = 1 - Math.min(1, bandwidth / 0.25);
   return Math.max(0, Math.min(1, normalizedScore)); // Clamp between 0 and 1
 };
 
