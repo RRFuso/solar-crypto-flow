@@ -24,6 +24,12 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
     queryKey: ['cryptos', timeframe, rsiOverbought, rsiOversold, filter],
     queryFn: async () => {
       console.log(`Fetching crypto data for filter: ${filter}...`);
+      
+      const tickerList = PREDEFINED_LISTS[filter] || [];
+      if (tickerList.length === 0) {
+        return [];
+      }
+
       const tickers = await fetchTickers();
       const btcTicker = tickers['BTCUSDT'];
       
@@ -31,28 +37,19 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
         console.error('BTC ticker not found');
         return [];
       }
-
       const btcChange = parseFloat(btcTicker.priceChangePercent);
 
-      const tickerList = PREDEFINED_LISTS[filter] || Object.keys(tickers);
-      const usdtSymbols = tickerList.map(symbol => `${symbol}USDT`);
-
       const usdtPairs = await Promise.all(
-        usdtSymbols.map(async (symbol) => {
+        tickerList.map(async (symbol) => {
+            const usdtSymbol = `${symbol}USDT`;
             try {
-              const ticker = tickers[symbol];
+              const ticker = tickers[usdtSymbol];
               if (!ticker) return null;
 
-              console.log(`Fetching klines for ${symbol}...`);
-              const klines = await fetchKlines(symbol, timeframe);
-              
-              if (!klines || klines.length === 0) {
-                console.log(`No klines data for ${symbol}`);
-                return null;
-              }
+              const klines = await fetchKlines(usdtSymbol, timeframe);
+              if (!klines || klines.length === 0) return null;
 
               const prices = klines.map(k => parseFloat(k.close));
-              
               const rsiValues = calculateRSI(prices);
               const ema12Values = calculateEMA(prices, 12);
               const ema26Values = calculateEMA(prices, 26);
@@ -61,18 +58,12 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
               const currentPrice = parseFloat(ticker.lastPrice);
               const priceChange = parseFloat(ticker.priceChangePercent);
               
-              if (isNaN(currentPrice) || isNaN(priceChange)) {
-                console.log(`Invalid price data for ${symbol}`);
-                return null;
-              }
-
-              // Extract the symbol without USDT suffix
-              const baseSymbol = symbol.replace('USDT', '');
+              if (isNaN(currentPrice) || isNaN(priceChange)) return null;
 
               return {
-                id: baseSymbol,
-                name: baseSymbol,
-                symbol: baseSymbol, // Explicitly set the symbol property
+                id: symbol,
+                name: symbol,
+                symbol: symbol,
                 performance: priceChange - btcChange,
                 price: currentPrice.toFixed(8),
                 rsi: rsiValues[rsiValues.length - 1],
@@ -85,7 +76,7 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
                 low24h: ticker.lowPrice
               } as CryptoData;
             } catch (error) {
-              console.error(`Error processing ${symbol}:`, error);
+              console.error(`Error processing ${usdtSymbol}:`, error);
               return null;
             }
           })
@@ -97,10 +88,9 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
         !isNaN(parseFloat(pair.price || '0'))
       );
 
-      console.log(`Found ${validPairs.length} valid pairs out of ${usdtPairs.length} total`);
+      console.log(`Found ${validPairs.length} valid pairs for filter ${filter}`);
       return validPairs;
     },
-    refetchInterval: 15000,
     retry: 3,
     staleTime: 10000
   });

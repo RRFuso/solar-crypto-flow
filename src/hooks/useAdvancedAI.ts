@@ -118,11 +118,6 @@ export const useAdvancedAI = (
   // Auto-refresh insights
   useEffect(() => {
     generateInsights();
-
-    // Set up auto-refresh interval (every 5 minutes for real-time analysis)
-    const interval = setInterval(generateInsights, 5 * 60 * 1000);
-
-    return () => clearInterval(interval);
   }, [generateInsights]);
 
   const calculateOpportunityScore = (
