@@ -32,14 +32,16 @@ const getAIRecommendationColor = (recommendation: string): string => {
 };
 
 const getAIGlowColor = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>): string => {
+  const signal = node.priceActionSignal;
+  if (signal?.explosivePotential === 'High') return 'rgba(255, 223, 0, 0.9)';
+  
   const aiInsight = aiInsights.get(node.id);
   if (aiInsight) {
-    if (aiInsight.opportunityScore > 80) return 'rgba(0, 255, 136, 0.6)';
-    if (aiInsight.riskScore > 70) return 'rgba(255, 50, 50, 0.6)';
+    if (aiInsight.opportunityScore > 80) return 'rgba(0, 255, 136, 0.7)';
+    if (aiInsight.riskScore > 70) return 'rgba(255, 50, 50, 0.7)';
   }
-  const signal = node.priceActionSignal;
-  if (signal?.explosivePotential === 'High') return 'rgba(255, 215, 0, 0.6)';
-  return 'rgba(0, 181, 216, 0.3)';
+  
+  return 'rgba(0, 181, 216, 0.4)';
 };
 
 const calculateNodeRadius = (node: ExtendedOrbitalNode, zoomLevel: number, isCentral: boolean = false): number => {
@@ -57,19 +59,31 @@ const calculateNodeRadius = (node: ExtendedOrbitalNode, zoomLevel: number, isCen
   return Math.max(minRadius, Math.min(maxRadius, calculatedRadius));
 };
 
-// Tooltip logic remains the same
 const createEnhancedTooltip = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>): string[] => {
     const lines: string[] = [];
     lines.push(`${node.id} ${node.name ? `(${node.name})` : ''}`);
     lines.push('─'.repeat(25));
-    lines.push(`💰 Preço: ${node.price ? `$${parseFloat(node.price).toLocaleString()}`: 'N/A'}`);
+    lines.push(`💰 Price: ${node.price ? `${parseFloat(node.price).toLocaleString()}`: 'N/A'}`);
     lines.push(`📊 24h: ${node.priceChange24h?.toFixed(2) ?? 'N/A'}%`);
+
     const aiInsight = aiInsights.get(node.id);
     if (aiInsight) {
         lines.push('🧠 AI Analysis');
-        lines.push(`📋 ${aiInsight.recommendation}`);
-        lines.push(`🎯 Confiança: ${aiInsight.confidence.toFixed(1)}%`);
+        lines.push(`📋 Recommendation: ${aiInsight.recommendation}`);
+        lines.push(`🎯 Confidence: ${aiInsight.confidence.toFixed(1)}%`);
     }
+
+    if (node.priceActionSignal?.explosivePotential === 'High') {
+        lines.push('---');
+        lines.push('🔥 HIGH EXPLOSIVE POTENTIAL');
+        if (aiInsight?.predictions[0]?.keyFactors) {
+            lines.push('Key Factors:');
+            aiInsight.predictions[0].keyFactors.forEach((factor: string) => {
+                lines.push(`  - ${factor}`);
+            });
+        }
+    }
+
     return lines;
 };
 
@@ -185,6 +199,37 @@ const renderOrUpdateVisualization = (
     .attr('fill', (d: any) => getAIGlowColor(d, aiInsights))
     .attr('filter', 'blur(8px)')
     .attr('opacity', (d: any) => aiInsights.get(d.id)?.opportunityScore > 75 ? 0.8 : 0.5);
+
+  // Comet trail for high potential nodes
+  nodeUpdate.each(function(d: any) {
+    const nodeGroup = d3.select(this);
+    if (d.priceActionSignal?.explosivePotential === 'High') {
+      // Remove any existing trail
+      nodeGroup.selectAll('.comet-trail').remove();
+
+      const trail = nodeGroup.insert('g', ':first-child')
+        .attr('class', 'comet-trail');
+
+      const trailLength = 5;
+      const trailOpacity = d3.scaleLinear()
+        .domain([0, trailLength])
+        .range([0.6, 0]);
+
+      for (let i = 0; i < trailLength; i++) {
+        trail.append('circle')
+          .attr('r', calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * (1 - i / trailLength))
+          .attr('fill', 'rgba(255, 223, 0, 0.8)')
+          .attr('opacity', trailOpacity(i))
+          .transition()
+          .delay(i * 50)
+          .ease(d3.easeQuadOut)
+          .attr('transform', `translate(0, ${i * 4})`);
+      }
+    } else {
+      // Remove trail if it exists and potential is no longer high
+      nodeGroup.selectAll('.comet-trail').remove();
+    }
+  });
 
   // Update the main circle
   nodeUpdate.select('circle.node-circle')

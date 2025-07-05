@@ -8,7 +8,6 @@ import { LinkRendererExtended } from './LinkRendererExtended';
 import { NodeRendererComponent } from './NodeRenderer';
 import { OrbitalAnimationComponent } from './OrbitalAnimation';
 import { StarfieldBackground } from './visualization/StarfieldBackground';
-import PredictionOrbitalOverlay from '../ai/PredictionOrbitalOverlay';
 import { useVisualizationSetup } from './visualization/useVisualizationSetup';
 import { useVisualizationData } from './visualization/useVisualizationData';
 import { useCryptoData } from '@/hooks/useCryptoData';
@@ -190,15 +189,6 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             rotationSpeed={0.00001}
             updateLinksInRealTime={true}
           />
-          {predictions && predictions.length > 0 && (
-            <PredictionOrbitalOverlay
-              svg={d3.select(svgRef.current)}
-              nodes={visualizationData.nodes}
-              updateInterval={600000}
-              predictions={predictions}
-              chartTimeframe={chartTimeframe}
-            />
-          )}
         </>
       )}
       </div>

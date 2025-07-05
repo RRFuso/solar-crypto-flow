@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { TrendingUp, TrendingDown, AlertTriangle, Brain, Target, Shield, Clock, Zap } from 'lucide-react';
+import { ExplosiveWatchPanel } from './ExplosiveWatchPanel';
 
 export const AdvancedAIDashboard: React.FC = () => {
   const [selectedSymbols] = useState(['BTC', 'ETH', 'BNB', 'SOL', 'ADA', 'DOT', 'MATIC', 'AVAX', 'LINK', 'UNI']);
@@ -90,55 +91,60 @@ export const AdvancedAIDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-green-500" />
-              <div>
-                <p className="text-sm text-gray-600">Top Opportunities</p>
-                <p className="text-2xl font-bold text-green-600">{topOpportunities.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Overview Cards & Explosive Watch */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-green-500" />
+                  <div>
+                    <p className="text-sm text-gray-600">Top Opportunities</p>
+                    <p className="text-2xl font-bold text-green-600">{topOpportunities.length}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-500" />
-              <div>
-                <p className="text-sm text-gray-600">Strong Buys</p>
-                <p className="text-2xl font-bold text-blue-600">{strongBuys.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-blue-500" />
+                  <div>
+                    <p className="text-sm text-gray-600">Strong Buys</p>
+                    <p className="text-2xl font-bold text-blue-600">{strongBuys.length}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-red-500" />
-              <div>
-                <p className="text-sm text-gray-600">High Risk</p>
-                <p className="text-2xl font-bold text-red-600">{highRiskAssets.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-500" />
+                  <div>
+                    <p className="text-sm text-gray-600">High Risk</p>
+                    <p className="text-2xl font-bold text-red-600">{highRiskAssets.length}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Brain className="w-5 h-5 text-purple-500" />
-              <div>
-                <p className="text-sm text-gray-600">Assets Analyzed</p>
-                <p className="text-2xl font-bold text-purple-600">{insights.size}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-purple-500" />
+                  <div>
+                    <p className="text-sm text-gray-600">Assets Analyzed</p>
+                    <p className="text-2xl font-bold text-purple-600">{insights.size}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+        <ExplosiveWatchPanel />
       </div>
 
       {/* Main Content */}
