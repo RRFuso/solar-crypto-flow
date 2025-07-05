@@ -22,6 +22,7 @@ const CryptoFilterDropdown: React.FC<CryptoFilterDropdownProps> = ({ value, onVa
     { value: 'oversold', label: 'Sobrevendido' },
     { value: 'div-bull', label: 'Divergência Bull' },
     { value: 'div-bear', label: 'Divergência Bear' },
+    { value: 'explosive', label: 'Potencial Explosivo' },
   ];
 
   return (

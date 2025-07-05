@@ -31,7 +31,8 @@ const CryptoPanel = () => {
   const { data: cryptos = [], isLoading, error } = useCryptoData({
     timeframe: settings.timeframe,
     rsiOverbought: settings.rsiOverbought,
-    rsiOversold: settings.rsiOversold
+    rsiOversold: settings.rsiOversold,
+    filter: activeFilter,
   });
 
   const handleSelectCrypto = useCallback((crypto: CryptoData) => {

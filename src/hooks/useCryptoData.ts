@@ -3,24 +3,27 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchTickers, fetchKlines } from '@/lib/binance';
 import { calculateRSI, calculateEMA } from '@/lib/technicalAnalysis';
 import { CryptoData } from '@/types/crypto';
+import { PREDEFINED_LISTS } from '@/lib/marketData/predefinedLists';
 
 interface CryptoDataOptions {
   timeframe?: string;
   rsiOverbought?: number;
   rsiOversold?: number;
+  filter?: string;
 }
 
 export const useCryptoData = (options: CryptoDataOptions = {}) => {
   const {
     timeframe = '4h',
     rsiOverbought = 70,
-    rsiOversold = 30
+    rsiOversold = 30,
+    filter = 'outperforming',
   } = options;
 
   return useQuery({
-    queryKey: ['cryptos', timeframe, rsiOverbought, rsiOversold],
+    queryKey: ['cryptos', timeframe, rsiOverbought, rsiOversold, filter],
     queryFn: async () => {
-      console.log('Fetching crypto data...');
+      console.log(`Fetching crypto data for filter: ${filter}...`);
       const tickers = await fetchTickers();
       const btcTicker = tickers['BTCUSDT'];
       
@@ -31,11 +34,15 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
 
       const btcChange = parseFloat(btcTicker.priceChangePercent);
 
+      const tickerList = PREDEFINED_LISTS[filter] || Object.keys(tickers);
+      const usdtSymbols = tickerList.map(symbol => `${symbol}USDT`);
+
       const usdtPairs = await Promise.all(
-        Object.entries(tickers)
-          .filter(([symbol]) => symbol.endsWith('USDT'))
-          .map(async ([symbol, ticker]) => {
+        usdtSymbols.map(async (symbol) => {
             try {
+              const ticker = tickers[symbol];
+              if (!ticker) return null;
+
               console.log(`Fetching klines for ${symbol}...`);
               const klines = await fetchKlines(symbol, timeframe);
               
