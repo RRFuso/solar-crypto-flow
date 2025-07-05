@@ -71,13 +71,3 @@ export const getLogoUrls = (symbol: string): string[] => {
   return urls;
 };
 
-// --- Deprecated functions below can be removed later ---
-
-export const getCryptoLogoUrl = (symbol: string): string => {
-  const id = symbolToIdMap[symbol.toUpperCase()] || 1; // Default to BTC
-  return `https://s2.coinmarketcap.com/static/img/coins/64x64/${id}.png`;
-};
-
-export const getFallbackLogoUrl = (): string => {
-  return `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#F7931A"/><path fill="white" d="M... a very long path for bitcoin logo ..."/></svg>')}`;
-};

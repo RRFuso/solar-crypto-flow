@@ -2,7 +2,7 @@
 import * as d3 from 'd3';
 import { NarrativeData, NarrativeNode } from '@/types/narratives';
 import { useMarketAttention } from './useMarketAttention';
-import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
+import { getLogoUrls } from '@/lib/cryptoLogos';
 
 export const useNodeSizing = (narratives: NarrativeData[]) => {
   const { applyAttentionScoresToNodes } = useMarketAttention();
@@ -30,7 +30,7 @@ export const useNodeSizing = (narratives: NarrativeData[]) => {
             sourceNarrative.tokens.slice(0, 3).map(symbol => ({
               symbol,
               name: symbol,
-              logoUrl: getCryptoLogoUrl(symbol)
+              logoUrl: getLogoUrls(symbol)[0]
             })),
           x: 0,
           y: 0,
@@ -52,7 +52,7 @@ export const useNodeSizing = (narratives: NarrativeData[]) => {
             targetNarrative.tokens.slice(0, 3).map(symbol => ({
               symbol,
               name: symbol,
-              logoUrl: getCryptoLogoUrl(symbol)
+              logoUrl: getLogoUrls(symbol)[0]
             })),
           x: 0,
           y: 0,
@@ -96,13 +96,13 @@ export const useNodeSizing = (narratives: NarrativeData[]) => {
         node.representativeTokens = node.tokens.slice(0, 3).map(symbol => ({
           symbol,
           name: symbol,
-          logoUrl: getCryptoLogoUrl(symbol)
+          logoUrl: getLogoUrls(symbol)[0]
         }));
       } else {
         // Update existing logo URLs to use better sources
         node.representativeTokens = node.representativeTokens.map(token => ({
           ...token,
-          logoUrl: getCryptoLogoUrl(token.symbol)
+          logoUrl: getLogoUrls(token.symbol)[0]
         }));
       }
     });

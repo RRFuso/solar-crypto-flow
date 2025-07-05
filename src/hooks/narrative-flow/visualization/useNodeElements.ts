@@ -1,7 +1,7 @@
 
 import * as d3 from 'd3';
 import { NarrativeNode } from '@/types/narratives';
-import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
+import { getLogoUrls } from '@/lib/cryptoLogos';
 import { useFiltersAndEffects } from './useFiltersAndEffects';
 import { TokenLogo } from './types';
 
@@ -110,8 +110,7 @@ export const useNodeElements = () => {
           .attr("fill", "white")
           .attr("opacity", 0.9);
         
-        // Get the correct logo URL from our cryptoLogos utility
-        const logoUrl = getCryptoLogoUrl(token.symbol);
+        const logoUrls = getLogoUrls(token.symbol);
         
         // Add the logo image with error handling
         const img = d3.select(this)
@@ -120,13 +119,13 @@ export const useNodeElements = () => {
           .attr("y", y - logoRadius)
           .attr("width", logoRadius * 2)
           .attr("height", logoRadius * 2)
-          .attr("href", logoUrl)
+          .attr("href", logoUrls[0])
           .attr("clip-path", `url(#${clipId})`)
           .attr("preserveAspectRatio", "xMidYMid slice");
         
         // Add error handling for the image
         img.on("error", function() {
-          d3.select(this).attr("href", getFallbackLogoUrl());
+          d3.select(this).attr("href", logoUrls[1] || logoUrls[0]);
         });
       });
     });

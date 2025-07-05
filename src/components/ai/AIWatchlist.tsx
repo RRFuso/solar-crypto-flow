@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Prediction } from '@/lib/aiModel';
-import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
+import CryptoLogo from './CryptoLogo';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 // Importa useQuery para buscar dados históricos
 import { useQuery } from '@tanstack/react-query'; 
@@ -280,9 +280,8 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
         )}
         
         <div className="flex items-start gap-3">
-          <img
-            src={getCryptoLogoUrl(p.symbol)}
-            alt={p.symbol}
+          <CryptoLogo
+            symbol={p.symbol}
             className="w-8 h-8 rounded-full flex-shrink-0 mt-1"
           />
           <div className="flex-1 min-w-0">

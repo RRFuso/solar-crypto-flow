@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { getCryptoLogoUrl, getFallbackLogoUrl } from '@/lib/cryptoLogos';
+import CryptoLogo from '@/components/ai/CryptoLogo';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { CryptoData } from '@/types/crypto';
 
@@ -20,8 +20,6 @@ const CryptoCard: React.FC<CryptoCardProps> = ({
   showRsi4h = false
 }) => {
   const { id, name, symbol, performance = 0, price, volume } = crypto;
-  const logoUrl = getCryptoLogoUrl(symbol || id);
-  const fallbackLogoUrl = getFallbackLogoUrl();
   
   const displayPrice = price ? parseFloat(price) : 0;
   const displayVolume = volume ? parseFloat(volume) : 0;
@@ -32,14 +30,7 @@ const CryptoCard: React.FC<CryptoCardProps> = ({
       onClick={onClick}
     >
       <div className="flex items-center space-x-4">
-        <img
-          src={logoUrl}
-          alt={`${name} Logo`}
-          className="w-10 h-10 rounded-full"
-          onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-            e.currentTarget.src = fallbackLogoUrl;
-          }}
-        />
+        <CryptoLogo symbol={symbol || id} className="w-10 h-10 rounded-full" />
         <div>
           <h3 className="text-lg font-semibold">{name}</h3>
           <p className="text-sm text-gray-400">{symbol || id}/USDT</p>

@@ -5,7 +5,7 @@ import { CryptoData } from '@/types/crypto';
 import { fetchCryptoData, fetchCapitalFlows } from '@/lib/dataFetcher';
 import { extractFeatures } from '@/lib/featureExtractor';
 import { predictPriceMovements, getCachedPrediction, storePrediction } from '@/lib/aiModel';
-import { getCryptoLogoUrl } from '@/lib/cryptoLogos';
+import { getLogoUrls } from '@/lib/cryptoLogos';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -181,7 +181,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
           }).join('');
             
           // Add logo and information to tooltip
-          const logoUrl = getCryptoLogoUrl(d.id);
+          const logoUrl = getLogoUrls(d.id)[0];
           
           tooltip.html(`
             <div style="display: flex; align-items: center; margin-bottom: 8px;">
@@ -316,7 +316,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <img 
-                src={selectedStrategy ? getCryptoLogoUrl(selectedStrategy.symbol) : ''} 
+                src={selectedStrategy ? getLogoUrls(selectedStrategy.symbol)[0] : ''} 
                 className="w-6 h-6 rounded-full"
                 onError={(e) => {
                   (e.target as HTMLImageElement).onerror = null;
