@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { TrendingUp, DollarSign, LineChart } from 'lucide-react';
-import TradingViewWidget from 'react-tradingview-widget';
+import { AdvancedRealTimeChart } from 'react-ts-tradingview-widgets';
 
 interface EconomicIndicatorsProps {
   dxy: string;
@@ -22,11 +22,11 @@ const EconomicIndicators = ({ dxy, spx, nasdaq }: EconomicIndicatorsProps) => {
       </div>
       
       <div className="h-40 overflow-hidden rounded-lg border border-gray-700 mb-4">
-        <TradingViewWidget
+        <AdvancedRealTimeChart
           symbol="FOREXCOM:DXY"
           interval="D"
           timezone="Etc/UTC"
-          theme="Dark"
+          theme="dark"
           locale="br"
           autosize
           hide_top_toolbar

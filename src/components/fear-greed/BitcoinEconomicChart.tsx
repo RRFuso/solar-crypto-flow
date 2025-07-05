@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { LineChart, ArrowDown, ArrowUp } from 'lucide-react';
-import TradingViewWidget from 'react-tradingview-widget';
+import { AdvancedRealTimeChart } from 'react-ts-tradingview-widgets';
 
 interface BitcoinEconomicChartProps {
   btcPrice: string;
@@ -48,7 +48,7 @@ const BitcoinEconomicChart = ({
       </div>
       
       <div className="h-40 overflow-hidden rounded-lg border border-gray-700 mb-4">
-        <TradingViewWidget
+        <AdvancedRealTimeChart
           symbol="BTCUSD"
           interval="D"
           timezone="Etc/UTC"

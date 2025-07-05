@@ -1,6 +1,6 @@
 
 import React, { memo } from 'react';
-import TradingViewWidget from 'react-tradingview-widget';
+import { AdvancedRealTimeChart } from 'react-ts-tradingview-widgets';
 
 interface CryptoChartProps {
   crypto: {
@@ -28,19 +28,19 @@ const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: Cryp
         </h2>
       </div>
       <div className="h-[calc(100%-4rem)]">
-        <TradingViewWidget
+        <AdvancedRealTimeChart
           symbol={`BINANCE:${crypto.id}${symbol}`}
-          theme="Dark"
+          theme="dark"
           autosize
           interval={timeframe}
           timezone="Etc/UTC"
           style="1"
-          locale="pt"
+          locale="br"
           toolbar_bg="#1a1b1e"
           enable_publishing={false}
           hide_top_toolbar={false}
           allow_symbol_change={false}
-          studies={["RSI@tv-basicstudies", "StochRSI@tv-basicstudies"]}
+          studies={["RSI@tv-basicstudies", "CRSI@tv-basicstudies"]}
           container_id={containerId}
         />
       </div>
