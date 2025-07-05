@@ -135,7 +135,7 @@ const calculateBollingerBands = (data: number[], period: number) => {
  * @returns A score from 0 to 1.
  */
 export const calculateVolatilityCompression = (historicalData: HistoricalDataPoint[], period: number = 20): number => {
-  if (.length < period) return 0;
+  if (historicalData.length < period) return 0;
 
   const closePrices = historicalData.map(d => d.close);
   const bands = calculateBollingerBands(closePrices, period);
