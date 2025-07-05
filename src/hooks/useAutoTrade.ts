@@ -10,18 +10,51 @@ const DEFAULT_CONFIG: AutoTradeConfig = {
   enabled: false,
   paperTrading: true,
   exchangeId: 'binance',
-  strategies: [],
+  strategies: [
+    {
+      id: 'ai-strong-buy',
+      name: 'AI Strong Buy',
+      description: 'Enters a position when the AI signal is "strong_buy".',
+      enabled: true,
+      signalType: 'aiPrediction',
+      symbols: ['BTC', 'ETH', 'SOL'],
+      entryConditions: [
+        {
+          type: 'recommendation',
+          value: 'strong_buy',
+          operator: 'eq',
+          weight: 1,
+        },
+      ],
+      exitConditions: [],
+      positionSize: {
+        type: 'percentage',
+        value: 5, // 5% of capital per trade
+        maxRisk: 2,
+      },
+      stopLoss: {
+        enabled: true,
+        type: 'percentage',
+        value: 3, // 3% stop loss
+      },
+      takeProfit: {
+        enabled: true,
+        targets: [{ percentage: 100, priceTarget: 8 }], // 8% take profit
+      },
+      maxPositions: 3,
+    },
+  ],
   riskManagement: {
     maxDailyLoss: 5,
     maxWeeklyLoss: 15,
     maxOpenPositions: 3,
     emergencyStopLoss: 20,
     allowedTradingHours: {
-      start: '09:00',
-      end: '17:00',
-      timezone: 'UTC'
-    }
-  }
+      start: '00:00',
+      end: '23:59',
+      timezone: 'UTC',
+    },
+  },
 };
 
 export const useAutoTrade = (flowData?: any) => {

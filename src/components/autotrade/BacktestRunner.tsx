@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TradingStrategy, BacktestResult } from '@/types/autotrade';
 import { Backtester } from '@/lib/autotrade/backtester';
+import { fetchKlines } from '@/lib/binance';
+import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 import { Play, BarChart3, Calendar, TrendingUp, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -16,11 +18,13 @@ interface BacktestRunnerProps {
 
 export const BacktestRunner: React.FC<BacktestRunnerProps> = ({ strategies }) => {
   const [selectedStrategy, setSelectedStrategy] = useState<string>('');
-  const [startDate, setStartDate] = useState('2024-01-01');
-  const [endDate, setEndDate] = useState('2024-12-31');
+  const [startDate, setStartDate] = useState('2023-01-01');
+  const [endDate, setEndDate] = useState('2023-12-31');
   const [initialCapital, setInitialCapital] = useState(10000);
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<BacktestResult | null>(null);
+  
+  const { insights: aiInsights, isLoading: isLoadingAI } = useAdvancedAI();
 
   const handleRunBacktest = async () => {
     if (!selectedStrategy) {
@@ -35,16 +39,22 @@ export const BacktestRunner: React.FC<BacktestRunnerProps> = ({ strategies }) =>
     }
 
     setIsRunning(true);
+    setResults(null);
+
     try {
-      // Mock historical data for demonstration
-      const mockHistoricalData = new Map();
-      strategy.symbols.forEach(symbol => {
-        mockHistoricalData.set(symbol, generateMockHistoricalData(startDate, endDate));
-      });
+      const historicalData = new Map();
+      for (const symbol of strategy.symbols) {
+        const klines = await fetchKlines(`${symbol}USDT`, '1d', {
+          startTime: new Date(startDate).getTime(),
+          endTime: new Date(endDate).getTime(),
+        });
+        historicalData.set(symbol, klines);
+      }
 
       const result = await Backtester.runBacktest(
         strategy,
-        mockHistoricalData,
+        historicalData,
+        aiInsights,
         new Date(startDate),
         new Date(endDate),
         initialCapital
@@ -58,28 +68,6 @@ export const BacktestRunner: React.FC<BacktestRunnerProps> = ({ strategies }) =>
     } finally {
       setIsRunning(false);
     }
-  };
-
-  const generateMockHistoricalData = (start: string, end: string) => {
-    const data = [];
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const currentDate = new Date(startDate);
-
-    while (currentDate <= endDate) {
-      data.push({
-        symbol: 'BTC',
-        date: currentDate.toISOString(),
-        price: 50000 + (Math.random() - 0.5) * 10000,
-        volume: 1000000 + Math.random() * 500000,
-        high: 52000,
-        low: 48000,
-        priceChange24h: (Math.random() - 0.5) * 10
-      });
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return data;
   };
 
   const formatCurrency = (amount: number) => {

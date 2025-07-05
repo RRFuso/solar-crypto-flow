@@ -10,6 +10,7 @@ import { StrategyManager } from './StrategyManager';
 import { PositionsList } from './PositionsList';
 import { PerformanceMetrics } from './PerformanceMetrics';
 import { BacktestRunner } from './BacktestRunner';
+import { StrategyOptimizer } from './StrategyOptimizer';
 import { Activity, TrendingUp, Shield, Settings } from 'lucide-react';
 
 interface AutoTradePanelProps {
@@ -121,12 +122,13 @@ export const AutoTradePanel: React.FC<AutoTradePanelProps> = ({ flowData }) => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 bg-slate-800/50">
+        <TabsList className="grid w-full grid-cols-6 bg-slate-800/50">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="strategies">Strategies</TabsTrigger>
           <TabsTrigger value="positions">Positions</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="backtest">Backtest</TabsTrigger>
+          <TabsTrigger value="optimizer">Optimizer</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -167,6 +169,10 @@ export const AutoTradePanel: React.FC<AutoTradePanelProps> = ({ flowData }) => {
 
         <TabsContent value="backtest">
           <BacktestRunner strategies={config.strategies} />
+        </TabsContent>
+        
+        <TabsContent value="optimizer">
+          <StrategyOptimizer strategies={config.strategies} />
         </TabsContent>
       </Tabs>
 

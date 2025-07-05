@@ -1,54 +1,73 @@
 
 import { TradingStrategy, BacktestResult, CompletedTrade } from '@/types/autotrade';
-import { HistoricalData } from '@/lib/aiModel';
+import { KLine } from '@/types/binance';
+import { AIInsight } from '@/hooks/useAdvancedAI';
 
 export class Backtester {
   static async runBacktest(
     strategy: TradingStrategy,
-    historicalData: Map<string, HistoricalData[]>,
+    historicalData: Map<string, KLine[]>,
+    aiInsights: Map<string, AIInsight>,
     startDate: Date,
     endDate: Date,
     initialCapital: number = 10000
   ): Promise<BacktestResult> {
     const trades: CompletedTrade[] = [];
     let currentCapital = initialCapital;
-    let openPositions: Map<string, any> = new Map();
+    let openPositions: any[] = [];
 
-    // Simulate trading day by day
-    const currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-      // Process signals for each symbol
+    const dates = this.getDateRange(startDate, endDate);
+
+    for (const date of dates) {
+      // 1. Process exits first
+      const stillOpenPositions = [];
+      for (const position of openPositions) {
+        const symbolData = historicalData.get(position.symbol);
+        const currentDayData = symbolData?.find(d => new Date(d.openTime).toDateString() === date.toDateString());
+        
+        if (currentDayData) {
+          const exitConditionMet = this.checkExitConditions(position, currentDayData, strategy);
+          if (exitConditionMet) {
+            const trade = this.closePosition(position, parseFloat(currentDayData.close), date.getTime());
+            trades.push(trade);
+            currentCapital += trade.pnl;
+          } else {
+            stillOpenPositions.push(position);
+          }
+        } else {
+          stillOpenPositions.push(position);
+        }
+      }
+      openPositions = stillOpenPositions;
+
+      // 2. Process entries
+      if (openPositions.length >= (strategy.maxPositions || 1)) {
+        continue;
+      }
+
       for (const symbol of strategy.symbols) {
         const symbolData = historicalData.get(symbol);
         if (!symbolData) continue;
 
-        const dayData = symbolData.find(d => 
-          new Date(d.date).toDateString() === currentDate.toDateString()
-        );
-
+        const dayData = symbolData.find(d => new Date(d.openTime).toDateString() === date.toDateString());
         if (!dayData) continue;
 
-        // Simulate signal generation and trading decisions
-        const signal = this.simulateSignal(dayData, strategy);
+        const entrySignal = this.checkEntrySignal(symbol, date, aiInsights, strategy);
         
-        if (signal && signal.action !== 'hold') {
-          const trade = this.simulateTrade(
+        if (entrySignal) {
+          const position = this.openPosition(
             symbol,
-            signal.action,
-            dayData.price,
-            currentDate.getTime(),
+            'long',
+            parseFloat(dayData.close),
+            date.getTime(),
             strategy,
             currentCapital
           );
-
-          if (trade) {
-            trades.push(trade);
-            currentCapital += trade.pnl;
+          if (position) {
+            openPositions.push(position);
           }
         }
       }
-
-      currentDate.setDate(currentDate.getDate() + 1);
     }
 
     const metrics = this.calculateMetrics(trades, initialCapital);
@@ -64,62 +83,114 @@ export class Backtester {
     };
   }
 
-  private static simulateSignal(
-    data: HistoricalData,
-    strategy: TradingStrategy
-  ): { action: 'buy' | 'sell' | 'hold'; confidence: number } | null {
-    // Simplified signal simulation based on price action
-    const volatility = Math.abs(data.priceChange24h);
-    const volumeRatio = data.volume / (data.volume * 0.8); // Simplified
-
-    if (data.priceChange24h > 3 && volatility > 5 && volumeRatio > 1.5) {
-      return { action: 'buy', confidence: 0.7 };
-    } else if (data.priceChange24h < -3 && volatility > 5) {
-      return { action: 'sell', confidence: 0.6 };
+  private static getDateRange(startDate: Date, endDate: Date): Date[] {
+    const dates = [];
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      dates.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
     }
-
-    return { action: 'hold', confidence: 0.3 };
+    return dates;
   }
 
-  private static simulateTrade(
+  private static checkEntrySignal(
     symbol: string,
-    action: 'buy' | 'sell',
+    currentDate: Date,
+    aiInsights: Map<string, AIInsight>,
+    strategy: TradingStrategy
+  ): boolean {
+    // For now, we only use AI signals. This can be expanded.
+    if (strategy.signalType !== 'aiPrediction' && strategy.signalType !== 'combined') {
+      return false;
+    }
+
+    const insight = aiInsights.get(symbol);
+    if (!insight) return false;
+
+    // This is a simplified check. A real scenario would check the insight for the specific date.
+    // As a proxy, we'll use the latest insight if it's a strong buy.
+    const recommendationCondition = strategy.entryConditions.find(c => c.type === 'recommendation');
+    
+    if (recommendationCondition) {
+      return insight.recommendation === recommendationCondition.value;
+    }
+    
+    // Default to strong_buy if no specific condition is set
+    return insight.recommendation === 'strong_buy';
+  }
+
+  private static checkExitConditions(
+    position: any, 
+    dayData: KLine, 
+    strategy: TradingStrategy
+  ): { exit: boolean; price: number; reason: 'take_profit' | 'stop_loss' } {
+    const entryPrice = position.entryPrice;
+    const highPrice = parseFloat(dayData.high);
+    const lowPrice = parseFloat(dayData.low);
+
+    // Check for Stop Loss
+    if (strategy.stopLoss?.enabled) {
+      const stopLossPrice = entryPrice * (1 - (strategy.stopLoss.value / 100));
+      if (lowPrice <= stopLossPrice) {
+        return { exit: true, price: stopLossPrice, reason: 'stop_loss' };
+      }
+    }
+
+    // Check for Take Profit
+    if (strategy.takeProfit?.enabled && strategy.takeProfit.targets.length > 0) {
+      // For simplicity, we check the first take profit target.
+      // A more complex implementation would handle partial exits.
+      const takeProfitPrice = entryPrice * (1 + (strategy.takeProfit.targets[0].priceTarget / 100));
+      if (highPrice >= takeProfitPrice) {
+        return { exit: true, price: takeProfitPrice, reason: 'take_profit' };
+      }
+    }
+
+    return { exit: false, price: 0, reason: 'stop_loss' }; // Default, should not be used
+  }
+
+  private static openPosition(
+    symbol: string,
+    side: 'long' | 'short',
     price: number,
     timestamp: number,
     strategy: TradingStrategy,
     currentCapital: number
-  ): CompletedTrade | null {
-    // Simplified trade simulation
+  ) {
     const positionSize = this.calculatePositionSize(strategy.positionSize, currentCapital, price);
-    const entryPrice = price;
-    
-    // Simulate holding for 1-3 days with random exit
-    const holdDays = Math.floor(Math.random() * 3) + 1;
-    const exitTime = timestamp + (holdDays * 24 * 60 * 60 * 1000);
-    
-    // Simulate price movement (simplified)
-    const priceMovement = (Math.random() - 0.5) * 0.1; // ±5%
-    const exitPrice = entryPrice * (1 + priceMovement);
-    
-    const pnl = (exitPrice - entryPrice) * positionSize;
-    const pnlPercentage = ((exitPrice - entryPrice) / entryPrice) * 100;
-
+    if (positionSize * price > currentCapital) {
+      return null; // Not enough capital
+    }
     return {
-      id: `trade_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       symbol,
-      side: action === 'buy' ? 'long' : 'short',
-      entryPrice,
-      exitPrice,
+      side,
+      entryPrice: price,
       amount: positionSize,
       entryTime: timestamp,
-      exitTime,
-      pnl,
-      pnlPercentage,
       strategyId: strategy.id,
-      exitReason: Math.random() > 0.7 ? 'take_profit' : 'signal'
     };
   }
 
+  private static closePosition(position: any, exitPrice: number, exitTime: number, reason: 'take_profit' | 'stop_loss' | 'signal' | 'time_limit'): CompletedTrade {
+    const pnl = (exitPrice - position.entryPrice) * position.amount;
+    const pnlPercentage = ((exitPrice - position.entryPrice) / position.entryPrice) * 100;
+
+    return {
+      id: `trade_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      symbol: position.symbol,
+      side: position.side,
+      entryPrice: position.entryPrice,
+      exitPrice,
+      amount: position.amount,
+      entryTime: position.entryTime,
+      exitTime,
+      pnl,
+      pnlPercentage,
+      strategyId: position.strategyId,
+      exitReason: reason
+    };
+  }
+  
   private static calculatePositionSize(
     config: any,
     capital: number,
@@ -129,9 +200,10 @@ export class Backtester {
       case 'fixed':
         return config.value / price;
       case 'percentage':
-        return (capital * config.value / 100) / price;
+        return (capital * (config.value / 100)) / price;
       case 'risk_based':
-        return (capital * config.maxRisk / 100) / price;
+        const capitalToRisk = capital * (config.maxRisk / 100);
+        return capitalToRisk / price;
       default:
         return 100 / price; // Default $100
     }
@@ -165,23 +237,31 @@ export class Backtester {
     
     const profitFactor = avgLoss > 0 ? avgWin / avgLoss : 0;
 
-    // Simplified drawdown calculation
-    let runningPnl = 0;
-    let peak = 0;
-    let maxDrawdown = 0;
-    
+    // More robust drawdown calculation
+    let equityCurve = [initialCapital];
+    let runningCapital = initialCapital;
     for (const trade of trades) {
-      runningPnl += trade.pnl;
-      if (runningPnl > peak) peak = runningPnl;
-      const drawdown = ((peak - runningPnl) / peak) * 100;
-      if (drawdown > maxDrawdown) maxDrawdown = drawdown;
+      runningCapital += trade.pnl;
+      equityCurve.push(runningCapital);
+    }
+
+    let peakEquity = initialCapital;
+    let maxDrawdown = 0;
+    for (const equity of equityCurve) {
+      if (equity > peakEquity) {
+        peakEquity = equity;
+      }
+      const drawdown = ((peakEquity - equity) / peakEquity) * 100;
+      if (drawdown > maxDrawdown) {
+        maxDrawdown = drawdown;
+      }
     }
 
     return {
       totalTrades: trades.length,
       winRate,
       totalReturn,
-      sharpeRatio: totalReturn / Math.sqrt(trades.length), // Simplified
+      sharpeRatio: totalReturn / (maxDrawdown || 1), // Simplified Sharpe Ratio
       maxDrawdown,
       avgWin,
       avgLoss,

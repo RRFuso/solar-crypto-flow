@@ -252,7 +252,7 @@ export const StrategyManager: React.FC<StrategyManagerProps> = ({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>Stop Loss</Label>
+            <Label>Stop Loss (%)</Label>
             <div className="flex items-center space-x-2">
               <Switch
                 checked={formData.stopLoss?.enabled}
@@ -268,19 +268,46 @@ export const StrategyManager: React.FC<StrategyManagerProps> = ({
                   ...prev, 
                   stopLoss: { ...prev.stopLoss!, value: parseFloat(e.target.value) }
                 }))}
-                placeholder="5"
+                placeholder="3"
                 disabled={!formData.stopLoss?.enabled}
               />
-              <span className="text-sm text-slate-400">%</span>
             </div>
           </div>
           <div>
-            <Label>Max Positions</Label>
+            <Label>Take Profit (%)</Label>
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={formData.takeProfit?.enabled}
+                onCheckedChange={(enabled) => setFormData(prev => ({
+                  ...prev,
+                  takeProfit: { ...prev.takeProfit!, enabled }
+                }))}
+              />
+              <Input
+                type="number"
+                value={formData.takeProfit?.targets[0]?.priceTarget}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  takeProfit: {
+                    ...prev.takeProfit!,
+                    targets: [{ percentage: 100, priceTarget: parseFloat(e.target.value) }]
+                  }
+                }))}
+                placeholder="8"
+                disabled={!formData.takeProfit?.enabled}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Max Open Positions</Label>
             <Input
               type="number"
               value={formData.maxPositions}
               onChange={(e) => setFormData(prev => ({ ...prev, maxPositions: parseInt(e.target.value) }))}
-              placeholder="1"
+              placeholder="3"
             />
           </div>
         </div>
