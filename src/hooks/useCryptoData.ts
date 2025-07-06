@@ -25,7 +25,8 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
     queryFn: async () => {
       console.log(`Fetching crypto data for filter: ${filter}...`);
       
-      const tickerList = PREDEFINED_LISTS[filter] || [];
+      const allTickers = Object.values(PREDEFINED_LISTS).flat();
+      const tickerList = [...new Set(allTickers)];
       if (tickerList.length === 0) {
         return [];
       }
@@ -39,50 +40,69 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
       }
       const btcChange = parseFloat(btcTicker.priceChangePercent);
 
-      const usdtPairs = await Promise.all(
-        tickerList.map(async (symbol) => {
-            const usdtSymbol = `${symbol}USDT`;
-            try {
-              const ticker = tickers[usdtSymbol];
-              if (!ticker) return null;
+      const batchSize = 10; // Further reduced batch size
+      let allPairs: (CryptoData | null)[] = [];
 
-              const klines = await fetchKlines(usdtSymbol, timeframe);
-              if (!klines || klines.length === 0) return null;
+      for (let i = 0; i < tickerList.length; i += batchSize) {
+        const batch = tickerList.slice(i, i + batchSize);
+        console.log(`Processing batch ${i / batchSize + 1} of ${Math.ceil(tickerList.length / batchSize)}...`);
+        
+        const usdtPairs = await Promise.all(
+          batch.map(async (symbol) => {
+              const usdtSymbol = `${symbol}USDT`;
+              try {
+                const ticker = tickers[usdtSymbol];
+                if (!ticker) return null;
 
-              const prices = klines.map(k => parseFloat(k.close));
-              const rsiValues = calculateRSI(prices);
-              const ema12Values = calculateEMA(prices, 12);
-              const ema26Values = calculateEMA(prices, 26);
-              const ma14Values = calculateEMA(prices, 14);
-              
-              const currentPrice = parseFloat(ticker.lastPrice);
-              const priceChange = parseFloat(ticker.priceChangePercent);
-              
-              if (isNaN(currentPrice) || isNaN(priceChange)) return null;
+                const klines = await fetchKlines(usdtSymbol, timeframe);
+                if (!klines || klines.length === 0) return null;
 
-              return {
-                id: symbol,
-                name: symbol,
-                symbol: symbol,
-                performance: priceChange - btcChange,
-                price: currentPrice.toFixed(8),
-                rsi: rsiValues[rsiValues.length - 1],
-                rsi4h: rsiValues[rsiValues.length - 1],
-                ema12: ema12Values[ema12Values.length - 1],
-                ema26: ema26Values[ema26Values.length - 1],
-                aboveMA14: currentPrice > ma14Values[ma14Values.length - 1],
-                volume: ticker.volume,
-                high24h: ticker.highPrice,
-                low24h: ticker.lowPrice
-              } as CryptoData;
-            } catch (error) {
-              console.error(`Error processing ${usdtSymbol}:`, error);
-              return null;
-            }
-          })
-      );
+                const prices = klines.map(k => parseFloat(k.close));
+                const rsiValues = calculateRSI(prices);
+                const ema12Values = calculateEMA(prices, 12);
+                const ema26Values = calculateEMA(prices, 26);
+                const ma14Values = calculateEMA(prices, 14);
+                
+                const currentPrice = parseFloat(ticker.lastPrice);
+                const priceChange = parseFloat(ticker.priceChangePercent);
+                
+                if (isNaN(currentPrice) || isNaN(priceChange)) return null;
 
-      const validPairs = usdtPairs.filter((pair): pair is CryptoData => 
+                return {
+                  id: symbol,
+                  name: symbol,
+                  symbol: symbol,
+                  performance: priceChange - btcChange,
+                  price: currentPrice.toFixed(8),
+                  rsi: rsiValues[rsiValues.length - 1],
+                  rsi4h: rsiValues[rsiValues.length - 1],
+                  ema12: ema12Values[ema12Values.length - 1],
+                  ema26: ema26Values[ema26Values.length - 1],
+                  aboveMA14: currentPrice > ma14Values[ma14Values.length - 1],
+                  volume: ticker.volume,
+                  high24h: ticker.highPrice,
+                  low24h: ticker.lowPrice
+                } as CryptoData;
+              } catch (error) {
+                // Don't log error if it's a 404 for a symbol that doesn't exist
+                if (error instanceof Error && error.message.includes('404')) {
+                    // console.log(`Symbol ${usdtSymbol} not found, skipping.`);
+                } else {
+                    console.error(`Error processing ${usdtSymbol}:`, error);
+                }
+                return null;
+              }
+            })
+        );
+        allPairs = allPairs.concat(usdtPairs);
+        
+        // Add a delay between batches to avoid overwhelming the server
+        if (i + batchSize < tickerList.length) {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // 2-second delay
+        }
+      }
+
+      const validPairs = allPairs.filter((pair): pair is CryptoData => 
         pair !== null && 
         !isNaN(pair.rsi4h || 0) && 
         !isNaN(parseFloat(pair.price || '0'))
@@ -92,6 +112,6 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
       return validPairs;
     },
     retry: 3,
-    staleTime: 10000
+    staleTime: 600000 // Increased staleTime to 10 minutes
   });
 };

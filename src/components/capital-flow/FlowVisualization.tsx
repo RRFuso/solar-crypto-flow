@@ -63,6 +63,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     flowData,
     cryptoDataMap,
     priceActionSignals,
+    aiInsights,
     svgRef,
     dimensions,
     zoomLevel: adjustedZoomLevel,
@@ -180,6 +181,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             centralNode={visualizationData.centralNode}
             selectedNodeId={selectedNodeId}
             zoomLevel={adjustedZoomLevel}
+            aiInsights={aiInsights}
           />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}

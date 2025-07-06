@@ -156,6 +156,10 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
             id: d.id,
             name: prediction.name,
             price: prediction.price,
+            volume: d.volume,
+            capitalFlow: d.capitalFlow,
+            aiModel: prediction,
+            trendReasons: prediction.factors,
             aiAnalysis: {
               recommendation: prediction.bullish ? 'bullish' : 'bearish',
               confidence: prediction.confidence * 100,
