@@ -40,7 +40,7 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
       }
       const btcChange = parseFloat(btcTicker.priceChangePercent);
 
-      const batchSize = 20; // Reduced batch size
+      const batchSize = 10; // Further reduced batch size
       let allPairs: (CryptoData | null)[] = [];
 
       for (let i = 0; i < tickerList.length; i += batchSize) {
@@ -98,7 +98,7 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
         
         // Add a delay between batches to avoid overwhelming the server
         if (i + batchSize < tickerList.length) {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // 1-second delay
+            await new Promise(resolve => setTimeout(resolve, 2000)); // 2-second delay
         }
       }
 
@@ -112,6 +112,6 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
       return validPairs;
     },
     retry: 3,
-    staleTime: 10000
+    staleTime: 600000 // Increased staleTime to 10 minutes
   });
 };

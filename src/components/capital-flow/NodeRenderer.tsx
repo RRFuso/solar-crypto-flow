@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
 import { getLogoUrls } from '@/lib/cryptoLogos';
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
-import { useAdvancedAI, AIInsight } from '@/hooks/useAdvancedAI';
+import { AIInsight } from '@/hooks/useAdvancedAI';
 import { useTooltip } from '@/contexts/TooltipContext';
 import { CapitalFlowLink } from '@/types/capitalFlow';
 
@@ -21,6 +21,7 @@ interface NodeRendererProps {
   centralNode: ExtendedOrbitalNode | null;
   selectedNodeId: string | null;
   zoomLevel: number;
+  aiInsights: Map<string, AIInsight>;
 }
 
 const getAIRecommendationColor = (recommendation: string): string => {
@@ -36,7 +37,7 @@ const getAIRecommendationColor = (recommendation: string): string => {
 
 const getAIGlowColor = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>): string => {
   const signal = node.priceActionSignal;
-  if (signal?.explosivePotential === 'High') return 'rgba(255, 223, 0, 0.9)';
+  if (signal?.explosivePotential === 'High') return 'rgba(128, 0, 128, 0.9)';
   
   const aiInsight = aiInsights.get(node.id);
   if (aiInsight) {
@@ -230,9 +231,9 @@ const renderOrUpdateVisualization = (
     .attr('fill', (d: any) => `url(#logo-${d.id})`)
     .attr('stroke', (d: any) => {
       if (selectedNodeId === d.id) return '#ffffff';
+      if (d.priceActionSignal?.explosivePotential === 'High') return '#800080';
       const aiInsight = aiInsights.get(d.id);
       if (aiInsight) return getAIRecommendationColor(aiInsight.recommendation);
-      if (d.priceActionSignal?.explosivePotential === 'High') return '#FFD700';
       return '#00b5d8';
     })
     .attr('stroke-width', (d: any) => selectedNodeId === d.id ? 4 : 2);
@@ -249,7 +250,6 @@ const renderOrUpdateVisualization = (
 };
 
 export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
-  const { insights: aiInsights } = useAdvancedAI();
   const { showTooltip, hideTooltip } = useTooltip();
 
   useEffect(() => {
@@ -260,12 +260,12 @@ export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
         props.centralNode,
         props.selectedNodeId,
         props.zoomLevel,
-        aiInsights,
+        props.aiInsights,
         showTooltip,
         hideTooltip
       );
     }
-  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, aiInsights, showTooltip, hideTooltip]);
+  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, showTooltip, hideTooltip]);
 
   return null;
 });
