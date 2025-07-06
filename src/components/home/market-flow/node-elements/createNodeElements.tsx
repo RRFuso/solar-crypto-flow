@@ -5,7 +5,6 @@ import { MarketIndex } from '@/types/indices';
 import { createNodePatterns } from './createNodePatterns';
 import { createNodeVisuals } from './createNodeVisuals';
 import { createNodeText } from './createNodeText';
-import { createNodeTooltips } from './createNodeTooltips';
 
 interface NodeElementsProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -32,9 +31,6 @@ export const createNodeElements = (props: NodeElementsProps) => {
   
   // Add text elements (ticker, percentage)
   createNodeText(node);
-  
-  // Add tooltips
-  createNodeTooltips(svg, node);
 
   return node;
 };

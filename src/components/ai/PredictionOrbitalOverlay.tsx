@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTooltip } from '@/contexts/TooltipContext';
 
 interface PredictionOrbitalOverlayProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -57,6 +58,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
   const [predictionHistory, setPredictionHistory] = useState<PredictionHistory>({});
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyData | null>(null);
+  const { showTooltip, hideTooltip } = useTooltip();
 
   // Update prediction map when new predictions come in
   useEffect(() => {
@@ -149,94 +151,21 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
             .attr("repeatCount", "indefinite");
         }
         
-        // Add tooltip and click behavior with prediction info
         node.on("mouseover", function(event) {
-          // Create tooltip
-          const tooltip = d3.select("body").append("div")
-            .attr("class", "prediction-tooltip")
-            .style("position", "absolute")
-            .style("background-color", "rgba(20, 20, 35, 0.9)")
-            .style("border", "1px solid" + (prediction.bullish ? "#00ff80" : "#ff3232"))
-            .style("border-radius", "6px")
-            .style("padding", "12px")
-            .style("color", "white")
-            .style("font-size", "12px")
-            .style("box-shadow", "0 4px 8px rgba(0, 0, 0, 0.2)")
-            .style("z-index", "1000")
-            .style("pointer-events", "none")
-            .style("transition", "opacity 0.3s")
-            .style("opacity", "0")
-            .style("left", `${event.pageX + 10}px`)
-            .style("top", `${event.pageY + 10}px`);
-            
-          // Get prediction history for this symbol
-          const history = predictionHistory[d.id] || [];
-          const historyItems = history.slice(0, 3).map((item, i) => {
-            const time = new Date(item.timestamp).toLocaleTimeString();
-            const direction = item.bullish ? "Bullish" : "Bearish";
-            const factors = item.factors.slice(0, 1).join(" + ");
-            return `<div style="margin-top: ${i > 0 ? '4px' : '0'}; color: ${item.bullish ? '#00ff80' : '#ff3232'};">
-              ${time} - ${direction} (${factors})
-            </div>`;
-          }).join('');
-            
-          // Add logo and information to tooltip
-          const logoUrl = getLogoUrls(d.id)[0];
-          
-          tooltip.html(`
-            <div style="display: flex; align-items: center; margin-bottom: 8px;">
-              <img src="${logoUrl}" width="24" height="24" style="margin-right: 8px; border-radius: 50%;" 
-                onerror="this.onerror=null; this.src='https://s3-symbol-logo.tradingview.com/crypto/XTVCUSDT.svg';">
-              <span style="font-weight: bold;">${d.id}</span>
-            </div>
-            <div style="margin-bottom: 8px;">
-              <span style="color: ${prediction.bullish ? '#00ff80' : '#ff3232'}; font-weight: bold;">
-                ${prediction.bullish ? '🚀 Bullish' : '🔻 Bearish'} (${Math.round(prediction.confidence * 100)}% confidence)
-              </span>
-            </div>
-            <div style="font-size: 11px; opacity: 0.8; margin-bottom: 4px;">Key factors:</div>
-            <ul style="margin: 0 0 8px 0; padding-left: 16px;">
-              ${prediction.factors.map(factor => `<li>${factor}</li>`).join('')}
-            </ul>
-            ${history.length > 1 ? `
-              <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-top: 6px;">
-                <div style="font-size: 11px; opacity: 0.8; margin-bottom: 4px;">Recent signals:</div>
-                ${historyItems}
-              </div>
-            ` : ''}
-            ${prediction.confidence >= 0.7 ? `
-              <button id="view-strategy-${d.id}" style="
-                margin-top: 8px;
-                padding: 5px 10px;
-                background: rgba(0, 200, 255, 0.2);
-                border: 1px solid rgba(0, 200, 255, 0.4);
-                border-radius: 4px;
-                color: #00c8ff;
-                font-size: 11px;
-                cursor: pointer;
-                width: 100%;
-                text-align: center;
-              ">🔍 View Strategy</button>
-            ` : ''}
-          `);
-          
-          setTimeout(() => tooltip.style("opacity", "1"), 10);
-          
-          // Add event listener to strategy button
-          if (prediction.confidence >= 0.7) {
-            d3.select(`#view-strategy-${d.id}`).on("click", function(event) {
-              event.stopPropagation();
-              showStrategyModal(d.id, prediction);
-            });
-          }
-        })
-        .on("mousemove", function(event) {
-          d3.select(".prediction-tooltip")
-            .style("left", `${event.pageX + 10}px`)
-            .style("top", `${event.pageY + 10}px`);
+          const tooltipData = {
+            id: d.id,
+            name: prediction.name,
+            price: prediction.price,
+            aiAnalysis: {
+              recommendation: prediction.bullish ? 'bullish' : 'bearish',
+              confidence: prediction.confidence * 100,
+            },
+            keyFactors: prediction.factors,
+          };
+          showTooltip(tooltipData, { x: event.clientX, y: event.clientY });
         })
         .on("mouseout", function() {
-          d3.select(".prediction-tooltip").remove();
+          hideTooltip();
         })
         .on("click", function(event) {
           if (prediction.confidence >= 0.7) {
@@ -251,7 +180,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
       svg.selectAll(".prediction-overlay").remove();
       svg.selectAll(".prediction-pulse").remove();
     };
-  }, [svg, predictionMap, predictionHistory]);
+  }, [svg, predictionMap, predictionHistory, showTooltip, hideTooltip]);
 
   // Generate strategy data for a given symbol
   const showStrategyModal = (symbol: string, prediction: Prediction) => {

@@ -3,7 +3,6 @@ import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
 import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
-import { createLinkTooltip, removeLinkTooltip } from './link-renderer/LinkTooltip';
 
 export interface LinkRendererExtendedProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -71,11 +70,11 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
     }).filter(Boolean);
 
     const handleMouseOver = (event: MouseEvent, linkData: any) => {
-      createLinkTooltip(svg, event, linkData);
+      // Placeholder for future implementation
     };
 
     const handleMouseOut = () => {
-      removeLinkTooltip(svg);
+      // Placeholder for future implementation
     };
 
     const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);

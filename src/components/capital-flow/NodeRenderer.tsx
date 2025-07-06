@@ -4,6 +4,7 @@ import { OrbitalNode } from './NodePlacement';
 import { getLogoUrls } from '@/lib/cryptoLogos';
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
+import { useTooltip } from '@/contexts/TooltipContext';
 
 // Interfaces and helper functions remain the same
 interface ExtendedOrbitalNode extends OrbitalNode {
@@ -59,32 +60,20 @@ const calculateNodeRadius = (node: ExtendedOrbitalNode, zoomLevel: number, isCen
   return Math.max(minRadius, Math.min(maxRadius, calculatedRadius));
 };
 
-const createEnhancedTooltip = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>): string[] => {
-    const lines: string[] = [];
-    lines.push(`${node.id} ${node.name ? `(${node.name})` : ''}`);
-    lines.push('─'.repeat(25));
-    lines.push(`💰 Price: ${node.price ? `${parseFloat(node.price).toLocaleString()}`: 'N/A'}`);
-    lines.push(`📊 24h: ${node.priceChange24h?.toFixed(2) ?? 'N/A'}%`);
-
+const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>) => {
     const aiInsight = aiInsights.get(node.id);
-    if (aiInsight) {
-        lines.push('🧠 AI Analysis');
-        lines.push(`📋 Recommendation: ${aiInsight.recommendation}`);
-        lines.push(`🎯 Confidence: ${aiInsight.confidence.toFixed(1)}%`);
-    }
-
-    if (node.priceActionSignal?.explosivePotential === 'High') {
-        lines.push('---');
-        lines.push('🔥 HIGH EXPLOSIVE POTENTIAL');
-        if (aiInsight?.predictions[0]?.keyFactors) {
-            lines.push('Key Factors:');
-            aiInsight.predictions[0].keyFactors.forEach((factor: string) => {
-                lines.push(`  - ${factor}`);
-            });
-        }
-    }
-
-    return lines;
+    return {
+        id: node.id,
+        name: node.name,
+        price: node.price,
+        priceChange24h: node.priceChange24h,
+        aiAnalysis: aiInsight ? {
+            recommendation: aiInsight.recommendation,
+            confidence: aiInsight.confidence,
+        } : undefined,
+        explosivePotential: node.priceActionSignal?.explosivePotential,
+        keyFactors: aiInsight?.predictions[0]?.keyFactors,
+    };
 };
 
 
@@ -98,7 +87,9 @@ const renderOrUpdateVisualization = (
   centralNode: ExtendedOrbitalNode | null,
   selectedNodeId: string | null,
   zoomLevel: number,
-  aiInsights: Map<string, any>
+  aiInsights: Map<string, any>,
+  showTooltip: (data: any, position: { x: number, y: number }) => void,
+  hideTooltip: () => void,
 ) => {
   // Ensure a 'defs' element exists for patterns
   let defs = svg.select('defs');
@@ -164,6 +155,13 @@ const renderOrUpdateVisualization = (
     .on('click', (event: MouseEvent, d: any) => {
       const clickEvent = new CustomEvent('node-click', { detail: { nodeId: d.id } });
       document.dispatchEvent(clickEvent);
+    })
+    .on('mouseover', (event: MouseEvent, d: any) => {
+        const tooltipData = createTooltipData(d, aiInsights);
+        showTooltip(tooltipData, { x: event.clientX, y: event.clientY });
+    })
+    .on('mouseout', () => {
+        hideTooltip();
     });
 
   // Add glow effect for new nodes
@@ -260,7 +258,7 @@ const renderOrUpdateVisualization = (
 
 export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
   const { insights: aiInsights } = useAdvancedAI();
-  const visRef = useRef<HTMLDivElement>(null);
+  const { showTooltip, hideTooltip } = useTooltip();
 
   useEffect(() => {
     if (props.svg && props.nodes) {
@@ -271,11 +269,13 @@ export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
         props.centralNode,
         props.selectedNodeId,
         props.zoomLevel,
-        aiInsights
+        aiInsights,
+        showTooltip,
+        hideTooltip
       );
     }
     // The cleanup function is no longer needed because D3's exit selection handles node removal.
-  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, aiInsights]);
+  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, aiInsights, showTooltip, hideTooltip]);
 
   return null; // This component only handles D3 rendering, not direct React DOM.
 });

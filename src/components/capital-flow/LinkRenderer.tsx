@@ -1,7 +1,6 @@
 
 import React, { useEffect } from 'react';
 import * as d3 from 'd3';
-import { createLinkTooltip, removeLinkTooltip } from './link-renderer/LinkTooltip';
 import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
 import { addFlowParticles } from './link-renderer/ParticleAnimation';
 import { Prediction } from '@/lib/aiModel';
@@ -32,15 +31,6 @@ export class LinkRenderer {
     // Create links group
     const linkGroup = svg.append("g").attr("class", "links-group");
     
-    // Handle link hover events
-    const handleMouseOver = (event: MouseEvent, linkData: any) => {
-      createLinkTooltip(svg, event, linkData);
-    };
-    
-    const handleMouseOut = (event: MouseEvent, linkData: any) => {
-      removeLinkTooltip(svg);
-    };
-    
     // Process links for visualization with prediction data
     const processedLinks = links.map(link => {
       // Find predictions for the source and target nodes
@@ -70,7 +60,7 @@ export class LinkRenderer {
     });
     
     // Draw links with curved paths and hover effects
-    const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
+    const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, () => {}, () => {});
     
     // Create arrowheads for directional flow
     createArrowheads(svg, processedLinks);
