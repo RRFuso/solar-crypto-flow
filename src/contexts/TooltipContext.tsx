@@ -1,5 +1,3 @@
-import { CapitalFlowLink } from '@/types/capitalFlow';
-import { Prediction } from '@/lib/aiModel';
 import React, { createContext, useState, useContext, useCallback } from 'react';
 
 interface TooltipData {
@@ -7,10 +5,6 @@ interface TooltipData {
   name?: string;
   price?: string;
   priceChange24h?: number;
-  volume?: number;
-  capitalFlows?: CapitalFlowLink[];
-  aiModel?: Prediction;
-  trendReasons?: string[];
   aiAnalysis?: {
     recommendation: string;
     confidence: number;

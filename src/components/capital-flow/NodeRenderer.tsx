@@ -1,18 +1,16 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
 import { getLogoUrls } from '@/lib/cryptoLogos';
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
-import { AIInsight } from '@/hooks/useAdvancedAI';
+import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 import { useTooltip } from '@/contexts/TooltipContext';
-import { CapitalFlowLink } from '@/types/capitalFlow';
 
+// Interfaces and helper functions remain the same
 interface ExtendedOrbitalNode extends OrbitalNode {
   priceActionSignal?: PriceActionSignal;
   price?: string;
   priceChange24h?: number;
-  capitalFlows?: CapitalFlowLink[];
-  aiModel?: AIInsight;
 }
 
 interface NodeRendererProps {
@@ -21,7 +19,6 @@ interface NodeRendererProps {
   centralNode: ExtendedOrbitalNode | null;
   selectedNodeId: string | null;
   zoomLevel: number;
-  aiInsights: Map<string, AIInsight>;
 }
 
 const getAIRecommendationColor = (recommendation: string): string => {
@@ -37,7 +34,7 @@ const getAIRecommendationColor = (recommendation: string): string => {
 
 const getAIGlowColor = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>): string => {
   const signal = node.priceActionSignal;
-  if (signal?.explosivePotential === 'High') return 'rgba(128, 0, 128, 0.9)';
+  if (signal?.explosivePotential === 'High') return 'rgba(255, 223, 0, 0.9)';
   
   const aiInsight = aiInsights.get(node.id);
   if (aiInsight) {
@@ -65,24 +62,11 @@ const calculateNodeRadius = (node: ExtendedOrbitalNode, zoomLevel: number, isCen
 
 const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>) => {
     const aiInsight = aiInsights.get(node.id);
-    const trendReasons = [];
-    if (aiInsight) {
-        if (aiInsight.predictions[0]?.bullishFactors) {
-            trendReasons.push(...aiInsight.predictions[0].bullishFactors);
-        }
-        if (aiInsight.predictions[0]?.bearishFactors) {
-            trendReasons.push(...aiInsight.predictions[0].bearishFactors);
-        }
-    }
     return {
         id: node.id,
         name: node.name,
         price: node.price,
         priceChange24h: node.priceChange24h,
-        volume: node.volume,
-        capitalFlows: node.capitalFlows,
-        aiModel: aiInsight,
-        trendReasons: trendReasons,
         aiAnalysis: aiInsight ? {
             recommendation: aiInsight.recommendation,
             confidence: aiInsight.confidence,
@@ -92,6 +76,11 @@ const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, an
     };
 };
 
+
+/**
+ * This is the core refactored function that implements the D3 Enter-Update-Exit pattern.
+ * It handles drawing and updating the visualization without destroying it on every render.
+ */
 const renderOrUpdateVisualization = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   nodes: ExtendedOrbitalNode[],
@@ -102,11 +91,13 @@ const renderOrUpdateVisualization = (
   showTooltip: (data: any, position: { x: number, y: number }) => void,
   hideTooltip: () => void,
 ) => {
+  // Ensure a 'defs' element exists for patterns
   let defs = svg.select('defs');
   if (defs.empty()) {
     defs = svg.append('defs');
   }
 
+  // Update patterns: Add for new nodes, remove for old ones
   const patterns = defs.selectAll('pattern')
     .data(nodes, (d: any) => d.id);
 
@@ -139,23 +130,27 @@ const renderOrUpdateVisualization = (
     loadImage();
   });
 
+  // Ensure a group for nodes exists
   let nodesGroup = svg.select('.nodes-group');
   if (nodesGroup.empty()) {
     nodesGroup = svg.append('g').attr('class', 'nodes-group');
   }
 
+  // DATA JOIN: The core of the pattern
   const nodeSelection = nodesGroup.selectAll('g.node')
     .data(nodes, (d: any) => d.id);
 
+  // --- EXIT: Remove old elements that are no longer in the data ---
   nodeSelection.exit()
     .transition().duration(500)
     .attr('transform', (d: any) => `translate(${d.x}, ${d.y}) scale(0)`)
     .remove();
 
+  // --- ENTER: Create new elements for new data points ---
   const nodeEnter = nodeSelection.enter()
     .append('g')
     .attr('class', 'node')
-    .attr('transform', (d: any) => `translate(${d.x}, ${d.y}) scale(0)`)
+    .attr('transform', (d: any) => `translate(${d.x}, ${d.y}) scale(0)`) // Start scaled down
     .style('cursor', 'pointer')
     .on('click', (event: MouseEvent, d: any) => {
       const clickEvent = new CustomEvent('node-click', { detail: { nodeId: d.id } });
@@ -169,14 +164,17 @@ const renderOrUpdateVisualization = (
         hideTooltip();
     });
 
+  // Add glow effect for new nodes
   nodeEnter.append('circle')
     .attr('class', 'node-glow')
-    .attr('r', 0);
+    .attr('r', 0); // Start with 0 radius
 
+  // Add the main circle for new nodes
   nodeEnter.append('circle')
     .attr('class', 'node-circle')
-    .attr('r', 0);
+    .attr('r', 0); // Start with 0 radius
 
+  // Add label for new nodes
   nodeEnter.append('text')
     .attr('text-anchor', 'middle')
     .attr('fill', 'white')
@@ -185,11 +183,14 @@ const renderOrUpdateVisualization = (
     .style('pointer-events', 'none')
     .style('text-shadow', '1px 1px 2px rgba(0,0,0,0.8)');
 
+  // --- UPDATE: Update existing elements and new elements ---
   const nodeUpdate = nodeEnter.merge(nodeSelection as any);
 
+  // Animate transition to new position and scale
   nodeUpdate.transition().duration(750)
     .attr('transform', (d: any) => `translate(${d.x}, ${d.y}) scale(1)`);
 
+  // Update the glow
   nodeUpdate.select('circle.node-glow')
     .transition().duration(750)
     .attr('r', (d: any) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 1.5)
@@ -197,9 +198,11 @@ const renderOrUpdateVisualization = (
     .attr('filter', 'blur(8px)')
     .attr('opacity', (d: any) => aiInsights.get(d.id)?.opportunityScore > 75 ? 0.8 : 0.5);
 
+  // Comet trail for high potential nodes
   nodeUpdate.each(function(d: any) {
     const nodeGroup = d3.select(this);
     if (d.priceActionSignal?.explosivePotential === 'High') {
+      // Remove any existing trail
       nodeGroup.selectAll('.comet-trail').remove();
 
       const trail = nodeGroup.insert('g', ':first-child')
@@ -221,23 +224,26 @@ const renderOrUpdateVisualization = (
           .attr('transform', `translate(0, ${i * 4})`);
       }
     } else {
+      // Remove trail if it exists and potential is no longer high
       nodeGroup.selectAll('.comet-trail').remove();
     }
   });
 
+  // Update the main circle
   nodeUpdate.select('circle.node-circle')
     .transition().duration(750)
     .attr('r', (d: any) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id))
     .attr('fill', (d: any) => `url(#logo-${d.id})`)
     .attr('stroke', (d: any) => {
       if (selectedNodeId === d.id) return '#ffffff';
-      if (d.priceActionSignal?.explosivePotential === 'High') return '#800080';
       const aiInsight = aiInsights.get(d.id);
       if (aiInsight) return getAIRecommendationColor(aiInsight.recommendation);
+      if (d.priceActionSignal?.explosivePotential === 'High') return '#FFD700';
       return '#00b5d8';
     })
     .attr('stroke-width', (d: any) => selectedNodeId === d.id ? 4 : 2);
 
+  // Update the text label
   nodeUpdate.select('text')
     .transition().duration(750)
     .attr('dy', (d: any) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) + 16)
@@ -249,23 +255,27 @@ const renderOrUpdateVisualization = (
     });
 };
 
+
 export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
+  const { insights: aiInsights } = useAdvancedAI();
   const { showTooltip, hideTooltip } = useTooltip();
 
   useEffect(() => {
     if (props.svg && props.nodes) {
+      // Call the new rendering function which handles updates gracefully.
       renderOrUpdateVisualization(
         props.svg,
         props.nodes,
         props.centralNode,
         props.selectedNodeId,
         props.zoomLevel,
-        props.aiInsights,
+        aiInsights,
         showTooltip,
         hideTooltip
       );
     }
-  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, showTooltip, hideTooltip]);
+    // The cleanup function is no longer needed because D3's exit selection handles node removal.
+  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, aiInsights, showTooltip, hideTooltip]);
 
-  return null;
+  return null; // This component only handles D3 rendering, not direct React DOM.
 });

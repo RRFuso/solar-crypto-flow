@@ -21,10 +21,6 @@ export const FlowLegend: React.FC = () => {
           <div className="w-3 h-3 rounded-full bg-blue-400"></div>
           <span className="text-slate-300">High Volume</span>
         </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-          <span className="text-slate-300">High Explosive Potential</span>
-        </div>
       </div>
     </div>
   );
