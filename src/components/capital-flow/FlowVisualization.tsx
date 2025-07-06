@@ -63,6 +63,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     flowData,
     cryptoDataMap,
     priceActionSignals,
+    aiInsights,
     svgRef,
     dimensions,
     zoomLevel: adjustedZoomLevel,
