@@ -1,5 +1,5 @@
 import { TradingStrategy, BacktestResult } from '@/types/autotrade';
-import { StrategyOptimizer } from '@/lib/autotrade/optimizer';
+import { StrategyOptimizer as StrategyOptimizerRunner } from '@/lib/autotrade/optimizer';
 import { fetchKlines } from '@/lib/binance';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 import { toast } from 'sonner';
@@ -47,7 +47,7 @@ export const StrategyOptimizer: React.FC<StrategyOptimizerProps> = ({ strategies
         historicalData.set(symbol, klines);
       }
 
-      const optimizationResult = await StrategyOptimizer.run(
+      const optimizationResult = await StrategyOptimizerRunner.run(
         strategy,
         { stopLoss: optimizationParams.stopLoss, takeProfit: optimizationParams.takeProfit },
         historicalData,
