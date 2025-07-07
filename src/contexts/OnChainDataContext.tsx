@@ -71,8 +71,6 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
         const newData: OnChainData = { whaleTransactions: whaleTxs, exchangeFlow: exFlow };
         const newScore = calculateSmartMoneyScore(newData);
 
-        console.log(`[OnChainData] Data for ${symbol}:`, { newData, newScore }); // Log dos dados processados
-
         setOnChainData(prev => new Map(prev).set(symbol, newData));
         setSmartMoneyScores(prev => new Map(prev).set(symbol, newScore));
 

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { Badge } from './badge';
 import { CapitalFlowLink } from '@/types/capitalFlow';
 import { Prediction } from '@/lib/aiModel';
-import { useOnChainData } from '@/contexts/OnChainDataContext';
+import { useSmartMoneyScore } from '@/hooks/useSmartMoneyScore';
 
 interface TooltipData {
   id: string;
@@ -28,10 +28,9 @@ interface UnifiedTooltipProps {
 }
 
 const OnChainTooltipContent: React.FC<{ symbol: string }> = ({ symbol }) => {
-  const { smartMoneyScores, isLoading } = useOnChainData();
-  const onChainInfo = smartMoneyScores.get(symbol);
+  const { score, sentiment, loading, factors } = useSmartMoneyScore(symbol);
 
-  if (isLoading(symbol)) {
+  if (loading) {
     return (
       <div className="border-t border-slate-700 pt-2 mt-2">
         <h4 className="font-bold text-slate-300 mb-1">On-Chain Analysis</h4>
@@ -40,13 +39,9 @@ const OnChainTooltipContent: React.FC<{ symbol: string }> = ({ symbol }) => {
     );
   }
 
-  if (!onChainInfo) {
-    return null; // Não mostra nada se não houver dados
-  }
-
   const getSentimentColor = () => {
-    if (onChainInfo.sentiment === 'Bullish') return 'text-green-400';
-    if (onChainInfo.sentiment === 'Bearish') return 'text-red-400';
+    if (sentiment === 'Bullish') return 'text-green-400';
+    if (sentiment === 'Bearish') return 'text-red-400';
     return 'text-gray-400';
   };
 
@@ -55,12 +50,17 @@ const OnChainTooltipContent: React.FC<{ symbol: string }> = ({ symbol }) => {
       <h4 className="font-bold text-slate-300 mb-1">On-Chain Analysis</h4>
       <div className="flex justify-between">
         <span className="text-slate-400">Smart Money Score:</span>
-        <span className={`font-mono font-bold ${getSentimentColor()}`}>{onChainInfo.score}</span>
+        <span className={`font-mono font-bold ${getSentimentColor()}`}>{score}</span>
       </div>
       <div className="flex justify-between">
         <span className="text-slate-400">Sentiment:</span>
-        <span className={`font-mono font-bold ${getSentimentColor()}`}>{onChainInfo.sentiment}</span>
+        <span className={`font-mono font-bold ${getSentimentColor()}`}>{sentiment}</span>
       </div>
+      {factors.length > 0 && (
+        <div className="mt-1">
+          <p className="text-xs text-gray-400 leading-tight">• {factors[0]}</p>
+        </div>
+      )}
     </div>
   );
 };
