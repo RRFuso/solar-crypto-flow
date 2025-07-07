@@ -22,6 +22,7 @@ export const getERC20TokenTransactions = async (
   limit: number = 100
 ): Promise<OnChainTransaction[]> => {
   const url = `${ETHERSCAN_API_URL}?module=account&action=tokentx&contractaddress=${contractAddress}&page=1&offset=${limit}&sort=desc&apikey=${ETHERSCAN_API_KEY}`;
+  console.log('Fetching Etherscan URL:', url); // Log da URL
 
   try {
     const response = await fetch(url);
@@ -29,6 +30,7 @@ export const getERC20TokenTransactions = async (
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
+    console.log('Etherscan API Response:', data); // Log da resposta
 
     if (data.status === '0') {
       // Etherscan API returns status '0' for errors, with a message
