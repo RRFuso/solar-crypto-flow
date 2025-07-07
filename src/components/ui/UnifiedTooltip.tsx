@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { Badge } from './badge';
 import { CapitalFlowLink } from '@/types/capitalFlow';
 import { Prediction } from '@/lib/aiModel';
+import { useSmartMoneyScore } from '@/hooks/useSmartMoneyScore';
 
 interface TooltipData {
   id: string;
@@ -26,11 +27,43 @@ interface UnifiedTooltipProps {
   position: { x: number; y: number };
 }
 
-const getRecommendationVariant = (recommendation: string): "default" | "destructive" | "outline" => {
-  if (recommendation.includes('buy')) return 'default';
-  if (recommendation.includes('sell')) return 'destructive';
-  return 'outline';
-}
+const OnChainTooltipContent: React.FC<{ symbol: string }> = ({ symbol }) => {
+  const { score, sentiment, loading, factors } = useSmartMoneyScore(symbol);
+
+  if (loading) {
+    return (
+      <div className="border-t border-slate-700 pt-2 mt-2">
+        <h4 className="font-bold text-slate-300 mb-1">On-Chain Analysis</h4>
+        <p className="text-xs text-gray-400">Analisando...</p>
+      </div>
+    );
+  }
+
+  const getSentimentColor = () => {
+    if (sentiment === 'Bullish') return 'text-green-400';
+    if (sentiment === 'Bearish') return 'text-red-400';
+    return 'text-gray-400';
+  };
+
+  return (
+    <div className="border-t border-slate-700 pt-2 mt-2">
+      <h4 className="font-bold text-slate-300 mb-1">On-Chain Analysis</h4>
+      <div className="flex justify-between">
+        <span className="text-slate-400">Smart Money Score:</span>
+        <span className={`font-mono font-bold ${getSentimentColor()}`}>{score}</span>
+      </div>
+      <div className="flex justify-between">
+        <span className="text-slate-400">Sentiment:</span>
+        <span className={`font-mono font-bold ${getSentimentColor()}`}>{sentiment}</span>
+      </div>
+      {factors.length > 0 && (
+        <div className="mt-1">
+          <p className="text-xs text-gray-400 leading-tight">• {factors[0]}</p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }) => {
   if (!data) return null;
@@ -67,7 +100,7 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
             <div>
               <span className="text-slate-400">Price:</span>
-              <span className="block font-mono">{data.price ? `$${parseFloat(data.price).toLocaleString()}` : 'N/A'}</span>
+              <span className="block font-mono">{data.price ? `${parseFloat(data.price).toLocaleString()}` : 'N/A'}</span>
             </div>
             <div>
               <span className="text-slate-400">24h Change:</span>
@@ -77,7 +110,7 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
             </div>
             <div>
               <span className="text-slate-400">Volume (24h):</span>
-              <span className="block font-mono">{data.volume ? `$${data.volume.toLocaleString()}` : 'N/A'}</span>
+              <span className="block font-mono">{data.volume ? `${data.volume.toLocaleString()}` : 'N/A'}</span>
             </div>
           </div>
 
@@ -116,6 +149,9 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
               </div>
             </div>
           )}
+
+          {/* On-Chain Analysis Section */}
+          <OnChainTooltipContent symbol={data.id} />
 
           {data.trendReasons && data.trendReasons.length > 0 && (
             <div className="border-t border-slate-700 pt-2 mt-2">

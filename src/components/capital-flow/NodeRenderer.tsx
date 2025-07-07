@@ -22,6 +22,7 @@ interface NodeRendererProps {
   selectedNodeId: string | null;
   zoomLevel: number;
   aiInsights: Map<string, AIInsight>;
+  smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish' }>;
 }
 
 const getAIRecommendationColor = (recommendation: string): string => {
@@ -99,6 +100,7 @@ const renderOrUpdateVisualization = (
   selectedNodeId: string | null,
   zoomLevel: number,
   aiInsights: Map<string, any>,
+  smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish' }>,
   showTooltip: (data: any, position: { x: number, y: number }) => void,
   hideTooltip: () => void,
 ) => {
@@ -106,6 +108,19 @@ const renderOrUpdateVisualization = (
   if (defs.empty()) {
     defs = svg.append('defs');
   }
+
+  // Add glow filters
+  const bullishGlow = defs.append('filter')
+    .attr('id', 'bullish-glow')
+    .append('feGaussianBlur')
+    .attr('stdDeviation', '3.5')
+    .attr('result', 'coloredBlur');
+  
+  const bearishGlow = defs.append('filter')
+    .attr('id', 'bearish-glow')
+    .append('feGaussianBlur')
+    .attr('stdDeviation', '3.5')
+    .attr('result', 'coloredBlur');
 
   const patterns = defs.selectAll('pattern')
     .data(nodes, (d: any) => d.id);
@@ -193,9 +208,23 @@ const renderOrUpdateVisualization = (
   nodeUpdate.select('circle.node-glow')
     .transition().duration(750)
     .attr('r', (d: any) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 1.5)
-    .attr('fill', (d: any) => getAIGlowColor(d, aiInsights))
-    .attr('filter', 'blur(8px)')
-    .attr('opacity', (d: any) => aiInsights.get(d.id)?.opportunityScore > 75 ? 0.8 : 0.5);
+    .attr('fill', (d: any) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      if (onChainSentiment === 'Bullish') return 'rgba(0, 255, 0, 0.7)';
+      if (onChainSentiment === 'Bearish') return 'rgba(255, 0, 0, 0.7)';
+      return getAIGlowColor(d, aiInsights);
+    })
+    .attr('filter', (d: any) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      if (onChainSentiment === 'Bullish') return 'url(#bullish-glow)';
+      if (onChainSentiment === 'Bearish') return 'url(#bearish-glow)';
+      return 'blur(8px)';
+    })
+    .attr('opacity', (d: any) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      if (onChainSentiment === 'Bullish' || onChainSentiment === 'Bearish') return 0.9;
+      return aiInsights.get(d.id)?.opportunityScore > 75 ? 0.8 : 0.5;
+    });
 
   nodeUpdate.each(function(d: any) {
     const nodeGroup = d3.select(this);
@@ -261,11 +290,12 @@ export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
         props.selectedNodeId,
         props.zoomLevel,
         props.aiInsights,
+        props.smartMoneyScores,
         showTooltip,
         hideTooltip
       );
     }
-  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, showTooltip, hideTooltip]);
+  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip]);
 
   return null;
 });

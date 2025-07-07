@@ -13,6 +13,7 @@ import { useVisualizationData } from './visualization/useVisualizationData';
 import { useCryptoData } from '@/hooks/useCryptoData';
 import { usePriceActionSignals } from '@/hooks/usePriceActionSignals';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
+import { useOnChainData } from '@/contexts/OnChainDataContext';
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
@@ -41,9 +42,21 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     createOrbitalVisualization
   } = useVisualizationSetup(flowData, zoomLevel);
   
+  const symbolsInView = React.useMemo(() => {
+    if (!visualizationData || !visualizationData.nodes) return [];
+    return visualizationData.nodes.map(node => node.id);
+  }, [visualizationData]);
+
   const { data: cryptoData, isLoading: loadingCryptoData } = useCryptoData();
-  const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(['BTC', 'ETH']);
-  const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI();
+  const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(symbolsInView);
+  const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(symbolsInView);
+  const { smartMoneyScores, requestOnChainData } = useOnChainData();
+
+  useEffect(() => {
+    if (symbolsInView.length > 0) {
+      requestOnChainData(symbolsInView);
+    }
+  }, [symbolsInView, requestOnChainData]);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
@@ -182,6 +195,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             selectedNodeId={selectedNodeId}
             zoomLevel={adjustedZoomLevel}
             aiInsights={aiInsights}
+            smartMoneyScores={smartMoneyScores}
           />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
