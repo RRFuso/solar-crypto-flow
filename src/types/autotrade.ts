@@ -24,9 +24,9 @@ export interface TradingStrategy {
 }
 
 export interface SignalCondition {
-  type: 'confidence' | 'explosivePotential' | 'rsi' | 'macd' | 'volume' | 'recommendation';
+  type: 'confidence' | 'explosivePotential' | 'rsi' | 'macd' | 'volume';
   operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte';
-  value: number | string;
+  value: number;
   weight: number;
 }
 

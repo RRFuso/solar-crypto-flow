@@ -1,15 +1,9 @@
-import React, { useState } from 'react';
 import { TradingStrategy, BacktestResult } from '@/types/autotrade';
 import { StrategyOptimizer as optimizeStrategy } from '@/lib/autotrade/optimizer';
 import { fetchKlines } from '@/lib/binance';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 import { toast } from 'sonner';
 import { Zap, BarChart, Sliders } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 
 interface StrategyOptimizerProps {
   strategies: TradingStrategy[];

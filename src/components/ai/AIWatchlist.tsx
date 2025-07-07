@@ -105,8 +105,8 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
       return b.confidence - a.confidence;
     });
 
-  const bullish = filtered.filter(p => p.direction === 'bullish').slice(0, maxItems);
-  const bearish = filtered.filter(p => p.direction !== 'bullish').slice(0, maxItems);
+  const bullish = filtered.filter(p => p.bullish).slice(0, maxItems);
+  const bearish = filtered.filter(p => !p.bullish).slice(0, maxItems);
 
   const getExplosiveBadge = (explosivePotential?: string) => {
     if (!explosivePotential || explosivePotential === 'None') return null;
@@ -152,7 +152,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
   const calculateStrategy = (p: Prediction, history: HistoricalDataPoint[] | undefined) => {
     const currentPrice = parseFloat(p.price || '0') || 1;
     let entryPrice = currentPrice; // Entrada padrão é o preço atual
-    let stopLossPrice = p.direction === 'bullish' ? currentPrice * 0.97 : currentPrice * 1.03; // Stop padrão 3%
+    let stopLossPrice = p.bullish ? currentPrice * 0.97 : currentPrice * 1.03; // Stop padrão 3%
     let stopBasis = "(3% Padrão)";
 
     if (history && history.length > 1) {
@@ -161,7 +161,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
       const previousLow = recentLows[0]; // Mínima mais recente do período buscado
       const previousHigh = recentHighs[0]; // Máxima mais recente
 
-      if (p.direction === 'bullish') {
+      if (p.bullish) {
         // Entrada: Tenta encontrar um ponto de retração/suporte (ex: média entre low e high recentes)
         const potentialSupport = (previousLow + previousHigh) / 2; 
         // Se o suporte calculado for razoável (abaixo do preço atual mas acima da mínima)
@@ -201,15 +201,15 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     const stopPercent = (stopDistance / entryPrice) * 100;
 
     // Take Profit baseado em Risco:Retorno (ex: 1:1.5 e 1:2.5)
-    const takeProfit1 = p.direction === 'bullish' ? entryPrice + stopDistance * 1.5 : entryPrice - stopDistance * 1.5;
-    const takeProfit2 = p.direction === 'bullish' ? entryPrice + stopDistance * 2.5 : entryPrice - stopDistance * 2.5;
+    const takeProfit1 = p.bullish ? entryPrice + stopDistance * 1.5 : entryPrice - stopDistance * 1.5;
+    const takeProfit2 = p.bullish ? entryPrice + stopDistance * 2.5 : entryPrice - stopDistance * 2.5;
     const rewardPercent = (Math.abs(takeProfit2 - entryPrice) / entryPrice) * 100;
 
     const indicators = indicatorsFromFactors(p);
     const signal = signals.get(p.symbol);
     const priceActionSignals = getPriceActionSignals(signal);
 
-    let overview = `${p.symbol} (${p.name || ''}) apresenta potencial ${p.direction === 'bullish' ? 'bullish' : 'bearish'} (${Math.round(p.confidence * 100)}% conf.) baseado em ${indicators.slice(0, 2).join(', ')}.`;
+    let overview = `${p.symbol} (${p.name || ''}) apresenta potencial ${p.bullish ? 'bullish' : 'bearish'} (${Math.round(p.confidence * 100)}% conf.) baseado em ${indicators.slice(0, 2).join(', ')}.`;
     if (signal?.explosivePotential && signal.explosivePotential !== 'None') {
       overview += ` Potencial explosivo ${signal.explosivePotential.toLowerCase()} detectado.`;
     }
@@ -218,7 +218,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     setStrategy({
       symbol: p.symbol,
       name: p.name || p.symbol,
-      direction: p.direction === 'bullish' ? 'bullish' : 'bearish',
+      direction: p.bullish ? 'bullish' : 'bearish',
       entry: entryPrice.toFixed(4), // Mais casas decimais para cripto
       stopLoss: stopLossPrice.toFixed(4),
       takeProfit1: Math.max(0, takeProfit1).toFixed(4),
@@ -287,8 +287,8 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
               <span className="font-bold text-sm truncate">{p.symbol}</span>
-              <div className={`flex items-center gap-1 ${p.direction === 'bullish' ? 'text-green-400' : 'text-red-400'}`}>
-                {p.direction === 'bullish' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+              <div className={`flex items-center gap-1 ${p.bullish ? 'text-green-400' : 'text-red-400'}`}>
+                {p.bullish ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                 <span className="text-xs font-medium">{Math.round(p.confidence * 100)}%</span>
               </div>
             </div>

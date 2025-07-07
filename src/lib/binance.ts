@@ -72,24 +72,11 @@ export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => 
   }
 };
 
-export const fetchKlines = async (symbol: string, interval: string, options?: { startTime?: number; endTime?: number; limit?: number }): Promise<BinanceKline[]> => {
+export const fetchKlines = async (symbol: string, interval: string): Promise<BinanceKline[]> => {
   try {
     console.log(`Fetching klines for ${symbol}...`);
-    let url = `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}`;
-    if (options?.startTime) {
-      url += `&startTime=${options.startTime}`;
-    }
-    if (options?.endTime) {
-      url += `&endTime=${options.endTime}`;
-    }
-    if (options?.limit) {
-      url += `&limit=${options.limit}`;
-    } else {
-      url += `&limit=100`; // Default limit if not provided
-    }
-
     const response = await fetchWithRetry(
-      url,
+      `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}&limit=100`,
       {
         method: 'GET',
       }

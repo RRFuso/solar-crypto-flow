@@ -64,14 +64,14 @@ export const usePredictions = (
     const highConfidencePredictions = predictions.filter(p => p.confidence > 0.8);
     
     highConfidencePredictions.forEach(prediction => {
-      const emoji = prediction.direction === 'bullish' ? '🚀' : '🔻';
-      const direction = prediction.direction === 'bullish' ? 'bullish' : 'bearish';
+      const emoji = prediction.bullish ? '🚀' : '🔻';
+      const direction = prediction.bullish ? 'bullish' : 'bearish';
       const factors = prediction.factors.slice(0, 2).join(' + ');
       
       toast(`${emoji} ${prediction.symbol} ${direction} signal (${timeframe})`, {
         description: `${factors}. Confidence: ${Math.round(prediction.confidence * 100)}%`,
         duration: 8000,
-        className: prediction.direction === 'bullish' ? 'bg-green-900/60' : 'bg-red-900/60',
+        className: prediction.bullish ? 'bg-green-900/60' : 'bg-red-900/60',
       });
     });
   };

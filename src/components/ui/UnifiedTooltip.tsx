@@ -2,8 +2,25 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { Badge } from './badge';
 import { CapitalFlowLink } from '@/types/capitalFlow';
+import { Prediction } from '@/lib/aiModel';
 import { useOnChainData } from '@/contexts/OnChainDataContext';
-import { TooltipData } from '@/contexts/TooltipContext';
+
+interface TooltipData {
+  id: string;
+  name?: string;
+  price?: string;
+  priceChange24h?: number;
+  volume?: number;
+  capitalFlows?: CapitalFlowLink[];
+  aiModel?: Prediction;
+  trendReasons?: string[];
+  aiAnalysis?: {
+    recommendation: string;
+    confidence: number;
+  };
+  explosivePotential?: string;
+  keyFactors?: string[];
+}
 
 interface UnifiedTooltipProps {
   data: TooltipData | null;
@@ -117,18 +134,18 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
             </div>
           )}
 
-          {data.aiModel && data.aiModel.predictions[0] && (
+          {data.aiModel && (
             <div className="border-t border-slate-700 pt-2 mt-2">
               <h4 className="font-bold text-slate-300 mb-1">AI Analysis</h4>
               <div className="flex justify-between items-center">
                 <span className="text-slate-400">Prediction:</span>
-                <Badge variant={data.aiModel.predictions[0].direction === 'bullish' ? 'default' : 'destructive'}>
-                  {data.aiModel.predictions[0].direction === 'bullish' ? 'Bullish' : 'Bearish'}
+                <Badge variant={data.aiModel.bullish ? 'default' : 'destructive'}>
+                  {data.aiModel.bullish ? 'Bullish' : 'Bearish'}
                 </Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Confidence:</span>
-                <span className="font-mono">{data.aiModel.predictions[0].confidence.toFixed(1)}%</span>
+                <span className="font-mono">{data.aiModel.confidence.toFixed(1)}%</span>
               </div>
             </div>
           )}

@@ -82,30 +82,22 @@ export class SignalProcessor {
     priceActionSignal?: PriceActionSignal,
     prediction?: Prediction
   ): { score: number; reason?: string } {
-    let evaluatedValue: number | string | undefined;
+    let value: number;
     let reason: string | undefined;
 
     switch (condition.type) {
       case 'confidence':
         if (!prediction) return { score: 0 };
-        evaluatedValue = prediction.confidence;
-        reason = `AI confidence: ${(evaluatedValue * 100).toFixed(1)}%`;
+        value = prediction.confidence;
+        reason = `AI confidence: ${(value * 100).toFixed(1)}%`;
         break;
 
       case 'explosivePotential':
         if (!priceActionSignal) return { score: 0 };
         const potentialMap = { 'High': 0.8, 'Medium': 0.6, 'Low': 0.4, 'None': 0 };
-        evaluatedValue = potentialMap[priceActionSignal.explosivePotential];
+        value = potentialMap[priceActionSignal.explosivePotential];
         reason = `Explosive potential: ${priceActionSignal.explosivePotential}`;
         break;
-
-      case 'recommendation':
-        if (!prediction) return { score: 0 };
-        evaluatedValue = prediction.direction; // 'bullish' or 'bearish'
-        reason = `AI recommendation: ${prediction.direction}`;
-        break;
-
-      // Add other cases for rsi, macd, volume if needed
 
       default:
         return { score: 0 };
@@ -113,35 +105,28 @@ export class SignalProcessor {
 
     // Evaluate condition
     let conditionMet = false;
-    if (typeof evaluatedValue === 'number' && typeof condition.value === 'number') {
-      switch (condition.operator) {
-        case 'gt':
-          conditionMet = evaluatedValue > condition.value;
-          break;
-        case 'gte':
-          conditionMet = evaluatedValue >= condition.value;
-          break;
-        case 'lt':
-          conditionMet = evaluatedValue < condition.value;
-          break;
-        case 'lte':
-          conditionMet = evaluatedValue <= condition.value;
-          break;
-        case 'eq':
-          conditionMet = evaluatedValue === condition.value;
-          break;
-      }
-    } else if (typeof evaluatedValue === 'string' && typeof condition.value === 'string') {
-      // For string comparisons, typically 'eq' is used
-      if (condition.operator === 'eq') {
-        conditionMet = evaluatedValue === condition.value;
-      }
+    switch (condition.operator) {
+      case 'gt':
+        conditionMet = value > condition.value;
+        break;
+      case 'gte':
+        conditionMet = value >= condition.value;
+        break;
+      case 'lt':
+        conditionMet = value < condition.value;
+        break;
+      case 'lte':
+        conditionMet = value <= condition.value;
+        break;
+      case 'eq':
+        conditionMet = value === condition.value;
+        break;
     }
 
     if (!conditionMet) return { score: 0 };
 
     // Return positive score for bullish conditions, negative for bearish
-    const score = prediction?.direction === 'bullish' ? 1 : -1;
+    const score = prediction?.bullish ? 1 : -1;
     return { score, reason };
   }
 }

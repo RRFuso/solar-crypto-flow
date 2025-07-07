@@ -42,12 +42,12 @@ export class LinkRenderer {
       
       // Color based on source prediction if it has high confidence
       if (sourcePrediction && sourcePrediction.confidence >= 0.6) {
-        predictionColor = sourcePrediction.direction === 'bullish' ? "#00ff80" : "#ff3232"; // Neon green or neon red
+        predictionColor = sourcePrediction.bullish ? "#00ff80" : "#ff3232"; // Neon green or neon red
       }
       // If target has higher confidence, use that
       if (targetPrediction && targetPrediction.confidence >= 0.6) {
         if (!predictionColor || targetPrediction.confidence > (sourcePrediction?.confidence || 0)) {
-          predictionColor = targetPrediction.direction === 'bullish' ? "#00ff80" : "#ff3232";
+          predictionColor = targetPrediction.bullish ? "#00ff80" : "#ff3232";
         }
       }
       

@@ -15,7 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useTooltip } from '@/contexts/TooltipContext';
-import { AIInsight } from '@/hooks/useAdvancedAI';
 
 interface PredictionOrbitalOverlayProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -23,13 +22,12 @@ interface PredictionOrbitalOverlayProps {
   updateInterval?: number;
   predictions?: Prediction[];
   chartTimeframe?: string;
-  aiInsights: Map<string, AIInsight>;
 }
 
 interface PredictionHistory {
   [key: string]: {
     timestamp: number;
-    direction: 'bullish' | 'bearish';
+    bullish: boolean;
     confidence: number;
     factors: string[];
   }[];
@@ -49,13 +47,12 @@ interface StrategyData {
   overview: string;
 }
 
-export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> = ({
-  svg,
-  nodes,
+export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> = ({ 
+  svg, 
+  nodes, 
   updateInterval = 600000, // Default: 10 minutes
   predictions = [],
-  chartTimeframe = '4h',
-  aiInsights
+  chartTimeframe = '4h'
 }) => {
   const [predictionMap, setPredictionMap] = useState<Map<string, Prediction>>(new Map());
   const [predictionHistory, setPredictionHistory] = useState<PredictionHistory>({});
@@ -81,7 +78,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
       // Only add new prediction if it's different from the last one or more than 15 minutes old
       const lastPrediction = history[0];
       const isDifferent = !lastPrediction || 
-                          lastPrediction.direction !== prediction.direction || 
+                          lastPrediction.bullish !== prediction.bullish || 
                           Math.abs(lastPrediction.confidence - prediction.confidence) > 0.1;
       const isOldEnough = !lastPrediction || 
                           (Date.now() - lastPrediction.timestamp) > 900000; // 15 minutes
@@ -90,7 +87,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
         // Add new prediction to history
         history.unshift({
           timestamp: Date.now(),
-          bullish: prediction.direction === 'bullish',
+          bullish: prediction.bullish,
           confidence: prediction.confidence,
           factors: prediction.factors
         });
@@ -123,7 +120,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
       const prediction = predictionMap.get(d.id);
       
       if (prediction) {
-        const color = prediction.direction === 'bullish' 
+        const color = prediction.bullish 
           ? `rgba(0, 255, 128, ${prediction.confidence * 0.7})` 
           : `rgba(255, 50, 50, ${prediction.confidence * 0.7})`;
         
@@ -144,13 +141,13 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
           pulse.append("animate")
             .attr("attributeName", "r")
             .attr("values", `${d.radius * 1.2};${d.radius * 1.8};${d.radius * 1.2}`)
-            .attr("dur", prediction.direction === 'bullish' ? "3s" : "4s")
+            .attr("dur", prediction.bullish ? "3s" : "4s")
             .attr("repeatCount", "indefinite");
             
           pulse.append("animate")
             .attr("attributeName", "opacity")
             .attr("values", "0.7;0.3;0.7")
-            .attr("dur", prediction.direction === 'bullish' ? "3s" : "4s")
+            .attr("dur", prediction.bullish ? "3s" : "4s")
             .attr("repeatCount", "indefinite");
         }
         
@@ -161,10 +158,10 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
             price: prediction.price,
             volume: d.volume,
             capitalFlow: d.capitalFlow,
-            aiModel: aiInsights.get(d.id),
+            aiModel: prediction,
             trendReasons: prediction.factors,
             aiAnalysis: {
-              recommendation: prediction.direction === 'bullish' ? 'bullish' : 'bearish',
+              recommendation: prediction.bullish ? 'bullish' : 'bearish',
               confidence: prediction.confidence * 100,
             },
             keyFactors: prediction.factors,
@@ -187,7 +184,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
       svg.selectAll(".prediction-overlay").remove();
       svg.selectAll(".prediction-pulse").remove();
     };
-  }, [svg, predictionMap, predictionHistory, showTooltip, hideTooltip, aiInsights]);
+  }, [svg, predictionMap, predictionHistory, showTooltip, hideTooltip]);
 
   // Generate strategy data for a given symbol
   const showStrategyModal = (symbol: string, prediction: Prediction) => {
@@ -195,7 +192,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
     const currentPrice = parseFloat(prediction.price || "0");
     
     // Create mock strategy based on bullish/bearish prediction
-    if (prediction.direction === 'bullish') {
+    if (prediction.bullish) {
       // Bullish strategy
       const stopLossPercent = 3 + Math.random() * 2; // 3-5% stop loss
       const takeProfitPercent1 = 5 + Math.random() * 5; // 5-10% take profit 1
