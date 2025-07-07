@@ -4,7 +4,7 @@ import { CryptoFeatures, normalizeFeatures } from "./featureExtractor";
 export interface Prediction {
   symbol: string;
   name?: string;
-  bullish: boolean;
+  direction: 'bullish' | 'bearish';
   confidence: number;
   factors: string[];
   timestamp: number;
@@ -191,7 +191,7 @@ export function predictPriceMovements(
     predictions.push({
       symbol: feat.symbol,
       name: feat.id,
-      bullish: isBullish,
+      direction: isBullish ? 'bullish' : 'bearish',
       confidence: Math.min(0.95, conf),
       factors,
       timestamp: Date.now(),

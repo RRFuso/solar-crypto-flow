@@ -21,7 +21,6 @@ interface UseVisualizationDataProps {
   cryptoDataMap: Map<string, CryptoData>;
   priceActionSignals: Map<string, PriceActionSignal> | null;
   aiInsights: Map<string, AIInsight>;
-  svgRef: React.RefObject<SVGSVGElement>;
   dimensions: { width: number, height: number };
   zoomLevel: number;
   setVisualizationData: React.Dispatch<React.SetStateAction<{
@@ -33,10 +32,9 @@ interface UseVisualizationDataProps {
   animationRef: React.MutableRefObject<any | null>;
   createOrbitalVisualization: (
     flowData: FlowData[],
-    svgElement: SVGSVGElement,
     width: number,
     height: number
-  ) => { svg: any, nodes: OrbitalNode[], links: any[], centralNode: OrbitalNode | null };
+  ) => { nodes: OrbitalNode[], links: any[], centralNode: OrbitalNode | null };
   activeCategory?: string;
 }
 
@@ -65,7 +63,6 @@ export const useVisualizationData = ({
   cryptoDataMap,
   priceActionSignals,
   aiInsights,
-  svgRef,
   dimensions,
   zoomLevel,
   setVisualizationData,
@@ -74,7 +71,7 @@ export const useVisualizationData = ({
   activeCategory = 'all'
 }: UseVisualizationDataProps) => {
   useEffect(() => {
-    if (!flowData || flowData.length === 0 || !svgRef.current || !dimensions.width) return;
+    if (!flowData || flowData.length === 0 || !dimensions.width) return;
 
     if (animationRef.current) {
       try {
@@ -87,14 +84,11 @@ export const useVisualizationData = ({
       animationRef.current = null;
     }
 
-    d3.select(svgRef.current).selectAll("*").remove();
-
     const width = dimensions.width;
     const height = dimensions.height;
 
     const { nodes: baseNodes, links, centralNode: baseCentralNode } = createOrbitalVisualization(
       flowData, 
-      svgRef.current, 
       width,
       height
     );
@@ -184,9 +178,7 @@ export const useVisualizationData = ({
     });
 
     return () => {
-      if (svgRef.current) {
-        d3.select(svgRef.current).selectAll("*").remove();
-      }
+      // No SVG cleanup needed here as SVG is managed by FlowVisualization
     };
-  }, [flowData, cryptoDataMap, priceActionSignals, aiInsights, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory, svgRef]); 
+  }, [flowData, cryptoDataMap, priceActionSignals, aiInsights, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory]); 
 };

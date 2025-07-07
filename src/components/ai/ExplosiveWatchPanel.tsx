@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useExplosiveCryptos } from '@/hooks/useExplosiveCryptos';
-import { CryptoLogo } from './CryptoLogo';
+import CryptoLogo from './CryptoLogo';
 import { Button } from '@/components/ui/button';
 
 export const ExplosiveWatchPanel: React.FC = () => {

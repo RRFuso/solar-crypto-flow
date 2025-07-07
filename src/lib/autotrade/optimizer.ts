@@ -1,5 +1,5 @@
 import { TradingStrategy, BacktestResult } from '@/types/autotrade';
-import { KLine } from '@/types/binance';
+import { BinanceKline } from '@/types/binance';
 import { AIInsight } from '@/hooks/useAdvancedAI';
 import { Backtester } from './backtester';
 
@@ -22,7 +22,7 @@ export class StrategyOptimizer {
   static async run(
     baseStrategy: TradingStrategy,
     params: OptimizationParams,
-    historicalData: Map<string, KLine[]>,
+    historicalData: Map<string, BinanceKline[]>,
     aiInsights: Map<string, AIInsight>,
     startDate: Date,
     endDate: Date,

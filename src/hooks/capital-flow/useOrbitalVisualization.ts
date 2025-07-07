@@ -15,19 +15,9 @@ type OrbitalLink = {
 export const useOrbitalVisualization = () => {
   const createOrbitalVisualization = useCallback((
     flowData: FlowData[],
-    svgElement: SVGSVGElement,
     width: number,
     height: number
   ) => {
-    // Create D3 selection
-    const svg = d3.select(svgElement)
-      .attr("width", width)
-      .attr("height", height)
-      .attr("viewBox", `0 0 ${width} ${height}`);
-    
-    // Clear previous SVG content
-    svg.selectAll("*").remove();
-    
     // Extract unique assets for nodes
     const assets = Array.from(new Set([
       ...flowData.map(d => d.from),
@@ -117,9 +107,6 @@ export const useOrbitalVisualization = () => {
     // Don't render the blue lines - let the LinkRenderer handle the dotted flow lines
     
     return {
-      svg,
-      width,
-      height,
       nodes,
       links,
       centralNode: nodes.find(n => n.type === "central") || nodes[0]

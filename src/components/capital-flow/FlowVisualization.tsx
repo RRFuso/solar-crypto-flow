@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import * as d3 from 'd3';
 import { FlowData, CryptoData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
@@ -14,6 +14,8 @@ import { useCryptoData } from '@/hooks/useCryptoData';
 import { usePriceActionSignals } from '@/hooks/usePriceActionSignals';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 import { useOnChainData } from '@/contexts/OnChainDataContext';
+import { ThreeScene, ThreeSceneHandles } from './visualization/ThreeScene';
+import { PredictionOrbitalOverlay } from '@/components/ai/PredictionOrbitalOverlay';
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
@@ -33,7 +35,6 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   showLines
 }) => {
   const {
-    svgRef,
     containerRef,
     dimensions,
     visualizationData,
@@ -41,6 +42,9 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     animationRef,
     createOrbitalVisualization
   } = useVisualizationSetup(flowData, zoomLevel);
+
+  const threeSceneRef = useRef<ThreeSceneHandles>(null);
+  const svgOverlayRef = useRef<SVGSVGElement>(null);
   
   const symbolsInView = React.useMemo(() => {
     if (!visualizationData || !visualizationData.nodes) return [];
@@ -77,7 +81,6 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     cryptoDataMap,
     priceActionSignals,
     aiInsights,
-    svgRef,
     dimensions,
     zoomLevel: adjustedZoomLevel,
     setVisualizationData,
@@ -145,7 +148,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   }
 
   // Verificação de segurança antes de renderizar
-  const renderVisualization = svgRef.current && 
+  const renderVisualization = threeSceneRef.current && 
                              dimensions.width > 0 && 
                              visualizationData && 
                              visualizationData.nodes && 
@@ -154,24 +157,25 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   return (
     <div ref={containerRef} className="w-full h-full relative overflow-hidden">
       <div className="w-full h-full flex items-center justify-center">
+        <ThreeScene ref={threeSceneRef} width={dimensions.width} height={dimensions.height} />
         <svg 
-          ref={svgRef} 
-          className="w-full h-full" 
-          style={{ display: 'block' }}
+          ref={svgOverlayRef} 
+          className="w-full h-full absolute top-0 left-0" 
+          style={{ display: 'block', pointerEvents: 'none' }}
           width={dimensions.width}
           height={dimensions.height}
           viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
           preserveAspectRatio="xMidYMid meet"
         />
-      {renderVisualization && svgRef.current && (
+      {renderVisualization && threeSceneRef.current && svgOverlayRef.current && (
         <>
           <StarfieldBackground 
-            svg={d3.select(svgRef.current)}
+            svg={d3.select(svgOverlayRef.current)}
             width={dimensions.width}
             height={dimensions.height}
           />
           <OrbitLayersComponent 
-            svg={d3.select(svgRef.current)}
+            svg={d3.select(svgOverlayRef.current)}
             width={dimensions.width}
             height={dimensions.height}
             orbitLayers={4}
@@ -179,7 +183,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             extendFullScreen={true}
           />
           <LinkRendererExtended
-            svg={d3.select(svgRef.current)}
+            svg={d3.select(svgOverlayRef.current)}
             links={visualizationData.links}
             nodes={visualizationData.nodes}
             selectedNodeId={selectedNodeId}
@@ -189,7 +193,9 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             showLines={showLines}
           />
           <NodeRendererComponent 
-            svg={d3.select(svgRef.current)}
+            scene={threeSceneRef.current.scene}
+            camera={threeSceneRef.current.camera}
+            canvas={threeSceneRef.current.canvas}
             nodes={visualizationData.nodes}
             centralNode={visualizationData.centralNode}
             selectedNodeId={selectedNodeId}
@@ -197,13 +203,22 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             aiInsights={aiInsights}
             smartMoneyScores={smartMoneyScores}
           />
-          <OrbitalAnimationComponent 
-            svg={d3.select(svgRef.current)}
+          <OrbitalAnimationComponent
+            scene={threeSceneRef.current.scene}
+            camera={threeSceneRef.current.camera}
+            renderer={threeSceneRef.current.renderer}
             nodes={visualizationData.nodes}
             width={dimensions.width}
             height={dimensions.height}
             rotationSpeed={0.00001}
             updateLinksInRealTime={true}
+          />
+          <PredictionOrbitalOverlay
+            svg={d3.select(svgOverlayRef.current)}
+            nodes={visualizationData.nodes}
+            predictions={predictions}
+            chartTimeframe={chartTimeframe}
+            aiInsights={aiInsights}
           />
         </>
       )}

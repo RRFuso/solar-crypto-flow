@@ -16,7 +16,7 @@ const TabsList = ({ activeTab, onTabChange }: TabsListProps) => {
         <TabsTrigger value="overbought">Sobrecomprado</TabsTrigger>
         <TabsTrigger value="oversold">Sobrevendido</TabsTrigger>
         <TabsTrigger value="div-bull">Divergência Bull</TabsTrigger>
-        <TabsTrigger value="div-bear">Divergência Bear</TAbbsTrigger>
+        <TabsTrigger value="div-bear">Divergência Bear</TabsTrigger>
         <TabsTrigger value="explosive">Potencial Explosivo</TabsTrigger>
       </ShadcnTabsList>
     </Tabs>

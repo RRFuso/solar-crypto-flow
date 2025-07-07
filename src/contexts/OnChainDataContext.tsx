@@ -2,14 +2,10 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { ExchangeFlow, WhaleTransaction } from '@/types/onchain';
 import { getERC20TokenTransactions, identifyWhaleTransactions, calculateExchangeFlow } from '@/lib/onchain/etherscan';
+import { getContractAddress } from '@/lib/addressResolver';
 
 // Mapa de exemplo de símbolos para endereços de contrato (mainnet Ethereum)
-const TOKEN_CONTRACTS: { [symbol: string]: string } = {
-  'ETH': '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-  'USDT': '0xdac17f958d2ee523a2206206994597c13d831ec7',
-  'SHIB': '0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce',
-  'LINK': '0x514910771af9ca656af840dff83e8264ecf986ca',
-};
+
 
 interface OnChainData {
   whaleTransactions: WhaleTransaction[];
@@ -55,7 +51,7 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const requestOnChainData = useCallback(async (symbols: string[]) => {
-    const symbolsToFetch = symbols.filter(s => !onChainData.has(s) && !loadingSymbols.has(s) && TOKEN_CONTRACTS[s.toUpperCase()]);
+    const symbolsToFetch = symbols.filter(s => !onChainData.has(s) && !loadingSymbols.has(s));
     
     if (symbolsToFetch.length === 0) return;
 
@@ -63,7 +59,11 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
     await Promise.all(symbolsToFetch.map(async (symbol) => {
       try {
-        const contractAddress = TOKEN_CONTRACTS[symbol.toUpperCase()];
+        const contractAddress = await getContractAddress(symbol);
+        if (!contractAddress) {
+          console.warn(`[OnChainData] Could not get contract address for ${symbol}. Skipping.`);
+          return; // Skip if no contract address is found
+        }
         const transactions = await getERC20TokenTransactions(contractAddress, 500);
         const whaleTxs = identifyWhaleTransactions(transactions, 1000);
         const exFlow = calculateExchangeFlow(transactions, symbol);
