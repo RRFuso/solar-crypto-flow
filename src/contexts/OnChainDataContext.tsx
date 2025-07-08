@@ -27,23 +27,31 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [onChainData, setOnChainData] = useState<Map<string, OnChainData>>(new Map());
   const [smartMoneyScores, setSmartMoneyScores] = useState<Map<string, SmartMoneyScore>>(new Map());
   const [loadingSymbols, setLoadingSymbols] = useState<Set<string>>(new Set());
-  const [contractAddressesCache, setContractAddressesCache] = useState<Map<string, string>>(new Map());
+  const [contractAddressesCache, setContractAddressesCache] = useState<Map<string, { address: string; chain: string }>>(new Map());
 
   const calculateSmartMoneyScore = (data: OnChainData): SmartMoneyScore => {
-    const { exchangeFlow } = data;
+    const { exchangeFlow, whaleTransactions } = data;
     let currentScore = 0;
 
+    // Exchange flow analysis
     if (exchangeFlow) {
-      if (exchangeFlow.netFlow < 0) currentScore += 5;
-      else if (exchangeFlow.netFlow > 0) currentScore -= 5;
+      if (exchangeFlow.netFlow < 0) currentScore += 4; // Net outflow is bullish
+      else if (exchangeFlow.netFlow > 0) currentScore -= 4; // Net inflow is bearish
     }
-    
-    // Adicionar lógica de baleias se necessário
+
+    // Whale activity analysis
+    if (whaleTransactions.length > 0) {
+      const whaleBuys = whaleTransactions.filter(tx => tx.to.isExchange === false).length;
+      const whaleSells = whaleTransactions.filter(tx => tx.to.isExchange === true).length;
+      
+      if (whaleBuys > whaleSells) currentScore += 3;
+      else if (whaleSells > whaleBuys) currentScore -= 3;
+    }
     
     const finalScore = Math.max(-10, Math.min(10, currentScore));
     let sentiment: 'Bearish' | 'Neutral' | 'Bullish' = 'Neutral';
-    if (finalScore > 3) sentiment = 'Bullish';
-    else if (finalScore < -3) sentiment = 'Bearish';
+    if (finalScore > 2) sentiment = 'Bullish';
+    else if (finalScore < -2) sentiment = 'Bearish';
 
     return { score: finalScore, sentiment };
   };
@@ -55,59 +63,48 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
     setLoadingSymbols(prev => new Set([...prev, ...symbolsToProcess]));
 
-    await Promise.all(symbolsToProcess.map(async (symbol) => {
-      let contractAddress = contractAddressesCache.get(symbol.toUpperCase());
-
-      if (!contractAddress) {
-        // Fetch from Supabase if not in cache
-        const { data, error } = await supabase
-          .from('token_contracts')
-          .select('contract_address')
-          .eq('symbol', symbol.toUpperCase())
-          .single();
-
-        if (error) {
-          console.error(`Error fetching contract address for ${symbol} from Supabase:`, error);
-          setLoadingSymbols(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(symbol);
-            return newSet;
-          });
-          return; // Skip if contract address cannot be fetched
-        }
-
-        if (data) {
-          contractAddress = data.contract_address;
-          setContractAddressesCache(prev => new Map(prev).set(symbol.toUpperCase(), contractAddress!));
-        } else {
-          console.warn(`Contract address not found for ${symbol} in Supabase.`);
-          // Optionally set a neutral score or indicate data not available
-          setOnChainData(prev => new Map(prev).set(symbol, { whaleTransactions: [], exchangeFlow: null }));
-          setSmartMoneyScores(prev => new Map(prev).set(symbol, { score: 0, sentiment: 'Neutral' }));
-          setLoadingSymbols(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(symbol);
-            return newSet;
-          });
-          return; // Skip if contract address not found
-        }
-      }
-
+    for (const symbol of symbolsToProcess) {
       try {
-        const transactions = await getERC20TokenTransactions(contractAddress!, 500);
-        const whaleTxs = identifyWhaleTransactions(transactions, 1000);
-        const exFlow = calculateExchangeFlow(transactions, symbol);
+        let contractInfo = contractAddressesCache.get(symbol.toUpperCase());
+
+        if (!contractInfo) {
+          const { data, error } = await supabase
+            .from('token_contracts')
+            .select('contract_address, chain')
+            .eq('symbol', symbol.toUpperCase())
+            .single();
+
+          if (error) {
+            throw new Error(`Error fetching contract info for ${symbol} from Supabase: ${error.message}`);
+          }
+
+          if (data) {
+            contractInfo = { address: data.contract_address, chain: data.chain || 'ethereum' };
+            setContractAddressesCache(prev => new Map(prev).set(symbol.toUpperCase(), contractInfo!));
+          } else {
+            throw new Error(`Contract info not found for ${symbol} in Supabase.`);
+          }
+        }
+
+        const transactions = await getERC20TokenTransactions(contractInfo.address, contractInfo.chain, 500);
+        const whaleTxs = identifyWhaleTransactions(transactions, 1000, contractInfo.chain);
+        const exFlow = calculateExchangeFlow(transactions, symbol, contractInfo.chain);
         
         const newData: OnChainData = { whaleTransactions: whaleTxs, exchangeFlow: exFlow };
         const newScore = calculateSmartMoneyScore(newData);
 
-        console.log(`[OnChainData] Data for ${symbol}:`, { newData, newScore }); // Log dos dados processados
+        console.log(`[OnChainData] Data for ${symbol}:`, { newData, newScore });
 
         setOnChainData(prev => new Map(prev).set(symbol, newData));
         setSmartMoneyScores(prev => new Map(prev).set(symbol, newScore));
 
       } catch (error) {
-        console.error(`Failed to fetch on-chain data for ${symbol}:`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`[OnChainData] Failed to process ${symbol}: ${errorMessage}`);
+        
+        // Set neutral score on error to prevent perpetual loading
+        setOnChainData(prev => new Map(prev).set(symbol, { whaleTransactions: [], exchangeFlow: null }));
+        setSmartMoneyScores(prev => new Map(prev).set(symbol, { score: 0, sentiment: 'Neutral' }));
       } finally {
         setLoadingSymbols(prev => {
           const newSet = new Set(prev);
@@ -115,8 +112,8 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
           return newSet;
         });
       }
-    }));
-  }, [onChainData, loadingSymbols]);
+    }
+  }, [onChainData, loadingSymbols, contractAddressesCache]);
 
   const isLoading = (symbol: string): boolean => loadingSymbols.has(symbol);
 

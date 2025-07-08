@@ -5,7 +5,7 @@ export interface CryptoData {
   symbol?: string;
   performance: number;
   price?: string;
-  volume?: string;
+  volume24h?: string;
   marketCap?: number;
   change24h?: number;
   change7d?: number;

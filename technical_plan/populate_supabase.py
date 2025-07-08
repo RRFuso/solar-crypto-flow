@@ -22,42 +22,55 @@ def populate_token_contracts():
     coins = cg.get_coins_list(include_platform=True)
     print(f"Found {len(coins)} coins.")
 
+    platform_map = {
+        'binance-smart-chain': 'bsc',
+        'ethereum': 'ethereum',
+        # Add other platforms here as needed
+    }
+
     inserted_count = 0
     for coin in coins:
-        symbol = coin.get('symbol', '').upper()
-        name = coin.get('name', '')
-        coin_id = coin.get('id')
+        try:
+            # Re-initialize client to avoid connection drops
+            supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-        if not symbol or not coin_id:
-            continue
+            symbol = coin.get('symbol', '').upper()
+            name = coin.get('name', '')
+            coin_id = coin.get('id')
 
-        # Check if coin already exists in Supabase
-        response = supabase.from_('token_contracts').select('symbol').eq('symbol', symbol).execute()
-        if response.data:
-            # print(f"Coin {symbol} already exists in Supabase. Skipping.")
-            continue
+            if not symbol or not coin_id or not coin.get('platforms'):
+                continue
 
-        contract_address = None
-        if 'platforms' in coin and 'ethereum' in coin['platforms']:
-            contract_address = coin['platforms']['ethereum']
-        
-        if contract_address:
-            try:
-                data, count = supabase.from_('token_contracts').insert({
-                    'symbol': symbol,
-                    'contract_address': contract_address,
-                    'chain': 'ethereum'
-                }).execute()
-                inserted_count += 1
-                print(f"Inserted {symbol} ({name}) with address {contract_address}")
-            except Exception as e:
-                if "duplicate key value violates unique constraint" in str(e):
-                    # This handles cases where the symbol might be duplicated but not caught by the initial select
-                    # print(f"Duplicate symbol {symbol} encountered. Skipping.")
-                    pass
-                else:
-                    print(f"Error inserting {symbol} ({name}): {e}")
-        time.sleep(0.1) # Be kind to the API
+            for platform_id, contract_address in coin['platforms'].items():
+                if platform_id in platform_map and contract_address:
+                    chain = platform_map[platform_id]
+
+                    # Check if this specific symbol-chain combination already exists
+                    response = supabase.from_('token_contracts').select('symbol').eq('symbol', symbol).eq('chain', chain).execute()
+                    if response.data:
+                        # print(f"Coin {symbol} on {chain} already exists. Skipping.")
+                        continue
+
+                    try:
+                        data, count = supabase.from_('token_contracts').insert({
+                            'symbol': symbol,
+                            'contract_address': contract_address,
+                            'chain': chain
+                        }).execute()
+                        inserted_count += 1
+                        print(f"Inserted {symbol} ({name}) on {chain} with address {contract_address}")
+                    except Exception as e:
+                        if "duplicate key value violates unique constraint" in str(e):
+                            # This can happen if symbols are not unique across chains in the source data
+                            # print(f"Duplicate symbol {symbol} on {chain} encountered. Skipping.")
+                            pass
+                        else:
+                            print(f"Error inserting {symbol} ({name}) on {chain}: {e}")
+            
+            time.sleep(0.1) # Be kind to the API
+        except Exception as e:
+            print(f"An error occurred in the main loop: {e}")
+            time.sleep(5) # Wait before retrying
 
     print(f"Finished populating. Total inserted: {inserted_count}")
 

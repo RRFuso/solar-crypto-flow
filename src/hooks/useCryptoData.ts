@@ -74,12 +74,14 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
                   symbol: symbol,
                   performance: priceChange - btcChange,
                   price: currentPrice.toFixed(8),
+                  change24h: parseFloat(ticker.priceChangePercent),
+                  volume24h: parseFloat(ticker.volume),
+                  marketCap: parseFloat(ticker.quoteVolume), // Using quoteVolume as an approximation for marketCap
                   rsi: rsiValues[rsiValues.length - 1],
                   rsi4h: rsiValues[rsiValues.length - 1],
                   ema12: ema12Values[ema12Values.length - 1],
                   ema26: ema26Values[ema26Values.length - 1],
                   aboveMA14: currentPrice > ma14Values[ma14Values.length - 1],
-                  volume: ticker.volume,
                   high24h: ticker.highPrice,
                   low24h: ticker.lowPrice
                 } as CryptoData;

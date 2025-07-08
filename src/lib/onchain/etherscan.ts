@@ -19,10 +19,26 @@ const KNOWN_EXCHANGES = {
  */
 export const getERC20TokenTransactions = async (
   contractAddress: string,
+  chain: string = 'ethereum',
   limit: number = 100
 ): Promise<OnChainTransaction[]> => {
-  const url = `${ETHERSCAN_API_URL}?module=account&action=tokentx&contractaddress=${contractAddress}&page=1&offset=${limit}&sort=desc&apikey=${ETHERSCAN_API_KEY}`;
-  console.log('Fetching Etherscan URL:', url); // Log da URL
+  let apiUrl, apiKey;
+
+  switch (chain.toLowerCase()) {
+    case 'bsc':
+    case 'binance-smart-chain':
+      apiUrl = 'https://api.bscscan.com/api';
+      apiKey = import.meta.env.VITE_BSCSCAN_API_KEY || 'YOUR_BSCSCAN_API_KEY';
+      break;
+    case 'ethereum':
+    default:
+      apiUrl = 'https://api.etherscan.io/api';
+      apiKey = import.meta.env.VITE_ETHERSCAN_API_KEY || 'YOUR_ETHERSCAN_API_KEY';
+      break;
+  }
+
+  const url = `${apiUrl}?module=account&action=tokentx&contractaddress=${contractAddress}&page=1&offset=${limit}&sort=desc&apikey=${apiKey}`;
+  console.log(`Fetching ${chain} URL:`, url);
 
   try {
     const response = await fetch(url);
@@ -30,16 +46,15 @@ export const getERC20TokenTransactions = async (
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    console.log('Etherscan API Response:', data); // Log da resposta
+    console.log(`${chain} API Response:`, data);
 
     if (data.status === '0') {
-      // Etherscan API returns status '0' for errors, with a message
-      throw new Error(`Etherscan API error: ${data.message}`);
+      throw new Error(`${chain} API error: ${data.message}`);
     }
 
     return data.result as OnChainTransaction[];
   } catch (error) {
-    console.error(`Failed to fetch transactions for ${contractAddress}:`, error);
+    console.error(`Failed to fetch transactions for ${contractAddress} on ${chain}:`, error);
     return [];
   }
 };
@@ -52,14 +67,16 @@ export const getERC20TokenTransactions = async (
  */
 export const identifyWhaleTransactions = (
   transactions: OnChainTransaction[],
-  minValueThreshold: number = 1000 // Ex: 1000 ETH
+  minValueThreshold: number = 1000, // Ex: 1000 ETH or BNB
+  chain: string = 'ethereum'
 ): WhaleTransaction[] => {
   const whaleTxs: WhaleTransaction[] = [];
+  const decimals = chain.toLowerCase() === 'bsc' ? 1e18 : 1e18; // BNB and ETH have 18 decimals
 
   for (const tx of transactions) {
-    const valueInEth = parseFloat(tx.value) / 1e18; // Converter de Wei para ETH
+    const value = parseFloat(tx.value) / decimals;
 
-    if (valueInEth >= minValueThreshold) {
+    if (value >= minValueThreshold) {
       whaleTxs.push({
         ...tx,
         isWhale: true,
@@ -78,19 +95,21 @@ export const identifyWhaleTransactions = (
  */
 export const calculateExchangeFlow = (
   transactions: OnChainTransaction[],
-  symbol: string
+  symbol: string,
+  chain: string = 'ethereum'
 ): ExchangeFlow => {
   let inflow = 0;
   let outflow = 0;
   const exchangeAddresses = Object.values(KNOWN_EXCHANGES);
+  const decimals = chain.toLowerCase() === 'bsc' ? 1e18 : 1e18; // BNB and ETH have 18 decimals
 
   for (const tx of transactions) {
-    const valueInEth = parseFloat(tx.value) / 1e18;
+    const value = parseFloat(tx.value) / decimals;
 
     if (exchangeAddresses.includes(tx.to.toLowerCase())) {
-      inflow += valueInEth;
+      inflow += value;
     } else if (exchangeAddresses.includes(tx.from.toLowerCase())) {
-      outflow += valueInEth;
+      outflow += value;
     }
   }
 
