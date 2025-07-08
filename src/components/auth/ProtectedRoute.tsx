@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -17,11 +18,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // Temporarily bypass authentication for testing
-  // TODO: Remove this bypass in production
-  const isDevelopment = import.meta.env.DEV;
-  
-  if (!user && !isDevelopment) {
+  if (!user) {
     return <Navigate to="/auth" replace />;
   }
 
@@ -29,4 +26,3 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 };
 
 export default ProtectedRoute;
-

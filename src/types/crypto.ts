@@ -1,3 +1,4 @@
+
 export interface CryptoData {
   id: string;
   name: string;
@@ -52,9 +53,9 @@ export interface CryptoData {
   blockHeight?: number;
   lastBlockTime?: number;
   nextHalvingDate?: string;
-  nextHalvingBlockHeight?: string;
+  nextHalvingBlockHeight?: number;
   nextDifficultyAdjustmentDate?: string;
-  nextDifficultyAdjustmentBlockHeight?: string;
+  nextDifficultyAdjustmentBlockHeight?: number;
   difficulty?: number;
   hashRate?: number;
   inflationRate?: number;
@@ -164,8 +165,6 @@ export interface FlowData {
   fromCategory?: string;
   toCategory?: string;
   categories?: string[];
-  amountUSD?: number; // Adicionado
-  flowType?: string; // Adicionado
 }
 
 export interface IndexData {
@@ -176,5 +175,3 @@ export interface IndexData {
   color: string;
   marketCap?: number;
 }
-
-
