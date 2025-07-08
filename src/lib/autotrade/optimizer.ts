@@ -1,5 +1,5 @@
 import { TradingStrategy, BacktestResult } from '@/types/autotrade';
-import { KLine } from '@/types/binance';
+import { BinanceKline } from '@/types/binance';
 import { AIInsight } from '@/hooks/useAdvancedAI';
 import { Backtester } from './backtester';
 
