@@ -4,6 +4,30 @@ import { OnChainTransaction, WhaleTransaction, ExchangeFlow, HolderDistribution 
 const ETHERSCAN_API_KEY = import.meta.env.VITE_ETHERSCAN_API_KEY || 'YOUR_ETHERSCAN_API_KEY';
 const ETHERSCAN_API_URL = 'https://api.etherscan.io/api';
 
+const chainIdMap: { [key: string]: string } = {
+  ethereum: '1',
+  bsc: '56',
+  arbitrum: '42161',
+  optimism: '10',
+  polygon: '137',
+  avalanche: '43114',
+  base: '8453',
+  celo: '42220',
+  cronos: '25',
+  gnosis: '100',
+  linea: '59144',
+  mantle: '5000',
+  'polygon-zkevm': '1101',
+  fraxtal: '252',
+  sepolia: '11155111',
+  holesky: '17000',
+  'arbitrum-sepolia': '421614',
+  'avalanche-fuji': '43113',
+  'base-sepolia': '84532',
+  'bsc-testnet': '97',
+  // Add other supported chain names and IDs here
+};
+
 // Endereços de exchanges conhecidas (exemplo)
 const KNOWN_EXCHANGES = {
   'binance': '0x28c6c06298d514db089934071355e5743bf21d60',
@@ -14,6 +38,7 @@ const KNOWN_EXCHANGES = {
 /**
  * Busca as últimas transações de um token ERC-20.
  * @param contractAddress O endereço do contrato do token.
+ * @param chain O nome da blockchain (ex: 'ethereum', 'bsc').
  * @param limit O número de transações a buscar.
  * @returns Uma promessa que resolve para uma lista de transações.
  */
@@ -22,23 +47,16 @@ export const getERC20TokenTransactions = async (
   chain: string = 'ethereum',
   limit: number = 100
 ): Promise<OnChainTransaction[]> => {
-  let apiUrl, apiKey;
-
-  switch (chain.toLowerCase()) {
-    case 'bsc':
-    case 'binance-smart-chain':
-      apiUrl = 'https://api.bscscan.com/api';
-      apiKey = import.meta.env.VITE_BSCSCAN_API_KEY || 'YOUR_BSCSCAN_API_KEY';
-      break;
-    case 'ethereum':
-    default:
-      apiUrl = 'https://api.etherscan.io/api';
-      apiKey = import.meta.env.VITE_ETHERSCAN_API_KEY || 'YOUR_ETHERSCAN_API_KEY';
-      break;
+  const chainId = chainIdMap[chain.toLowerCase()];
+  if (!chainId) {
+    console.error(`Unsupported chain: ${chain}`);
+    return [];
   }
 
-  const url = `${apiUrl}?module=account&action=tokentx&contractaddress=${contractAddress}&page=1&offset=${limit}&sort=desc&apikey=${apiKey}`;
-  console.log(`Fetching ${chain} URL:`, url);
+  // Using the unified V2 API approach with a single endpoint and chainid parameter
+  const url = `${ETHERSCAN_API_URL}?chainid=${chainId}&module=account&action=tokentx&contractaddress=${contractAddress}&page=1&offset=${limit}&sort=desc&apikey=${ETHERSCAN_API_KEY}`;
+  
+  console.log(`Fetching ${chain} (ID: ${chainId}) URL:`, url);
 
   try {
     const response = await fetch(url);
@@ -49,6 +67,7 @@ export const getERC20TokenTransactions = async (
     console.log(`${chain} API Response:`, data);
 
     if (data.status === '0') {
+      // Etherscan API returns status '0' for errors, with a message
       throw new Error(`${chain} API error: ${data.message}`);
     }
 

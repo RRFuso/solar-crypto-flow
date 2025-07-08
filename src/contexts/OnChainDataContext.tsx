@@ -71,15 +71,17 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
           const { data, error } = await supabase
             .from('token_contracts')
             .select('contract_address, chain')
-            .eq('symbol', symbol.toUpperCase())
-            .single();
+            .eq('symbol', symbol.toUpperCase());
 
           if (error) {
             throw new Error(`Error fetching contract info for ${symbol} from Supabase: ${error.message}`);
           }
 
-          if (data) {
-            contractInfo = { address: data.contract_address, chain: data.chain || 'ethereum' };
+          if (data && data.length > 0) {
+            // Prioritize ethereum if available, otherwise take the first one
+            const ethContract = data.find(c => c.chain === 'ethereum');
+            const selectedData = ethContract || data[0];
+            contractInfo = { address: selectedData.contract_address, chain: selectedData.chain || 'ethereum' };
             setContractAddressesCache(prev => new Map(prev).set(symbol.toUpperCase(), contractInfo!));
           } else {
             throw new Error(`Contract info not found for ${symbol} in Supabase.`);
