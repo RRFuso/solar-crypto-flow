@@ -364,7 +364,7 @@ const SolarSystemVisualization: React.FC<{
   );
 };
 
-export const FlowVisualization: React.FC<MarketFlowVisualizationGPUProps> = ({
+export const MarketFlowVisualizationGPU: React.FC<MarketFlowVisualizationGPUProps> = ({
   flowData,
   predictions,
   zoomLevel,
@@ -372,15 +372,6 @@ export const FlowVisualization: React.FC<MarketFlowVisualizationGPUProps> = ({
   activeCategory,
   showLines,
 }) => {
-  // Adicionado guarda para dados de fluxo ausentes ou vazios
-  if (!flowData || flowData.length === 0) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-black">
-        <p className="text-slate-400">Aguardando dados de fluxo...</p>
-      </div>
-    );
-  }
-
   const { nodes, links } = useMemo(() => {
     const uniqueSymbols = new Set<string>();
     flowData.forEach(flow => {
@@ -452,3 +443,4 @@ export const FlowVisualization: React.FC<MarketFlowVisualizationGPUProps> = ({
     </div>
   );
 };
+
