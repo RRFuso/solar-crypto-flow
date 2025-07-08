@@ -1,11 +1,12 @@
+
 import { TradingStrategy, BacktestResult, CompletedTrade } from '@/types/autotrade';
-import { BinanceKline } from '@/types/binance'; // Changed KLine to BinanceKline
+import { KLine } from '@/types/binance';
 import { AIInsight } from '@/hooks/useAdvancedAI';
 
 export class Backtester {
   static async runBacktest(
     strategy: TradingStrategy,
-    historicalData: Map<string, BinanceKline[]>,
+    historicalData: Map<string, KLine[]>,
     aiInsights: Map<string, AIInsight>,
     startDate: Date,
     endDate: Date,
@@ -26,8 +27,8 @@ export class Backtester {
         
         if (currentDayData) {
           const exitConditionMet = this.checkExitConditions(position, currentDayData, strategy);
-          if (exitConditionMet.exit) {
-            const trade = this.closePosition(position, parseFloat(currentDayData.close), date.getTime(), exitConditionMet.reason);
+          if (exitConditionMet) {
+            const trade = this.closePosition(position, parseFloat(currentDayData.close), date.getTime());
             trades.push(trade);
             currentCapital += trade.pnl;
           } else {
@@ -120,9 +121,9 @@ export class Backtester {
 
   private static checkExitConditions(
     position: any, 
-    dayData: BinanceKline, // Changed KLine to BinanceKline
+    dayData: KLine, 
     strategy: TradingStrategy
-  ): { exit: boolean; price: number; reason: 'take_profit' | 'stop_loss' | 'signal' | 'time_limit' } {
+  ): { exit: boolean; price: number; reason: 'take_profit' | 'stop_loss' } {
     const entryPrice = position.entryPrice;
     const highPrice = parseFloat(dayData.high);
     const lowPrice = parseFloat(dayData.low);
@@ -145,7 +146,7 @@ export class Backtester {
       }
     }
 
-    return { exit: false, price: 0, reason: 'signal' }; // Default, should not be used
+    return { exit: false, price: 0, reason: 'stop_loss' }; // Default, should not be used
   }
 
   private static openPosition(
@@ -268,5 +269,3 @@ export class Backtester {
     };
   }
 }
-
-

@@ -1,18 +1,14 @@
 
 export interface NarrativeData {
   id: string;
-  symbol?: string;
   name: string;
-  category?: string;
-  sentiment?: 'bullish' | 'bearish' | 'neutral';
   marketCap: number;
   volume24h: number;
-  dominance?: number;
+  dominance: number;
   change24h: number;
-  change7d?: number;
-  tokens?: string[];
-  color?: string;
-  logoUrl?: string;
+  change7d: number;
+  tokens: string[];
+  color: string;
   // New field to store representative tokens with logo info
   representativeTokens?: RepresentativeToken[];
 }
@@ -29,7 +25,6 @@ export interface NarrativeFlow {
   value: number;
   percentage: number;
   predicted: boolean;
-  timestamp?: number;
 }
 
 export interface ModelPrediction {

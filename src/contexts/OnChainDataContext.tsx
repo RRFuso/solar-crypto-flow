@@ -2,13 +2,14 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { ExchangeFlow, WhaleTransaction } from '@/types/onchain';
 import { getERC20TokenTransactions, identifyWhaleTransactions, calculateExchangeFlow } from '@/lib/onchain/etherscan';
-import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Mapa de exemplo de símbolos para endereços de contrato (mainnet Ethereum)
+const TOKEN_CONTRACTS: { [symbol: string]: string } = {
+  'ETH': '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  'USDT': '0xdac17f958d2ee523a2206206994597c13d831ec7',
+  'SHIB': '0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce',
+  'LINK': '0x514910771af9ca656af840dff83e8264ecf986ca',
+};
 
 interface OnChainData {
   whaleTransactions: WhaleTransaction[];
@@ -54,7 +55,7 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const requestOnChainData = useCallback(async (symbols: string[]) => {
-    const symbolsToFetch = symbols.filter(s => !onChainData.has(s) && !loadingSymbols.has(s));
+    const symbolsToFetch = symbols.filter(s => !onChainData.has(s) && !loadingSymbols.has(s) && TOKEN_CONTRACTS[s.toUpperCase()]);
     
     if (symbolsToFetch.length === 0) return;
 
@@ -62,20 +63,7 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
     await Promise.all(symbolsToFetch.map(async (symbol) => {
       try {
-        // Query Supabase for the contract address
-        const { data, error } = await supabase
-          .from('token_contracts')
-          .select('contract_address')
-          .eq('symbol', symbol.toUpperCase())
-          .single();
-
-        if (error || !data) {
-          console.warn(`Contract address not found for ${symbol} in Supabase. Setting score to Neutral.`);
-          setSmartMoneyScores(prev => new Map(prev).set(symbol, { score: 0, sentiment: 'Neutral' }));
-          return;
-        }
-
-        const contractAddress = data.contract_address;
+        const contractAddress = TOKEN_CONTRACTS[symbol.toUpperCase()];
         const transactions = await getERC20TokenTransactions(contractAddress, 500);
         const whaleTxs = identifyWhaleTransactions(transactions, 1000);
         const exFlow = calculateExchangeFlow(transactions, symbol);
@@ -90,7 +78,6 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
       } catch (error) {
         console.error(`Failed to fetch on-chain data for ${symbol}:`, error);
-        setSmartMoneyScores(prev => new Map(prev).set(symbol, { score: 0, sentiment: 'Neutral' }));
       } finally {
         setLoadingSymbols(prev => {
           const newSet = new Set(prev);
@@ -117,5 +104,3 @@ export const useOnChainData = () => {
   }
   return context;
 };
-
-

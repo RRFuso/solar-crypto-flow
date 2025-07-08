@@ -6,7 +6,6 @@ export interface MarketIndex {
   color: string;
   value?: number;
   change?: number;
-  change24h?: number;
   marketCap?: number;
   volume?: number;
 }
@@ -21,7 +20,6 @@ export interface IndexFlowData {
 export interface IndexRotationResult {
   indices: MarketIndex[];
   flows: IndexFlowData[];
-  rotationData?: MarketIndex[];
   timestamp: string;
   period: string;
 }
