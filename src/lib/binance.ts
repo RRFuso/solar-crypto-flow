@@ -2,7 +2,7 @@ import { BinanceTicker, BinanceKline } from '@/types/binance';
 import { filterValidTickers } from './tickerValidation';
 
 const BINANCE_API_URL = 'https://api.binance.com/api/v3';
-const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -11,20 +11,6 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): P
   
   for (let i = 0; i < retries; i++) {
     try {
-      // First try proxy to handle CORS issues
-      const proxyResponse = await fetch(`${PROXY_URL}${encodeURIComponent(url)}`, {
-        ...options,
-        headers: {
-          'Accept': 'application/json',
-          ...options.headers,
-        },
-      });
-
-      if (proxyResponse.ok) {
-        return proxyResponse;
-      }
-
-      // If proxy fails, try direct fetch as fallback
       const response = await fetch(url, {
         ...options,
         headers: {
@@ -43,7 +29,6 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): P
       lastError = error as Error;
       
       if (i < retries - 1) {
-        // Wait before retrying, with exponential backoff
         await sleep(1000 * Math.pow(2, i));
       }
     }
@@ -59,7 +44,8 @@ export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => 
       method: 'GET',
     });
     
-    const data: BinanceTicker[] = await response.json();
+    const data = await response.json();
+    console.log("Raw Binance API response:", data);
     const allTickers = data.reduce((acc: Record<string, BinanceTicker>, ticker: BinanceTicker) => {
       acc[ticker.symbol] = ticker;
       return acc;
