@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { FlowData, CryptoData } from '@/types/crypto';
@@ -14,6 +13,7 @@ import { useCryptoData } from '@/hooks/useCryptoData';
 import { usePriceActionSignals } from '@/hooks/usePriceActionSignals';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 import { useOnChainData } from '@/contexts/OnChainDataContext';
+import { useRealtimeTicker } from '@/hooks/useRealtimeTicker'; // Import the real-time hook
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
@@ -47,10 +47,15 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     return visualizationData.nodes.map(node => node.id);
   }, [visualizationData]);
 
+  // Setup all data hooks
   const { data: cryptoData, isLoading: loadingCryptoData } = useCryptoData();
   const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(symbolsInView);
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(symbolsInView);
   const { smartMoneyScores, requestOnChainData } = useOnChainData();
+  
+  // Add the real-time data hook
+  const binanceSymbols = React.useMemo(() => symbolsInView.map(s => `${s}USDT`), [symbolsInView]);
+  const { tickers: realtimeTickers } = useRealtimeTicker(binanceSymbols);
 
   useEffect(() => {
     if (symbolsInView.length > 0) {
@@ -103,7 +108,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
       switch (aiInsight.recommendation) {
         case "strong_buy": return "#00FF88";
         case "buy": return "#66FF99";
-        case "hold": return "#FFCC00";
+        case "hold": return "#00B5D8"; // Updated color
         case "sell": return "#FF6666";
         case "strong_sell": return "#FF3366";
         default: return "#8A9196";
@@ -144,7 +149,6 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     );
   }
 
-  // Verificação de segurança antes de renderizar
   const renderVisualization = svgRef.current && 
                              dimensions.width > 0 && 
                              visualizationData && 
@@ -196,6 +200,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             zoomLevel={adjustedZoomLevel}
             aiInsights={aiInsights}
             smartMoneyScores={smartMoneyScores}
+            realtimeTickers={realtimeTickers} // Pass real-time data down
           />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
