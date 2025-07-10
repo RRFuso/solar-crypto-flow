@@ -6,9 +6,7 @@ import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
 import { AIInsight } from '@/hooks/useAdvancedAI';
 import { useTooltip } from '@/contexts/TooltipContext';
 import { CapitalFlowLink } from '@/types/capitalFlow';
-import { RealtimeTicker } from '@/hooks/useRealtimeTicker';
 
-// --- Interfaces ---
 interface ExtendedOrbitalNode extends OrbitalNode {
   priceActionSignal?: PriceActionSignal;
   price?: string;
@@ -25,45 +23,29 @@ interface NodeRendererProps {
   zoomLevel: number;
   aiInsights: Map<string, AIInsight>;
   smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish' }>;
-  realtimeTickers: Map<string, RealtimeTicker>;
 }
 
-// --- Constants ---
-const VOLATILITY_THRESHOLD = 0.008; // Sensitivity increased to 0.8%
-
-// --- Helper Functions ---
 const getAIRecommendationColor = (recommendation: string): string => {
   switch (recommendation) {
     case 'strong_buy': return '#00FF88';
     case 'buy': return '#66FF99';
-    case 'hold': return '#00B5D8';
+    case 'hold': return '#FFCC00';
     case 'sell': return '#FF6666';
     case 'strong_sell': return '#FF3366';
     default: return '#8A9196';
   }
 };
 
-const getNodeStrokeColor = (
-  d: ExtendedOrbitalNode,
-  selectedNodeId: string | null,
-  aiInsights: Map<string, AIInsight>
-): string => {
-  if (selectedNodeId === d.id) return '#ffffff';
-  if (d.priceActionSignal?.explosivePotential === 'High') return '#800080';
-  const aiInsight = aiInsights.get(d.id);
-  if (aiInsight) return getAIRecommendationColor(aiInsight.recommendation);
-  return '#00b5d8';
-};
-
-const getOnChainGlowColor = (node: ExtendedOrbitalNode, smartMoneyScores: Map<string, any>): string => {
-  const sentiment = smartMoneyScores.get(node.id)?.sentiment;
-  if (sentiment === 'Bullish') return 'rgba(0, 255, 0, 0.7)';
-  if (sentiment === 'Bearish') return 'rgba(255, 0, 0, 0.7)';
-  const aiInsight = node.aiModel;
+const getAIGlowColor = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>): string => {
+  const signal = node.priceActionSignal;
+  if (signal?.explosivePotential === 'High') return 'rgba(128, 0, 128, 0.9)';
+  
+  const aiInsight = aiInsights.get(node.id);
   if (aiInsight) {
     if (aiInsight.opportunityScore > 80) return 'rgba(0, 255, 136, 0.7)';
     if (aiInsight.riskScore > 70) return 'rgba(255, 50, 50, 0.7)';
   }
+  
   return 'rgba(0, 181, 216, 0.4)';
 };
 
@@ -77,50 +59,80 @@ const calculateNodeRadius = (node: ExtendedOrbitalNode, zoomLevel: number, isCen
   const zoomFactor = Math.min(2, Math.max(0.5, zoomLevel / 100));
   const aiMultiplier = node.priceActionSignal?.explosivePotential === 'High' ? 1.2 : 1.0;
   const calculatedRadius = baseRadius * volFactor * zoomFactor * aiMultiplier;
-  return Math.max(isCentral ? 20 : 12, Math.min(isCentral ? 40 : 25, calculatedRadius));
+  const minRadius = isCentral ? 20 : 12;
+  const maxRadius = isCentral ? 40 : 25;
+  return Math.max(minRadius, Math.min(maxRadius, calculatedRadius));
 };
 
-const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>, realtimeTickers: Map<string, RealtimeTicker>) => {
-    const realtimeData = realtimeTickers.get(`${node.id}USDT`);
+const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>) => {
+    const aiInsight = aiInsights.get(node.id);
+    const trendReasons = [];
+    if (aiInsight) {
+        if (aiInsight.predictions[0]?.bullishFactors) {
+            trendReasons.push(...aiInsight.predictions[0].bullishFactors);
+        }
+        if (aiInsight.predictions[0]?.bearishFactors) {
+            trendReasons.push(...aiInsight.predictions[0].bearishFactors);
+        }
+    }
     return {
         id: node.id,
         name: node.name,
-        price: realtimeData ? realtimeData.price : node.price,
+        price: node.price,
         priceChange24h: node.priceChange24h,
         volume: node.volume,
         capitalFlows: node.capitalFlows,
-        aiModel: aiInsights.get(node.id),
+        aiModel: aiInsight,
+        trendReasons: trendReasons,
+        aiAnalysis: aiInsight ? {
+            recommendation: aiInsight.recommendation,
+            confidence: aiInsight.confidence,
+        } : undefined,
         explosivePotential: node.priceActionSignal?.explosivePotential,
+        keyFactors: aiInsight?.predictions[0]?.keyFactors,
     };
 };
 
-// --- D3 Rendering Logic ---
-const renderStructure = (
+const renderOrUpdateVisualization = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   nodes: ExtendedOrbitalNode[],
   centralNode: ExtendedOrbitalNode | null,
+  selectedNodeId: string | null,
   zoomLevel: number,
   aiInsights: Map<string, any>,
-  smartMoneyScores: Map<string, any>,
-  realtimeTickers: Map<string, RealtimeTicker>,
+  smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish' }>,
   showTooltip: (data: any, position: { x: number, y: number }) => void,
   hideTooltip: () => void,
 ) => {
   let defs = svg.select('defs');
-  if (defs.empty()) defs = svg.append('defs');
+  if (defs.empty()) {
+    defs = svg.append('defs');
+  }
 
-  const glowFilter = defs.select('#glow-filter').node()
-    ? defs.select('#glow-filter')
-    : defs.append('filter').attr('id', 'glow-filter');
-  glowFilter.html('');
-  glowFilter.append('feGaussianBlur').attr('stdDeviation', '3.5').attr('result', 'coloredBlur');
+  // Add glow filters
+  const bullishGlow = defs.append('filter')
+    .attr('id', 'bullish-glow')
+    .append('feGaussianBlur')
+    .attr('stdDeviation', '3.5')
+    .attr('result', 'coloredBlur');
   
-  const patterns = defs.selectAll('pattern').data(nodes, (d: any) => d.id);
+  const bearishGlow = defs.append('filter')
+    .attr('id', 'bearish-glow')
+    .append('feGaussianBlur')
+    .attr('stdDeviation', '3.5')
+    .attr('result', 'coloredBlur');
+
+  const patterns = defs.selectAll('pattern')
+    .data(nodes, (d: any) => d.id);
+
   patterns.exit().remove();
+
   const patternEnter = patterns.enter().append('pattern')
     .attr('id', (d: any) => `logo-${d.id}`)
-    .attr('width', 1).attr('height', 1)
+    .attr('width', 1)
+    .attr('height', 1)
     .attr('patternContentUnits', 'objectBoundingBox');
+
   patternEnter.each(function(d) {
     const pattern = d3.select(this);
     const logoUrls = getLogoUrls(d.id);
@@ -129,50 +141,134 @@ const renderStructure = (
       if (currentUrlIndex >= logoUrls.length) return;
       const imageUrl = logoUrls[currentUrlIndex];
       pattern.select('image').remove();
-      pattern.append('image').attr('href', imageUrl)
-        .attr('width', 1).attr('height', 1)
+      pattern.append('image')
+        .attr('href', imageUrl)
+        .attr('width', 1)
+        .attr('height', 1)
         .attr('preserveAspectRatio', 'xMidYMid slice')
-        .on('error', () => { currentUrlIndex++; loadImage(); });
+        .on('error', () => {
+          currentUrlIndex++;
+          loadImage();
+        });
     };
     loadImage();
   });
 
   let nodesGroup = svg.select('.nodes-group');
-  if (nodesGroup.empty()) nodesGroup = svg.append('g').attr('class', 'nodes-group');
+  if (nodesGroup.empty()) {
+    nodesGroup = svg.append('g').attr('class', 'nodes-group');
+  }
 
-  const nodeSelection = nodesGroup.selectAll('g.node').data(nodes, (d: any) => d.id);
-  nodeSelection.exit().transition().duration(500).attr('transform', (d: any) => `translate(${d.x}, ${d.y}) scale(0)`).remove();
+  const nodeSelection = nodesGroup.selectAll('g.node')
+    .data(nodes, (d: any) => d.id);
 
-  const nodeEnter = nodeSelection.enter().append('g')
-    .attr('class', 'node').attr('transform', (d: any) => `translate(${d.x}, ${d.y}) scale(0)`)
+  nodeSelection.exit()
+    .transition().duration(500)
+    .attr('transform', (d: any) => `translate(${d.x}, ${d.y}) scale(0)`)
+    .remove();
+
+  const nodeEnter = nodeSelection.enter()
+    .append('g')
+    .attr('class', 'node')
+    .attr('transform', (d: any) => `translate(${d.x}, ${d.y}) scale(0)`)
     .style('cursor', 'pointer')
     .on('click', (event: MouseEvent, d: any) => {
-      document.dispatchEvent(new CustomEvent('node-click', { detail: { nodeId: d.id } }));
+      const clickEvent = new CustomEvent('node-click', { detail: { nodeId: d.id } });
+      document.dispatchEvent(clickEvent);
     })
     .on('mouseover', (event: MouseEvent, d: any) => {
-        showTooltip(createTooltipData(d, aiInsights, realtimeTickers), { x: event.clientX, y: event.clientY });
+        const tooltipData = createTooltipData(d, aiInsights);
+        showTooltip(tooltipData, { x: event.clientX, y: event.clientY });
     })
-    .on('mouseout', hideTooltip);
+    .on('mouseout', () => {
+        hideTooltip();
+    });
 
-  nodeEnter.append('circle').attr('class', 'node-glow');
-  nodeEnter.append('circle').attr('class', 'node-circle');
-  nodeEnter.append('text').attr('text-anchor', 'middle').attr('fill', 'white')
-    .attr('font-size', '12px').attr('font-weight', 'bold')
-    .style('pointer-events', 'none').style('text-shadow', '1px 1px 2px rgba(0,0,0,0.8)');
+  nodeEnter.append('circle')
+    .attr('class', 'node-glow')
+    .attr('r', 0);
+
+  nodeEnter.append('circle')
+    .attr('class', 'node-circle')
+    .attr('r', 0);
+
+  nodeEnter.append('text')
+    .attr('text-anchor', 'middle')
+    .attr('fill', 'white')
+    .attr('font-size', '12px')
+    .attr('font-weight', 'bold')
+    .style('pointer-events', 'none')
+    .style('text-shadow', '1px 1px 2px rgba(0,0,0,0.8)');
 
   const nodeUpdate = nodeEnter.merge(nodeSelection as any);
-  nodeUpdate.transition().duration(750).attr('transform', (d: any) => `translate(${d.x}, ${d.y}) scale(1)`);
-  
-  nodeUpdate.select('circle.node-glow').transition().duration(750)
+
+  nodeUpdate.transition().duration(750)
+    .attr('transform', (d: any) => `translate(${d.x}, ${d.y}) scale(1)`);
+
+  nodeUpdate.select('circle.node-glow')
+    .transition().duration(750)
     .attr('r', (d: any) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 1.5)
-    .attr('fill', (d: any) => getOnChainGlowColor(d, smartMoneyScores))
-    .style('filter', 'url(#glow-filter)');
+    .attr('fill', (d: any) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      if (onChainSentiment === 'Bullish') return 'rgba(0, 255, 0, 0.7)';
+      if (onChainSentiment === 'Bearish') return 'rgba(255, 0, 0, 0.7)';
+      return getAIGlowColor(d, aiInsights);
+    })
+    .attr('filter', (d: any) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      if (onChainSentiment === 'Bullish') return 'url(#bullish-glow)';
+      if (onChainSentiment === 'Bearish') return 'url(#bearish-glow)';
+      return 'blur(8px)';
+    })
+    .attr('opacity', (d: any) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      if (onChainSentiment === 'Bullish' || onChainSentiment === 'Bearish') return 0.9;
+      return aiInsights.get(d.id)?.opportunityScore > 75 ? 0.8 : 0.5;
+    });
 
-  nodeUpdate.select('circle.node-circle').transition().duration(750)
+  nodeUpdate.each(function(d: any) {
+    const nodeGroup = d3.select(this);
+    if (d.priceActionSignal?.explosivePotential === 'High') {
+      nodeGroup.selectAll('.comet-trail').remove();
+
+      const trail = nodeGroup.insert('g', ':first-child')
+        .attr('class', 'comet-trail');
+
+      const trailLength = 5;
+      const trailOpacity = d3.scaleLinear()
+        .domain([0, trailLength])
+        .range([0.6, 0]);
+
+      for (let i = 0; i < trailLength; i++) {
+        trail.append('circle')
+          .attr('r', calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * (1 - i / trailLength))
+          .attr('fill', 'rgba(255, 223, 0, 0.8)')
+          .attr('opacity', trailOpacity(i))
+          .transition()
+          .delay(i * 50)
+          .ease(d3.easeQuadOut)
+          .attr('transform', `translate(0, ${i * 4})`);
+      }
+    } else {
+      nodeGroup.selectAll('.comet-trail').remove();
+    }
+  });
+
+  nodeUpdate.select('circle.node-circle')
+    .transition().duration(750)
     .attr('r', (d: any) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id))
-    .attr('fill', (d: any) => `url(#logo-${d.id})`);
+    .attr('fill', (d: any) => `url(#logo-${d.id})`)
+    .attr('stroke', (d: any) => {
+      if (selectedNodeId === d.id) return '#ffffff';
+      if (d.priceActionSignal?.explosivePotential === 'High') return '#800080';
+      const aiInsight = aiInsights.get(d.id);
+      if (aiInsight) return getAIRecommendationColor(aiInsight.recommendation);
+      return '#00b5d8';
+    })
+    .attr('stroke-width', (d: any) => selectedNodeId === d.id ? 4 : 2);
 
-  nodeUpdate.select('text').transition().duration(750)
+  nodeUpdate.select('text')
+    .transition().duration(750)
     .attr('dy', (d: any) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) + 16)
     .text((d: any) => {
       const aiInsight = aiInsights.get(d.id);
@@ -182,59 +278,24 @@ const renderStructure = (
     });
 };
 
-// --- React Component ---
 export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
   const { showTooltip, hideTooltip } = useTooltip();
 
-  // Effect for structural rendering (runs infrequently but handles on-chain glow)
   useEffect(() => {
     if (props.svg && props.nodes) {
-      renderStructure(
-        props.svg, props.nodes, props.centralNode, props.zoomLevel, 
-        props.aiInsights, props.smartMoneyScores, props.realtimeTickers, showTooltip, hideTooltip
+      renderOrUpdateVisualization(
+        props.svg,
+        props.nodes,
+        props.centralNode,
+        props.selectedNodeId,
+        props.zoomLevel,
+        props.aiInsights,
+        props.smartMoneyScores,
+        showTooltip,
+        hideTooltip
       );
     }
-  }, [props.svg, props.nodes, props.centralNode, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip]);
-
-  // Effect for real-time style updates (runs frequently and is lightweight)
-  useEffect(() => {
-    if (!props.svg) return;
-
-    props.svg.selectAll('g.node')
-      .each(function(d: any) {
-        const node = d as ExtendedOrbitalNode;
-        const nodeCircle = d3.select(this).select('circle.node-circle');
-        if (nodeCircle.empty()) return;
-
-        const realtimeData = props.realtimeTickers.get(`${node.id}USDT`);
-        let volatilityState: 'pump' | 'dump' | null = null;
-
-        if (node.price && realtimeData) {
-          const stablePrice = parseFloat(node.price);
-          const realtimePrice = parseFloat(realtimeData.price);
-          const change = (realtimePrice - stablePrice) / stablePrice;
-          
-          if (Math.abs(change) > VOLATILITY_THRESHOLD) {
-            volatilityState = change > 0 ? 'pump' : 'dump';
-          }
-        }
-
-        let strokeColor = getNodeStrokeColor(node, props.selectedNodeId, props.aiInsights);
-        let strokeWidth = props.selectedNodeId === node.id ? 4 : 2;
-        
-        if (volatilityState === 'pump') {
-          strokeColor = '#00FF88'; // Bright Green
-          strokeWidth = 4;
-        } else if (volatilityState === 'dump') {
-          strokeColor = '#FF3366'; // Bright Red
-          strokeWidth = 4;
-        }
-        
-        nodeCircle
-          .attr('stroke', strokeColor)
-          .attr('stroke-width', strokeWidth);
-      });
-  }, [props.realtimeTickers, props.selectedNodeId, props.aiInsights, props.svg, props.nodes]);
+  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip]);
 
   return null;
 });
