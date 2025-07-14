@@ -59,12 +59,6 @@ export class DataAggregator {
     const results = new Map<string, MarketDataPoint[]>();
     
     for (const symbol of symbols) {
-      // Skip USDT as it's a stablecoin and would create invalid trading pairs like USDTUSDT
-      if (symbol.toUpperCase() === 'USDT') {
-        console.log(`Skipping ${symbol} - stablecoin not suitable for trading pair analysis`);
-        continue;
-      }
-      
       try {
         // Get price data
         const klines = await fetchKlines(`${symbol}USDT`, timeframe);

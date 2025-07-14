@@ -85,11 +85,7 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
             contractInfo = { address: selectedContract.contract_address, chain: selectedContract.chain || 'ethereum' };
             setContractAddressesCache(prev => new Map(prev).set(symbol.toUpperCase(), contractInfo!));
           } else {
-            console.warn(`Contract info not found for ${symbol} in Supabase - skipping on-chain analysis for this symbol`);
-            // Set neutral data to prevent perpetual loading
-            setOnChainData(prev => new Map(prev).set(symbol, { whaleTransactions: [], exchangeFlow: null }));
-            setSmartMoneyScores(prev => new Map(prev).set(symbol, { score: 0, sentiment: 'Neutral' }));
-            continue;
+            throw new Error(`Contract info not found for ${symbol} in Supabase.`);
           }
         }
 

@@ -1,7 +1,7 @@
 import { BinanceTicker, BinanceKline } from '@/types/binance';
 import { filterValidTickers } from './tickerValidation';
 
-const BINANCE_API_URL = '/api/binance';
+const BINANCE_API_URL = 'https://api.binance.com/api/v3';
 
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
