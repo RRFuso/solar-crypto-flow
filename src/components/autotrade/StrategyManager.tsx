@@ -63,7 +63,7 @@ export const StrategyManager: React.FC<StrategyManagerProps> = ({
     symbols: ['BTC', 'ETH']
   };
 
-  const handleCreateStrategy = (formData: any) => {
+  const handleCreateStrategy = (formData: Partial<TradingStrategy>) => {
     const strategy: TradingStrategy = {
       id: `strategy_${Date.now()}`,
       ...defaultStrategy,
@@ -75,7 +75,7 @@ export const StrategyManager: React.FC<StrategyManagerProps> = ({
     toast.success('Strategy created successfully');
   };
 
-  const handleUpdateStrategy = (strategy: TradingStrategy, updates: any) => {
+  const handleUpdateStrategy = (strategy: TradingStrategy, updates: Partial<TradingStrategy>) => {
     onUpdateStrategy(strategy.id, updates);
     setEditingStrategy(null);
     toast.success('Strategy updated successfully');
@@ -145,7 +145,7 @@ export const StrategyManager: React.FC<StrategyManagerProps> = ({
     onCancel 
   }: { 
     strategy?: TradingStrategy; 
-    onSave: (data: any) => void; 
+    onSave: (data: Partial<TradingStrategy>) => void; 
     onCancel: () => void; 
   }) => {
     const [formData, setFormData] = useState(strategy || defaultStrategy);
@@ -166,7 +166,7 @@ export const StrategyManager: React.FC<StrategyManagerProps> = ({
             <Label htmlFor="signalType">Signal Type</Label>
             <Select
               value={formData.signalType}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, signalType: value as any }))}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, signalType: value as TradingStrategy['signalType'] }))}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -211,7 +211,7 @@ export const StrategyManager: React.FC<StrategyManagerProps> = ({
               value={formData.positionSize?.type}
               onValueChange={(value) => setFormData(prev => ({ 
                 ...prev, 
-                positionSize: { ...prev.positionSize!, type: value as any }
+                positionSize: { ...prev.positionSize!, type: value as TradingStrategy['positionSize']['type'] }
               }))}
             >
               <SelectTrigger>

@@ -48,3 +48,9 @@ export const useNarrativeFlowVisualization = (
 
   // Call useSimulation at the top level
   const { simulation, positionNodes, applyBounds, dragHandlers } = useSimulation({
+    nodes,
+    links,
+    cryptoDataMap,
+    width,
+    height,
+  });

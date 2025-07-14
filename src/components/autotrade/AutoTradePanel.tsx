@@ -13,8 +13,10 @@ import { BacktestRunner } from './BacktestRunner';
 import { StrategyOptimizer } from './StrategyOptimizer';
 import { Activity, TrendingUp, Shield, Settings } from 'lucide-react';
 
+import { FlowData } from '@/types/crypto';
+
 interface AutoTradePanelProps {
-  flowData?: any;
+  flowData?: FlowData[];
 }
 
 export const AutoTradePanel: React.FC<AutoTradePanelProps> = ({ flowData }) => {

@@ -26,7 +26,7 @@ export const StrategyOptimizer: React.FC<StrategyOptimizerProps> = ({ strategies
     endDate: '2023-12-31',
     initialCapital: 10000,
   });
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<OptimizationResult | null>(null);
   const { insights: aiInsights } = useAdvancedAI();
 
   const handleRunOptimization = async () => {
@@ -114,7 +114,7 @@ export const StrategyOptimizer: React.FC<StrategyOptimizerProps> = ({ strategies
             </div>
             <div>
               <Label>Optimization Metric</Label>
-              <Select value={optimizationParams.metric} onValueChange={value => setOptimizationParams(p => ({ ...p, metric: value as any }))}>
+              <Select value={optimizationParams.metric} onValueChange={value => setOptimizationParams(p => ({ ...p, metric: value as 'sharpeRatio' | 'totalReturn' | 'winRate' }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

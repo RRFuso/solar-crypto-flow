@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
 import { CryptoData } from '@/types/crypto';
+import { NarrativeNode } from '@/types/narratives';
 import { fetchCryptoData, fetchCapitalFlows } from '@/lib/dataFetcher';
 import { extractFeatures } from '@/lib/featureExtractor';
 import { predictPriceMovements, getCachedPrediction, storePrediction } from '@/lib/aiModel';
@@ -18,7 +19,7 @@ import { useTooltip } from '@/contexts/TooltipContext';
 
 interface PredictionOrbitalOverlayProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  nodes: any[];
+  nodes: NarrativeNode[];
   updateInterval?: number;
   predictions?: Prediction[];
   chartTimeframe?: string;
@@ -115,7 +116,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
     const nodeElements = svg.selectAll(".node");
     
     // Add visual indicators to nodes with predictions
-    nodeElements.each(function(d: any) {
+    nodeElements.each(function(d: NarrativeNode) {
       const node = d3.select(this);
       const prediction = predictionMap.get(d.id);
       
@@ -156,8 +157,8 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
             id: d.id,
             name: prediction.name,
             price: prediction.price,
-            volume: d.volume,
-            capitalFlow: d.capitalFlow,
+            volume: cryptoDataMap.get(d.id)?.volume || 0,
+            capitalFlow: d.value,
             aiModel: prediction,
             trendReasons: prediction.factors,
             aiAnalysis: {

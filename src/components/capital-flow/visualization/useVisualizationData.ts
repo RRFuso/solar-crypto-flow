@@ -4,7 +4,7 @@ import { FlowData, CryptoData } from '@/types/crypto';
 import { calculateNodePositions, OrbitalNode } from '../NodePlacement';
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
 import { AIInsight } from '@/hooks/useAdvancedAI';
-import { CapitalFlowLink } from '@/types/capitalFlow';
+import { CapitalFlowLink, LinkData } from '@/types/capitalFlow';
 
 // Extend OrbitalNode to include necessary fields for tooltip
 interface ExtendedOrbitalNode extends OrbitalNode {
@@ -26,7 +26,7 @@ interface UseVisualizationDataProps {
   zoomLevel: number;
   setVisualizationData: React.Dispatch<React.SetStateAction<{
     nodes: ExtendedOrbitalNode[];
-    links: any[];
+    links: LinkData[];
     centralNode: ExtendedOrbitalNode | null;
     selectedNodeId: string | null;
   }>>;
@@ -36,7 +36,7 @@ interface UseVisualizationDataProps {
     svgElement: SVGSVGElement,
     width: number,
     height: number
-  ) => { svg: any, nodes: OrbitalNode[], links: any[], centralNode: OrbitalNode | null };
+  ) => { svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, nodes: OrbitalNode[], links: LinkData[], centralNode: OrbitalNode | null };
   activeCategory?: string;
 }
 

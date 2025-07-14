@@ -5,9 +5,11 @@ import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
 import { addFlowParticles } from './link-renderer/ParticleAnimation';
 import { Prediction } from '@/lib/aiModel';
 
+import { LinkData } from '@/types/capitalFlow';
+
 interface LinkRendererProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  links: any[];
+  links: LinkData[];
   selectedNodeId?: string | null;
   predictions?: Prediction[];
   animateWithOrbit?: boolean; // New prop to control orbital animation
@@ -15,7 +17,7 @@ interface LinkRendererProps {
 
 export class LinkRenderer {
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  private links: any[];
+  private links: LinkData[];
   private animationFrameId: number | null = null;
   
   constructor(props: LinkRendererProps) {
@@ -78,7 +80,7 @@ export class LinkRenderer {
   }
   
   // New method to update link positions with orbital movements
-  private setupLinkUpdates(linkGroup: d3.Selection<SVGGElement, unknown, null, undefined>, links: any[], selectedNodeId: string | null) {
+  private setupLinkUpdates(linkGroup: d3.Selection<SVGGElement, unknown, null, undefined>, links: LinkData[], selectedNodeId: string | null) {
     // Cancel any existing animation
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
@@ -87,13 +89,13 @@ export class LinkRenderer {
     const updateLinksPosition = () => {
       // Update each link path
       this.svg.selectAll("path.link-path")
-        .attr("d", (d: any) => {
+        .attr("d", (d: LinkData) => {
           const dx = d.target.x - d.source.x;
           const dy = d.target.y - d.source.y;
           const dr = Math.sqrt(dx * dx + dy * dy) * 1.5;
           return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
         })
-        .attr("opacity", (d: any) => {
+        .attr("opacity", (d: LinkData) => {
           if (selectedNodeId) {
             return d.source.id === selectedNodeId || d.target.id === selectedNodeId ? 0.9 : 0.15;
           }
@@ -102,14 +104,14 @@ export class LinkRenderer {
       
       // Update link gradients
       this.svg.selectAll("linearGradient")
-        .attr("x1", (d: any) => d?.source?.x || 0)
-        .attr("y1", (d: any) => d?.source?.y || 0)
-        .attr("x2", (d: any) => d?.target?.x || 0)
-        .attr("y2", (d: any) => d?.target?.y || 0);
+        .attr("x1", (d: LinkData) => d?.source?.x || 0)
+        .attr("y1", (d: LinkData) => d?.source?.y || 0)
+        .attr("x2", (d: LinkData) => d?.target?.x || 0)
+        .attr("y2", (d: LinkData) => d?.target?.y || 0);
       
       // Update arrowheads position
       this.svg.selectAll("marker")
-        .attr("refX", (d: any) => {
+        .attr("refX", (d: LinkData) => {
           // Adjust refX based on target node radius
           return 8 + (d?.target?.radius || 20) * 0.8;
         });

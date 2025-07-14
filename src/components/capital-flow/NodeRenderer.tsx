@@ -36,7 +36,7 @@ const getAIRecommendationColor = (recommendation: string): string => {
   }
 };
 
-const getAIGlowColor = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>): string => {
+const getAIGlowColor = (node: ExtendedOrbitalNode, aiInsights: Map<string, AIInsight>): string => {
   const signal = node.priceActionSignal;
   if (signal?.explosivePotential === 'High') return 'rgba(128, 0, 128, 0.9)';
   
@@ -64,7 +64,7 @@ const calculateNodeRadius = (node: ExtendedOrbitalNode, zoomLevel: number, isCen
   return Math.max(minRadius, Math.min(maxRadius, calculatedRadius));
 };
 
-const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, any>) => {
+const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, AIInsight>) => {
     const aiInsight = aiInsights.get(node.id);
     const trendReasons = [];
     if (aiInsight) {
@@ -99,7 +99,7 @@ const renderOrUpdateVisualization = (
   centralNode: ExtendedOrbitalNode | null,
   selectedNodeId: string | null,
   zoomLevel: number,
-  aiInsights: Map<string, any>,
+  aiInsights: Map<string, AIInsight>,
   smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish' }>,
   showTooltip: (data: any, position: { x: number, y: number }) => void,
   hideTooltip: () => void,
@@ -123,12 +123,12 @@ const renderOrUpdateVisualization = (
     .attr('result', 'coloredBlur');
 
   const patterns = defs.selectAll('pattern')
-    .data(nodes, (d: any) => d.id);
+    .data(nodes, (d: ExtendedOrbitalNode) => d.id);
 
   patterns.exit().remove();
 
   const patternEnter = patterns.enter().append('pattern')
-    .attr('id', (d: any) => `logo-${d.id}`)
+    .attr('id', (d: ExtendedOrbitalNode) => `logo-${d.id}`)
     .attr('width', 1)
     .attr('height', 1)
     .attr('patternContentUnits', 'objectBoundingBox');
@@ -160,23 +160,23 @@ const renderOrUpdateVisualization = (
   }
 
   const nodeSelection = nodesGroup.selectAll('g.node')
-    .data(nodes, (d: any) => d.id);
+    .data(nodes, (d: ExtendedOrbitalNode) => d.id);
 
   nodeSelection.exit()
     .transition().duration(500)
-    .attr('transform', (d: any) => `translate(${d.x}, ${d.y}) scale(0)`)
+    .attr('transform', (d: ExtendedOrbitalNode) => `translate(${d.x}, ${d.y}) scale(0)`)
     .remove();
 
   const nodeEnter = nodeSelection.enter()
     .append('g')
     .attr('class', 'node')
-    .attr('transform', (d: any) => `translate(${d.x}, ${d.y}) scale(0)`)
+    .attr('transform', (d: ExtendedOrbitalNode) => `translate(${d.x}, ${d.y}) scale(0)`)
     .style('cursor', 'pointer')
-    .on('click', (event: MouseEvent, d: any) => {
+    .on('click', (event: MouseEvent, d: ExtendedOrbitalNode) => {
       const clickEvent = new CustomEvent('node-click', { detail: { nodeId: d.id } });
       document.dispatchEvent(clickEvent);
     })
-    .on('mouseover', (event: MouseEvent, d: any) => {
+    .on('mouseover', (event: MouseEvent, d: ExtendedOrbitalNode) => {
         const tooltipData = createTooltipData(d, aiInsights);
         showTooltip(tooltipData, { x: event.clientX, y: event.clientY });
     })
@@ -200,33 +200,33 @@ const renderOrUpdateVisualization = (
     .style('pointer-events', 'none')
     .style('text-shadow', '1px 1px 2px rgba(0,0,0,0.8)');
 
-  const nodeUpdate = nodeEnter.merge(nodeSelection as any);
+  const nodeUpdate = nodeEnter.merge(nodeSelection as d3.Selection<SVGGElement, ExtendedOrbitalNode, SVGGElement, unknown>);
 
   nodeUpdate.transition().duration(750)
-    .attr('transform', (d: any) => `translate(${d.x}, ${d.y}) scale(1)`);
+    .attr('transform', (d: ExtendedOrbitalNode) => `translate(${d.x}, ${d.y}) scale(1)`);
 
   nodeUpdate.select('circle.node-glow')
     .transition().duration(750)
-    .attr('r', (d: any) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 1.5)
-    .attr('fill', (d: any) => {
+    .attr('r', (d: ExtendedOrbitalNode) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 1.5)
+    .attr('fill', (d: ExtendedOrbitalNode) => {
       const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
       if (onChainSentiment === 'Bullish') return 'rgba(0, 255, 0, 0.7)';
       if (onChainSentiment === 'Bearish') return 'rgba(255, 0, 0, 0.7)';
       return getAIGlowColor(d, aiInsights);
     })
-    .attr('filter', (d: any) => {
+    .attr('filter', (d: ExtendedOrbitalNode) => {
       const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
       if (onChainSentiment === 'Bullish') return 'url(#bullish-glow)';
       if (onChainSentiment === 'Bearish') return 'url(#bearish-glow)';
       return 'blur(8px)';
     })
-    .attr('opacity', (d: any) => {
+    .attr('opacity', (d: ExtendedOrbitalNode) => {
       const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
       if (onChainSentiment === 'Bullish' || onChainSentiment === 'Bearish') return 0.9;
       return aiInsights.get(d.id)?.opportunityScore > 75 ? 0.8 : 0.5;
     });
 
-  nodeUpdate.each(function(d: any) {
+  nodeUpdate.each(function(d: ExtendedOrbitalNode) {
     const nodeGroup = d3.select(this);
     if (d.priceActionSignal?.explosivePotential === 'High') {
       nodeGroup.selectAll('.comet-trail').remove();
@@ -256,21 +256,21 @@ const renderOrUpdateVisualization = (
 
   nodeUpdate.select('circle.node-circle')
     .transition().duration(750)
-    .attr('r', (d: any) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id))
-    .attr('fill', (d: any) => `url(#logo-${d.id})`)
-    .attr('stroke', (d: any) => {
+    .attr('r', (d: ExtendedOrbitalNode) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id))
+    .attr('fill', (d: ExtendedOrbitalNode) => `url(#logo-${d.id})`)
+    .attr('stroke', (d: ExtendedOrbitalNode) => {
       if (selectedNodeId === d.id) return '#ffffff';
       if (d.priceActionSignal?.explosivePotential === 'High') return '#800080';
       const aiInsight = aiInsights.get(d.id);
       if (aiInsight) return getAIRecommendationColor(aiInsight.recommendation);
       return '#00b5d8';
     })
-    .attr('stroke-width', (d: any) => selectedNodeId === d.id ? 4 : 2);
+    .attr('stroke-width', (d: ExtendedOrbitalNode) => selectedNodeId === d.id ? 4 : 2);
 
   nodeUpdate.select('text')
     .transition().duration(750)
-    .attr('dy', (d: any) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) + 16)
-    .text((d: any) => {
+    .attr('dy', (d: ExtendedOrbitalNode) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) + 16)
+    .text((d: ExtendedOrbitalNode) => {
       const aiInsight = aiInsights.get(d.id);
       if (aiInsight?.recommendation === 'strong_buy') return `${d.id} 🚀`;
       if (aiInsight?.recommendation === 'strong_sell') return `${d.id} ⚠️`;

@@ -3,11 +3,13 @@ import React, { useEffect } from 'react';
 import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
 import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
+import { LinkData } from '@/types/capitalFlow';
+import { NarrativeNode } from '@/types/narratives';
 
 export interface LinkRendererExtendedProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  links: any[];
-  nodes: any[];
+  links: LinkData[];
+  nodes: NarrativeNode[];
   selectedNodeId: string | null;
   predictions: Prediction[];
   animateWithOrbit?: boolean;
@@ -52,8 +54,8 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
 
     // Ensure links have valid source and target nodes with current positions
     const processedLinks = links.map(link => {
-      const sourceNode = nodes.find(n => n.id === link.source?.id || n.id === link.source);
-      const targetNode = nodes.find(n => n.id === link.target?.id || n.id === link.target);
+      const sourceNode = nodes.find(n => n.id === link.source.id);
+      const targetNode = nodes.find(n => n.id === link.target.id);
       
       if (!sourceNode || !targetNode) {
         console.warn('Link missing valid source or target node:', link);
@@ -65,11 +67,11 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
         source: sourceNode,
         target: targetNode,
         markerId: `marker-${sourceNode.id}-${targetNode.id}`,
-        categoryColor: link.data?.category ? getColorForFlow(link.data.category) : null
+        categoryColor: link.fromCategory ? getColorForFlow(link.fromCategory) : null
       };
-    }).filter(Boolean);
+    }).filter(Boolean) as LinkData[];
 
-    const handleMouseOver = (event: MouseEvent, linkData: any) => {
+    const handleMouseOver = (event: MouseEvent, linkData: LinkData) => {
       // Placeholder for future implementation
     };
 
@@ -84,7 +86,7 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
     const particlesGroup = linkGroup.append("g").attr("class", "particles-group");
     const particles: {
       circle: d3.Selection<SVGCircleElement, unknown, null, undefined>;
-      link: any;
+      link: LinkData;
       path: d3.Selection<SVGPathElement, unknown, null, undefined>;
     }[] = [];
 
@@ -105,7 +107,7 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
     if (animateWithOrbit) {
       const updateAll = () => {
         // Update line paths using current node positions
-        link.attr("d", (d: any) => {
+        link.attr("d", (d: LinkData) => {
           if (!d.source || !d.target || 
               typeof d.source.x !== 'number' || typeof d.source.y !== 'number' ||
               typeof d.target.x !== 'number' || typeof d.target.y !== 'number') {

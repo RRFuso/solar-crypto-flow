@@ -54,26 +54,10 @@ export const useNarrativeFlowVisualization = (
     height
   });
 
-  useEffect(() => {
-    if (!flowData || flowData.length === 0 || !svgRef.current || !containerRef.current) return;
-    
-    // Clear previous SVG content
-    d3.select(svgRef.current).selectAll("*").remove();
-    
-    const svg = d3.select(svgRef.current)
-      .attr("width", width)
-      .attr("height", height)
-      .attr("viewBox", `0 0 ${width} ${height}`)
-      .attr("style", "max-width: 100%; height: auto;");
-    
-    // Add starfield background first (before other elements)
-    createStarfield(svg, width, height);
-    
-    // Apply initial positioning
-    positionNodes();
+  // Use flow visualization hook to draw elements
+  const { drawVisualization, updatePositions } = useFlowVisualization();
 
-    // Use flow visualization hook to draw elements
-    const { drawVisualization, updatePositions } = useFlowVisualization();
+  useEffect(() => {
     const elements = drawVisualization({
       svg,
       nodes,

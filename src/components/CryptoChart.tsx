@@ -43,7 +43,7 @@ const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: Cryp
           studies={[
             "STD;Supertrend",
             "PUB;u23reH2qKqTj3CUDkU8l3cVIiW8d3JgB" 
-          ] as any}
+          ]}
           container_id={containerId}
         />
       </div>

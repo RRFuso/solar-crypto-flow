@@ -200,9 +200,10 @@ export class Backtester {
         return config.value / price;
       case 'percentage':
         return (capital * (config.value / 100)) / price;
-      case 'risk_based':
+      case 'risk_based': {
         const capitalToRisk = capital * (config.maxRisk / 100);
         return capitalToRisk / price;
+      }
       default:
         return 100 / price; // Default $100
     }
@@ -237,7 +238,7 @@ export class Backtester {
     const profitFactor = avgLoss > 0 ? avgWin / avgLoss : 0;
 
     // More robust drawdown calculation
-    let equityCurve = [initialCapital];
+    const equityCurve = [initialCapital];
     let runningCapital = initialCapital;
     for (const trade of trades) {
       runningCapital += trade.pnl;

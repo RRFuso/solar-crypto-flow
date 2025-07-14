@@ -313,7 +313,7 @@ export class PredictionEngine {
     horizon: PredictionHorizon
   ): number {
     // Base move from composite score
-    let baseMove = (compositeScore - 50) * 0.2; // -10% to +10% for extreme scores
+    const baseMove = (compositeScore - 50) * 0.2; // -10% to +10% for extreme scores
 
     // Adjust for volatility
     const volMultiplier = features.volatilityRegime === 'extreme' ? 2 : 
@@ -449,7 +449,7 @@ export class PredictionEngine {
 
   private calculateMaxDrawdown(features: AdvancedFeatures, horizon: PredictionHorizon): number {
     // Estimate maximum potential drawdown based on volatility and risk factors
-    let baseDrawdown = 0.05; // 5% base
+    const baseDrawdown = 0.05; // 5% base
 
     // Adjust for volatility
     const volMultiplier = features.volatilityRegime === 'extreme' ? 3 : 

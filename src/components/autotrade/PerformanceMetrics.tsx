@@ -46,14 +46,23 @@ export const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
   const worstTrade = trades.length > 0 ? 
     trades.reduce((worst, current) => current.pnl < worst.pnl ? current : worst) : null;
 
-  const MetricCard = ({ 
-    icon: Icon, 
-    title, 
-    value, 
-    subtitle, 
+  interface MetricCardProps {
+    icon: React.ElementType;
+    title: string;
+    value: string;
+    subtitle?: string;
+    color?: string;
+    change?: number;
+  }
+
+  const MetricCard = ({
+    icon: Icon,
+    title,
+    value,
+    subtitle,
     color = 'text-white',
     change
-  }: any) => (
+  }: MetricCardProps) => (
     <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/30">
       <div className="flex items-center space-x-2 mb-2">
         <Icon className={`w-4 h-4 ${color}`} />

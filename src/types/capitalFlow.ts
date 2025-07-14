@@ -1,4 +1,3 @@
-
 export interface CapitalFlowNode {
   id: string;
   value: number;
@@ -14,4 +13,10 @@ export interface CapitalFlowLink {
   target: CapitalFlowNode;
   value: number;
   percentage: number;
+}
+
+export interface LinkData extends CapitalFlowLink {
+  markerId: string;
+  predictionColor: string | null;
+  isHighlighted: boolean;
 }
