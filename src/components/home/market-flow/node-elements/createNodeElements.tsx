@@ -8,7 +8,7 @@ import { createNodeText } from './createNodeText';
 
 interface NodeElementsProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  nodes: any[];
+  nodes: MarketIndex[];
 }
 
 export const createNodeElements = (props: NodeElementsProps) => {

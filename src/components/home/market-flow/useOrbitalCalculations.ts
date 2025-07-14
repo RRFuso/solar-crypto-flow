@@ -4,12 +4,12 @@ import { MarketIndex } from "@/types/indices";
 interface OrbitalPositions {
   width: number;
   height: number;
-  nodes: any[];
+  nodes: MarketIndex[];
 }
 
 export const useOrbitalCalculations = () => {
   // Calculate orbital positions for planetary-like arrangement
-  const calculateOrbitalPositions = (nodes: any[], width: number, height: number) => {
+  const calculateOrbitalPositions = (nodes: MarketIndex[], width: number, height: number) => {
     const centralIndex = nodes.findIndex(n => n.isCentral);
     const minRadius = Math.min(width, height) * 0.25; 
     const maxRadius = Math.min(width, height) * 0.45;
@@ -40,7 +40,7 @@ export const useOrbitalCalculations = () => {
   };
   
   // Position nodes in orbits using golden ratio for better distribution
-  const positionNodesInOrbits = (nodes: any[], width: number, height: number, orbitRadii: number[]) => {
+  const positionNodesInOrbits = (nodes: MarketIndex[], width: number, height: number, orbitRadii: number[]) => {
     // Place central node in the middle
     nodes.forEach((node, i) => {
       if (node.isCentral) {
@@ -74,7 +74,7 @@ export const useOrbitalCalculations = () => {
 
   // Add starfield creation function
   const createStarfield = (
-    svg: any,
+    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
     width: number,
     height: number,
     numStars: number = 150

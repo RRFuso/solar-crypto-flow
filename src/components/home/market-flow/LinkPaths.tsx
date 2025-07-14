@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 
 interface LinkPathsProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  links: any[];
+  links: IndexLinkData[];
 }
 
 export const createLinkPaths = (props: LinkPathsProps) => {
@@ -19,7 +19,7 @@ export const createLinkPaths = (props: LinkPathsProps) => {
     .attr("result", "coloredBlur");
   
   // Create gradients and markers for each link
-  links.forEach((link, i) => {
+  links.forEach((link: IndexLinkData, i) => {
     const markerId = `arrow-${i}`;
     const gradientId = `link-gradient-${i}`;
     
@@ -67,22 +67,22 @@ export const createLinkPaths = (props: LinkPathsProps) => {
     .enter()
     .append("path")
     .attr("class", "link-path")
-    .attr("stroke", (d, i) => `url(#link-gradient-${i})`)
-    .attr("stroke-width", d => 2 + Math.min(8, Math.sqrt(Math.abs(d.value)) / 3)) // Thickness based on volume
+    .attr("stroke", (d: IndexLinkData, i) => `url(#link-gradient-${i})`)
+    .attr("stroke-width", (d: IndexLinkData) => 2 + Math.min(8, Math.sqrt(Math.abs(d.value)) / 3)) // Thickness based on volume
     .attr("fill", "none")
     .attr("stroke-dasharray", "8,4") // Dashed pattern
     .attr("opacity", 0.85) // Higher opacity for better visibility
-    .attr("marker-end", (d, i) => `url(#arrow-${i})`)
+    .attr("marker-end", (d: IndexLinkData, i) => `url(#arrow-${i})`)
     .attr("filter", "url(#glow)");
   
   return link;
 };
 
 // Update link paths based on node positions with enhanced curves
-export const updateLinkPaths = (link: d3.Selection<SVGPathElement, any, SVGGElement, unknown>) => {
+export const updateLinkPaths = (link: d3.Selection<SVGPathElement, IndexLinkData, SVGGElement, unknown>) => {
   if (!link) return; // Guard against null
   
-  link.attr("d", (d: any) => {
+  link.attr("d", (d: IndexLinkData) => {
     if (!d || !d.source || !d.target) return "";
     
     const sourceX = d.source.x || 0;
@@ -109,7 +109,7 @@ export const updateLinkPaths = (link: d3.Selection<SVGPathElement, any, SVGGElem
   });
   
   // Update gradients positions
-  link.each(function(d: any, i: number) {
+  link.each(function(d: IndexLinkData, i: number) {
     if (!d || !d.source || !d.target) return;
     
     const gradient = d3.select(`#link-gradient-${i}`);

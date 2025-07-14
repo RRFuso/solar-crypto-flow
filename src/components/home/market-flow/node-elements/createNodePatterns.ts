@@ -4,7 +4,7 @@ import { getLogoUrls } from '@/lib/cryptoLogos';
 
 export const createNodePatterns = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-  nodes: any[]
+  nodes: MarketIndex[]
 ) => {
   // Create defs for logo image patterns
   const defs = svg.append("defs");

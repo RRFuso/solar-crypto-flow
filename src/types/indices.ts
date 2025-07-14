@@ -1,4 +1,3 @@
-
 export interface MarketIndex {
   id: string;
   name: string;
@@ -22,4 +21,12 @@ export interface IndexRotationResult {
   flows: IndexFlowData[];
   timestamp: string;
   period: string;
+}
+
+export interface IndexLinkData {
+  source: { x: number, y: number, id: string };
+  target: { x: number, y: number, id: string };
+  value: number;
+  percentage: number;
+  markerId: string;
 }

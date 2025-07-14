@@ -3,8 +3,8 @@ import * as d3 from 'd3';
 
 export const createLinks = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-  flows: any[],
-  nodes: any[]
+  flows: IndexFlowData[],
+  nodes: MarketIndex[]
 ) => {
   // Create links from flows
   const links = flows.map(flow => ({

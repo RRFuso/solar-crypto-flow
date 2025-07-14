@@ -54,7 +54,7 @@ export const useOrbitalPaths = () => {
 // Export the functions directly for backward compatibility
 export const createOrbitalPaths = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-  nodes: any[],
+  nodes: NarrativeNode[],
   width: number,
   height: number,
   orbitRadii: number[]
