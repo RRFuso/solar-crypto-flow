@@ -27,7 +27,13 @@ interface CryptoSettingsProps {
     rsiNeutralMax: number;
     timeframe: string;
   };
-  onSettingsChange: (settings: any) => void;
+  onSettingsChange: (settings: {
+    rsiOverbought: number;
+    rsiOversold: number;
+    rsiNeutralMin: number;
+    rsiNeutralMax: number;
+    timeframe: string;
+  }) => void;
 }
 
 const CryptoSettings = ({ settings, onSettingsChange }: CryptoSettingsProps) => {

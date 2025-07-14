@@ -7,7 +7,7 @@ import * as d3 from 'd3';
 export const addFlowParticles = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   linkGroup: d3.Selection<SVGGElement, unknown, null, undefined>,
-  links: any[],
+  links: LinkData[],
   selectedNodeId?: string | null
 ) => {
   // Remove any existing particles first
@@ -18,7 +18,7 @@ export const addFlowParticles = (
     .attr("class", "particles-group");
   
   // Process each link for particle animation
-  links.forEach((link, linkIndex) => {
+  links.forEach((link: LinkData, linkIndex) => {
     // Skip particle animation for unselected links when a node is selected
     if (selectedNodeId && link.source.id !== selectedNodeId && link.target.id !== selectedNodeId) {
       return;
@@ -65,7 +65,7 @@ export const addFlowParticles = (
         })
         .attr("class", "particle")
         .attr("r", 2 + Math.random() * 2) // Size between 2-4px
-        .attr("fill", d => d.color)
+        .attr("fill", (d: { color: string }) => d.color)
         .attr("cx", point.x)
         .attr("cy", point.y)
         .attr("opacity", 0.7)
@@ -75,7 +75,7 @@ export const addFlowParticles = (
   
   // Setup animation loop for particles
   function animateParticles() {
-    svg.selectAll(".particle").each(function(d: any) {
+    svg.selectAll(".particle").each(function(d: { linkIndex: number; path: SVGPathElement; progress: number; speed: number; direction: number; color: string; pathLength: number }) {
       // Update progress along path
       d.progress += d.speed * d.direction;
       

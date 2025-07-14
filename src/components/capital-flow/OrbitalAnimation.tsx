@@ -172,7 +172,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
       // SYNCHRONIZED: Update all visual elements together
       const nodeElements = svg.selectAll('.node-group, .node').data(nodes, (d: OrbitalNode) => d.id);
       
-      nodeElements.each(function(d) {
+      nodeElements.each(function(d: OrbitalNode) {
         const nodeGroup = d3.select(this);
         
         // Update main node position
@@ -181,7 +181,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
         // CRITICAL FIX: Synchronize signal rings with exact node position
         const signalRings = nodeGroup.selectAll('.signal-ring');
         if (!signalRings.empty()) {
-          signalRings.each(function(ringData: any) {
+          signalRings.each(function(ringData: OrbitalNode) {
             const ring = d3.select(this);
             
             // Keep ring perfectly centered on node with synchronized rotation
@@ -200,7 +200,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
         // SYNCHRONIZED: Update flow indicators
         const flowIndicators = nodeGroup.selectAll('.flow-indicator');
         if (!flowIndicators.empty()) {
-          flowIndicators.each(function(flowData: any) {
+          flowIndicators.each(function(flowData: OrbitalNode) {
             const indicator = d3.select(this);
             
             // Synchronize flow indicator animations with node movement
@@ -221,7 +221,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
       if (updateLinksInRealTime) {
         const linkElements = svg.selectAll('.flow-link, .link-path');
         if (!linkElements.empty()) {
-          linkElements.each(function(d: any) {
+          linkElements.each(function(d: OrbitalLink) {
             if (d.source && d.target && d.source.x && d.target.x) {
               const link = d3.select(this);
               // Create smooth curved path that follows node movement

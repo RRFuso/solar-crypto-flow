@@ -14,6 +14,10 @@ interface ExtendedOrbitalNode extends OrbitalNode {
   priceActionSignal?: PriceActionSignal;
 }
 
+interface AnimationInstance {
+  cleanup: () => void;
+}
+
 export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 70) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -22,12 +26,12 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
   
   const [visualizationData, setVisualizationData] = useState<{
     nodes: ExtendedOrbitalNode[],
-    links: any[],
+    links: LinkData[],
     centralNode: ExtendedOrbitalNode | null,
     selectedNodeId: string | null
   }>({ nodes: [], links: [], centralNode: null, selectedNodeId: null });
   
-  const animationRef = useRef<any | null>(null);
+  const animationRef = useRef<AnimationInstance | null>(null);
   
   // Handle window resize and initial sizing
   useEffect(() => {

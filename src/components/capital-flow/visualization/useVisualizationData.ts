@@ -174,7 +174,7 @@ export const useVisualizationData = ({
       baseRadius 
     };
     
-    calculateNodePositions(nodePositionsProps as any);
+    calculateNodePositions(nodePositionsProps);
 
     setVisualizationData({ 
       nodes: filteredNodes, 

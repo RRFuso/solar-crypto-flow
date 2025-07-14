@@ -16,7 +16,7 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
-  const linkRef = useRef<d3.Selection<SVGPathElement, any, SVGGElement, unknown> | null>(null);
+  const linkRef = useRef<d3.Selection<SVGPathElement, LinkData, SVGGElement, unknown> | null>(null);
   const { calculateOrbitalPositions, positionNodesInOrbits, createStarfield } = useOrbitalCalculations();
 
   useEffect(() => {
@@ -108,8 +108,8 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       
       // Update glow circles
       svg.selectAll(".node-glow")
-        .attr("cx", (d: any) => d.x || 0)
-        .attr("cy", (d: any) => d.y || 0);
+        .attr("cx", (d: OrbitalNode) => d.x || 0)
+        .attr("cy", (d: OrbitalNode) => d.y || 0);
       
       // Update link positions with animations
       updateLinkPaths(link);
