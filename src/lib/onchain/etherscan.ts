@@ -28,7 +28,7 @@ const chainIdMap: { [key: string]: string } = {
 };
 
 // Endereços de exchanges conhecidas (exemplo)
-const KNOWN_EXCHANGES = {
+export const KNOWN_EXCHANGES = {
   'binance': '0x28c6c06298d514db089934071355e5743bf21d60',
   'kraken': '0x267a5240229152364691a751755323ac272a575f',
   // Adicionar mais exchanges

@@ -1,5 +1,6 @@
 
 import * as d3 from 'd3';
+import { LinkData } from '@/types/capitalFlow';
 
 /**
  * Adds animated particles flowing along the links to represent capital movement

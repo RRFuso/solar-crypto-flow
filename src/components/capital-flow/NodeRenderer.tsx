@@ -13,6 +13,7 @@ interface ExtendedOrbitalNode extends OrbitalNode {
   priceChange24h?: number;
   capitalFlows?: CapitalFlowLink[];
   aiModel?: AIInsight;
+  name: string;
 }
 
 interface NodeRendererProps {

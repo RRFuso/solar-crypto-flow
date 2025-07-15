@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TradingStrategy, BacktestResult } from '@/types/autotrade';
-import { StrategyOptimizer as optimizeStrategy } from '@/lib/autotrade/optimizer';
+import { StrategyOptimizer as optimizeStrategy, OptimizationResult } from '@/lib/autotrade/optimizer';
 import { fetchKlines } from '@/lib/binance';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 import { toast } from 'sonner';

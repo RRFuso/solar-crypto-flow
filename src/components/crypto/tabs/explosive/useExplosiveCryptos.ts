@@ -32,8 +32,8 @@ export const useExplosiveCryptos = (cryptos: CryptoData[]) => {
         }
 
         // Volume analysis with validation
-        const volume = parseFloat(crypto.volume);
-        if (!isNaN(volume) && volume > 0) {
+        const volume = crypto.volume;
+        if (volume !== undefined && volume > 0) {
           const volumeMA = volume * 1.2; // Reduced from 1.5 to 1.2
           if (volume > volumeMA) {
             score += SCORE_CRITERIA.volumeExplosive;

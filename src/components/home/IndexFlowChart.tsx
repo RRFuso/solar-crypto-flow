@@ -2,7 +2,7 @@
 import React from 'react';
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import { IndexRotationResult } from '@/types/indices';
+import { IndexRotationResult, IndexLinkData } from '@/types/indices';
 import { createLinkPaths, updateLinkPaths } from './market-flow/LinkPaths';
 import { createNodeElements } from './market-flow/node-elements';
 import { createOrbitalPaths, createStarfield } from './market-flow/OrbitalPaths';
@@ -16,7 +16,7 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
-  const linkRef = useRef<d3.Selection<SVGPathElement, LinkData, SVGGElement, unknown> | null>(null);
+  const linkRef = useRef<d3.Selection<SVGPathElement, IndexLinkData, SVGGElement, unknown> | null>(null);
   const { calculateOrbitalPositions, positionNodesInOrbits, createStarfield } = useOrbitalCalculations();
 
   useEffect(() => {
@@ -50,6 +50,7 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       return {
         id: index.id,
         name: index.name || index.id,
+        symbol: index.symbol, // Added symbol property
         value: index.value || 0,
         change: index.change || 0,
         color: index.color,
@@ -63,11 +64,12 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
     
     // Create links from the flows
     const links = data.flows.map(flow => ({
-      source: nodes.find(n => n.id === flow.from),
-      target: nodes.find(n => n.id === flow.to),
+      source: nodes.find(n => n.id === flow.from) as IndexLinkData['source'],
+      target: nodes.find(n => n.id === flow.to) as IndexLinkData['target'],
       value: flow.value,
-      percentage: flow.percentage
-    })).filter(link => link.source && link.target);
+      percentage: flow.percentage,
+      markerId: `arrow-${flow.from}-${flow.to}` // Add markerId
+    })).filter(link => link.source && link.target) as IndexLinkData[];
     
     // Calculate orbital distances based on market cap
     const orbitRadii = calculateOrbitalPositions(nodes, width, height);
@@ -108,8 +110,8 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       
       // Update glow circles
       svg.selectAll(".node-glow")
-        .attr("cx", (d: OrbitalNode) => d.x || 0)
-        .attr("cy", (d: OrbitalNode) => d.y || 0);
+        .attr("cx", (d: MarketIndex) => d.x || 0)
+        .attr("cy", (d: MarketIndex) => d.y || 0);
       
       // Update link positions with animations
       updateLinkPaths(link);

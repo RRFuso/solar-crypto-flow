@@ -8,7 +8,7 @@ interface OptimizationParams {
   takeProfit: { min: number; max: number; step: number };
 }
 
-interface OptimizationResult {
+export interface OptimizationResult {
   bestCombination: {
     stopLoss: number;
     takeProfit: number;

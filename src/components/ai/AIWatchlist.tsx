@@ -7,6 +7,7 @@ import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query'; 
 import { supabase } from '@/integrations/supabase/client'; // Assume que o cliente supabase está aqui
 import { usePriceActionSignals, PriceActionSignal } from '@/hooks/usePriceActionSignals';
+import { useRealtimePrice } from '@/hooks/useRealtimePrice';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
@@ -78,6 +79,17 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [selectedSymbolForHistory, setSelectedSymbolForHistory] = useState<string | null>(null);
 
+  // Component to display realtime price
+  const RealtimePriceDisplay: React.FC<{ symbol: string }> = ({ symbol }) => {
+    const { price, loading, error } = useRealtimePrice(symbol);
+
+    if (loading) return <span className="text-xs text-gray-500">Loading price...</span>;
+    if (error) return <span className="text-xs text-red-500">Error</span>;
+    if (price === null) return <span className="text-xs text-gray-500">N/A</span>;
+
+    return <span className="text-sm font-semibold text-yellow-400">${price.toFixed(4)}</span>;
+  };
+
   // Hook para buscar dados históricos quando uma estratégia é selecionada
   const { data: historicalData, isLoading: isLoadingHistory } = useQuery<HistoricalDataPoint[]>({
     queryKey: ['historicalData', selectedSymbolForHistory],
@@ -88,7 +100,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
 
   // Extract symbols from predictions for the hook
   const symbols = predictions.map(p => p.symbol);
-  const { signals, signalsLoading } = usePriceActionSignals(symbols);
+  const { signals, signalsLoading, realtimeConnected } = usePriceActionSignals(symbols);
 
   const filtered = predictions
     .filter(p =>
@@ -338,6 +350,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
           <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full">
             Price Action
           </span>
+          <span className={`w-2.5 h-2.5 rounded-full ${realtimeConnected ? 'bg-green-500' : 'bg-red-500'}`} title={realtimeConnected ? 'Realtime Connected' : 'Realtime Disconnected'}></span>
         </h2>
         <input
           className="w-full p-1.5 rounded-md bg-gray-900 border border-gray-600 text-white text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none"

@@ -33,17 +33,11 @@ export interface ModelPrediction {
   confidence: number;
 }
 
-export interface NarrativeNode {
-  id: string;
-  name: string;
-  value: number;
+import { BaseNode } from './nodes';
+
+export interface NarrativeNode extends BaseNode {
   color: string;
   tokens: string[];
-  x: number;
-  y: number;
-  radius: number;
-  fx: number | null;
-  fy: number | null;
   attentionScore?: number; // Market attention score
   representativeTokens?: RepresentativeToken[]; // Representative tokens with logos
 }

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import * as d3 from 'd3';
+import { IndexLinkData } from '@/types/indices';
 
 interface LinkPathsProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;

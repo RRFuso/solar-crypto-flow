@@ -3,13 +3,14 @@ import { useCallback } from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
 import { OrbitalNode } from '@/components/capital-flow/NodePlacement';
+import { CapitalFlowNode, CapitalFlowLink } from '@/types/capitalFlow';
 
-type OrbitalLink = {
-  source: OrbitalNode;
-  target: OrbitalNode;
-  value: number;
+type OrbitalLink = CapitalFlowLink & {
   volume?: number;
-  percentage: number;
+  markerId: string;
+  predictionColor: string | null;
+  isHighlighted: boolean;
+  fromCategory?: string;
 };
 
 export const useOrbitalVisualization = () => {
@@ -72,6 +73,7 @@ export const useOrbitalVisualization = () => {
         return {
           id,
           marketCap,
+          value: marketCap, // Added value property
           radius: 45,
           type: "central" as const,
           x: centerX,
@@ -97,6 +99,7 @@ export const useOrbitalVisualization = () => {
         return {
           id,
           marketCap,
+          value: marketCap, // Added value property
           radius: Math.max(20, Math.min(35, 20 + (marketCap / 10000))),
           type: "orbital" as const,
           x: centerX + Math.cos(finalAngle) * finalRadius,
@@ -107,11 +110,15 @@ export const useOrbitalVisualization = () => {
     
     // Create links but don't render them as blue lines
     const links = flowData.map(flow => ({
-      source: nodes.find(n => n.id === flow.from),
-      target: nodes.find(n => n.id === flow.to),
+      source: nodes.find(n => n.id === flow.from) as CapitalFlowNode,
+      target: nodes.find(n => n.id === flow.to) as CapitalFlowNode,
       value: flow.value,
       volume: flow.volume,
-      percentage: flow.percentage
+      percentage: flow.percentage,
+      markerId: `arrow-${flow.from}-${flow.to}`,
+      predictionColor: null,
+      isHighlighted: false,
+      fromCategory: flow.fromCategory
     })).filter(link => link.source && link.target) as OrbitalLink[];
     
     // Don't render the blue lines - let the LinkRenderer handle the dotted flow lines

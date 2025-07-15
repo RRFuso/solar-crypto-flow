@@ -1,11 +1,7 @@
-export interface CapitalFlowNode {
-  id: string;
-  value: number;
-  radius?: number;
-  x?: number;
-  y?: number;
-  fx?: number | null;
-  fy?: number | null;
+import { BaseNode } from './nodes';
+
+export interface CapitalFlowNode extends BaseNode {
+  marketCap?: number;
 }
 
 export interface CapitalFlowLink {
@@ -19,4 +15,5 @@ export interface LinkData extends CapitalFlowLink {
   markerId: string;
   predictionColor: string | null;
   isHighlighted: boolean;
+  fromCategory?: string;
 }

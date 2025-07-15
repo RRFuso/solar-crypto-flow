@@ -1,13 +1,11 @@
 
 import React, { useEffect } from 'react';
+import { CapitalFlowNode } from '@/types/capitalFlow';
 
-export type OrbitalNode = {
-  id: string;
+export type OrbitalNode = CapitalFlowNode & {
   marketCap: number;
   radius: number;
   type: "central" | "orbital";
-  x: number;
-  y: number;
 };
 
 interface NodePlacementProps {

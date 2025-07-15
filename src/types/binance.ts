@@ -3,6 +3,7 @@ export interface BinanceTicker {
   lastPrice: string;
   priceChangePercent: string;
   volume: string;
+  quoteVolume: string;
   highPrice: string;
   lowPrice: string;
 }
@@ -20,3 +21,5 @@ export interface BinanceKline {
   takerBuyBaseAssetVolume: string;
   takerBuyQuoteAssetVolume: string;
 }
+
+export type KLine = BinanceKline;

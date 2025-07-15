@@ -59,7 +59,23 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
   const [predictionHistory, setPredictionHistory] = useState<PredictionHistory>({});
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedStrategy, setSelectedStrategy] = useState<StrategyData | null>(null);
+  const [cryptoDataMap, setCryptoDataMap] = useState<Map<string, CryptoData>>(new Map());
   const { showTooltip, hideTooltip } = useTooltip();
+
+  // Fetch crypto data
+  useEffect(() => {
+    const getCryptoData = async () => {
+      try {
+        const data = await fetchCryptoData();
+        const map = new Map<string, CryptoData>();
+        data.forEach(crypto => map.set(crypto.id, crypto));
+        setCryptoDataMap(map);
+      } catch (err) {
+        console.error("Error fetching crypto data for overlay:", err);
+      }
+    };
+    getCryptoData();
+  }, []);
 
   // Update prediction map when new predictions come in
   useEffect(() => {

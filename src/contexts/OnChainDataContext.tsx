@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { ExchangeFlow, WhaleTransaction } from '@/types/onchain';
-import { getERC20TokenTransactions, identifyWhaleTransactions, calculateExchangeFlow } from '@/lib/onchain/etherscan';
+import { getERC20TokenTransactions, identifyWhaleTransactions, calculateExchangeFlow, KNOWN_EXCHANGES } from '@/lib/onchain/etherscan';
 import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
 
 interface OnChainData {
@@ -41,8 +41,8 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
     // Whale activity analysis
     if (whaleTransactions.length > 0) {
-      const whaleBuys = whaleTransactions.filter(tx => tx.to.isExchange === false).length;
-      const whaleSells = whaleTransactions.filter(tx => tx.to.isExchange === true).length;
+      const whaleBuys = whaleTransactions.filter(tx => !Object.values(KNOWN_EXCHANGES).includes(tx.to.toLowerCase())).length;
+      const whaleSells = whaleTransactions.filter(tx => Object.values(KNOWN_EXCHANGES).includes(tx.to.toLowerCase())).length;
       
       if (whaleBuys > whaleSells) currentScore += 3;
       else if (whaleSells > whaleBuys) currentScore -= 3;

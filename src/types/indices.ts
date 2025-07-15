@@ -1,12 +1,12 @@
-export interface MarketIndex {
-  id: string;
-  name: string;
+import { BaseNode } from './nodes';
+
+export interface MarketIndex extends BaseNode {
   symbol: string;
-  color: string;
-  value?: number;
   change?: number;
   marketCap?: number;
   volume?: number;
+  isCentral?: boolean;
+  tokens: string[];
 }
 
 export interface IndexFlowData {

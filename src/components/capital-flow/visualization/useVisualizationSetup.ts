@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { FlowData } from '@/types/crypto';
+import { LinkData } from '@/types/capitalFlow';
 import { useOrbitalVisualization } from '@/hooks/capital-flow/useOrbitalVisualization';
 import { OrbitalNode } from '../NodePlacement';
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
@@ -12,6 +13,7 @@ interface ExtendedOrbitalNode extends OrbitalNode {
   volume?: number | undefined;
   priceChange24h?: number;
   priceActionSignal?: PriceActionSignal;
+  name: string;
 }
 
 interface AnimationInstance {
