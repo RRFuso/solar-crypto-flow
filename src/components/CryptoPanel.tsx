@@ -13,6 +13,7 @@ import OverboughtTab from './crypto/tabs/OverboughtTab';
 import OversoldTab from './crypto/tabs/OversoldTab';
 import DivergenciaBullTab from './crypto/tabs/DivergenciaBullTab';
 import DivergenciaBearTab from './crypto/tabs/DivergenciaBearTab';
+import ExplosiveTab from './crypto/tabs/ExplosiveTab';
 import CryptoSettings from './crypto/CryptoSettings';
 import { CryptoData } from '@/types/crypto';
 
@@ -35,6 +36,10 @@ const CryptoPanel = () => {
     filter: activeFilter,
   });
 
+  console.log("CryptoPanel - isLoading:", isLoading);
+  console.log("CryptoPanel - error:", error);
+  console.log("CryptoPanel - cryptos count:", cryptos.length);
+
   const handleSelectCrypto = useCallback((crypto: CryptoData) => {
     setSelectedCrypto(crypto);
   }, []);
@@ -51,6 +56,8 @@ const CryptoPanel = () => {
         return '240';
       case 'bearish':
         return 'D';
+      case 'explosive':
+        return 'D'; // Or a more appropriate timeframe for explosive
       default:
         return 'D';
     }
@@ -79,6 +86,8 @@ const CryptoPanel = () => {
         return <DivergenciaBullTab {...commonProps} />;
       case 'div-bear':
         return <DivergenciaBearTab {...commonProps} />;
+      case 'explosive':
+        return <ExplosiveTab {...commonProps} />;
       default:
         return <OutperformingTab {...commonProps} />;
     }

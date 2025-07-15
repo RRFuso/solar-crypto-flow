@@ -145,6 +145,8 @@ export interface CryptoData {
   tokenFashionDescription?: string;
   tokenMediaDescription?: string;
   tokenEntertainmentDescription?: string;
+  hasBullishDivergence?: boolean;
+  hasBearishDivergence?: boolean;
 }
 
 export interface FlowData {

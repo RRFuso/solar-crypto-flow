@@ -12,45 +12,36 @@ interface OversoldTabProps {
 }
 
 const OversoldTab = ({ cryptos, selectedCrypto, onSelectCrypto }: OversoldTabProps) => {
-  // Filter assets in oversold condition (RSI 4h < 30) and sort by RSI value
-  const oversold = cryptos
-    .filter(c => {
-      const rsi = c.rsi4h || 0;
-      // Ensure we have valid RSI values and price data
-      return rsi > 0 && rsi < 30 && c.price && c.price > 0;
-    })
-    .sort((a, b) => (a.rsi4h || 0) - (b.rsi4h || 0));
-
-  console.log('Oversold cryptos:', oversold.length);
+  console.log('OversoldTab received cryptos count:', cryptos.length);
+  const oversold = cryptos.sort((a, b) => (a.rsi4h || 0) - (b.rsi4h || 0));
 
   return (
-    <TabsContent value="oversold" className="m-0 h-full">
-      <div className="h-full flex flex-col">
-        <ColumnHeader 
-          title="Sobrevenda 4h" 
-          subtitle={`${oversold.length} ativos em sobrevenda (RSI 4h < 30)`}
-        />
-        <ScrollArea className="flex-1">
-          <div className="p-4 space-y-4">
-            {oversold.length > 0 ? (
-              oversold.map((crypto) => (
-                <CryptoCard
-                  key={crypto.id}
-                  crypto={crypto}
-                  onClick={() => onSelectCrypto(crypto)}
-                  isSelected={selectedCrypto.id === crypto.id}
-                  showRsi4h={true}
-                />
-              ))
-            ) : (
-              <div className="text-center text-gray-500 py-8">
-                Nenhum ativo em sobrevenda no momento
-              </div>
-            )}
+    <div className="h-full flex flex-col">
+      <ColumnHeader 
+        title="Sobrevenda 4h" 
+        subtitle={`${cryptos.length} ativos em sobrevenda (RSI 4h < 30)`}
+      />
+      <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+        {oversold.length > 0 ? (
+          oversold.map((crypto) => {
+            console.log('Rendering CryptoCard for:', crypto.symbol);
+            return (
+              <CryptoCard
+                key={crypto.id}
+                crypto={crypto}
+                onClick={() => onSelectCrypto(crypto)}
+                isSelected={selectedCrypto.id === crypto.id}
+                showRsi4h={true}
+              />
+            );
+          })
+        ) : (
+          <div className="text-center text-gray-500 py-8">
+            Nenhum ativo em sobrevenda no momento
           </div>
-        </ScrollArea>
+        )}
       </div>
-    </TabsContent>
+    </div>
   );
 };
 

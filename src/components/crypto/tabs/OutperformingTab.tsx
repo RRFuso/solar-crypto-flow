@@ -12,32 +12,29 @@ interface OutperformingTabProps {
 }
 
 const OutperformingTab = ({ cryptos, selectedCrypto, onSelectCrypto }: OutperformingTabProps) => {
-  // Filtra apenas altcoins que estão superando o BTC
-  const outperformingBtc = cryptos
-    .filter(c => c.performance > 0)
-    .sort((a, b) => b.performance - a.performance);
+  console.log('OutperformingTab received cryptos count:', cryptos.length);
+  const outperformingBtc = cryptos.sort((a, b) => b.performance - a.performance);
 
   return (
-    <TabsContent value="outperforming" className="m-0 h-full">
-      <div className="h-full flex flex-col">
-        <ColumnHeader 
-          title="Alt x BTC" 
-          subtitle="Altcoins superando BTC (semanal)" 
-        />
-        <ScrollArea className="flex-1">
-          <div className="p-4 space-y-4">
-            {outperformingBtc.map((crypto) => (
-              <CryptoCard
-                key={crypto.id}
-                crypto={crypto}
-                onClick={() => onSelectCrypto(crypto)}
-                isSelected={selectedCrypto.id === crypto.id}
-              />
-            ))}
-          </div>
-        </ScrollArea>
+    <div className="h-full flex flex-col">
+      <ColumnHeader 
+        title="Alt x BTC" 
+        subtitle="Altcoins superando BTC (semanal)" 
+      />
+      <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+        {outperformingBtc.map((crypto) => {
+          console.log('Rendering CryptoCard for:', crypto.symbol);
+          return (
+            <CryptoCard
+              key={crypto.id}
+              crypto={crypto}
+              onClick={() => onSelectCrypto(crypto)}
+              isSelected={selectedCrypto.id === crypto.id}
+            />
+          );
+        })}
       </div>
-    </TabsContent>
+    </div>
   );
 };
 

@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useCryptoData } from './useCryptoData';
+import { CryptoData } from '@/types/crypto';
 
 interface ExplosiveCrypto {
   symbol: string;
@@ -6,25 +8,32 @@ interface ExplosiveCrypto {
 }
 
 export const useExplosiveCryptos = () => {
-  const [explosiveCryptos, setExplosiveCryptos] = useState<ExplosiveCrypto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: cryptos, isLoading, error } = useCryptoData();
 
-  useEffect(() => {
-    const fetchExplosiveCryptos = async () => {
-      setLoading(true);
-      // In a real application, this would fetch data from an API
-      // For now, we'll use mock data
-      const mockData: ExplosiveCrypto[] = [
-        { symbol: 'BTC', factors: ['Volume breakout', 'High social sentiment'] },
-        { symbol: 'ETH', factors: ['RSI divergence', 'MACD cross'] },
-        { symbol: 'SOL', factors: ['New narrative', 'Exchange listing'] },
-      ];
-      setExplosiveCryptos(mockData);
-      setLoading(false);
-    };
+  const explosiveCryptos = useMemo(() => {
+    if (isLoading || error || !cryptos) return [];
 
-    fetchExplosiveCryptos();
-  }, []);
+    return cryptos.filter(crypto => {
+      // Example criteria for explosive potential:
+      // - Significant 24h price change (e.g., > 10%)
+      // - High 24h volume (e.g., > $50M)
+      // - RSI not overbought (e.g., < 70)
+      const isExplosive = 
+        crypto.change24h > 10 && 
+        crypto.volume24h > 50_000_000 && 
+        (crypto.rsi || 0) < 70;
 
-  return { explosiveCryptos, loading };
+      if (isExplosive) {
+        const factors: string[] = [];
+        if (crypto.change24h > 10) factors.push('Price Surge (>10%)');
+        if (crypto.volume24h > 50_000_000) factors.push('High Volume (>$50M)');
+        if ((crypto.rsi || 0) < 70) factors.push('RSI Not Overbought');
+        
+        return { symbol: crypto.symbol, factors };
+      }
+      return null;
+    }).filter((item): item is ExplosiveCrypto => item !== null);
+  }, [cryptos, isLoading, error]);
+
+  return { explosiveCryptos, loading: isLoading };
 };

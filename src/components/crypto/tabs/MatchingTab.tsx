@@ -12,39 +12,31 @@ interface MatchingTabProps {
 }
 
 const MatchingTab = ({ cryptos, selectedCrypto, onSelectCrypto }: MatchingTabProps) => {
-  // Filtra ativos que atendem a todos os critérios de entrada
-  const matchingCryptos = cryptos
-    .filter(c => 
-      c.performance > 0 && // Performance positiva vs BTC
-      (c.rsi || 0) >= 50 && (c.rsi || 0) <= 60 && // RSI entre 50-60
-      c.ema12 && c.ema26 && c.ema12 > c.ema26 && // EMA 12 cruzando EMA 26 para cima
-      c.aboveMA14 // Preço acima da média móvel
-    )
-    .sort((a, b) => b.performance - a.performance);
+  console.log('MatchingTab received cryptos count:', cryptos.length);
+  const matchingCryptos = cryptos.sort((a, b) => b.performance - a.performance);
 
   return (
-    <TabsContent value="matching" className="m-0 h-full">
-      <div className="h-full flex flex-col">
-        <ColumnHeader 
-          title="Match de Entrada" 
-          subtitle="Atende todos os critérios" 
-        />
-        <ScrollArea className="flex-1">
-          <div className="p-4 space-y-4">
-            {matchingCryptos.map((crypto) => (
-              <CryptoCard
-                key={crypto.id}
-                crypto={crypto}
-                onClick={() => onSelectCrypto(crypto)}
-                isSelected={selectedCrypto.id === crypto.id}
-                showRsi={true}
-                showRsi4h={true}
-              />
-            ))}
-          </div>
-        </ScrollArea>
+    <div className="h-full flex flex-col">
+      <ColumnHeader 
+        title="Baixa" 
+        subtitle="Criptomoedas em tendência de baixa" 
+      />
+      <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+        {matchingCryptos.map((crypto) => {
+          console.log('Rendering CryptoCard for:', crypto.symbol);
+          return (
+            <CryptoCard
+              key={crypto.id}
+              crypto={crypto}
+              onClick={() => onSelectCrypto(crypto)}
+              isSelected={selectedCrypto.id === crypto.id}
+              showRsi={true}
+              showRsi4h={true}
+            />
+          );
+        })}
       </div>
-    </TabsContent>
+    </div>
   );
 };
 
