@@ -1,33 +1,49 @@
-import { BaseNode } from './nodes';
-
-export interface MarketIndex extends BaseNode {
-  symbol: string;
+// Market indices types
+export interface MarketIndex {
+  id: string;
+  name: string;
+  symbol?: string;
+  value: number;
+  change: number;
+  changePercent: number;
   color: string;
-  change?: number;
+  category: string;
   marketCap?: number;
   volume?: number;
-  isCentral?: boolean;
-  tokens?: string[];
+  timestamp?: string;
+  x?: number;  // Add x coordinate for D3 simulations
+  y?: number;  // Add y coordinate for D3 simulations
+  isCentral?: boolean;  // Add isCentral flag
 }
 
 export interface IndexFlowData {
+  id: string;
   from: string;
   to: string;
   value: number;
   percentage: number;
+  volume?: number;
+  change?: number;
+  category?: string;
+  name?: string;
+  color?: string;
+}
+
+export interface IndexLinkData extends IndexFlowData {
+  source?: MarketIndex;
+  target?: MarketIndex;
 }
 
 export interface IndexRotationResult {
   indices: MarketIndex[];
   flows: IndexFlowData[];
   timestamp: string;
-  period: string;
+  totalVolume: number;
+  strongestFlow?: IndexFlowData;
+  weakestFlow?: IndexFlowData;
 }
 
-export interface IndexLinkData {
-  source: { x: number, y: number, id: string };
-  target: { x: number, y: number, id: string };
-  value: number;
-  percentage: number;
-  markerId: string;
+export interface IndexVisualizationData {
+  nodes: MarketIndex[];
+  links: IndexFlowData[];
 }

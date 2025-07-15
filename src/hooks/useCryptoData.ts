@@ -73,7 +73,7 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
                   name: symbol,
                   symbol: symbol,
                   performance: priceChange - btcChange,
-                  price: currentPrice.toFixed(8),
+                  price: currentPrice,  // Already a number
                   change24h: parseFloat(ticker.priceChangePercent),
                   volume24h: parseFloat(ticker.volume),
                   marketCap: parseFloat(ticker.quoteVolume), // Using quoteVolume as an approximation for marketCap
@@ -82,8 +82,8 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
                   ema12: ema12Values[ema12Values.length - 1],
                   ema26: ema26Values[ema26Values.length - 1],
                   aboveMA14: currentPrice > ma14Values[ma14Values.length - 1],
-                  high24h: ticker.highPrice,
-                  low24h: ticker.lowPrice
+                  high24h: parseFloat(ticker.highPrice),
+                  low24h: parseFloat(ticker.lowPrice)
                 } as CryptoData;
               } catch (error) {
                 // Don't log error if it's a 404 for a symbol that doesn't exist
@@ -107,7 +107,7 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
       const validPairs = allPairs.filter((pair): pair is CryptoData => 
         pair !== null && 
         !isNaN(pair.rsi4h || 0) && 
-        !isNaN(parseFloat(pair.price || '0'))
+        !isNaN(pair.price || 0)
       );
 
       console.log(`Found ${validPairs.length} valid pairs for filter ${filter}`);

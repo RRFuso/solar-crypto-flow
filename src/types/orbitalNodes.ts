@@ -4,7 +4,7 @@ import { AIInsight } from '@/hooks/useAdvancedAI';
 import { CapitalFlowLink } from '@/types/capitalFlow';
 
 export interface ExtendedOrbitalNode extends OrbitalNode {
-  price?: string;
+  price?: number;  // Changed from string to number
   volume?: number | undefined;
   priceChange24h?: number;
   priceActionSignal?: PriceActionSignal;

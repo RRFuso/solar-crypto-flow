@@ -4,7 +4,7 @@ export interface CryptoData {
   name: string;
   symbol?: string;
   performance: number;
-  price?: string;
+  price?: number;  // Changed from string to number
   volume?: number;
   volume24h?: number;
   marketCap?: number;
@@ -29,8 +29,8 @@ export interface CryptoData {
   priceChange24h?: number;
   priceChange7d?: number;
   volumeChange24h?: number;
-  high24h?: string;
-  low24h?: string;
+  high24h?: number;  // Changed from string to number
+  low24h?: number;   // Changed from string to number
   category?: string;
   description?: string;
   website?: string;

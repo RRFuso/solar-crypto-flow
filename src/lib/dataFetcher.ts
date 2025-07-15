@@ -100,7 +100,7 @@ export async function fetchCapitalFlows(
     const sourceSymbol = source.symbol || '';
 
     if (source.category === 'stablecoin' || 
-        parseFloat(source.volume || '0') < minVolumeThreshold || 
+        (source.volume || 0) < minVolumeThreshold || 
         (source.marketCap || 0) < minMarketCapThreshold) {
       continue;
     }
@@ -110,7 +110,7 @@ export async function fetchCapitalFlows(
       const target = cryptos[j];
       const targetSymbol = target.symbol || '';
 
-      if (parseFloat(target.volume || '0') < minVolumeThreshold || 
+      if ((target.volume || 0) < minVolumeThreshold || 
           (target.category !== 'stablecoin' && (target.marketCap || 0) < minMarketCapThreshold)) {
         continue;
       }
@@ -120,8 +120,8 @@ export async function fetchCapitalFlows(
       const perfDiff = targetPerf - sourcePerf;
 
       if (Math.abs(perfDiff) > 0.5) {
-        const sourceLogVol = Math.log10(parseFloat(source.volume || '1') + 1);
-        const targetLogVol = Math.log10(parseFloat(target.volume || '1') + 1);
+        const sourceLogVol = Math.log10((source.volume || 0) + 1);
+        const targetLogVol = Math.log10((target.volume || 0) + 1);
         let flowStrength = Math.abs(perfDiff) * (sourceLogVol + targetLogVol);
 
         // --- Price Action Signal Integration --- 
@@ -153,7 +153,7 @@ export async function fetchCapitalFlows(
           flowStrength *= 1.2;
         }
         
-        let flowValue = flowStrength * (parseFloat(source.volume || '0') * 0.0005);
+        let flowValue = flowStrength * ((source.volume || 0) * 0.0005);
         flowValue = Math.min(flowValue, (source.marketCap || 0) * 0.01);
         const finalFlowValue = perfDiff > 0 ? flowValue : -flowValue;
         const percentage = ((source.marketCap || 1) > 0) ? (flowValue / (source.marketCap || 1)) * 100 * (perfDiff > 0 ? 1 : -1) : 0;
