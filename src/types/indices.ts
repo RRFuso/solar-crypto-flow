@@ -14,6 +14,7 @@ export interface MarketIndex {
   x?: number;  // Add x coordinate for D3 simulations
   y?: number;  // Add y coordinate for D3 simulations
   isCentral?: boolean;  // Add isCentral flag
+  radius?: number; // Add radius for visualization
 }
 
 export interface IndexFlowData {
@@ -41,6 +42,7 @@ export interface IndexRotationResult {
   totalVolume: number;
   strongestFlow?: IndexFlowData;
   weakestFlow?: IndexFlowData;
+  period?: string; // Add period property
 }
 
 export interface IndexVisualizationData {

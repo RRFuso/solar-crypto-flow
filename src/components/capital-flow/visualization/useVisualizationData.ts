@@ -6,15 +6,7 @@ import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
 import { AIInsight } from '@/hooks/useAdvancedAI';
 import { CapitalFlowLink, LinkData } from '@/types/capitalFlow';
 
-// Extend OrbitalNode to include necessary fields for tooltip
-interface ExtendedOrbitalNode extends OrbitalNode {
-  price?: string;
-  volume?: number | undefined;
-  priceChange24h?: number;
-  priceActionSignal?: PriceActionSignal;
-  aiModel?: AIInsight;
-  capitalFlows?: CapitalFlowLink[];
-}
+import { ExtendedOrbitalNode } from '@/types/orbitalNodes';
 
 interface UseVisualizationDataProps {
   flowData: FlowData[];
@@ -112,7 +104,13 @@ export const useVisualizationData = ({
 
       return {
         ...node,
-        price: cryptoInfo?.price,
+        name: node.id,               // Use id as name
+        value: 0,                    // Default value property  
+        color: '#3b82f6',            // Default color property
+        tokens: [],                  // Default tokens property
+        fx: null,                    // Default fx property
+        fy: null,                    // Default fy property
+        price: cryptoInfo?.price?.toString() || '0',  // Convert to string to match ExtendedOrbitalNode type
         volume: getVolumeAsNumber(node.volume ?? cryptoInfo?.volume),
         priceChange24h: cryptoInfo?.priceChange24h,
         priceActionSignal: signalInfo,
@@ -123,7 +121,13 @@ export const useVisualizationData = ({
     
     const enrichedCentralNode: ExtendedOrbitalNode | null = baseCentralNode ? {
         ...baseCentralNode,
-        price: cryptoDataMap.get(baseCentralNode.id)?.price,
+        name: baseCentralNode.id,    // Use id as name
+        value: 0,                    // Default value property
+        color: '#3b82f6',            // Default color property
+        tokens: [],                  // Default tokens property
+        fx: null,                    // Default fx property
+        fy: null,                    // Default fy property
+        price: cryptoDataMap.get(baseCentralNode.id)?.price?.toString() || '0',  // Convert to string
         volume: getVolumeAsNumber(baseCentralNode.volume ?? cryptoDataMap.get(baseCentralNode.id)?.volume),
         priceChange24h: cryptoDataMap.get(baseCentralNode.id)?.priceChange24h,
         priceActionSignal: priceActionSignals?.get(baseCentralNode.id),
