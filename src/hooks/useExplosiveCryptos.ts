@@ -13,7 +13,9 @@ export const useExplosiveCryptos = () => {
   const explosiveCryptos = useMemo(() => {
     if (isLoading || error || !cryptos) return [];
 
-    return cryptos.filter(crypto => {
+    const explosiveResults: ExplosiveCrypto[] = [];
+    
+    cryptos.forEach(crypto => {
       // Example criteria for explosive potential:
       // - Significant 24h price change (e.g., > 10%)
       // - High 24h volume (e.g., > $50M)
@@ -29,10 +31,11 @@ export const useExplosiveCryptos = () => {
         if (crypto.volume24h > 50_000_000) factors.push('High Volume (>$50M)');
         if ((crypto.rsi || 0) < 70) factors.push('RSI Not Overbought');
         
-        return { symbol: crypto.symbol, factors };
+        explosiveResults.push({ symbol: crypto.symbol, factors });
       }
-      return null;
-    }).filter((item): item is ExplosiveCrypto => item !== null);
+    });
+    
+    return explosiveResults;
   }, [cryptos, isLoading, error]);
 
   return { explosiveCryptos, loading: isLoading };

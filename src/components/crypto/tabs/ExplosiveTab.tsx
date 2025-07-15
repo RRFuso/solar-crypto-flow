@@ -37,13 +37,13 @@ const ExplosiveTab = ({ cryptos, selectedCrypto, onSelectCrypto, searchTerm }: E
         <h4 className="text-sm font-semibold text-white mb-2">Legenda de Potencial:</h4>
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 bg-red-600 rounded-full"></span> Muito Alto (>15%)
+            <span className="w-3 h-3 bg-red-600 rounded-full"></span> Muito Alto ({'>'}15%)
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 bg-orange-500 rounded-full"></span> Alto (>10%)
+            <span className="w-3 h-3 bg-orange-500 rounded-full"></span> Alto ({'>'}10%)
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 bg-yellow-400 rounded-full"></span> Moderado (>5%)
+            <span className="w-3 h-3 bg-yellow-400 rounded-full"></span> Moderado ({'>'}5%)
           </span>
         </div>
       </div>
