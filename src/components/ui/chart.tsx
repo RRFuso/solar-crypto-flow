@@ -74,28 +74,47 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null
   }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
-  })
-  .join("\n")}
-}
-`
-          )
-          .join("\n"),
-      }}
-    />
-  )
+  // Create secure CSS content without dangerouslySetInnerHTML
+  const cssRules = Object.entries(THEMES).map(([theme, prefix]) => {
+    const selector = `${prefix} [data-chart="${id}"]`
+    const properties = colorConfig
+      .map(([key, itemConfig]) => {
+        const color =
+          itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+          itemConfig.color
+        return color ? `--color-${key}: ${color};` : null
+      })
+      .filter(Boolean)
+      .join(' ')
+    
+    return { selector, properties }
+  }).filter(rule => rule.properties)
+
+  React.useEffect(() => {
+    const styleId = `chart-style-${id}`
+    let styleElement = document.getElementById(styleId) as HTMLStyleElement
+    
+    if (!styleElement) {
+      styleElement = document.createElement('style')
+      styleElement.id = styleId
+      document.head.appendChild(styleElement)
+    }
+    
+    const cssText = cssRules
+      .map(({ selector, properties }) => `${selector} { ${properties} }`)
+      .join('\n')
+    
+    styleElement.textContent = cssText
+    
+    return () => {
+      const element = document.getElementById(styleId)
+      if (element) {
+        element.remove()
+      }
+    }
+  }, [id, cssRules])
+
+  return null
 }
 
 const ChartTooltip = RechartsPrimitive.Tooltip

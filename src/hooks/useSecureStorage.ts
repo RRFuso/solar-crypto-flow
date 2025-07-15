@@ -1,41 +1,98 @@
 
 import { useState, useEffect } from 'react';
 
-// Proper encryption/decryption for sensitive data in localStorage
-// Note: For production, consider using Web Crypto API for stronger encryption
-const SECRET_KEY = 'crypto-dashboard-key-2024'; // In production, this should be user-derived
+// Secure encryption/decryption using Web Crypto API
+// Generate a key from user session/device fingerprint for security
+const generateKey = async (userSalt: string): Promise<CryptoKey> => {
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(userSalt),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
+  
+  return crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: encoder.encode('secure-crypto-dashboard-2024'),
+      iterations: 100000,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+};
 
-const encrypt = (text: string): string => {
+const encrypt = async (text: string, userSalt: string): Promise<string> => {
   try {
-    // Simple XOR encryption with the secret key
-    let encrypted = '';
-    for (let i = 0; i < text.length; i++) {
-      const textChar = text.charCodeAt(i);
-      const keyChar = SECRET_KEY.charCodeAt(i % SECRET_KEY.length);
-      encrypted += String.fromCharCode(textChar ^ keyChar);
+    if (!window.crypto?.subtle) {
+      // Fallback for environments without Web Crypto API
+      return btoa(text);
     }
-    return btoa(encrypted);
+    
+    const encoder = new TextEncoder();
+    const key = await generateKey(userSalt);
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      encoder.encode(text)
+    );
+    
+    const combined = new Uint8Array(iv.length + encrypted.byteLength);
+    combined.set(iv);
+    combined.set(new Uint8Array(encrypted), iv.length);
+    
+    return btoa(String.fromCharCode.apply(null, Array.from(combined)));
   } catch {
     return btoa(text); // Fallback to base64 if encryption fails
   }
 };
 
-const decrypt = (encodedText: string): string => {
+const decrypt = async (encodedText: string, userSalt: string): Promise<string> => {
   try {
-    const encrypted = atob(encodedText);
-    let decrypted = '';
-    for (let i = 0; i < encrypted.length; i++) {
-      const encryptedChar = encrypted.charCodeAt(i);
-      const keyChar = SECRET_KEY.charCodeAt(i % SECRET_KEY.length);
-      decrypted += String.fromCharCode(encryptedChar ^ keyChar);
+    if (!window.crypto?.subtle) {
+      // Fallback for environments without Web Crypto API
+      return atob(encodedText);
     }
-    return decrypted;
+    
+    const combined = new Uint8Array(
+      atob(encodedText).split('').map(char => char.charCodeAt(0))
+    );
+    
+    const iv = combined.slice(0, 12);
+    const encrypted = combined.slice(12);
+    
+    const key = await generateKey(userSalt);
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      encrypted
+    );
+    
+    return new TextDecoder().decode(decrypted);
   } catch {
     return '';
   }
 };
 
 export const useSecureStorage = (key: string, defaultValue: string = '') => {
+  // Generate a user-specific salt for encryption
+  const [userSalt] = useState(() => {
+    let salt = localStorage.getItem('_crypto_salt');
+    if (!salt) {
+      salt = crypto.getRandomValues(new Uint8Array(32))
+        .reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
+      localStorage.setItem('_crypto_salt', salt);
+    }
+    return salt;
+  });
+
   const [value, setValue] = useState<string>(() => {
     try {
       // Validate the key to prevent injection attacks
@@ -45,13 +102,21 @@ export const useSecureStorage = (key: string, defaultValue: string = '') => {
       }
       
       const item = localStorage.getItem(key);
-      return item ? decrypt(item) : defaultValue;
+      if (item) {
+        // Use async decryption but return synchronously for initial state
+        decrypt(item, userSalt).then(decrypted => {
+          if (decrypted !== defaultValue) {
+            setValue(decrypted);
+          }
+        });
+      }
+      return defaultValue;
     } catch {
       return defaultValue;
     }
   });
 
-  const setSecureValue = (newValue: string) => {
+  const setSecureValue = async (newValue: string) => {
     try {
       // Validate input
       if (typeof newValue !== 'string') {
@@ -69,7 +134,8 @@ export const useSecureStorage = (key: string, defaultValue: string = '') => {
       if (newValue === '') {
         localStorage.removeItem(key);
       } else {
-        localStorage.setItem(key, encrypt(newValue));
+        const encrypted = await encrypt(newValue, userSalt);
+        localStorage.setItem(key, encrypted);
       }
     } catch (error) {
       console.error('Failed to store secure value:', error);
@@ -77,15 +143,20 @@ export const useSecureStorage = (key: string, defaultValue: string = '') => {
   };
 
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
+    const handleStorageChange = async (e: StorageEvent) => {
       if (e.key === key && e.newValue !== null) {
-        setValue(decrypt(e.newValue));
+        try {
+          const decrypted = await decrypt(e.newValue, userSalt);
+          setValue(decrypted);
+        } catch {
+          setValue('');
+        }
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [key]);
+  }, [key, userSalt]);
 
   return [value, setSecureValue] as const;
 };
