@@ -10,6 +10,7 @@ interface CryptoCardProps {
   onClick?: () => void;
   showRsi?: boolean;
   showRsi4h?: boolean;
+  cardClassName?: string;
 }
 
 const CryptoCard: React.FC<CryptoCardProps> = ({ 
@@ -17,7 +18,8 @@ const CryptoCard: React.FC<CryptoCardProps> = ({
   isSelected = false, 
   onClick, 
   showRsi = false,
-  showRsi4h = false
+  showRsi4h = false,
+  cardClassName = 'bg-gray-900/50'
 }) => {
   const { id, name, symbol, change24h, price, volume24h } = crypto;
   
@@ -27,7 +29,7 @@ const CryptoCard: React.FC<CryptoCardProps> = ({
 
   return (
     <div 
-      className={`flex items-center justify-between p-4 border ${isSelected ? 'border-green-500' : 'border-gray-800'} rounded-lg bg-gray-900/50 backdrop-blur-xl cursor-pointer hover:border-gray-700 transition-colors`}
+      className={`flex items-center justify-between p-4 border ${isSelected ? 'border-green-500' : 'border-gray-800'} rounded-lg ${cardClassName} backdrop-blur-xl cursor-pointer hover:border-gray-700 transition-colors`}
       onClick={onClick}
     >
       <div className="flex items-center space-x-4">

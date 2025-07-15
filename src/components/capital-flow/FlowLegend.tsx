@@ -10,7 +10,7 @@ export const FlowLegend: React.FC = () => {
           <span className="text-slate-300">AI: Strong Buy</span>
         </div>
         <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500"></div>
+          <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-500 to-purple-700"></div>
           <span className="text-slate-300">AI: Hold</span>
         </div>
         <div className="flex items-center space-x-2">

@@ -198,9 +198,14 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
           filteredPairs = validPairs.filter(pair => pair.hasBearishDivergence);
           break;
         case 'explosive_potential':
-          // Placeholder for explosive potential logic
-          // This could involve volume spikes, specific chart patterns, etc.
-          filteredPairs = validPairs.filter(pair => pair.volume24h > 100000000 && pair.change24h > 5); // Example: high volume and significant price increase
+          console.log("Applying explosive_potential filter...");
+          filteredPairs = validPairs.filter(pair => {
+            const isExplosive = pair.volume24h > 100000000 && pair.change24h > 5;
+            if (!isExplosive) {
+              console.log(`Skipping ${pair.symbol}: volume24h=${pair.volume24h}, change24h=${pair.change24h}`);
+            }
+            return isExplosive;
+          });
           break;
         default:
           // No filter or unknown filter, return all valid pairs

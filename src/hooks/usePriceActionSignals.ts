@@ -29,6 +29,8 @@ export const usePriceActionSignals = (symbols: string[]) => {
           .select('*')
           .in('symbol', symbols);
 
+        console.log('Supabase raw data for price action signals:', data);
+
         if (supabaseError) {
           console.error('Supabase error fetching initial price action signals:', supabaseError);
           setError('Failed to fetch initial price signals.');
@@ -42,6 +44,7 @@ export const usePriceActionSignals = (symbols: string[]) => {
             const explosivePotential = validPotentials.includes(signal.explosive_potential) 
               ? signal.explosive_potential as 'High' | 'Medium' | 'Low' | 'None'
               : 'None';
+            console.log(`Processing signal for ${signal.symbol}: explosive_potential from DB = ${signal.explosive_potential}, assigned = ${explosivePotential}`);
 
             signalsMap.set(signal.symbol, {
               symbol: signal.symbol,
@@ -54,6 +57,7 @@ export const usePriceActionSignals = (symbols: string[]) => {
           });
         }
         setSignals(signalsMap);
+        console.log('Final signals map after initial fetch:', signalsMap);
       } catch (err) {
         console.error('Error fetching initial price action signals:', err);
         setError('Network error during initial fetch.');

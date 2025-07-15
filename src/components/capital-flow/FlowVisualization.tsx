@@ -104,7 +104,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
       switch (aiInsight.recommendation) {
         case "strong_buy": return "#00FF88";
         case "buy": return "#66FF99";
-        case "hold": return "#FFCC00";
+        case "hold": return "#8A2BE2";
         case "sell": return "#FF6666";
         case "strong_sell": return "#FF3366";
         default: return "#8A9196";
