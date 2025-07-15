@@ -16,6 +16,8 @@ export const createNodes = (
       name: index.name,
       value: index.value || 0,
       change: index.change || 0,
+      changePercent: index.changePercent || index.change || 0,
+      category: index.category || 'index',
       radius: isCentral ? 40 : 30, // Central node is larger
       color: index.color,
       x: 0,

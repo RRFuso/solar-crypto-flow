@@ -1,6 +1,7 @@
 
 import * as d3 from 'd3';
 import { getLogoUrls } from '@/lib/cryptoLogos';
+import { MarketIndex } from '@/types/indices';
 
 export const createNodePatterns = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,

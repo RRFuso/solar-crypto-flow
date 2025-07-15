@@ -58,6 +58,9 @@ export const useNarrativeFlowVisualization = (
   const { drawVisualization, updatePositions } = useFlowVisualization();
 
   useEffect(() => {
+    if (!svgRef.current) return;
+    
+    const svg = d3.select(svgRef.current);
     const elements = drawVisualization({
       svg,
       nodes,

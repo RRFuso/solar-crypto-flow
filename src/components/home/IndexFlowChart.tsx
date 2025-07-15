@@ -2,7 +2,7 @@
 import React from 'react';
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import { IndexRotationResult, IndexLinkData } from '@/types/indices';
+import { IndexRotationResult, IndexLinkData, MarketIndex } from '@/types/indices';
 import { createLinkPaths, updateLinkPaths } from './market-flow/LinkPaths';
 import { createNodeElements } from './market-flow/node-elements';
 import { createOrbitalPaths, createStarfield } from './market-flow/OrbitalPaths';
@@ -53,7 +53,9 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
         symbol: index.symbol,
         value: index.value || 0,
         change: index.change || 0,
+        changePercent: index.changePercent || (index.change || 0), // Add changePercent
         color: index.color, // Ensure color is present
+        category: index.category || 'index', // Add category
         marketCap: index.marketCap || 0,
         radius: baseRadius,
         x: 0,
@@ -67,6 +69,9 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
     
     // Create links from the flows
     const links = data.flows.map(flow => ({
+      id: flow.id,
+      from: flow.from,
+      to: flow.to,
       source: nodes.find(n => n.id === flow.from) as IndexLinkData['source'],
       target: nodes.find(n => n.id === flow.to) as IndexLinkData['target'],
       value: flow.value,

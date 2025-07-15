@@ -3,11 +3,11 @@ import { MarketIndex, IndexFlowData, IndexRotationResult } from '@/types/indices
 
 // Índices de mercado com seus símbolos
 const marketIndices: MarketIndex[] = [
-  { id: 'SP500', name: 'S&P 500', symbol: '^GSPC', color: '#4f46e5', value: 0, x: 0, y: 0, radius: 0, fx: null, fy: null },
-  { id: 'NASDAQ', name: 'Nasdaq', symbol: '^IXIC', color: '#06b6d4', value: 0, x: 0, y: 0, radius: 0, fx: null, fy: null },
-  { id: 'DOW', name: 'Dow Jones', symbol: '^DJI', color: '#10b981', value: 0, x: 0, y: 0, radius: 0, fx: null, fy: null },
-  { id: 'RUSSELL', name: 'Russell 2000', symbol: '^RUT', color: '#f59e0b', value: 0, x: 0, y: 0, radius: 0, fx: null, fy: null },
-  { id: 'DXY', name: 'US Dollar Index', symbol: 'DX-Y.NYB', color: '#ef4444', value: 0, x: 0, y: 0, radius: 0, fx: null, fy: null }
+  { id: 'SP500', name: 'S&P 500', symbol: '^GSPC', color: '#4f46e5', value: 0, change: 0, changePercent: 0, category: 'index', x: 0, y: 0, radius: 0, fx: null, fy: null, tokens: [] },
+  { id: 'NASDAQ', name: 'Nasdaq', symbol: '^IXIC', color: '#06b6d4', value: 0, change: 0, changePercent: 0, category: 'index', x: 0, y: 0, radius: 0, fx: null, fy: null, tokens: [] },
+  { id: 'DOW', name: 'Dow Jones', symbol: '^DJI', color: '#10b981', value: 0, change: 0, changePercent: 0, category: 'index', x: 0, y: 0, radius: 0, fx: null, fy: null, tokens: [] },
+  { id: 'RUSSELL', name: 'Russell 2000', symbol: '^RUT', color: '#f59e0b', value: 0, change: 0, changePercent: 0, category: 'index', x: 0, y: 0, radius: 0, fx: null, fy: null, tokens: [] },
+  { id: 'DXY', name: 'US Dollar Index', symbol: 'DX-Y.NYB', color: '#ef4444', value: 0, change: 0, changePercent: 0, category: 'currency', x: 0, y: 0, radius: 0, fx: null, fy: null, tokens: [] }
 ];
 
 // URL base para a API Alpha Vantage
@@ -110,6 +110,7 @@ function detectCapitalFlows(indicesData: Record<string, { values: number[], chan
     
     if (latestChanges[fromIndex] < 0 && latestChanges[toIndex] > 0) {
       flows.push({
+        id: `${fromIndex}-${toIndex}`,
         from: fromIndex,
         to: toIndex,
         value: Math.abs(latestChanges[fromIndex]) * 10, // Escala para visualização
@@ -126,6 +127,7 @@ function detectCapitalFlows(indicesData: Record<string, { values: number[], chan
       
       if (latestChanges[toIndex] > latestChanges[fromIndex]) {
         flows.push({
+          id: `${fromIndex}-${toIndex}`,
           from: fromIndex,
           to: toIndex,
           value: (latestChanges[toIndex] - latestChanges[fromIndex]) * 5, // Escala para visualização
@@ -139,6 +141,7 @@ function detectCapitalFlows(indicesData: Record<string, { values: number[], chan
   if (flows.length === 0 && indices.length >= 2) {
     // Criar pelo menos um fluxo entre o pior e o melhor desempenho
     flows.push({
+      id: `${sortedIndices[sortedIndices.length - 1]}-${sortedIndices[0]}`,
       from: sortedIndices[sortedIndices.length - 1],
       to: sortedIndices[0],
       value: 10, // Valor default
@@ -196,6 +199,7 @@ export async function fetchMarketRotationData(period: string = '7d'): Promise<In
       indices: updatedIndices,
       flows,
       timestamp: new Date().toISOString(),
+      totalVolume: flows.reduce((sum, flow) => sum + flow.value, 0),
       period
     };
     
@@ -258,6 +262,7 @@ function generateSimulatedData(period: string): IndexRotationResult {
   // Adicionar fluxo direto do pior para o melhor desempenho
   if (topPerformer.id !== worstPerformer.id) {
     flows.push({
+      id: `${worstPerformer.id}-${topPerformer.id}`,
       from: worstPerformer.id,
       to: topPerformer.id,
       value: Math.abs((worstPerformer.change || 0) - (topPerformer.change || 0)) * 5,
@@ -275,6 +280,7 @@ function generateSimulatedData(period: string): IndexRotationResult {
         // Se um subiu e o outro caiu significativamente
         if ((change1 > 1 && change2 < -1) || (change1 < -1 && change2 > 1)) {
           flows.push({
+            id: `${change1 < change2 ? idx1.id : idx2.id}-${change1 < change2 ? idx2.id : idx1.id}`,
             from: change1 < change2 ? idx1.id : idx2.id,
             to: change1 < change2 ? idx2.id : idx1.id,
             value: Math.abs(change1 - change2) * 3,
@@ -289,6 +295,7 @@ function generateSimulatedData(period: string): IndexRotationResult {
     indices: updatedIndices,
     flows,
     timestamp: new Date().toISOString(),
+    totalVolume: flows.reduce((sum, flow) => sum + flow.value, 0),
     period
   };
 }

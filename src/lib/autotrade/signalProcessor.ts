@@ -105,18 +105,21 @@ export class SignalProcessor {
 
     // Evaluate condition
     let conditionMet = false;
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    const numericConditionValue = typeof condition.value === 'string' ? parseFloat(condition.value) : condition.value;
+    
     switch (condition.operator) {
       case 'gt':
-        conditionMet = value > condition.value;
+        conditionMet = numericValue > numericConditionValue;
         break;
       case 'gte':
-        conditionMet = value >= condition.value;
+        conditionMet = numericValue >= numericConditionValue;
         break;
       case 'lt':
-        conditionMet = value < condition.value;
+        conditionMet = numericValue < numericConditionValue;
         break;
       case 'lte':
-        conditionMet = value <= condition.value;
+        conditionMet = numericValue <= numericConditionValue;
         break;
       case 'eq':
         conditionMet = value === condition.value;

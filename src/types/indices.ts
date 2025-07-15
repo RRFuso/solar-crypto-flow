@@ -15,6 +15,11 @@ export interface MarketIndex {
   y?: number;  // Add y coordinate for D3 simulations
   isCentral?: boolean;  // Add isCentral flag
   radius?: number; // Add radius for visualization
+  fx?: any; // Add fx for D3 force simulation
+  fy?: any; // Add fy for D3 force simulation
+  tokens?: any[]; // Add tokens property
+  inflow?: number; // Add inflow for flow calculations
+  outflow?: number; // Add outflow for flow calculations
 }
 
 export interface IndexFlowData {

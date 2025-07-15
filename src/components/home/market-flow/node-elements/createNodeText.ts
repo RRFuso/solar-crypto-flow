@@ -1,5 +1,6 @@
 
 import * as d3 from 'd3';
+import { MarketIndex } from '@/types/indices';
 
 export const createNodeText = (
   node: d3.Selection<SVGGElement, MarketIndex, SVGGElement, unknown>

@@ -64,7 +64,7 @@ export async function extractFeatures(
         macd: indicators.macd.value,
         macdSignal: indicators.macd.signal,
         macdHistogram: indicators.macd.histogram,
-        aboveMA: parseFloat(crypto.price) > indicators.ema26,
+        aboveMA: parseFloat(crypto.price.toString()) > indicators.ema26,
         priceChange1h: crypto.priceChange1h || 0,
         priceChange24h: crypto.priceChange24h || 0,
         volumeChange24h: crypto.volumeChange24h || 0,

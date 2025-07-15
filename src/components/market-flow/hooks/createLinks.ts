@@ -1,5 +1,6 @@
 
 import * as d3 from 'd3';
+import { IndexFlowData, MarketIndex } from '@/types/indices';
 
 export const createLinks = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,

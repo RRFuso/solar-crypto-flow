@@ -28,7 +28,7 @@ export class Backtester {
         if (currentDayData) {
           const exitConditionMet = this.checkExitConditions(position, currentDayData, strategy);
           if (exitConditionMet) {
-            const trade = this.closePosition(position, parseFloat(currentDayData.close), date.getTime());
+            const trade = this.closePosition(position, parseFloat(currentDayData.close), date.getTime(), 'signal');
             trades.push(trade);
             currentCapital += trade.pnl;
           } else {
@@ -171,7 +171,7 @@ export class Backtester {
     };
   }
 
-  private static closePosition(position: any, exitPrice: number, exitTime: number, reason: 'take_profit' | 'stop_loss' | 'signal' | 'time_limit'): CompletedTrade {
+  private static closePosition(position: any, exitPrice: number, exitTime: number, reason: 'take_profit' | 'stop_loss' | 'signal' | 'timeout' = 'timeout'): CompletedTrade {
     const pnl = (exitPrice - position.entryPrice) * position.amount;
     const pnlPercentage = ((exitPrice - position.entryPrice) / position.entryPrice) * 100;
 
@@ -187,7 +187,7 @@ export class Backtester {
       pnl,
       pnlPercentage,
       strategyId: position.strategyId,
-      exitReason: reason
+      exitReason: reason as 'take_profit' | 'stop_loss' | 'signal' | 'timeout'
     };
   }
   
