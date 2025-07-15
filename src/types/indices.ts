@@ -2,11 +2,12 @@ import { BaseNode } from './nodes';
 
 export interface MarketIndex extends BaseNode {
   symbol: string;
+  color: string;
   change?: number;
   marketCap?: number;
   volume?: number;
   isCentral?: boolean;
-  tokens: string[];
+  tokens?: string[];
 }
 
 export interface IndexFlowData {

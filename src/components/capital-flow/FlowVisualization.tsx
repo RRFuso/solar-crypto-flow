@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { FlowData, CryptoData } from '@/types/crypto';
+import { ExtendedOrbitalNode } from '@/types/orbitalNodes';
 import { Prediction } from '@/lib/aiModel';
 import { OrbitLayersComponent } from './OrbitLayers';
 import { LinkRendererExtended } from './LinkRendererExtended';

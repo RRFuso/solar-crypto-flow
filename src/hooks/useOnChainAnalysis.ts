@@ -37,18 +37,18 @@ export const useOnChainAnalysis = (symbol: string): OnChainAnalysisResult => {
 
       try {
         // 1. Buscar transações
-        const transactions = await getERC20TokenTransactions(contractAddress, 1000);
+        const transactions = await getERC20TokenTransactions(contractAddress, 'ethereum', 1000);
         if (transactions.length === 0) {
           setLoading(false);
           return;
         }
 
         // 2. Identificar transações de baleias
-        const whaleTxs = identifyWhaleTransactions(transactions, 1000); // Limiar de 1000 ETH
+        const whaleTxs = identifyWhaleTransactions(transactions, 1000, 'ethereum'); // Limiar de 1000 ETH
         setWhaleTransactions(whaleTxs);
 
         // 3. Calcular fluxo de exchanges
-        const exFlow = calculateExchangeFlow(transactions, symbol);
+        const exFlow = calculateExchangeFlow(transactions, symbol, 'ethereum');
         setExchangeFlow(exFlow);
 
       } catch (err) {

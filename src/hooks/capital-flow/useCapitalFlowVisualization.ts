@@ -26,11 +26,11 @@ export const useCapitalFlowVisualization = () => {
     flowData.forEach(flow => {
       if (!uniqueCryptos.has(flow.from)) {
         uniqueCryptos.add(flow.from);
-        nodes.push({ id: flow.from, value: 0 });
+        nodes.push({ id: flow.from, value: 0, name: flow.from, x: 0, y: 0, radius: 0, fx: null, fy: null });
       }
       if (!uniqueCryptos.has(flow.to)) {
         uniqueCryptos.add(flow.to);
-        nodes.push({ id: flow.to, value: 0 });
+        nodes.push({ id: flow.to, value: 0, name: flow.to, x: 0, y: 0, radius: 0, fx: null, fy: null });
       }
       
       // Update values based on flows

@@ -7,14 +7,7 @@ import { useOrbitalVisualization } from '@/hooks/capital-flow/useOrbitalVisualiz
 import { OrbitalNode } from '../NodePlacement';
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
 
-// Define ExtendedOrbitalNode here as well for consistency
-interface ExtendedOrbitalNode extends OrbitalNode {
-  price?: string;
-  volume?: number | undefined;
-  priceChange24h?: number;
-  priceActionSignal?: PriceActionSignal;
-  name: string;
-}
+import { ExtendedOrbitalNode } from '@/types/orbitalNodes';
 
 interface AnimationInstance {
   cleanup: () => void;

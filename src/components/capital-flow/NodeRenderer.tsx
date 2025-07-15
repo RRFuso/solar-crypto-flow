@@ -7,14 +7,7 @@ import { AIInsight } from '@/hooks/useAdvancedAI';
 import { useTooltip } from '@/contexts/TooltipContext';
 import { CapitalFlowLink } from '@/types/capitalFlow';
 
-interface ExtendedOrbitalNode extends OrbitalNode {
-  priceActionSignal?: PriceActionSignal;
-  price?: string;
-  priceChange24h?: number;
-  capitalFlows?: CapitalFlowLink[];
-  aiModel?: AIInsight;
-  name: string;
-}
+import { ExtendedOrbitalNode } from '@/types/orbitalNodes';
 
 interface NodeRendererProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;

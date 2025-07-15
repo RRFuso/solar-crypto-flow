@@ -27,7 +27,7 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
     let maxVol = -1;
     nodes.forEach(node => {
       const cryptoInfo = cryptoDataMap.get(node.id) || cryptoDataMap.get(node.name.toUpperCase());
-      const volume = parseFloat(cryptoInfo?.volume || '0'); 
+      const volume = parseFloat(cryptoInfo?.volume?.toString() || '0') as number; 
       if (volume > maxVol) {
         maxVol = volume;
         maxVolNode = node;
@@ -45,7 +45,7 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
       const nodesWithVolumes = nonCentralNodes.map(node => {
           const cryptoInfoById = cryptoDataMap.get(node.id);
           const cryptoInfoByName = cryptoDataMap.get(node.name.toUpperCase());
-          const volume = parseFloat(cryptoInfoById?.volume ?? cryptoInfoByName?.volume ?? '0');
+          const volume = parseFloat(cryptoInfoById?.volume?.toString() ?? cryptoInfoByName?.volume?.toString() ?? '0') as number;
           return { node, volume };
       })
       .sort((a, b) => (b.volume === 0 ? -1 : (a.volume === 0 ? 1 : b.volume - a.volume))); 

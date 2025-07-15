@@ -3,8 +3,6 @@ import React, { useEffect } from 'react';
 import { CapitalFlowNode } from '@/types/capitalFlow';
 
 export type OrbitalNode = CapitalFlowNode & {
-  marketCap: number;
-  radius: number;
   type: "central" | "orbital";
 };
 

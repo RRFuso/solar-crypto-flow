@@ -3,11 +3,11 @@ import { MarketIndex, IndexFlowData, IndexRotationResult } from '@/types/indices
 
 // Índices de mercado com seus símbolos
 const marketIndices: MarketIndex[] = [
-  { id: 'SP500', name: 'S&P 500', symbol: '^GSPC', color: '#4f46e5' },
-  { id: 'NASDAQ', name: 'Nasdaq', symbol: '^IXIC', color: '#06b6d4' },
-  { id: 'DOW', name: 'Dow Jones', symbol: '^DJI', color: '#10b981' },
-  { id: 'RUSSELL', name: 'Russell 2000', symbol: '^RUT', color: '#f59e0b' },
-  { id: 'DXY', name: 'US Dollar Index', symbol: 'DX-Y.NYB', color: '#ef4444' }
+  { id: 'SP500', name: 'S&P 500', symbol: '^GSPC', color: '#4f46e5', value: 0, x: 0, y: 0, radius: 0, fx: null, fy: null },
+  { id: 'NASDAQ', name: 'Nasdaq', symbol: '^IXIC', color: '#06b6d4', value: 0, x: 0, y: 0, radius: 0, fx: null, fy: null },
+  { id: 'DOW', name: 'Dow Jones', symbol: '^DJI', color: '#10b981', value: 0, x: 0, y: 0, radius: 0, fx: null, fy: null },
+  { id: 'RUSSELL', name: 'Russell 2000', symbol: '^RUT', color: '#f59e0b', value: 0, x: 0, y: 0, radius: 0, fx: null, fy: null },
+  { id: 'DXY', name: 'US Dollar Index', symbol: 'DX-Y.NYB', color: '#ef4444', value: 0, x: 0, y: 0, radius: 0, fx: null, fy: null }
 ];
 
 // URL base para a API Alpha Vantage

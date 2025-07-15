@@ -57,8 +57,8 @@ export async function extractFeatures(
       const feature: CryptoFeatures = {
         symbol: crypto.symbol,
         id: crypto.id,
-        price: parseFloat(crypto.price) || 0,
-        volume: parseFloat(crypto.volume) || 0,
+        price: crypto.price || 0,
+        volume: crypto.volume || 0,
         rsi: indicators.rsi,
         rsi4h: indicators.rsi4h,
         macd: indicators.macd.value,
@@ -100,8 +100,8 @@ export async function extractFeatures(
       return {
         symbol: crypto.symbol,
         id: crypto.id,
-        price: parseFloat(crypto.price) || 0,
-        volume: parseFloat(crypto.volume) || 0,
+        price: crypto.price || 0,
+        volume: crypto.volume || 0,
         rsi: 50,
         rsi4h: 50,
         macd: 0,

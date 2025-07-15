@@ -21,8 +21,8 @@ const CryptoCard: React.FC<CryptoCardProps> = ({
 }) => {
   const { id, name, symbol, change24h, price, volume24h } = crypto;
   
-  const displayPrice = price ? parseFloat(price) : 0;
-  const displayVolume = volume24h ? parseFloat(String(volume24h)) / 1_000_000 : 0; // Assuming volume is in USD
+  const displayPrice = price || 0;
+  const displayVolume = volume24h ? volume24h / 1_000_000 : 0; // Assuming volume is in USD
   const performance = change24h || 0;
 
   return (

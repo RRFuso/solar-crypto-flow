@@ -50,15 +50,18 @@ const IndexFlowChart: React.FC<IndexFlowChartProps> = ({ data }) => {
       return {
         id: index.id,
         name: index.name || index.id,
-        symbol: index.symbol, // Added symbol property
+        symbol: index.symbol,
         value: index.value || 0,
         change: index.change || 0,
-        color: index.color,
+        color: index.color, // Ensure color is present
         marketCap: index.marketCap || 0,
         radius: baseRadius,
         x: 0,
         y: 0,
-        isCentral
+        isCentral,
+        fx: null, // Added fx
+        fy: null, // Added fy
+        tokens: [] // Added tokens
       };
     });
     

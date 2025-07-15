@@ -1,6 +1,7 @@
 
 import React, { memo } from 'react';
 import { AdvancedRealTimeChart } from 'react-ts-tradingview-widgets';
+import { Studies } from '@/types/tradingview';
 
 interface CryptoChartProps {
   crypto: {

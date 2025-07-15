@@ -51,9 +51,9 @@ export const useExplosiveCryptos = (cryptos: CryptoData[]) => {
         }
 
         // Price and technical analysis
-        const price = parseFloat(crypto.price);
-        const high = parseFloat(crypto.high24h);
-        const low = parseFloat(crypto.low24h);
+        const price = crypto.price;
+        const high = crypto.high24h;
+        const low = crypto.low24h;
 
         if (!isNaN(price) && !isNaN(high) && !isNaN(low)) {
           // MACD analysis

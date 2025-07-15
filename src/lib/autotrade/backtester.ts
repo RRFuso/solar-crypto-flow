@@ -1,6 +1,6 @@
 
 import { TradingStrategy, BacktestResult, CompletedTrade } from '@/types/autotrade';
-import { BinanceTicker, BinanceKline } from '@/types/binance';
+import { BinanceTicker, BinanceKline, KLine } from '@/types/binance';
 import { AIInsight } from '@/hooks/useAdvancedAI';
 
 export class Backtester {

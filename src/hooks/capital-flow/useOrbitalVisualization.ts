@@ -72,12 +72,15 @@ export const useOrbitalVisualization = () => {
         // Central position for BTC
         return {
           id,
+          name: id, // Added name
           marketCap,
-          value: marketCap, // Added value property
+          value: marketCap,
           radius: 45,
           type: "central" as const,
           x: centerX,
-          y: centerY
+          y: centerY,
+          fx: null, // Added fx
+          fy: null, // Added fy
         };
       } else {
         // Distribute other nodes in orbital layers
@@ -98,12 +101,15 @@ export const useOrbitalVisualization = () => {
         
         return {
           id,
+          name: id, // Added name
           marketCap,
-          value: marketCap, // Added value property
+          value: marketCap,
           radius: Math.max(20, Math.min(35, 20 + (marketCap / 10000))),
           type: "orbital" as const,
           x: centerX + Math.cos(finalAngle) * finalRadius,
-          y: centerY + Math.sin(finalAngle) * finalRadius
+          y: centerY + Math.sin(finalAngle) * finalRadius,
+          fx: null, // Added fx
+          fy: null, // Added fy
         };
       }
     });
