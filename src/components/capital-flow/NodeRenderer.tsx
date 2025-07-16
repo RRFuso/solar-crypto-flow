@@ -5,6 +5,7 @@ import { getLogoUrls } from '@/lib/cryptoLogos';
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
 import { AIInsight } from '@/hooks/useAdvancedAI';
 import { useTooltip } from '@/contexts/TooltipContext';
+import { useOnChainData } from '@/contexts/OnChainDataContext';
 import { CapitalFlowLink } from '@/types/capitalFlow';
 
 import { ExtendedOrbitalNode } from '@/types/orbitalNodes';
@@ -274,6 +275,15 @@ const renderOrUpdateVisualization = (
 
 export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
   const { showTooltip, hideTooltip } = useTooltip();
+  const { requestOnChainData } = useOnChainData();
+
+  // Request on-chain data for visible nodes
+  useEffect(() => {
+    const symbols = props.nodes.map(node => node.id);
+    if (symbols.length > 0) {
+      requestOnChainData(symbols);
+    }
+  }, [props.nodes, requestOnChainData]);
 
   useEffect(() => {
     if (props.svg && props.nodes) {
