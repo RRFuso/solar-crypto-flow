@@ -1,8 +1,10 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import CryptoLogo from '@/components/ai/CryptoLogo';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { CryptoData } from '@/types/crypto';
+import { useTooltip } from '@/contexts/TooltipContext';
+import { useOnChainData } from '@/contexts/OnChainDataContext';
 
 interface CryptoCardProps {
   crypto: CryptoData;
@@ -22,15 +24,39 @@ const CryptoCard: React.FC<CryptoCardProps> = ({
   cardClassName = 'bg-gray-900/50'
 }) => {
   const { id, name, symbol, change24h, price, volume24h } = crypto;
+  const { showTooltip, hideTooltip } = useTooltip();
+  const { requestOnChainData } = useOnChainData();
   
   const displayPrice = price || 0;
   const displayVolume = volume24h ? volume24h / 1_000_000 : 0; // Assuming volume is in USD
   const performance = change24h || 0;
 
+  // Request on-chain data for this crypto
+  useEffect(() => {
+    requestOnChainData([id]);
+  }, [id, requestOnChainData]);
+
+  const handleMouseEnter = (event: React.MouseEvent) => {
+    const tooltipData = {
+      id,
+      name,
+      price: displayPrice.toString(),
+      priceChange24h: performance,
+      volume: volume24h
+    };
+    showTooltip(tooltipData, { x: event.clientX, y: event.clientY });
+  };
+
+  const handleMouseLeave = () => {
+    hideTooltip();
+  };
+
   return (
     <div 
       className={`flex items-center justify-between p-4 border ${isSelected ? 'border-green-500' : 'border-gray-800'} rounded-lg ${cardClassName} backdrop-blur-xl cursor-pointer hover:border-gray-700 transition-colors`}
       onClick={onClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="flex items-center space-x-4">
         <CryptoLogo symbol={symbol || id} className="w-10 h-10 rounded-full" />
