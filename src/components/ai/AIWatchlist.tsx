@@ -283,8 +283,14 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     return (
       <div
         key={p.symbol}
-        className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors text-white border border-gray-700"
+        className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors text-white border border-gray-700 relative"
       >
+        {signal?.explosivePotential && signal.explosivePotential !== 'None' && (
+          <div className="absolute -top-2 -right-2 z-10">
+            {getExplosiveBadge(signal.explosivePotential)}
+          </div>
+        )}
+        
         <div className="flex items-start gap-3">
           <CryptoLogo
             symbol={p.symbol}
@@ -292,10 +298,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm truncate">{p.symbol}</span>
-                {getExplosiveBadge(signal?.explosivePotential)}
-              </div>
+              <span className="font-bold text-sm truncate">{p.symbol}</span>
               <div className={`flex items-center gap-1 ${p.bullish ? 'text-green-400' : 'text-red-400'}`}>
                 {p.bullish ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                 <span className="text-xs font-medium">{Math.round(p.confidence * 100)}%</span>
