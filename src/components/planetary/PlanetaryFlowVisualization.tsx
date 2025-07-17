@@ -46,7 +46,7 @@ const PlanetaryFlowVisualization: React.FC = () => {
             </Badge>
           </div>
 
-          <Tabs value={currentView} onValueChange={(val: any) => setCurrentView(val)} className="w-[220px]">
+          <Tabs value={currentView} onValueChange={(val: string) => setCurrentView(val)} className="w-[220px]">
             <TabsList className="bg-gray-800/60">
               <TabsTrigger value="3d" className="text-xs data-[state=active]:bg-gray-700">3D</TabsTrigger>
               <TabsTrigger value="top" className="text-xs data-[state=active]:bg-gray-700">Top</TabsTrigger>

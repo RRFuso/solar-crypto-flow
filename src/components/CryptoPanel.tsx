@@ -1,6 +1,5 @@
-
 import React, { useState, useCallback } from "react";
-import { useCryptoData } from "@/hooks/useCryptoData";
+import { useUnifiedSignalEngine, UnifiedSignal } from "@/hooks/useUnifiedSignalEngine";
 import CryptoChart from './CryptoChart';
 import { Bitcoin, Search } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -15,62 +14,36 @@ import DivergenciaBullTab from './crypto/tabs/DivergenciaBullTab';
 import DivergenciaBearTab from './crypto/tabs/DivergenciaBearTab';
 import ExplosiveTab from './crypto/tabs/ExplosiveTab';
 import CryptoSettings from './crypto/CryptoSettings';
-import { CryptoData } from '@/types/crypto';
 
 const CryptoPanel = () => {
-  const [selectedCrypto, setSelectedCrypto] = useState<CryptoData>({ id: 'BTC', name: 'Bitcoin', performance: 0 });
+  const [selectedCrypto, setSelectedCrypto] = useState<UnifiedSignal | null>(null);
   const [activeFilter, setActiveFilter] = useState('outperforming');
   const [searchTerm, setSearchTerm] = useState('');
   const [settings, setSettings] = useState({
-    rsiOverbought: 70,
-    rsiOversold: 30,
-    rsiNeutralMin: 50,
-    rsiNeutralMax: 60,
     timeframe: '4h'
   });
 
-  const { data: cryptos = [], isLoading, error } = useCryptoData({
-    timeframe: settings.timeframe,
-    rsiOverbought: settings.rsiOverbought,
-    rsiOversold: settings.rsiOversold,
-    filter: activeFilter,
-  });
+  const { signals, isLoading, error } = useUnifiedSignalEngine(settings.timeframe);
+  const allSignals = signals ? Array.from(signals.values()) : [];
 
-  console.log("CryptoPanel - isLoading:", isLoading);
-  console.log("CryptoPanel - error:", error);
-  console.log("CryptoPanel - cryptos count:", cryptos.length);
-
-  const handleSelectCrypto = useCallback((crypto: CryptoData) => {
-    setSelectedCrypto(crypto);
+  const handleSelectCrypto = useCallback((signal: UnifiedSignal) => {
+    setSelectedCrypto(signal);
   }, []);
 
   const getTimeframe = useCallback(() => {
-    switch (activeFilter) {
-      case 'outperforming':
-        return 'W';
-      case 'bullish':
-        return 'W';
-      case 'oversold':
-        return '240';
-      case 'overbought':
-        return '240';
-      case 'bearish':
-        return 'D';
-      case 'explosive':
-        return 'D'; // Or a more appropriate timeframe for explosive
-      default:
-        return 'D';
-    }
-  }, [activeFilter]);
+    // Lógica de timeframe pode ser simplificada ou unificada
+    return 'D';
+  }, []);
 
   const renderActiveTab = () => {
     const commonProps = {
-      cryptos,
-      selectedCrypto,
-      onSelectCrypto: handleSelectCrypto,
+      signals: allSignals,
+      selectedSignal: selectedCrypto,
+      onSelectSignal: handleSelectCrypto,
       searchTerm
     };
 
+    // TODO: Refatorar cada aba para usar `UnifiedSignal`
     switch (activeFilter) {
       case 'outperforming':
         return <OutperformingTab {...commonProps} />;
@@ -95,9 +68,7 @@ const CryptoPanel = () => {
 
   return (
     <div className="flex gap-6 h-full">
-      {/* Left panel - Crypto list */}
       <div className="w-2/5 flex flex-col border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden">
-        {/* Header with filters */}
         <div className="p-4 border-b border-gray-800 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-white">Criptomoedas</h2>
@@ -106,52 +77,34 @@ const CryptoPanel = () => {
               onSettingsChange={setSettings}
             />
           </div>
-          
-          {/* Filter dropdown */}
           <CryptoFilterDropdown
             value={activeFilter}
             onValueChange={setActiveFilter}
           />
-          
-          {/* Search input */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               placeholder="Buscar ativo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500"
+              className="pl-10 bg-gray-800/50 border-gray-700 text-white"
             />
           </div>
         </div>
-
-        {/* Content area */}
         <div className="flex-1 min-h-0">
-          {renderActiveTab()}
+          {isLoading ? <div>Loading...</div> : renderActiveTab()}
         </div>
       </div>
 
-      {/* Right panel - Chart */}
       <div className="w-3/5 relative">
         <div className="h-full border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden">
-          <CryptoChart 
-            crypto={selectedCrypto} 
-            timeframe={getTimeframe()}
-            key={`${selectedCrypto.id}-${getTimeframe()}`}
-          />
-        </div>
-        <div className="absolute top-4 right-4">
-          <Button
-            variant="outline"
-            size="sm"
-            className="bg-gray-800/50 hover:bg-gray-700/50 border-gray-700"
-            onClick={() => {
-              setSelectedCrypto({ id: 'BTC', name: 'Bitcoin', performance: 0 });
-            }}
-          >
-            <Bitcoin className="w-4 h-4 mr-2" />
-            BTC/USDT
-          </Button>
+          {selectedCrypto && (
+            <CryptoChart 
+              crypto={{id: selectedCrypto.symbol, name: selectedCrypto.name}} 
+              timeframe={getTimeframe()}
+              key={`${selectedCrypto.symbol}-${getTimeframe()}`}
+            />
+          )}
         </div>
       </div>
     </div>

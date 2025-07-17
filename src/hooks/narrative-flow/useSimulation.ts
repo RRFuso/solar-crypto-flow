@@ -163,17 +163,17 @@ export const useSimulation = ({ nodes, cryptoDataMap = new Map(), width, height 
 
   // Drag handlers (no changes needed)
   const dragHandlers = {
-    dragstarted: (event: any) => {
+    dragstarted: (event: d3.D3DragEvent<SVGCircleElement, NarrativeNode, NarrativeNode>) => {
       if (!event.active) simulation.alphaTarget(0.3).restart();
       event.subject.fx = event.subject.x;
       event.subject.fy = event.subject.y;
     },
-    dragged: (event: any) => {
+    dragged: (event: d3.D3DragEvent<SVGCircleElement, NarrativeNode, NarrativeNode>) => {
       if (event.subject === centralNode) return;
       event.subject.fx = event.x;
       event.subject.fy = event.y;
     },
-    dragended: (event: any) => {
+    dragended: (event: d3.D3DragEvent<SVGCircleElement, NarrativeNode, NarrativeNode>) => {
       if (!event.active) simulation.alphaTarget(0);
       if (event.subject !== centralNode) {
         event.subject.fx = null;

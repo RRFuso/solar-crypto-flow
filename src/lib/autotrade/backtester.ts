@@ -14,7 +14,7 @@ export class Backtester {
   ): Promise<BacktestResult> {
     const trades: CompletedTrade[] = [];
     let currentCapital = initialCapital;
-    let openPositions: any[] = [];
+    let openPositions: OpenPosition[] = [];
 
     const dates = this.getDateRange(startDate, endDate);
 
@@ -171,7 +171,7 @@ export class Backtester {
     };
   }
 
-  private static closePosition(position: any, exitPrice: number, exitTime: number, reason: 'take_profit' | 'stop_loss' | 'signal' | 'timeout' = 'timeout'): CompletedTrade {
+  private static closePosition(position: OpenPosition, exitPrice: number, exitTime: number, reason: 'take_profit' | 'stop_loss' | 'signal' | 'timeout' = 'timeout'): CompletedTrade {
     const pnl = (exitPrice - position.entryPrice) * position.amount;
     const pnlPercentage = ((exitPrice - position.entryPrice) / position.entryPrice) * 100;
 

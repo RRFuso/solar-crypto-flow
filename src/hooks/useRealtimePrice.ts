@@ -56,8 +56,8 @@ export const useRealtimePrice = (symbol: string) => {
         { event: 'UPDATE', schema: 'public', table: 'crypto_prices', filter: `symbol=eq.${symbol}` },
         (payload) => {
           console.log('Realtime price update received:', payload);
-          if (payload.new && (payload.new as any).price !== undefined) {
-            setPrice((payload.new as any).price);
+          if (payload.new && (payload.new as { price: number }).price !== undefined) {
+            setPrice((payload.new as { price: number }).price);
           }
         }
       )

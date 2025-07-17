@@ -413,7 +413,7 @@ export class FeatureEngine {
   }
 
   // Composite score calculations
-  private calculateBullishScore(factors: any): number {
+  private calculateBullishScore(factors: ScoreFactors): number {
     const weights = {
       rsiDivergence: 15,
       macdCrossover: 20,

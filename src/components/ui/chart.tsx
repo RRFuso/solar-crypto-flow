@@ -70,10 +70,6 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     ([_, config]) => config.theme || config.color
   )
 
-  if (!colorConfig.length) {
-    return null
-  }
-
   // Create secure CSS content without dangerouslySetInnerHTML
   const cssRules = Object.entries(THEMES).map(([theme, prefix]) => {
     const selector = `${prefix} [data-chart="${id}"]`
@@ -91,6 +87,10 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   }).filter(rule => rule.properties)
 
   React.useEffect(() => {
+    if (!colorConfig.length) {
+      return; // Do nothing if no color config
+    }
+
     const styleId = `chart-style-${id}`
     let styleElement = document.getElementById(styleId) as HTMLStyleElement
     
@@ -112,9 +112,10 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
         element.remove()
       }
     }
-  }, [id, cssRules])
+  }, [id, cssRules, colorConfig.length]) // Add colorConfig.length to dependencies
 
   return null
+}
 }
 
 const ChartTooltip = RechartsPrimitive.Tooltip

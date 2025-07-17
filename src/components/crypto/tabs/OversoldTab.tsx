@@ -1,46 +1,62 @@
+
 import React from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TabsContent } from "@/components/ui/tabs";
 import CryptoCard from '@/components/CryptoCard';
 import { ColumnHeader } from '../ColumnHeader';
-import { CryptoData } from '@/types/crypto';
+import { UnifiedSignal } from '@/hooks/useUnifiedSignalEngine';
 
 interface OversoldTabProps {
-  cryptos: CryptoData[];
-  selectedCrypto: CryptoData;
-  onSelectCrypto: (crypto: CryptoData) => void;
+  signals: UnifiedSignal[];
+  selectedSignal: UnifiedSignal | null;
+  onSelectSignal: (signal: UnifiedSignal) => void;
+  searchTerm: string;
 }
 
-const OversoldTab = ({ cryptos, selectedCrypto, onSelectCrypto }: OversoldTabProps) => {
-  console.log('OversoldTab received cryptos count:', cryptos.length);
-  const oversold = cryptos.sort((a, b) => (a.rsi4h || 0) - (b.rsi4h || 0));
+const OversoldTab: React.FC<OversoldTabProps> = ({ signals, selectedSignal, onSelectSignal, searchTerm }) => {
+
+  const oversoldSignals = signals
+    .filter(s => 
+        (s.prediction.rsi < 30 || s.prediction.rsi4h < 30) && // Check RSI for oversold
+        s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => (a.prediction.rsi || 0) - (b.prediction.rsi || 0)); // Sort by RSI (lowest first)
 
   return (
     <div className="h-full flex flex-col">
       <ColumnHeader 
-        title="Sobrevenda 4h" 
-        subtitle={`${cryptos.length} ativos em sobrevenda (RSI 4h < 30)`}
+        title="Sobrevendido" 
+        subtitle="Ativos com RSI < 30 (4h ou 24h)"
       />
-      <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-        {oversold.length > 0 ? (
-          oversold.map((crypto) => {
-            console.log('Rendering CryptoCard for:', crypto.symbol);
-            return (
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-2">
+          {oversoldSignals.length > 0 ? (
+            oversoldSignals.map((signal) => (
               <CryptoCard
-                key={crypto.id}
-                crypto={crypto}
-                onClick={() => onSelectCrypto(crypto)}
-                isSelected={selectedCrypto.id === crypto.id}
+                key={signal.symbol}
+                crypto={{
+                  id: signal.symbol,
+                  name: signal.name,
+                  performance: signal.overallScore,
+                  price: parseFloat(signal.prediction.price || '0'),
+                  change24h: signal.prediction.bullish ? 1 : -1,
+                  marketCap: 0,
+                  volume: 0,
+                  rsi: signal.prediction.rsi,
+                  rsi4h: signal.prediction.rsi4h,
+                }}
+                onClick={() => onSelectSignal(signal)}
+                isSelected={selectedSignal?.symbol === signal.symbol}
+                showRsi={true}
                 showRsi4h={true}
               />
-            );
-          })
-        ) : (
-          <div className="text-center text-gray-500 py-8">
-            Nenhum ativo em sobrevenda no momento
-          </div>
-        )}
-      </div>
+            ))
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              Nenhum ativo em sobrevenda no momento
+            </div>
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 };

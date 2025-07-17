@@ -150,7 +150,7 @@ export interface CryptoData {
 }
 
 export interface FlowData {
-  id?: string;  // Make id optional to fix typescript errors
+  id?: string;
   from: string;
   to: string;
   value: number;

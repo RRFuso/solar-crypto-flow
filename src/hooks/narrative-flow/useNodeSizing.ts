@@ -8,7 +8,7 @@ export const useNodeSizing = (narratives: NarrativeData[]) => {
   const { applyAttentionScoresToNodes } = useMarketAttention();
   
   // Create nodes from narrative data
-  const createNodes = (flowData: any[]): NarrativeNode[] => {
+  const createNodes = (flowData: NarrativeFlow[]): NarrativeNode[] => {
     const nodes: NarrativeNode[] = [];
     const uniqueNarratives = new Set();
     

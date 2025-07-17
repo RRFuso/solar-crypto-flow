@@ -1,5 +1,6 @@
 
 import { FlowData } from '@/types/crypto';
+export type { FlowData };
 
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 
