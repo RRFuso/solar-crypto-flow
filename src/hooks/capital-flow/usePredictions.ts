@@ -6,6 +6,7 @@ import { fetchCryptoData } from '@/lib/dataFetcher';
 import { normalizeFeatures, extractFeatures } from '@/lib/featureExtractor';
 import { predictPriceMovements } from '@/lib/aiModel';
 import { toast } from 'sonner';
+import { useOnChainData } from '@/contexts/OnChainDataContext';
 
 export const usePredictions = (
   flowData: FlowData[] | undefined, 
@@ -13,6 +14,7 @@ export const usePredictions = (
   chartTimeframe: string
 ) => {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const { onChainData, smartMoneyScores, isLoading, requestOnChainData, contractAddressesCache } = useOnChainData();
 
   useEffect(() => {
     const updatePredictions = async () => {
@@ -38,7 +40,7 @@ export const usePredictions = (
             : relevantCryptos;
             
           // Get features and make predictions with the selected chart timeframe
-          const features = await extractFeatures(categoryFilteredCryptos, flowData, chartTimeframe);
+          const features = await extractFeatures(categoryFilteredCryptos, flowData, chartTimeframe, contractAddressesCache);
           const newPredictions = predictPriceMovements(features, chartTimeframe);
           setPredictions(newPredictions);
           
@@ -57,7 +59,7 @@ export const usePredictions = (
     const interval = setInterval(updatePredictions, intervalTime);
     
     return () => clearInterval(interval);
-  }, [flowData, selectedCategory, chartTimeframe]);
+  }, [flowData, selectedCategory, chartTimeframe, contractAddressesCache]);
 
   // Show notifications for high confidence predictions
   const showPredictionAlerts = (predictions: Prediction[], timeframe: string) => {

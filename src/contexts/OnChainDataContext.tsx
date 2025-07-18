@@ -89,6 +89,16 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
           }
         }
 
+        // Validate contract address before proceeding
+        const isValidContractAddress = /^0x[a-fA-F0-9]{40}$/.test(contractInfo.address);
+
+        if (!isValidContractAddress) {
+          console.warn(`[OnChainData] Skipping on-chain data fetch for ${symbol}: Invalid contract address '${contractInfo.address}' for chain '${contractInfo.chain}'.`);
+          setOnChainData(prev => new Map(prev).set(symbol, { whaleTransactions: [], exchangeFlow: null }));
+          setSmartMoneyScores(prev => new Map(prev).set(symbol, { score: 0, sentiment: 'Neutral' }));
+          continue; // Skip to the next symbol
+        }
+
         const transactions = await getERC20TokenTransactions(contractInfo.address, contractInfo.chain, 500);
         const whaleTxs = identifyWhaleTransactions(transactions, 1000, contractInfo.chain);
         const exFlow = calculateExchangeFlow(transactions, symbol, contractInfo.chain);

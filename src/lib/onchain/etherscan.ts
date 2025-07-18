@@ -1,7 +1,5 @@
 import { OnChainTransaction, WhaleTransaction, ExchangeFlow, HolderDistribution } from '@/types/onchain';
-
-const ETHERSCAN_API_KEY = import.meta.env.VITE_ETHERSCAN_API_KEY || 'YOUR_ETHERSCAN_API_KEY';
-const ETHERSCAN_API_URL = 'https://api.etherscan.io/api';
+import { fetchEtherscanData } from '@/services/etherscan';
 
 const chainIdMap: { [key: string]: string } = {
   ethereum: '1',
@@ -52,25 +50,17 @@ export const getERC20TokenTransactions = async (
     return [];
   }
 
-  // Using the unified V2 API approach with a single endpoint and chainid parameter
-  const url = `${ETHERSCAN_API_URL}?chainid=${chainId}&module=account&action=tokentx&contractaddress=${contractAddress}&page=1&offset=${limit}&sort=desc&apikey=${ETHERSCAN_API_KEY}`;
-  
-  console.log(`Fetching ${chain} (ID: ${chainId}) URL:`, url);
-
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    console.log(`${chain} API Response:`, data);
+    const result = await fetchEtherscanData({
+      module: 'account',
+      action: 'tokentx',
+      contractaddress: contractAddress,
+      page: 1,
+      offset: limit,
+      sort: 'desc',
+    }, parseInt(chainId));
 
-    if (data.status === '0') {
-      // Etherscan API returns status '0' for errors, with a message
-      throw new Error(`${chain} API error: ${data.message}`);
-    }
-
-    return data.result as OnChainTransaction[];
+    return result as OnChainTransaction[];
   } catch (error) {
     console.error(`Failed to fetch transactions for ${contractAddress} on ${chain}:`, error);
     return [];

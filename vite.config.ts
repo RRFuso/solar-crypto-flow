@@ -9,6 +9,13 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      '/etherscan-api': {
+        target: 'https://api.etherscan.io',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/etherscan-api/, '/api'),
+      },
+    },
   },
   plugins: [
     react(),

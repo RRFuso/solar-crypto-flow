@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { TradingStrategy, BacktestResult } from '@/types/autotrade';
 import { StrategyOptimizer as optimizeStrategy, OptimizationResult } from '@/lib/autotrade/optimizer';
 import { fetchKlines } from '@/lib/binance';
+import { fetchCoinGeckoData } from '@/services/coingecko';
+import { fetchCryptoData } from '@/lib/dataFetcher';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 import { toast } from 'sonner';
 import { Zap, BarChart, Sliders } from 'lucide-react';
@@ -25,6 +27,7 @@ export const StrategyOptimizer: React.FC<StrategyOptimizerProps> = ({ strategies
     startDate: '2023-01-01',
     endDate: '2023-12-31',
     initialCapital: 10000,
+    dataSource: 'binance' as 'binance' | 'coingecko',
   });
   const [results, setResults] = useState<OptimizationResult | null>(null);
   const { insights: aiInsights } = useAdvancedAI();
@@ -45,13 +48,49 @@ export const StrategyOptimizer: React.FC<StrategyOptimizerProps> = ({ strategies
     
     try {
       const historicalData = new Map();
-      for (const symbol of strategy.symbols) {
-        const klines = await fetchKlines(`${symbol}USDT`, '1d', {
-          startTime: new Date(optimizationParams.startDate).getTime(),
-          endTime: new Date(optimizationParams.endDate).getTime(),
-        });
-        historicalData.set(symbol, klines);
-      }
+        const allCryptoData = await fetchCryptoData(optimizationParams.dataSource); // Fetch all crypto data from selected source
+
+        for (const symbol of strategy.symbols) {
+          const relevantCrypto = allCryptoData.find(c => c.symbol === symbol || c.id === symbol.toLowerCase());
+          if (!relevantCrypto) {
+            console.warn(`No crypto data found for ${symbol} from ${optimizationParams.dataSource}. Skipping historical data fetch.`);
+            continue;
+          }
+
+          let klines;
+          if (optimizationParams.dataSource === 'binance') {
+            klines = await fetchKlines(`${symbol}USDT`, '1d', {
+              startTime: new Date(optimizationParams.startDate).getTime(),
+              endTime: new Date(optimizationParams.endDate).getTime(),
+            });
+          } else { // coingecko
+            const coinId = relevantCrypto.id; // Use CoinGecko ID from fetched data
+            const startDate = new Date(optimizationParams.startDate);
+            const endDate = new Date(optimizationParams.endDate);
+            const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            const ohlcData = await fetchCoinGeckoData(`/coins/${coinId}/ohlc`, {
+              vs_currency: 'usd',
+              days: diffDays > 365 ? 'max' : diffDays.toString(),
+            });
+
+            klines = ohlcData.map((data: number[]) => ({
+              openTime: data[0],
+              open: data[1].toString(),
+              high: data[2].toString(),
+              low: data[3].toString(),
+              close: data[4].toString(),
+              volume: data[5].toString(),
+              closeTime: data[0],
+              quoteAssetVolume: '0',
+              trades: 0,
+              takerBuyBaseAssetVolume: '0',
+              takerBuyQuoteAssetVolume: '0',
+            }));
+          }
+          historicalData.set(symbol, klines);
+        }
 
       const optimizationResult = await optimizeStrategy.run(
         strategy,
@@ -122,6 +161,18 @@ export const StrategyOptimizer: React.FC<StrategyOptimizerProps> = ({ strategies
                   <SelectItem value="sharpeRatio">Sharpe Ratio</SelectItem>
                   <SelectItem value="totalReturn">Total Return</SelectItem>
                   <SelectItem value="winRate">Win Rate</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Data Source</Label>
+              <Select value={optimizationParams.dataSource} onValueChange={value => setOptimizationParams(p => ({ ...p, dataSource: value as 'binance' | 'coingecko' }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="binance">Binance</SelectItem>
+                  <SelectItem value="coingecko">CoinGecko</SelectItem>
                 </SelectContent>
               </Select>
             </div>

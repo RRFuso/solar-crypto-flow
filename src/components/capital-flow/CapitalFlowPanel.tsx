@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchMarketData } from '@/lib/marketData';
+import { fetchMarketDataCoinGecko, fetchMarketDataBinance } from '@/lib/marketData';
 import { toast } from 'sonner';
 import { FlowPanelHeader } from './panel/FlowPanelHeader';
 import { FlowControls } from './panel/FlowControls';
@@ -19,10 +19,17 @@ const CapitalFlowPanel = () => {
   const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [showLines, setShowLines] = useState(true);
+  const [dataSource, setDataSource] = useState<'coingecko' | 'binance'>('coingecko'); // New state for data source
 
   const { data: flowData, isLoading, error, refetch } = useQuery({
-    queryKey: ['capital-flow', timeframe],
-    queryFn: () => fetchMarketData(timeframe),
+    queryKey: ['capital-flow', timeframe, dataSource],
+    queryFn: () => {
+      if (dataSource === 'binance') {
+        return fetchMarketDataBinance();
+      } else {
+        return fetchMarketDataCoinGecko(timeframe);
+      }
+    },
     refetchOnWindowFocus: false, // Opcional: previne refetch ao focar na janela
     staleTime: 1000 * 60 * 5, // 5 minutos
     meta: {

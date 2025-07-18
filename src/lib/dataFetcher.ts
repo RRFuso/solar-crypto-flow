@@ -1,16 +1,18 @@
-
 import { CryptoData, FlowData } from "@/types/crypto";
-import { PriceActionSignal } from "@/hooks/usePriceActionSignals"; // Import PriceActionSignal
+import { PriceActionSignal } from "@/hooks/usePriceActionSignals";
+import { fetchTickers, fetchKlines } from './binance';
+import { BinanceTicker, BinanceKline } from '@/types/binance';
+import { fetchEtherscanData } from '@/services/etherscan';
 
-const API_BASE_URL = "https://api.coingecko.com/api/v3";
+const COINGECKO_API_BASE_URL = "https://api.coingecko.com/api/v3";
 
 /**
  * Fetches cryptocurrency data from CoinGecko API
  */
-export async function fetchCryptoData(): Promise<CryptoData[]> {
+export async function fetchCryptoDataCoinGecko(): Promise<CryptoData[]> {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=150&sparkline=false&price_change_percentage=1h,24h,7d`
+      `${COINGECKO_API_BASE_URL}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=150&sparkline=false&price_change_percentage=1h,24h,7d`
     );
 
     if (!response.ok) {
@@ -19,7 +21,6 @@ export async function fetchCryptoData(): Promise<CryptoData[]> {
 
     const data = await response.json();
     
-    // Filter out coins with missing essential data (price, volume, market cap)
     const filteredData = data.filter((coin: any) => 
       coin.current_price != null && 
       coin.total_volume != null && 
@@ -42,14 +43,48 @@ export async function fetchCryptoData(): Promise<CryptoData[]> {
       priceChange7d: coin.price_change_percentage_7d_in_currency || 0,
       volumeChange24h: coin.market_cap_change_percentage_24h ?? coin.price_change_percentage_24h ?? 0,
       category: determineCryptoCategory(coin.id),
-      // Add raw values needed for flow calculation
       current_price: coin.current_price,
       total_volume: coin.total_volume,
       market_cap: coin.market_cap,
       price_change_percentage_24h: coin.price_change_percentage_24h || 0,
     }));
   } catch (error) {
-    console.error("Error fetching crypto data:", error);
+    console.error("Error fetching crypto data from CoinGecko:", error);
+    return [];
+  }
+}
+
+/**
+ * Fetches cryptocurrency data from Binance API
+ */
+export async function fetchCryptoDataBinance(): Promise<CryptoData[]> {
+  try {
+    const tickers = await fetchTickers();
+    const btcTicker = tickers['BTCUSDT'];
+    const btcChange = btcTicker ? parseFloat(btcTicker.priceChangePercent) : 0;
+
+    const cryptoData: CryptoData[] = Object.values(tickers).map((ticker: BinanceTicker) => {
+      const priceChange = parseFloat(ticker.priceChangePercent);
+      const performance = priceChange - btcChange;
+
+      return {
+        id: ticker.symbol,
+        name: ticker.symbol,
+        symbol: ticker.symbol,
+        performance: performance,
+        price: parseFloat(ticker.lastPrice),
+        volume: parseFloat(ticker.volume),
+        marketCap: parseFloat(ticker.quoteVolume),
+        high24h: parseFloat(ticker.highPrice),
+        low24h: parseFloat(ticker.lowPrice),
+        priceChange24h: priceChange,
+        volumeChange24h: 0,
+        category: 'other',
+      };
+    });
+    return cryptoData;
+  } catch (error) {
+    console.error("Error fetching crypto data from Binance:", error);
     return [];
   }
 }
@@ -236,21 +271,98 @@ function simulateEMA(): number {
 }
 
 /**
- * Fetches on-chain flow data (simulated)
+ * Fetches on-chain data using Etherscan API.
+ * Note: Etherscan primarily provides raw transaction data. Metrics like
+ * exchangeInflow, exchangeOutflow, fundingRate, and netFlow often require
+ * complex calculations or data from other sources (e.g., exchanges).
+ * For now, these will be simulated or set to 0.
  */
-export async function fetchOnChainData(symbol: string): Promise<{
+export async function fetchOnChainData(contractInfo: { address: string; chain: string }): Promise<{
   exchangeInflow: number;
   exchangeOutflow: number;
   fundingRate: number;
   netFlow: number;
+  balance: string; // Example: adding balance from Etherscan
 }> {
-  const flowBase = Math.random() * 100000;
-  const inflow = flowBase + (Math.random() * 20000 - 10000);
-  const outflow = flowBase + (Math.random() * 20000 - 10000);
-  return {
-    exchangeInflow: inflow,
-    exchangeOutflow: outflow,
-    fundingRate: (Math.random() * 0.2 - 0.1),
-    netFlow: inflow - outflow
+  const chainIdMap: { [key: string]: number } = {
+    ethereum: 1,
+    bsc: 56,
+    polygon: 137,
+    avalanche: 43114,
+    fantom: 250,
+    arbitrum: 42161,
+    optimism: 10,
+    base: 8453,
+    celo: 42220,
+    cronos: 25,
+    gnosis: 100,
+    linea: 59144,
+    mantle: 5000,
+    'polygon-zkevm': 1101,
+    fraxtal: 252,
+    sepolia: 11155111,
+    holesky: 17000,
+    'arbitrum-sepolia': 421614,
+    'avalanche-fuji': 43113,
+    'base-sepolia': 84532,
+    'bsc-testnet': 97,
   };
+
+  const chainId = chainIdMap[contractInfo.chain.toLowerCase()];
+
+  if (!chainId) {
+    console.warn(`Unsupported chain: ${contractInfo.chain}`);
+    return {
+      exchangeInflow: 0,
+      exchangeOutflow: 0,
+      fundingRate: 0,
+      netFlow: 0,
+      balance: '0',
+    };
+  }
+
+  try {
+    // Example: Fetch account balance
+    const balanceWei = await fetchEtherscanData({
+      module: 'account',
+      action: 'balance',
+      address: contractInfo.address,
+      tag: 'latest',
+    }, chainId);
+
+    const balanceEth = balanceWei ? (parseInt(balanceWei) / 1e18).toFixed(4) : '0';
+
+    // For now, other metrics are simulated or set to 0.
+    // To get real exchange inflow/outflow, you'd need to identify exchange addresses
+    // and analyze transaction data, which is a complex task.
+    // Funding rate is typically from centralized exchanges, not directly on-chain.
+    return {
+      exchangeInflow: Math.random() * 100000, // Simulated
+      exchangeOutflow: Math.random() * 100000, // Simulated
+      fundingRate: (Math.random() * 0.2 - 0.1), // Simulated
+      netFlow: 0, // Simulated, or calculated from inflow/outflow
+      balance: balanceEth,
+    };
+  } catch (error) {
+    console.error(`Error fetching on-chain data for ${address}:`, error);
+    return {
+      exchangeInflow: 0,
+      exchangeOutflow: 0,
+      fundingRate: 0,
+      netFlow: 0,
+      balance: '0',
+    };
+  }
+}
+
+/**
+ * Unified function to fetch cryptocurrency data from either CoinGecko or Binance.
+ * Defaults to CoinGecko.
+ */
+export async function fetchCryptoData(dataSource: 'coingecko' | 'binance' = 'coingecko'): Promise<CryptoData[]> {
+  if (dataSource === 'binance') {
+    return fetchCryptoDataBinance();
+  } else {
+    return fetchCryptoDataCoinGecko();
+  }
 }

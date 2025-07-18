@@ -1,5 +1,7 @@
 
 import { FlowData } from '@/types/crypto';
+import { fetchTickers } from './binance';
+import { BinanceTicker } from '@/types/binance';
 
 const COINGECKO_API = 'https://api.coingecko.com/api/v3';
 
@@ -15,7 +17,7 @@ interface MarketData {
   price_change_percentage_24h: number;
 }
 
-export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> => {
+export const fetchMarketDataCoinGecko = async (timeframe: string): Promise<FlowData[]> => {
   try {
     // Add caching to prevent excessive API calls
     const cacheKey = `market-data-${timeframe}`;
@@ -125,6 +127,35 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
     return flows;
   } catch (error) {
     console.error('Error fetching market data:', error);
+    return [];
+  }
+};
+
+export const fetchMarketDataBinance = async (): Promise<FlowData[]> => {
+  try {
+    const tickers = await fetchTickers();
+    const flows: FlowData[] = [];
+
+    // For simplicity, let's create some dummy flows based on Binance tickers
+    // In a real scenario, you'd need more sophisticated logic to determine flows
+    Object.values(tickers).forEach(ticker => {
+      if (ticker.symbol.endsWith('USDT') && parseFloat(ticker.quoteVolume) > 1000000) { // Filter for USDT pairs with significant volume
+        flows.push({
+          id: ticker.symbol, // Using symbol as ID
+          from: 'USD', // Assuming flow from USD
+          to: ticker.symbol.replace('USDT', ''), // Crypto symbol
+          value: parseFloat(ticker.quoteVolume) * 0.01, // Dummy value based on volume
+          percentage: parseFloat(ticker.priceChangePercent), // Price change as percentage
+          marketCap: parseFloat(ticker.quoteVolume), // Using quoteVolume as market cap approximation
+          volume: parseFloat(ticker.volume),
+          name: ticker.symbol.replace('USDT', ''),
+          change: parseFloat(ticker.priceChangePercent),
+        });
+      }
+    });
+    return flows;
+  } catch (error) {
+    console.error('Error fetching Binance market data:', error);
     return [];
   }
 };

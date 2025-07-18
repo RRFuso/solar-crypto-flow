@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
 import { CryptoData } from '@/types/crypto';
 import { NarrativeNode } from '@/types/narratives';
-import { fetchCryptoData, fetchCapitalFlows } from '@/lib/dataFetcher';
+import { fetchCryptoData } from '@/lib/dataFetcher';
 import { extractFeatures } from '@/lib/featureExtractor';
 import { predictPriceMovements, getCachedPrediction, storePrediction } from '@/lib/aiModel';
 import { getLogoUrls } from '@/lib/cryptoLogos';

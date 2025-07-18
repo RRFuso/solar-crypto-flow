@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TradingStrategy, BacktestResult } from '@/types/autotrade';
 import { Backtester } from '@/lib/autotrade/backtester';
 import { fetchKlines } from '@/lib/binance';
+import { fetchCoinGeckoData } from '@/services/coingecko';
+import { fetchCryptoData } from '@/lib/dataFetcher';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 import { Play, BarChart3, Calendar, TrendingUp, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -21,6 +23,7 @@ export const BacktestRunner: React.FC<BacktestRunnerProps> = ({ strategies }) =>
   const [startDate, setStartDate] = useState('2023-01-01');
   const [endDate, setEndDate] = useState('2023-12-31');
   const [initialCapital, setInitialCapital] = useState(10000);
+  const [dataSource, setDataSource] = useState<'binance' | 'coingecko'>('binance'); // New state for data source
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<BacktestResult | null>(null);
   
@@ -44,10 +47,38 @@ export const BacktestRunner: React.FC<BacktestRunnerProps> = ({ strategies }) =>
     try {
       const historicalData = new Map();
       for (const symbol of strategy.symbols) {
-        const klines = await fetchKlines(`${symbol}USDT`, '1d', {
-          startTime: new Date(startDate).getTime(),
-          endTime: new Date(endDate).getTime(),
-        });
+        let klines;
+        if (dataSource === 'binance') {
+          klines = await fetchKlines(`${symbol}USDT`, '1d', {
+            startTime: new Date(startDate).getTime(),
+            endTime: new Date(endDate).getTime(),
+          });
+        } else { // coingecko
+          const coinId = symbol.toLowerCase(); // Assuming symbol is already the CoinGecko ID
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          const diffTime = Math.abs(end.getTime() - start.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+          
+          const ohlcData = await fetchCoinGeckoData(`/coins/${coinId}/ohlc`, {
+            vs_currency: 'usd',
+            days: diffDays > 365 ? 'max' : diffDays.toString(),
+          });
+
+          klines = ohlcData.map((data: number[]) => ({
+            openTime: data[0],
+            open: data[1].toString(),
+            high: data[2].toString(),
+            low: data[3].toString(),
+            close: data[4].toString(),
+            volume: data[5].toString(),
+            closeTime: data[0],
+            quoteAssetVolume: '0',
+            trades: 0,
+            takerBuyBaseAssetVolume: '0',
+            takerBuyQuoteAssetVolume: '0',
+          }));
+        }
         historicalData.set(symbol, klines);
       }
 
@@ -134,6 +165,18 @@ export const BacktestRunner: React.FC<BacktestRunnerProps> = ({ strategies }) =>
                 onChange={(e) => setInitialCapital(parseFloat(e.target.value))}
                 placeholder="10000"
               />
+            </div>
+            <div>
+              <Label htmlFor="dataSource">Data Source</Label>
+              <Select value={dataSource} onValueChange={(value) => setDataSource(value as 'binance' | 'coingecko')}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select data source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="binance">Binance</SelectItem>
+                  <SelectItem value="coingecko">CoinGecko</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

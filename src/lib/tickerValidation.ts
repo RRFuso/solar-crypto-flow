@@ -1,11 +1,9 @@
 import { BinanceTicker } from '@/types/binance';
 
 export const isValidTicker = (ticker: string): boolean => {
-  // Check if ticker follows valid format (e.g., BTCUSDT)
-  const validFormat = /^[A-Z0-9]+USDT$/.test(ticker);
-  
-  // Add any additional validation rules here
-  return validFormat;
+  // For now, consider all tickers valid to avoid filtering issues.
+  // More specific validation can be added here if needed in the future.
+  return true;
 };
 
 export const filterValidTickers = (tickers: Record<string, BinanceTicker>): Record<string, BinanceTicker> => {

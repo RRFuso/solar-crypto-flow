@@ -5,6 +5,8 @@ import CryptoChart from './CryptoChart';
 import { Bitcoin, Search } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import CryptoFilterDropdown from './crypto/CryptoFilterDropdown';
 import OutperformingTab from './crypto/tabs/OutperformingTab';
 import BullishTab from './crypto/tabs/BullishTab';
@@ -28,12 +30,14 @@ const CryptoPanel = () => {
     rsiNeutralMax: 60,
     timeframe: '4h'
   });
+  const [dataSource, setDataSource] = useState<'coingecko' | 'binance'>('coingecko'); // New state for data source
 
   const { data: cryptos = [], isLoading, error } = useCryptoData({
     timeframe: settings.timeframe,
     rsiOverbought: settings.rsiOverbought,
     rsiOversold: settings.rsiOversold,
     filter: activeFilter,
+    dataSource: dataSource, // Pass the data source
   });
 
   console.log("CryptoPanel - isLoading:", isLoading);
@@ -112,6 +116,18 @@ const CryptoPanel = () => {
             value={activeFilter}
             onValueChange={setActiveFilter}
           />
+          <div>
+            <Label>Data Source</Label>
+            <Select value={dataSource} onValueChange={(value) => setDataSource(value as 'coingecko' | 'binance')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select data source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="coingecko">CoinGecko</SelectItem>
+                <SelectItem value="binance">Binance</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           
           {/* Search input */}
           <div className="relative">

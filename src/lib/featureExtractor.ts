@@ -30,7 +30,8 @@ export interface CryptoFeatures extends NormalizedFeature {}
 export async function extractFeatures(
   cryptos: CryptoData[], 
   flowData: FlowData[], 
-  timeframe: string
+  timeframe: string,
+  contractAddresses: Map<string, { address: string; chain: string }>
 ): Promise<CryptoFeatures[]> {
   const featuresPromises = cryptos.map(async (crypto) => {
     try {
@@ -38,7 +39,20 @@ export async function extractFeatures(
       const indicators = await fetchTechnicalIndicators(crypto.symbol, timeframe);
       
       // Get on-chain data
-      const onChainData = await fetchOnChainData(crypto.symbol);
+      const contractInfo = contractAddresses.get(crypto.symbol.toUpperCase());
+      let onChainData = {
+        exchangeInflow: 0,
+        exchangeOutflow: 0,
+        fundingRate: 0,
+        netFlow: 0,
+        balance: '0',
+      };
+
+      if (contractInfo) {
+        onChainData = await fetchOnChainData(contractInfo);
+      } else {
+        console.warn(`No contract info found for ${crypto.symbol}. Skipping on-chain data fetch.`);
+      }
       
       // Calculate flow-related metrics from flowData
       const relevantFlows = flowData.filter(

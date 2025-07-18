@@ -1,6 +1,8 @@
 
 import { CryptoData, FlowData } from '@/types/crypto';
 import { fetchTickers, fetchKlines } from '@/lib/binance';
+import { fetchCoinGeckoData } from '@/services/coingecko';
+import { fetchCryptoData } from '@/lib/dataFetcher';
 import { calculateRSI, calculateEMA, calculateMACD, calculateBollingerBands, calculateADX } from '@/lib/technicalAnalysis';
 
 export interface MarketDataPoint {
@@ -55,13 +57,46 @@ export class DataAggregator {
   private onChainCache: Map<string, OnChainMetrics[]> = new Map();
   private socialCache: Map<string, SocialMetrics[]> = new Map();
 
-  async aggregateMarketData(symbols: string[], timeframe: string = '4h'): Promise<Map<string, MarketDataPoint[]>> {
+  async aggregateMarketData(symbols: string[], timeframe: string = '4h', dataSource: 'binance' | 'coingecko' = 'binance'): Promise<Map<string, MarketDataPoint[]>> {
     const results = new Map<string, MarketDataPoint[]>();
     
     for (const symbol of symbols) {
       try {
         // Get price data
-        const klines = await fetchKlines(`${symbol}USDT`, timeframe);
+        let klines;
+        const cryptoData = await fetchCryptoData(dataSource); // Use unified fetchCryptoData
+        const relevantCrypto = cryptoData.find(c => c.symbol === symbol || c.id === symbol.toLowerCase()); // Find the crypto data
+
+        if (!relevantCrypto) {
+          console.warn(`No crypto data found for ${symbol} from ${dataSource}. Skipping aggregation.`);
+          continue;
+        }
+
+        // For historical klines, we still need to use fetchKlines (Binance) or fetchCoinGeckoData (CoinGecko)
+        // as fetchCryptoData only returns current market data.
+        if (dataSource === 'binance') {
+          klines = await fetchKlines(`${symbol}USDT`, timeframe);
+        } else { // coingecko
+          const coinId = relevantCrypto.id; // Use CoinGecko ID from fetched data
+          const ohlcData = await fetchCoinGeckoData(`/coins/${coinId}/ohlc`, {
+            vs_currency: 'usd',
+            days: 'max', // Fetch max historical data for comprehensive analysis
+          });
+
+          klines = ohlcData.map((data: number[]) => ({
+            openTime: data[0],
+            open: data[1].toString(),
+            high: data[2].toString(),
+            low: data[3].toString(),
+            close: data[4].toString(),
+            volume: data[5].toString(),
+            closeTime: data[0],
+            quoteAssetVolume: '0',
+            trades: 0,
+            takerBuyBaseAssetVolume: '0',
+            takerBuyQuoteAssetVolume: '0',
+          }));
+        }
         if (!klines || klines.length === 0) continue;
 
         const prices = klines.map(k => parseFloat(k.close));
