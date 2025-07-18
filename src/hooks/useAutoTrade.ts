@@ -57,7 +57,7 @@ const DEFAULT_CONFIG: AutoTradeConfig = {
   },
 };
 
-export const useAutoTrade = (flowData?: FlowData[]) => {
+export const useAutoTrade = (flowData?: any) => {
   const [config, setConfig] = useState<AutoTradeConfig>(DEFAULT_CONFIG);
   const [state, setState] = useState<AutoTradeState>({
     config: DEFAULT_CONFIG,

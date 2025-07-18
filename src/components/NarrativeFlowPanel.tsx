@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BrainCircuit } from 'lucide-react';
@@ -16,25 +17,18 @@ const NarrativeFlowPanel = () => {
   const [timeframe, setTimeframe] = useState('24h');
   const [usePredictions, setUsePredictions] = useState(false);
 
-  const { data: narratives, isLoading: narrativesLoading, refetch: refetchNarratives } = useQuery({
-    queryKey: ['narratives', timeframe],
-    queryFn: () => getNarratives(),
-    refetchInterval: 5 * 60 * 1000,
-    staleTime: 4 * 60 * 1000,
-  });
-
+  // Fetch historical flows
   const { data: historicalFlows, isLoading: historicalLoading, refetch: refetchHistorical } = useQuery({
-    queryKey: ['narrative-historical-flows', timeframe, narratives],
-    queryFn: () => calculateHistoricalFlows(narratives || []),
-    enabled: !!narratives && narratives.length > 0,
+    queryKey: ['narrative-historical-flows', timeframe],
+    queryFn: calculateHistoricalFlows,
     refetchInterval: 60000,
     staleTime: 30000,
   });
 
+  // Fetch predicted flows
   const { data: predictionData, isLoading: predictionLoading, refetch: refetchPredictions } = useQuery({
-    queryKey: ['narrative-predictions', timeframe, narratives],
-    queryFn: () => predictNarrativeFlows(narratives || []),
-    enabled: !!narratives && narratives.length > 0,
+    queryKey: ['narrative-predictions', timeframe],
+    queryFn: predictNarrativeFlows,
     refetchInterval: 120000,
     staleTime: 60000,
     meta: {
@@ -44,14 +38,15 @@ const NarrativeFlowPanel = () => {
     }
   });
 
-  const isLoading = narrativesLoading || historicalLoading || (usePredictions && predictionLoading);
+  const isLoading = historicalLoading || (usePredictions && predictionLoading);
   const flowData = usePredictions 
     ? predictionData?.narrativeFlows || []
     : historicalFlows || [];
 
   const handleRefresh = () => {
-    toast.info("Refreshing all narrative data...");
-    refetchNarratives();
+    refetchHistorical();
+    refetchPredictions();
+    toast.info("Refreshing data");
   };
 
   const handleTogglePredictions = (checked: boolean) => {
@@ -98,7 +93,6 @@ const NarrativeFlowPanel = () => {
 
       <NarrativeVisualizationWrapper 
         isLoading={isLoading}
-        narratives={narratives || []}
         flowData={flowData}
         usePredictions={usePredictions}
         predictionConfidence={predictionData?.confidence}

@@ -48,7 +48,7 @@ export const useFlowVisualization = () => {
   };
 
   // Update element positions on tick
-  const updatePositions = (elements: VisualizationElements, nodes: NarrativeNode[], links: NarrativeFlow[]) => {
+  const updatePositions = (elements: VisualizationElements, nodes: any[], links: any[]) => {
     const { link, node, svg } = elements;
     
     // Update link paths

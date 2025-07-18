@@ -43,7 +43,7 @@ export const createLinks = (
     .attr("fill", "none")
     .attr("stroke-dasharray", "10,10")
     .attr("opacity", 0.7)
-    .attr("d", (d: { source: { x: number; y: number; }; target: { x: number; y: number; }; }) => {
+    .attr("d", (d: any) => {
       // Create curved paths between nodes
       const dx = (d.target.x || 0) - (d.source.x || 0);
       const dy = (d.target.y || 0) - (d.source.y || 0);
@@ -60,7 +60,7 @@ export const createLinks = (
 
 function addFlowParticles(
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-  links: { source: { x: number; y: number; }; target: { x: number; y: number; }; value: number; percentage: number; }[]
+  links: any[]
 ) {
   links.forEach((d, i) => {
     // Create particle group for this link
@@ -82,7 +82,7 @@ function addFlowParticles(
       const pathLength = (path as SVGPathElement).getTotalLength();
       
       particles
-        .attr("transform", function(d: number, j: number) {
+        .attr("transform", function(d: any, j: number) {
           // Stagger the particles
           let offset = (j / 5) * pathLength;
           

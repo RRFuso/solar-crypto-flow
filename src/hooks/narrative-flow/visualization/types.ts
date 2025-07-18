@@ -15,11 +15,7 @@ export interface DrawOptions {
   nodes: NarrativeNode[];
   links: NarrativeLink[];
   isPredicted: boolean;
-  dragHandlers: {
-    dragstarted: (event: d3.D3DragEvent<SVGCircleElement, NarrativeNode, NarrativeNode>) => void;
-    dragged: (event: d3.D3DragEvent<SVGCircleElement, NarrativeNode, NarrativeNode>) => void;
-    dragended: (event: d3.D3DragEvent<SVGCircleElement, NarrativeNode, NarrativeNode>) => void;
-  };
+  dragHandlers: any;
 }
 
 export interface VisualizationElements {

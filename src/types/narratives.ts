@@ -1,4 +1,3 @@
-import { BaseNode } from './nodes';
 
 export interface NarrativeData {
   id: string;
@@ -10,6 +9,7 @@ export interface NarrativeData {
   change7d: number;
   tokens: string[];
   color: string;
+  // New field to store representative tokens with logo info
   representativeTokens?: RepresentativeToken[];
 }
 
@@ -33,9 +33,11 @@ export interface ModelPrediction {
   confidence: number;
 }
 
+import { BaseNode } from './nodes';
+
 export interface NarrativeNode extends BaseNode {
   color: string;
   tokens: string[];
-  attentionScore?: number;
-  representativeTokens?: RepresentativeToken[];
+  attentionScore?: number; // Market attention score
+  representativeTokens?: RepresentativeToken[]; // Representative tokens with logos
 }

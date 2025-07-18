@@ -1,10 +1,10 @@
+
 import React from 'react';
 import { NarrativeVisualization } from './NarrativeVisualization';
-import { NarrativeFlow, NarrativeData } from '@/types/narratives';
+import { NarrativeFlow } from '@/types/narratives';
 
 interface NarrativeVisualizationWrapperProps {
   isLoading: boolean;
-  narratives: NarrativeData[];
   flowData: NarrativeFlow[];
   usePredictions: boolean;
   predictionConfidence?: number;
@@ -12,7 +12,6 @@ interface NarrativeVisualizationWrapperProps {
 
 export const NarrativeVisualizationWrapper: React.FC<NarrativeVisualizationWrapperProps> = ({
   isLoading,
-  narratives,
   flowData,
   usePredictions,
   predictionConfidence
@@ -27,7 +26,6 @@ export const NarrativeVisualizationWrapper: React.FC<NarrativeVisualizationWrapp
   
   return (
     <NarrativeVisualization 
-      narratives={narratives}
       flowData={flowData}
       usePredictions={usePredictions}
       predictionConfidence={predictionConfidence}

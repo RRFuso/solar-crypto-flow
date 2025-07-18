@@ -1,5 +1,9 @@
 
-import { DragHandlers } from './types';
+import * as d3 from 'd3';
+import { NarrativeNode } from '@/types/narratives';
+import { getLogoUrls } from '@/lib/cryptoLogos';
+import { useFiltersAndEffects } from './useFiltersAndEffects';
+import { TokenLogo } from './types';
 
 export const useNodeElements = () => {
   const { createClipPath } = useFiltersAndEffects();
@@ -8,7 +12,7 @@ export const useNodeElements = () => {
   const createNodes = (
     svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
     nodes: NarrativeNode[],
-    dragHandlers: DragHandlers,
+    dragHandlers: any,
     defs: d3.Selection<SVGDefsElement, unknown, null, undefined>
   ) => {
     // Add nodes
@@ -67,7 +71,7 @@ export const useNodeElements = () => {
     node.selectAll(".attention-pulse")
       .append("animate")
       .attr("attributeName", "r")
-      .attr("values", (d: NarrativeNode) => `${d.radius + 5};${d.radius + 15};${d.radius + 5}`)
+      .attr("values", (d: any) => `${d.radius + 5};${d.radius + 15};${d.radius + 5}`)
       .attr("dur", "2s")
       .attr("repeatCount", "indefinite");
   };

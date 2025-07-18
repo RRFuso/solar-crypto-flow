@@ -33,6 +33,7 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
     return (
       <div className="h-full w-full">
         <AIWatchlist 
+          predictions={filteredPredictions} 
           maxItems={15} 
           chartTimeframe={chartTimeframe}
         />

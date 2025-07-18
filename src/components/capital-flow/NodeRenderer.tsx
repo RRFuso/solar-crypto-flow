@@ -88,20 +88,6 @@ const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, AI
     };
 };
 
-interface NodeTooltipData {
-  id: string;
-  name: string;
-  price: number | undefined;
-  priceChange24h: number | undefined;
-  volume: number | undefined;
-  capitalFlows: any; // Manter como any por enquanto, foco no erro atual
-  aiModel: AIInsight | undefined;
-  trendReasons: string[];
-  aiAnalysis: { recommendation: string; confidence: number; } | undefined;
-  explosivePotential: 'High' | 'Medium' | 'Low' | 'None' | undefined;
-  keyFactors: string[] | undefined;
-}
-
 const renderOrUpdateVisualization = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   nodes: ExtendedOrbitalNode[],
@@ -110,7 +96,7 @@ const renderOrUpdateVisualization = (
   zoomLevel: number,
   aiInsights: Map<string, AIInsight>,
   smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish' }>,
-  showTooltip: (data: NodeTooltipData, position: { x: number, y: number }) => void,
+  showTooltip: (data: any, position: { x: number, y: number }) => void,
   hideTooltip: () => void,
 ) => {
   let defs = svg.select('defs');

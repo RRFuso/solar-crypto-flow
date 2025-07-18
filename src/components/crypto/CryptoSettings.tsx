@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Select,
@@ -18,12 +17,21 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 
 interface CryptoSettingsProps {
   settings: {
+    rsiOverbought: number;
+    rsiOversold: number;
+    rsiNeutralMin: number;
+    rsiNeutralMax: number;
     timeframe: string;
   };
   onSettingsChange: (settings: {
+    rsiOverbought: number;
+    rsiOversold: number;
+    rsiNeutralMin: number;
+    rsiNeutralMax: number;
     timeframe: string;
   }) => void;
 }
@@ -63,6 +71,49 @@ const CryptoSettings = ({ settings, onSettingsChange }: CryptoSettingsProps) => 
                 <SelectItem value="1d">1 dia</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>RSI Sobrecompra ({settings.rsiOverbought})</Label>
+            <Slider
+              value={[settings.rsiOverbought]}
+              min={60}
+              max={90}
+              step={1}
+              onValueChange={([value]) => 
+                onSettingsChange({ ...settings, rsiOverbought: value })
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>RSI Sobrevenda ({settings.rsiOversold})</Label>
+            <Slider
+              value={[settings.rsiOversold]}
+              min={10}
+              max={40}
+              step={1}
+              onValueChange={([value]) => 
+                onSettingsChange({ ...settings, rsiOversold: value })
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>RSI Neutro Min-Max ({settings.rsiNeutralMin}-{settings.rsiNeutralMax})</Label>
+            <Slider
+              value={[settings.rsiNeutralMin, settings.rsiNeutralMax]}
+              min={40}
+              max={60}
+              step={1}
+              onValueChange={([min, max]) => 
+                onSettingsChange({ 
+                  ...settings, 
+                  rsiNeutralMin: min,
+                  rsiNeutralMax: max 
+                })
+              }
+            />
           </div>
         </div>
       </SheetContent>

@@ -53,7 +53,7 @@ export const useCapitalFlowVisualization = () => {
     const simulation = d3.forceSimulation(nodes)
       .force("charge", d3.forceManyBody().strength(-500)) // Increased repulsion force
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius((d: CapitalFlowNode) => d.radius + 25)) // Increased collision radius
+      .force("collision", d3.forceCollide().radius((d: any) => d.radius + 25)) // Increased collision radius
       .force("x", d3.forceX(width / 2).strength(0.08))
       .force("y", d3.forceY(height / 2).strength(0.08));
     
@@ -181,7 +181,7 @@ export const useCapitalFlowVisualization = () => {
       });
       
       svg.selectAll(".flow-particle")
-        .attr("transform", function(d: CapitalFlowLink, i) {
+        .attr("transform", function(d, i) {
           const link = links[i % links.length];
           if (!link) return "";
           
@@ -202,18 +202,18 @@ export const useCapitalFlowVisualization = () => {
       node.attr("transform", d => `translate(${d.x || 0},${d.y || 0})`);
     });
     
-    function dragstarted(event: d3.D3DragEvent<SVGCircleElement, CapitalFlowNode, CapitalFlowNode>, d: CapitalFlowNode) {
+    function dragstarted(event: any, d: CapitalFlowNode) {
       if (!event.active) simulation.alphaTarget(0.3).restart();
       d.fx = d.x || 0;
       d.fy = d.y || 0;
     }
     
-    function dragged(event: d3.D3DragEvent<SVGCircleElement, CapitalFlowNode, CapitalFlowNode>, d: CapitalFlowNode) {
+    function dragged(event: any, d: CapitalFlowNode) {
       d.fx = event.x;
       d.fy = event.y;
     }
     
-    function dragended(event: d3.D3DragEvent<SVGCircleElement, CapitalFlowNode, CapitalFlowNode>, d: CapitalFlowNode) {
+    function dragended(event: any, d: CapitalFlowNode) {
       if (!event.active) simulation.alphaTarget(0);
       d.fx = null;
       d.fy = null;

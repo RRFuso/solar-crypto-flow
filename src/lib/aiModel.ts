@@ -1,6 +1,5 @@
 
 import { CryptoFeatures, normalizeFeatures } from "./featureExtractor";
-export type { CryptoFeatures };
 
 export interface Prediction {
   symbol: string;
@@ -14,10 +13,6 @@ export interface Prediction {
   isBreakout?: boolean;
   isExpansion?: boolean;
   isAccelerating?: boolean;
-  rsi?: number; // Adicionado
-  rsi4h?: number; // Adicionado
-  divergenceBullish?: boolean; // Adicionado
-  divergenceBearish?: boolean; // Adicionado
 }
 
 export interface HistoricalData {
@@ -204,11 +199,7 @@ export function predictPriceMovements(
       explosivePotential: priceActionData?.explosivePotential || 'None',
       isBreakout: priceActionData?.isBreakout || false,
       isExpansion: priceActionData?.isExpansion || false,
-      isAccelerating: priceActionData?.isAccelerating || false,
-      rsi: feat.rsi, // Preencher RSI
-      rsi4h: feat.rsi4h, // Preencher RSI4h
-      divergenceBullish: feat.divergenceBullish, // Preencher divergência bullish
-      divergenceBearish: feat.divergenceBearish, // Preencher divergência bearish
+      isAccelerating: priceActionData?.isAccelerating || false
     });
   }
 
@@ -226,14 +217,7 @@ function getTimeframeWeights(timeframe: string) {
   }
 }
 
-interface Weights {
-  tech: number;
-  fund: number;
-  flow: number;
-  mom: number;
-}
-
-function scoreBullish(f: CryptoFeatures, w: Weights): number {
+function scoreBullish(f: CryptoFeatures, w: any): number {
   let s = 0;
 
   if (f.rsi < 30) s += 2 * w.tech;

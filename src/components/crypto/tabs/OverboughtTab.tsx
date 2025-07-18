@@ -1,56 +1,40 @@
-
 import React from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { TabsContent } from "@/components/ui/tabs";
 import CryptoCard from '@/components/CryptoCard';
 import { ColumnHeader } from '../ColumnHeader';
-import { UnifiedSignal } from '@/hooks/useUnifiedSignalEngine';
+import { CryptoData } from '@/types/crypto';
 
 interface OverboughtTabProps {
-  signals: UnifiedSignal[];
-  selectedSignal: UnifiedSignal | null;
-  onSelectSignal: (signal: UnifiedSignal) => void;
-  searchTerm: string;
+  cryptos: CryptoData[];
+  selectedCrypto: CryptoData;
+  onSelectCrypto: (crypto: CryptoData) => void;
 }
 
-const OverboughtTab: React.FC<OverboughtTabProps> = ({ signals, selectedSignal, onSelectSignal, searchTerm }) => {
-
-  const overboughtSignals = signals
-    .filter(s => 
-        (s.prediction.rsi > 70 || s.prediction.rsi4h > 70) && // Check RSI for overbought
-        s.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => (b.prediction.rsi || 0) - (a.prediction.rsi || 0)); // Sort by RSI
+const OverboughtTab = ({ cryptos, selectedCrypto, onSelectCrypto }: OverboughtTabProps) => {
+  console.log('OverboughtTab received cryptos count:', cryptos.length);
+  const overbought = cryptos.sort((a, b) => (b.rsi4h || 0) - (a.rsi4h || 0));
 
   return (
     <div className="h-full flex flex-col">
       <ColumnHeader 
-        title="Sobrecomprado" 
-        subtitle="Ativos com RSI > 70 (4h ou 24h)"
+        title="Sobrecompra 4h" 
+        subtitle="RSI 4h > 70" 
       />
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-2">
-          {overboughtSignals.map((signal) => (
+      <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+        {overbought.map((crypto) => {
+          console.log('Rendering CryptoCard for:', crypto.symbol);
+          return (
             <CryptoCard
-              key={signal.symbol}
-              crypto={{
-                id: signal.symbol,
-                name: signal.name,
-                performance: signal.overallScore,
-                price: parseFloat(signal.prediction.price || '0'),
-                change24h: signal.prediction.bullish ? 1 : -1,
-                marketCap: 0,
-                volume: 0,
-                rsi: signal.prediction.rsi,
-                rsi4h: signal.prediction.rsi4h,
-              }}
-              onClick={() => onSelectSignal(signal)}
-              isSelected={selectedSignal?.symbol === signal.symbol}
-              showRsi={true}
+              key={crypto.id}
+              crypto={crypto}
+              onClick={() => onSelectCrypto(crypto)}
+              isSelected={selectedCrypto.id === crypto.id}
               showRsi4h={true}
             />
-          ))}
-        </div>
-      </ScrollArea>
+          );
+        })}
+      </div>
     </div>
   );
 };

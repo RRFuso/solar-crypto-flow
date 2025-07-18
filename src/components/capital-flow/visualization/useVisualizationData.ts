@@ -22,10 +22,7 @@ interface UseVisualizationDataProps {
     centralNode: ExtendedOrbitalNode | null;
     selectedNodeId: string | null;
   }>>;
-  animationRef: React.MutableRefObject<{
-    cleanup: () => void;
-    // Adicione outras propriedades se souber o que mais ele pode conter
-  } | null>;
+  animationRef: React.MutableRefObject<any | null>;
   createOrbitalVisualization: (
     flowData: FlowData[],
     svgElement: SVGSVGElement,

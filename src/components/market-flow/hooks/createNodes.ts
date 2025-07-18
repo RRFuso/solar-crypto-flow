@@ -1,10 +1,10 @@
 
-import { MarketIndex } from '@/types/indices';
+import * as d3 from 'd3';
 
 export const createNodes = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-  indices: MarketIndex[],
-  centralIndex: MarketIndex,
+  indices: any[],
+  centralIndex: any,
   width: number,
   height: number
 ) => {
