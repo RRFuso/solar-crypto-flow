@@ -44,6 +44,8 @@
     "@tanstack/react-query": "^5.56.2",
     "@tensorflow/tfjs": "^4.22.0",
     "@types/d3": "^7.4.3",
+    "axios": "^1.7.2",
+    "caniuse-lite": "^1.0.30001727",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -70,8 +72,7 @@
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.155.0",
     "vaul": "^0.9.3",
-    "zod": "^3.23.8",
-    "axios": "^1.7.2"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",

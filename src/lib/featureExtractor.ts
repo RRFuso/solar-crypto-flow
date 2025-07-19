@@ -33,13 +33,16 @@ export async function extractFeatures(
   timeframe: string,
   contractAddresses: Map<string, { address: string; chain: string }>
 ): Promise<CryptoFeatures[]> {
+  // Ensure contractAddresses is a valid Map to prevent runtime errors
+  const safeContractAddresses = contractAddresses || new Map();
+
   const featuresPromises = cryptos.map(async (crypto) => {
     try {
       // Get technical indicators for this crypto
       const indicators = await fetchTechnicalIndicators(crypto.symbol, timeframe);
       
       // Get on-chain data
-      const contractInfo = contractAddresses.get(crypto.symbol.toUpperCase());
+      const contractInfo = safeContractAddresses.get(crypto.symbol.toUpperCase());
       let onChainData = {
         exchangeInflow: 0,
         exchangeOutflow: 0,
