@@ -94,28 +94,109 @@ export type Database = {
       }
       crypto_price_action_signals: {
         Row: {
+          accumulation_strength: number | null
+          distribution_strength: number | null
           explosive_potential: string | null
+          factors: string[] | null
           is_accelerating: boolean | null
+          is_accumulation: boolean | null
           is_breakout: boolean | null
+          is_distribution: boolean | null
           is_expansion: boolean | null
           last_updated: string
+          smart_money_sentiment: string | null
           symbol: string
+          whale_activity: number | null
         }
         Insert: {
+          accumulation_strength?: number | null
+          distribution_strength?: number | null
           explosive_potential?: string | null
+          factors?: string[] | null
           is_accelerating?: boolean | null
+          is_accumulation?: boolean | null
           is_breakout?: boolean | null
+          is_distribution?: boolean | null
           is_expansion?: boolean | null
           last_updated?: string
+          smart_money_sentiment?: string | null
           symbol: string
+          whale_activity?: number | null
         }
         Update: {
+          accumulation_strength?: number | null
+          distribution_strength?: number | null
           explosive_potential?: string | null
+          factors?: string[] | null
           is_accelerating?: boolean | null
+          is_accumulation?: boolean | null
           is_breakout?: boolean | null
+          is_distribution?: boolean | null
           is_expansion?: boolean | null
           last_updated?: string
+          smart_money_sentiment?: string | null
           symbol?: string
+          whale_activity?: number | null
+        }
+        Relationships: []
+      }
+      predictive_signals: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          factors: string[] | null
+          id: string
+          phase: string | null
+          risk_level: string | null
+          rsi_divergence: boolean | null
+          signal_type: string
+          smart_money_flow: string | null
+          strength: number | null
+          support_level: number | null
+          symbol: string
+          target_gain: number | null
+          timeframe: string | null
+          updated_at: string
+          volume_anomaly: boolean | null
+          volume_profile: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          factors?: string[] | null
+          id?: string
+          phase?: string | null
+          risk_level?: string | null
+          rsi_divergence?: boolean | null
+          signal_type: string
+          smart_money_flow?: string | null
+          strength?: number | null
+          support_level?: number | null
+          symbol: string
+          target_gain?: number | null
+          timeframe?: string | null
+          updated_at?: string
+          volume_anomaly?: boolean | null
+          volume_profile?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          factors?: string[] | null
+          id?: string
+          phase?: string | null
+          risk_level?: string | null
+          rsi_divergence?: boolean | null
+          signal_type?: string
+          smart_money_flow?: string | null
+          strength?: number | null
+          support_level?: number | null
+          symbol?: string
+          target_gain?: number | null
+          timeframe?: string | null
+          updated_at?: string
+          volume_anomaly?: boolean | null
+          volume_profile?: string | null
         }
         Relationships: []
       }
@@ -137,6 +218,21 @@ export type Database = {
           contract_address?: string
           id?: string
           symbol?: string
+        }
+        Relationships: []
+      }
+      tradingview_symbol_map: {
+        Row: {
+          coingecko_id: string
+          tradingview_symbol: string
+        }
+        Insert: {
+          coingecko_id: string
+          tradingview_symbol: string
+        }
+        Update: {
+          coingecko_id?: string
+          tradingview_symbol?: string
         }
         Relationships: []
       }

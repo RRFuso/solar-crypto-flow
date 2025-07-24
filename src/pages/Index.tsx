@@ -5,6 +5,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import CryptoPanel from "@/components/CryptoPanel";
 import CapitalFlowPanel from "@/components/capital-flow/CapitalFlowPanel";
 import AutoTradePanel from "@/components/autotrade/AutoTradePanel";
+import { PredictiveSignalsPanel } from "@/components/signals/PredictiveSignalsPanel";
 import UserMenu from "@/components/auth/UserMenu";
 
 const Index = () => {
@@ -28,12 +29,18 @@ const Index = () => {
           </div>
 
           <div className="flex-grow flex justify-center">
-            <TabsList className="grid w-full max-w-xl grid-cols-3 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 h-10">
+            <TabsList className="grid w-full max-w-2xl grid-cols-4 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 h-10">
               <TabsTrigger 
                 value="capital-flow" 
                 className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-sm"
               >
-                💰 Capital Flow AI
+                💰 Capital Flow
+              </TabsTrigger>
+              <TabsTrigger 
+                value="signals" 
+                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-sm"
+              >
+                🎯 Sinais AI
               </TabsTrigger>
               <TabsTrigger 
                 value="crypto" 
@@ -56,6 +63,9 @@ const Index = () => {
         <div className="flex-1 w-full overflow-hidden">
           <TabsContent value="capital-flow" className="h-full w-full">
             <CapitalFlowPanel />
+          </TabsContent>
+          <TabsContent value="signals" className="h-full w-full p-6">
+            <PredictiveSignalsPanel />
           </TabsContent>
           <TabsContent value="crypto" className="h-full w-full">
             <CryptoPanel />
