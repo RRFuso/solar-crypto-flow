@@ -267,7 +267,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     
     if (signalsLoading) {
       return (
-        <div key={p.symbol} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+        <div key={`${p.symbol}-${p.timestamp}`} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
           <div className="flex items-start gap-3">
             <Skeleton className="w-8 h-8 rounded-full" />
             <div className="flex-1 space-y-2">
@@ -282,7 +282,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
 
     return (
       <div
-        key={p.symbol}
+        key={`${p.symbol}-${p.timestamp}`}
         className="bg-gray-800 rounded-lg p-3 hover:bg-gray-700 transition-colors text-white border border-gray-700"
       >
         <div className="flex items-start gap-3">

@@ -194,7 +194,7 @@ export function predictPriceMovements(
       bullish: isBullish,
       confidence: Math.min(0.95, conf),
       factors,
-      timestamp: Date.now(),
+      timestamp: Date.now() + Math.random(),
       price: feat.price.toString(),
       explosivePotential: priceActionData?.explosivePotential || 'None',
       isBreakout: priceActionData?.isBreakout || false,
