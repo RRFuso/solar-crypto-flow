@@ -33,7 +33,8 @@ serve(async (req) => {
           throw new Error('Etherscan API key not configured');
         }
         
-        const url = new URL('https://api.etherscan.io/api');
+        const baseUrl = params.chainid === 1 ? 'https://api.etherscan.io/api' : 'https://api.etherscan.io/v2/api';
+        const url = new URL(baseUrl);
         Object.entries(params).forEach(([key, value]) => {
           url.searchParams.set(key, String(value));
         });

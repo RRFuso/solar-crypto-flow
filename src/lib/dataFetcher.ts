@@ -344,7 +344,7 @@ export async function fetchOnChainData(contractInfo: { address: string; chain: s
       balance: balanceEth,
     };
   } catch (error) {
-    console.error(`Error fetching on-chain data for ${address}:`, error);
+    console.error(`Error fetching on-chain data for ${contractInfo.address}:`, error);
     return {
       exchangeInflow: 0,
       exchangeOutflow: 0,

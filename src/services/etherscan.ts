@@ -1,25 +1,30 @@
-import axios from 'axios';
-
-const ETHERSCAN_API_BASE_URL = 'https://api.etherscan.io/v2/api';
-const ETHERSCAN_API_KEY = '9HGIH5R2UJE3X6Y54QP6XH93SA6TTM977D'; // Your single Etherscan V2 API key
+import { supabase } from '@/integrations/supabase/client';
 
 export const fetchEtherscanData = async (params: Record<string, any>, chainId: number) => {
   try {
-    const response = await axios.get(ETHERSCAN_API_BASE_URL, {
-      params: {
-        ...params,
-        apikey: ETHERSCAN_API_KEY,
-        chainid: chainId, // Pass the chainId for V2 API
-      },
+    const { data, error } = await supabase.functions.invoke('secure-api-proxy', {
+      body: {
+        endpoint: 'etherscan',
+        params: {
+          ...params,
+          chainid: chainId
+        }
+      }
     });
-    if (response.data.status === '1') {
-      return response.data.result;
+
+    if (error) {
+      console.error('Secure API proxy error:', error);
+      throw new Error(`API proxy error: ${error.message}`);
+    }
+
+    if (data?.status === '1') {
+      return data.result;
     } else {
-      console.error(`Etherscan API Error:`, response.data.message);
-      throw new Error(`Etherscan API error: ${response.data.message}`);
+      console.error('Etherscan API Error:', data?.message);
+      throw new Error(`Etherscan API error: ${data?.message || 'Unknown error'}`);
     }
   } catch (error) {
-    console.error(`Error fetching data from Etherscan API:`, error);
+    console.error('Error fetching data from Etherscan API:', error);
     throw error;
   }
 };

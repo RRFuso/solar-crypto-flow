@@ -5,11 +5,11 @@
 export const getCSPDirectives = () => {
   return {
     'default-src': ["'self'"],
-    'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"],
-    'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+    'script-src': ["'self'", "https://cdn.jsdelivr.net", "https://tradingview.com", "https://*.tradingview.com"],
+    'style-src': ["'self'", "https://fonts.googleapis.com"],
     'font-src': ["'self'", "https://fonts.gstatic.com"],
     'img-src': ["'self'", "data:", "blob:", "https:"],
-    'connect-src': ["'self'", "https://bahshstcztvqmxiubslx.supabase.co", "wss://bahshstcztvqmxiubslx.supabase.co"],
+    'connect-src': ["'self'", "https://bahshstcztvqmxiubslx.supabase.co", "wss://bahshstcztvqmxiubslx.supabase.co", "https://api.binance.com"],
     'object-src': ["'none'"],
     'base-uri': ["'self'"],
     'form-action': ["'self'"],
@@ -28,9 +28,20 @@ export const generateCSPHeader = (): string => {
 
 // Sanitize HTML content to prevent XSS
 export const sanitizeHTML = (html: string): string => {
-  const div = document.createElement('div');
-  div.textContent = html;
-  return div.innerHTML;
+  if (typeof html !== 'string') return '';
+  
+  // Create a temporary element to parse and sanitize
+  const tempDiv = document.createElement('div');
+  tempDiv.textContent = html; // This escapes all HTML entities
+  
+  // Remove any script tags and dangerous attributes
+  const sanitized = tempDiv.innerHTML
+    .replace(/<script[^>]*>.*?<\/script>/gis, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/data:/gi, '');
+    
+  return sanitized;
 };
 
 // Check if running in secure context

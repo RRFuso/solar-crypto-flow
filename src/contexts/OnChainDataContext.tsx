@@ -19,6 +19,7 @@ interface OnChainDataContextType {
   smartMoneyScores: Map<string, SmartMoneyScore>;
   isLoading: (symbol: string) => boolean;
   requestOnChainData: (symbols: string[]) => void;
+  contractAddressesCache: Map<string, { address: string; chain: string }>;
 }
 
 const OnChainDataContext = createContext<OnChainDataContextType | undefined>(undefined);
@@ -131,7 +132,7 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
   const isLoading = (symbol: string): boolean => loadingSymbols.has(symbol);
 
   return (
-    <OnChainDataContext.Provider value={{ onChainData, smartMoneyScores, isLoading, requestOnChainData }}>
+    <OnChainDataContext.Provider value={{ onChainData, smartMoneyScores, isLoading, requestOnChainData, contractAddressesCache }}>
       {children}
     </OnChainDataContext.Provider>
   );
