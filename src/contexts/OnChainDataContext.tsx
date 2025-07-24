@@ -1,8 +1,8 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { ExchangeFlow, WhaleTransaction } from '@/types/onchain';
-import { getERC20TokenTransactions, identifyWhaleTransactions, calculateExchangeFlow, KNOWN_EXCHANGES } from '@/lib/onchain/etherscan';
-import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
+import { alternativeOnChainProvider } from '@/services/alternative-onchain';
+import { supabase } from '@/integrations/supabase/client';
 
 interface OnChainData {
   whaleTransactions: WhaleTransaction[];
@@ -40,13 +40,9 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
       else if (exchangeFlow.netFlow > 0) currentScore -= 4; // Net inflow is bearish
     }
 
-    // Whale activity analysis
+    // Whale activity analysis - simplified for alternative provider
     if (whaleTransactions.length > 0) {
-      const whaleBuys = whaleTransactions.filter(tx => !Object.values(KNOWN_EXCHANGES).includes(tx.to.toLowerCase())).length;
-      const whaleSells = whaleTransactions.filter(tx => Object.values(KNOWN_EXCHANGES).includes(tx.to.toLowerCase())).length;
-      
-      if (whaleBuys > whaleSells) currentScore += 3;
-      else if (whaleSells > whaleBuys) currentScore -= 3;
+      currentScore += 2; // Presence of whale activity adds to bullish score
     }
     
     const finalScore = Math.max(-10, Math.min(10, currentScore));
@@ -64,50 +60,36 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
     setLoadingSymbols(prev => new Set([...prev, ...symbolsToProcess]));
 
-    for (const symbol of symbolsToProcess) {
+    await Promise.all(symbolsToProcess.map(async (symbol) => {
       try {
-        let contractInfo = contractAddressesCache.get(symbol.toUpperCase());
-
-        if (!contractInfo) {
-          const { data, error } = await supabase
-            .from('token_contracts')
-            .select('contract_address, chain')
-            .eq('symbol', symbol.toUpperCase());
-
-          if (error) {
-            throw new Error(`Error fetching contract info for ${symbol} from Supabase: ${error.message}`);
-          }
-
-          if (data && data.length > 0) {
-            // Prioritize Ethereum if available, otherwise take the first one
-            const ethereumContract = data.find(c => c.chain === 'ethereum');
-            const selectedContract = ethereumContract || data[0];
-
-            contractInfo = { address: selectedContract.contract_address, chain: selectedContract.chain || 'ethereum' };
-            setContractAddressesCache(prev => new Map(prev).set(symbol.toUpperCase(), contractInfo!));
-          } else {
-            throw new Error(`Contract info not found for ${symbol} in Supabase.`);
-          }
-        }
-
-        // Validate contract address before proceeding
-        const isValidContractAddress = /^0x[a-fA-F0-9]{40}$/.test(contractInfo.address);
-
-        if (!isValidContractAddress) {
-          console.warn(`[OnChainData] Skipping on-chain data fetch for ${symbol}: Invalid contract address '${contractInfo.address}' for chain '${contractInfo.chain}'.`);
-          setOnChainData(prev => new Map(prev).set(symbol, { whaleTransactions: [], exchangeFlow: null }));
-          setSmartMoneyScores(prev => new Map(prev).set(symbol, { score: 0, sentiment: 'Neutral' }));
-          continue; // Skip to the next symbol
-        }
-
-        const transactions = await getERC20TokenTransactions(contractInfo.address, contractInfo.chain, 500);
-        const whaleTxs = identifyWhaleTransactions(transactions, 1000, contractInfo.chain);
-        const exFlow = calculateExchangeFlow(transactions, symbol, contractInfo.chain);
+        // Use alternative on-chain provider
+        const metrics = await alternativeOnChainProvider.getTokenMetrics(symbol);
         
-        const newData: OnChainData = { whaleTransactions: whaleTxs, exchangeFlow: exFlow };
-        const newScore = calculateSmartMoneyScore(newData);
+        // Convert metrics to our format
+        const exchangeFlow: ExchangeFlow = {
+          symbol: symbol,
+          timestamp: Date.now(),
+          netFlow: metrics.netFlow,
+          inflow: Math.max(0, metrics.netFlow),
+          outflow: Math.max(0, -metrics.netFlow)
+        };
 
-        console.log(`[OnChainData] Data for ${symbol}:`, { newData, newScore });
+        const newData: OnChainData = { 
+          whaleTransactions: [], // Using aggregated whale activity instead
+          exchangeFlow: exchangeFlow 
+        };
+
+        // Convert metrics sentiment to score
+        let score = 0;
+        if (metrics.sentiment === 'Bullish') score = 7;
+        else if (metrics.sentiment === 'Bearish') score = -7;
+
+        const newScore: SmartMoneyScore = {
+          score: score,
+          sentiment: metrics.sentiment
+        };
+
+        console.log(`[OnChainData] Data for ${symbol}:`, { newData, newScore, metrics });
 
         setOnChainData(prev => new Map(prev).set(symbol, newData));
         setSmartMoneyScores(prev => new Map(prev).set(symbol, newScore));
@@ -116,7 +98,7 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`[OnChainData] Failed to process ${symbol}: ${errorMessage}`);
         
-        // Set neutral score on error to prevent perpetual loading
+        // Set neutral score on error
         setOnChainData(prev => new Map(prev).set(symbol, { whaleTransactions: [], exchangeFlow: null }));
         setSmartMoneyScores(prev => new Map(prev).set(symbol, { score: 0, sentiment: 'Neutral' }));
       } finally {
@@ -126,8 +108,8 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
           return newSet;
         });
       }
-    }
-  }, [onChainData, loadingSymbols, contractAddressesCache]);
+    }));
+  }, [onChainData, loadingSymbols]);
 
   const isLoading = (symbol: string): boolean => loadingSymbols.has(symbol);
 
