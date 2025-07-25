@@ -29,6 +29,8 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
   showSidebarOnly = false,
   showLines
 }) => {
+  
+
   if (showSidebarOnly) {
     return (
       <div className="h-full w-full">
