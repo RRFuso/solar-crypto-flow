@@ -42,6 +42,7 @@ export const usePredictions = (
           // Get features and make predictions with the selected chart timeframe
           const features = await extractFeatures(categoryFilteredCryptos, flowData, chartTimeframe, contractAddressesCache);
           const newPredictions = predictPriceMovements(features, chartTimeframe);
+          console.log('Generated new predictions:', newPredictions);
           setPredictions(newPredictions);
           
           // Show notifications for high confidence predictions
