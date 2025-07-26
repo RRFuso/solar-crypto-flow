@@ -224,6 +224,7 @@ export const usePredictiveSignals = (
       }
 
       aggregatedSignals.set(symbol, {
+        id: `${symbol}-${new Date(symbolSignals[0].updated_at).getTime()}`,
         symbol,
         explosiveSignals,
         edgeSignals,

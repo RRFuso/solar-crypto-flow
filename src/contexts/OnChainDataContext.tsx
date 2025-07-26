@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { ExchangeFlow, WhaleTransaction } from '@/types/onchain';
 import { alternativeOnChainProvider } from '@/services/alternative-onchain';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +19,7 @@ interface OnChainDataContextType {
   smartMoneyScores: Map<string, SmartMoneyScore>;
   isLoading: (symbol: string) => boolean;
   requestOnChainData: (symbols: string[]) => void;
-  contractAddressesCache: Map<string, { address: string; chain: string }>;
+  contractAddressesCache: Map<string, { contract_address: string; chain: string }>;
 }
 
 const OnChainDataContext = createContext<OnChainDataContextType | undefined>(undefined);
@@ -29,6 +29,39 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [smartMoneyScores, setSmartMoneyScores] = useState<Map<string, SmartMoneyScore>>(new Map());
   const [loadingSymbols, setLoadingSymbols] = useState<Set<string>>(new Set());
   const [contractAddressesCache, setContractAddressesCache] = useState<Map<string, { address: string; chain: string }>>(new Map());
+
+  useEffect(() => {
+    const fetchContractAddresses = async () => {
+      console.log('[OnChainData] Fetching contract addresses...');
+      try {
+        const { data, error } = await supabase
+          .from('token_contracts')
+          .select('symbol,contract_address,chain');
+
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          const newCache = new Map<string, { address: string; chain: string }>();
+          for (const contract of data) {
+            if (contract.symbol) {
+              newCache.set(contract.symbol.toUpperCase(), { 
+                contract_address: contract.contract_address, 
+                chain: contract.chain 
+              });
+            }
+          }
+          setContractAddressesCache(newCache);
+          console.log('[OnChainData] Contract addresses loaded:', newCache);
+        }
+      } catch (error) {
+        console.error('Error fetching contract addresses:', error);
+      }
+    };
+
+    fetchContractAddresses();
+  }, []);
 
   const calculateSmartMoneyScore = (data: OnChainData): SmartMoneyScore => {
     const { exchangeFlow, whaleTransactions } = data;
