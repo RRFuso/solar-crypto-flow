@@ -96,17 +96,6 @@ Deno.serve(async (req) => {
           explosivePotential = "Low";
         }
 
-        // --- INÍCIO DO BLOCO DE TESTE TEMPORÁRIO ---
-        // REMOVA ESTE BLOCO APÓS O TESTE
-        if (symbol === "BTCUSDT") {
-            explosivePotential = "High";
-        } else if (symbol === "ETHUSDT") {
-            explosivePotential = "Medium";
-        } else if (symbol === "SOLUSDT") {
-            explosivePotential = "Low";
-        }
-        // --- FIM DO BLOCO DE TESTE TEMPORÁRIO ---
-
         const signalData = {
           symbol: symbol.replace("USDT", ""), // Armazena apenas o símbolo da cripto (ex: BTC)
           explosive_potential: explosivePotential,
