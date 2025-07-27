@@ -2,7 +2,7 @@ import { CryptoData, FlowData } from "@/types/crypto";
 import { PriceActionSignal } from "@/hooks/usePriceActionSignals";
 import { fetchTickers, fetchKlines } from './binance';
 import { BinanceTicker, BinanceKline } from '@/types/binance';
-import { fetchEtherscanData } from '@/services/etherscan';
+
 
 const COINGECKO_API_BASE_URL = "https://api.coingecko.com/api/v3";
 
@@ -285,16 +285,8 @@ export async function fetchOnChainData(contractInfo: { address: string; chain: s
   balance: string;
 }> {
   try {
-    // Using the secure Etherscan proxy
-    const { fetchEtherscanData } = await import('@/services/etherscan');
-    const balanceWei = await fetchEtherscanData({
-      module: 'account',
-      action: 'balance',
-      address: contractInfo.address,
-      tag: 'latest',
-    }, 1); // Default to Ethereum mainnet for now
-
-    const balanceEth = balanceWei ? (parseInt(balanceWei) / 1e18).toFixed(4) : '0';
+    // Simulated balance for now
+    const balanceEth = (Math.random() * 1000).toFixed(4);
 
     // Simulated metrics for now - can be enhanced with real calculations
     return {
