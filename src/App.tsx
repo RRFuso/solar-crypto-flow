@@ -24,7 +24,7 @@ function App() {
       <AuthProvider>
         <OnChainDataProvider>
           <TooltipProvider>
-            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <Router>
               <Routes>
                 <Route path="/auth" element={<AuthPage />} />
                 <Route 

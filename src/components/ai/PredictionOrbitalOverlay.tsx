@@ -5,7 +5,7 @@ import { CryptoData } from '@/types/crypto';
 import { NarrativeNode } from '@/types/narratives';
 import { fetchCryptoData } from '@/lib/dataFetcher';
 import { extractFeatures } from '@/lib/featureExtractor';
-import { getCachedPrediction, storePrediction } from '@/lib/aiModel';
+import { predictPriceMovements, getCachedPrediction, storePrediction } from '@/lib/aiModel';
 import { getLogoUrls } from '@/lib/cryptoLogos';
 import { toast } from 'sonner';
 import {
