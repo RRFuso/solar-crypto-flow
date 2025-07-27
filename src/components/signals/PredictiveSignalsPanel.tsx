@@ -87,7 +87,7 @@ export const PredictiveSignalsPanel: React.FC<PredictiveSignalsPanelProps> = ({
           </div>
         ) : (
           signalArray.map((signal) => (
-            <div key={signal.symbol} className="space-y-4">
+            <div key={signal.id} className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <h3 className="font-semibold text-lg">{signal.symbol}</h3>

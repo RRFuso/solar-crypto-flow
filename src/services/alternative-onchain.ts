@@ -29,24 +29,7 @@ export class AlternativeOnChainProvider {
     }
   }
 
-  // Fetch data from DeFiLlama (TVL, protocol data)
-  async fetchDefiLlamaData(symbol: string): Promise<Partial<TokenMetrics>> {
-    try {
-      // This would integrate with DeFiLlama API for TVL and protocol metrics
-      const response = await fetch(`https://api.llama.fi/protocol/${symbol.toLowerCase()}`);
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          exchangeFlow: data.tvl || 0,
-          sentiment: 'Neutral'
-        };
-      }
-      return {};
-    } catch (error) {
-      console.error('Error fetching DeFiLlama data:', error);
-      return {};
-    }
-  }
+  
 
   // Fetch whale transaction data from blockchain scanners
   async fetchWhaleActivity(symbol: string): Promise<number> {
@@ -80,13 +63,15 @@ export class AlternativeOnChainProvider {
   // Aggregate all data sources
   async getTokenMetrics(symbol: string): Promise<TokenMetrics> {
     try {
-      const [coinGlassData, defiLlamaData, whaleActivity] = await Promise.all([
+      const [coinGlassData, whaleActivity] = await Promise.all([
         this.fetchCoinGlassData(symbol),
-        this.fetchDefiLlamaData(symbol),
         this.fetchWhaleActivity(symbol)
       ]);
 
-      const aggregatedNetFlow = (coinGlassData.netFlow || 0) + (defiLlamaData.exchangeFlow || 0) * 0.1;
+      // Simulate exchangeFlow as it's no longer fetched from DeFiLlama
+      const simulatedExchangeFlow = Math.random() * 100000000; // Example: up to 100M USD
+
+      const aggregatedNetFlow = (coinGlassData.netFlow || 0) + simulatedExchangeFlow * 0.1;
       
       let sentiment: 'Bullish' | 'Bearish' | 'Neutral' = 'Neutral';
       if (aggregatedNetFlow > 100000 && whaleActivity > 500000) {
@@ -98,7 +83,7 @@ export class AlternativeOnChainProvider {
       return {
         symbol: symbol.toUpperCase(),
         netFlow: aggregatedNetFlow,
-        exchangeFlow: defiLlamaData.exchangeFlow || 0,
+        exchangeFlow: simulatedExchangeFlow,
         whaleActivity,
         sentiment
       };
