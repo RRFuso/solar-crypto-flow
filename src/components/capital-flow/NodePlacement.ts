@@ -26,7 +26,11 @@ interface CalculateNodePositionsProps {
 }
 
 // Hash function for consistent positioning based on symbol
-function hashSymbol(symbol: string): number {
+function hashSymbol(symbol: string | undefined): number {
+  if (!symbol || typeof symbol !== 'string') {
+    return Math.random(); // Fallback to random for undefined symbols
+  }
+  
   let hash = 0;
   for (let i = 0; i < symbol.length; i++) {
     const char = symbol.charCodeAt(i);
