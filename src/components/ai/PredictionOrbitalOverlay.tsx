@@ -7,6 +7,7 @@ import { fetchCryptoData } from '@/lib/dataFetcher';
 import { extractFeatures } from '@/lib/featureExtractor';
 import { predictPriceMovements, getCachedPrediction, storePrediction } from '@/lib/aiModel';
 import { getLogoUrls } from '@/lib/cryptoLogos';
+import { StrategyCalculator } from '@/lib/trading/strategyCalculator';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -205,57 +206,50 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
 
   // Generate strategy data for a given symbol
   const showStrategyModal = (symbol: string, prediction: Prediction) => {
-    // Use current price to generate mock strategy data
     const currentPrice = parseFloat(prediction.price || "0");
+    const cryptoData = cryptoDataMap.get(symbol);
     
-    // Create mock strategy based on bullish/bearish prediction
-    if (prediction.bullish) {
-      // Bullish strategy
-      const stopLossPercent = 3 + Math.random() * 2; // 3-5% stop loss
-      const takeProfitPercent1 = 5 + Math.random() * 5; // 5-10% take profit 1
-      const takeProfitPercent2 = takeProfitPercent1 + 5 + Math.random() * 10; // 10-20% take profit 2
-      
-      const stopLoss = currentPrice * (1 - stopLossPercent / 100);
-      const takeProfit1 = currentPrice * (1 + takeProfitPercent1 / 100);
-      const takeProfit2 = currentPrice * (1 + takeProfitPercent2 / 100);
-      
-      setSelectedStrategy({
-        symbol,
-        name: prediction.name || symbol,
-        entry: currentPrice.toFixed(2),
-        stopLoss: stopLoss.toFixed(2),
-        takeProfit1: takeProfit1.toFixed(2),
-        takeProfit2: takeProfit2.toFixed(2),
-        risk: `${stopLossPercent.toFixed(1)}%`,
-        reward: `${takeProfitPercent2.toFixed(1)}%`,
-        timeframe: chartTimeframe,
-        direction: 'bullish',
-        overview: `Based on ${prediction.factors.join(", ")}, ${symbol} is showing strong bullish potential in the ${chartTimeframe} timeframe. Entry around ${currentPrice.toFixed(2)} with a ${stopLossPercent.toFixed(1)}% stop loss and targets at ${takeProfitPercent1.toFixed(1)}% and ${takeProfitPercent2.toFixed(1)}%.`
-      });
-    } else {
-      // Bearish strategy
-      const stopLossPercent = 3 + Math.random() * 2; // 3-5% stop loss
-      const takeProfitPercent1 = 5 + Math.random() * 5; // 5-10% take profit 1
-      const takeProfitPercent2 = takeProfitPercent1 + 5 + Math.random() * 10; // 10-20% take profit 2
-      
-      const stopLoss = currentPrice * (1 + stopLossPercent / 100);
-      const takeProfit1 = currentPrice * (1 - takeProfitPercent1 / 100);
-      const takeProfit2 = currentPrice * (1 - takeProfitPercent2 / 100);
-      
-      setSelectedStrategy({
-        symbol,
-        name: prediction.name || symbol,
-        entry: currentPrice.toFixed(2),
-        stopLoss: stopLoss.toFixed(2),
-        takeProfit1: takeProfit1.toFixed(2),
-        takeProfit2: takeProfit2.toFixed(2),
-        risk: `${stopLossPercent.toFixed(1)}%`,
-        reward: `${takeProfitPercent2.toFixed(1)}%`,
-        timeframe: chartTimeframe,
-        direction: 'bearish',
-        overview: `Based on ${prediction.factors.join(", ")}, ${symbol} is showing bearish signals in the ${chartTimeframe} timeframe. Short entry around ${currentPrice.toFixed(2)} with a ${stopLossPercent.toFixed(1)}% stop loss and targets at ${takeProfitPercent1.toFixed(1)}% and ${takeProfitPercent2.toFixed(1)}% to the downside.`
-      });
+    // Calculate trading levels using technical analysis
+    const direction = prediction.bullish ? 'bullish' : 'bearish';
+    const levels = StrategyCalculator.calculateTradingLevels(
+      symbol,
+      currentPrice,
+      direction,
+      cryptoData,
+      chartTimeframe
+    );
+
+    // Validate the calculated levels
+    if (!StrategyCalculator.validateLevels(levels, direction)) {
+      console.warn(`Invalid trading levels calculated for ${symbol}`);
+      return;
     }
+
+    // Create technical analysis overview
+    const technicalFactors = [];
+    if (cryptoData) {
+      const priceChange = parseFloat(cryptoData.priceChangePercent || '0') || 0;
+      if (Math.abs(priceChange) > 5) technicalFactors.push(`${Math.abs(priceChange).toFixed(1)}% price movement`);
+      
+      const volume = parseFloat(cryptoData.volume?.toString() || '0') || 0;
+      if (volume > 1000000) technicalFactors.push('high volume');
+    }
+    
+    const analysisFactors = [...prediction.factors, ...technicalFactors];
+    
+    setSelectedStrategy({
+      symbol,
+      name: prediction.name || symbol,
+      entry: levels.entry.toFixed(2),
+      stopLoss: levels.stopLoss.toFixed(2),
+      takeProfit1: levels.takeProfit1.toFixed(2),
+      takeProfit2: levels.takeProfit2.toFixed(2),
+      risk: `${levels.riskPercent.toFixed(1)}%`,
+      reward: `${levels.rewardPercent.toFixed(1)}%`,
+      timeframe: chartTimeframe,
+      direction,
+      overview: `Based on ${analysisFactors.join(", ")}, ${symbol} shows ${direction} signals in the ${chartTimeframe} timeframe. Technical analysis suggests ${direction === 'bullish' ? 'long' : 'short'} entry around $${levels.entry.toFixed(2)} with ${levels.riskPercent.toFixed(1)}% risk and ${levels.rewardPercent.toFixed(1)}% reward potential.`
+    });
   };
 
   return (
@@ -316,7 +310,7 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
               </div>
               
               <div className="pt-2 text-center text-xs text-gray-500">
-                This is a simulated trading strategy for educational purposes only. Not financial advice.
+                Strategy calculated using technical analysis. Risk management is crucial. Not financial advice.
               </div>
             </div>
           )}

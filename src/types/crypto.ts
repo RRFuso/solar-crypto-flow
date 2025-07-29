@@ -31,6 +31,10 @@ export interface CryptoData {
   volumeChange24h?: number;
   high24h?: number;  // Changed from string to number
   low24h?: number;   // Changed from string to number
+  // Compatibility properties for existing code
+  priceChangePercent?: string;
+  highPrice?: string;
+  lowPrice?: string;
   category?: string;
   description?: string;
   website?: string;
