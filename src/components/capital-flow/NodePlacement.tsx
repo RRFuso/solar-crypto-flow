@@ -60,7 +60,7 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
   
   orbitGroups.forEach((nodesInOrbit, orbitRadius) => {
     const angleStep = (2 * Math.PI) / nodesInOrbit.length;
-    const startAngle = Math.random() * Math.PI * 2; // Random start to avoid clustering
+    const startAngle = (orbitRadius * 0.1) % (Math.PI * 2); // Deterministic start based on orbit
     
     nodesInOrbit.forEach((node, index) => {
       const angle = startAngle + (index * angleStep);

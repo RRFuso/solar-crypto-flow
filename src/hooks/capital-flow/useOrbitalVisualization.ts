@@ -73,6 +73,7 @@ export const useOrbitalVisualization = () => {
         return {
           id,
           name: id, // Added name
+          symbol: id, // Add symbol property
           marketCap,
           value: marketCap,
           radius: 45,
@@ -102,6 +103,7 @@ export const useOrbitalVisualization = () => {
         return {
           id,
           name: id, // Added name
+          symbol: id, // Add symbol property
           marketCap,
           value: marketCap,
           radius: Math.max(20, Math.min(35, 20 + (marketCap / 10000))),
