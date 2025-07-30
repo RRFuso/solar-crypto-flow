@@ -1,7 +1,6 @@
 export interface OrbitalNode {
   id: string;
   name?: string;
-  symbol: string; // Add symbol property
   x: number;
   y: number;
   radius: number;
@@ -25,21 +24,6 @@ interface CalculateNodePositionsProps {
   baseRadius: number;
 }
 
-// Hash function for consistent positioning based on symbol
-function hashSymbol(symbol: string | undefined): number {
-  if (!symbol || typeof symbol !== 'string') {
-    return Math.random(); // Fallback to random for undefined symbols
-  }
-  
-  let hash = 0;
-  for (let i = 0; i < symbol.length; i++) {
-    const char = symbol.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return Math.abs(hash) / 2147483648; // Normalize to 0-1
-}
-
 export const calculateNodePositions = ({
   nodes,
   centralNode,
@@ -59,6 +43,7 @@ export const calculateNodePositions = ({
     .filter(node => node.id !== centralNode.id)
     .sort((a, b) => b.marketCap - a.marketCap);
 
+  // **CRITICAL FIX: Dramatically reduced scale for perfect viewport fit**
   // **CRITICAL FIX: Dramatically reduced scale for perfect viewport fit**
   const placedNodes: Array<{x: number, y: number, radius: number}> = [
     { x: centralNode.x, y: centralNode.y, radius: centralNode.radius * 1.5 } // Reduced from 2 to 1.5
@@ -82,9 +67,7 @@ export const calculateNodePositions = ({
       const nodesInTier = tierNodes.length;
       const baseAngle = (nodeIndex / nodesInTier) * 2 * Math.PI;
       
-      // Usar hash do símbolo para posicionamento consistente ao invés de random
-      const symbolHash = hashSymbol(node.symbol);
-      const angleOffset = (symbolHash - 0.5) * (Math.PI / Math.max(8, nodesInTier));
+      const angleOffset = (Math.random() - 0.5) * (Math.PI / Math.max(8, nodesInTier));
       let angle = baseAngle + angleOffset;
       
       let attempts = 0;
@@ -123,7 +106,7 @@ export const calculateNodePositions = ({
       if (!found) {
         // **Reduced fallback radius to keep nodes from flying off**
         const fallbackRadius = orbitRadius + (attempts * 5);
-        const fallbackAngle = baseAngle + (hashSymbol(node.symbol) * Math.PI / 3);
+        const fallbackAngle = baseAngle + (Math.random() * Math.PI / 3);
         
         node.x = width / 2 + Math.cos(fallbackAngle) * fallbackRadius;
         node.y = height / 2 + Math.sin(fallbackAngle) * fallbackRadius;
@@ -144,5 +127,3 @@ export class NodePlacement {
     calculateNodePositions(props);
   }
 }
-
-export { hashSymbol };

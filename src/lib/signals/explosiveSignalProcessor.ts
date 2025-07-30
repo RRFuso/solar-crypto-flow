@@ -59,9 +59,9 @@ export class ExplosiveSignalProcessor {
       const factors: string[] = [];
       let confidence = 0;
 
-      // Critério 1: Volume acima da média (usando dados históricos reais)
-      const avgVolume = crypto.avgVolume24h || crypto.volume24h * 0.8; // Usar média histórica quando disponível
-      const volumeMultiplier = avgVolume > 0 ? crypto.volume24h / avgVolume : 1;
+      // Critério 1: Volume acima da média (usando volume atual como base)
+      const avgVolume = crypto.volume24h * 0.7; // Aproximação para volume médio
+      const volumeMultiplier = crypto.volume24h / avgVolume;
       if (volumeMultiplier >= this.config.explosiveThresholds.volumeMultiplier) {
         factors.push(`Volume ${volumeMultiplier.toFixed(1)}x acima da média`);
         confidence += 0.25;
@@ -131,7 +131,7 @@ export class ExplosiveSignalProcessor {
   ): EdgeSignal | null {
     try {
       const rsi = crypto.rsi || 50;
-      const avgVolume = crypto.avgVolume24h || crypto.volume24h * 0.8; // Usar dados históricos reais
+      const avgVolume = crypto.volume24h * 0.7; // Aproximação
       const volumeRatio = crypto.volume24h / avgVolume;
 
       // Sinal de Acumulação
@@ -187,7 +187,7 @@ export class ExplosiveSignalProcessor {
   ): BottomSignal | null {
     try {
       const rsi = crypto.rsi || 50;
-      const avgVolume = crypto.avgVolume24h || crypto.volume24h * 0.8; // Usar dados históricos reais
+      const avgVolume = crypto.volume24h * 0.7; // Aproximação
       const volumeRatio = crypto.volume24h / avgVolume;
 
       // Fundo de Reversão

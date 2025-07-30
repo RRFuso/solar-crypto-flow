@@ -7,10 +7,6 @@ export interface CryptoData {
   price?: number;  // Changed from string to number
   volume?: number;
   volume24h?: number;
-  avgVolume24h?: number; // Volume médio histórico
-  volatility?: number; // Volatilidade calculada
-  supportLevel?: number; // Nível de suporte calculado
-  resistanceLevel?: number; // Nível de resistência calculado
   marketCap?: number;
   change24h?: number;
   change7d?: number;
@@ -35,10 +31,6 @@ export interface CryptoData {
   volumeChange24h?: number;
   high24h?: number;  // Changed from string to number
   low24h?: number;   // Changed from string to number
-  // Compatibility properties for existing code
-  priceChangePercent?: string;
-  highPrice?: string;
-  lowPrice?: string;
   category?: string;
   description?: string;
   website?: string;
