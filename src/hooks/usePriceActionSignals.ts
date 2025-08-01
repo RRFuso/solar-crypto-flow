@@ -117,7 +117,7 @@ export const usePriceActionSignals = (symbols: string[]) => {
       supabase.removeChannel(channel);
       console.log('Realtime subscription to crypto_price_action_signals REMOVED');
     };
-  }, []); // Re-subscribe if symbols change
+  }, [symbols.join(',')]); // Re-subscribe if symbols change
 
   return { signals, signalsLoading, error, realtimeConnected };
 };

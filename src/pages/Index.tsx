@@ -65,7 +65,10 @@ const Index = () => {
             <CapitalFlowPanel />
           </TabsContent>
           <TabsContent value="signals" className="h-full w-full p-6">
-            <PredictiveSignalsPanel />
+            <PredictiveSignalsPanel 
+              symbols={['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'AVAX', 'DOT', 'LINK']}
+              className="h-full"
+            />
           </TabsContent>
           <TabsContent value="crypto" className="h-full w-full">
             <CryptoPanel />

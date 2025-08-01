@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useCryptoData } from './useCryptoData';
+import { useEnhancedCryptoData } from './useEnhancedCryptoData';
 import { explosiveSignalProcessor } from '@/lib/signals/explosiveSignalProcessor';
 import { 
   PredictiveSignalAggregated, 
@@ -41,7 +41,7 @@ export const usePredictiveSignals = (
   const [error, setError] = useState<string | null>(null);
   
   const queryClient = useQueryClient();
-  const { data: cryptoData, isLoading: cryptoLoading } = useCryptoData();
+  const { data: cryptoData, isLoading: cryptoLoading } = useEnhancedCryptoData();
 
   // Buscar sinais preditivos do Supabase
   const { data: dbSignals, isLoading: signalsLoading, refetch } = useQuery({
@@ -224,7 +224,6 @@ export const usePredictiveSignals = (
       }
 
       aggregatedSignals.set(symbol, {
-        id: `${symbol}-${new Date(symbolSignals[0].updated_at).getTime()}`,
         symbol,
         explosiveSignals,
         edgeSignals,
