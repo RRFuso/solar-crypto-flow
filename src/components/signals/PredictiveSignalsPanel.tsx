@@ -18,7 +18,7 @@ export const PredictiveSignalsPanel: React.FC<PredictiveSignalsPanelProps> = ({
   const { signals, loading, refreshSignals, getSignalColor } = usePredictiveSignals({
     symbols,
     enableAlerts: true,
-    minConfidence: 0.6
+    minConfidence: 0.5 // Reduzido para mostrar mais sinais
   });
 
   const signalArray = Array.from(signals.values()).sort((a, b) => b.overallScore - a.overallScore);

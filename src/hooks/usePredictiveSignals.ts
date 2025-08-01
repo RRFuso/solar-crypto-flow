@@ -80,7 +80,9 @@ export const usePredictiveSignals = (
           .select('symbol, whale_activity, smart_money_sentiment, is_accumulation, is_distribution, accumulation_strength, distribution_strength');
 
         if (symbols.length > 0) {
-          query = query.in('symbol', symbols);
+          // Mapear símbolos para formato USDT (ex: BTC -> BTCUSDT)
+          const usdtSymbols = symbols.map(s => `${s}USDT`);
+          query = query.in('symbol', usdtSymbols);
         }
 
         const { data, error } = await query;
@@ -88,8 +90,10 @@ export const usePredictiveSignals = (
 
         const onChainMap = new Map<string, OnChainData>();
         data?.forEach(item => {
-          onChainMap.set(item.symbol, {
-            symbol: item.symbol,
+          // Mapear de volta para símbolo base (ex: BTCUSDT -> BTC)
+          const baseSymbol = item.symbol.replace('USDT', '');
+          onChainMap.set(baseSymbol, {
+            symbol: baseSymbol,
             whaleActivity: item.whale_activity || 0,
             exchangeNetFlow: 0, // Não temos esse dado no schema atual
             accumulationScore: item.accumulation_strength || 0,
