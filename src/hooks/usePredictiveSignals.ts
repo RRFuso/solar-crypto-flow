@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEnhancedCryptoData } from './useEnhancedCryptoData';
-import { explosiveSignalProcessor } from '@/lib/signals/explosiveSignalProcessor';
+import { RealTimeSignalProcessor } from '@/lib/signals/realTimeSignalProcessor';
 import { 
   PredictiveSignalAggregated, 
   ExplosiveSignal, 
@@ -112,132 +112,37 @@ export const usePredictiveSignals = (
     staleTime: 10 * 60 * 1000, // 10 minutos
   });
 
-  // Processar e agregar sinais
+  // Processar e agregar sinais em tempo real baseados nos dados do mercado
   const processedSignals = useMemo(() => {
-    if (!cryptoData || !dbSignals || cryptoLoading || signalsLoading) {
+    if (!cryptoData || cryptoLoading) {
       return new Map<string, PredictiveSignalAggregated>();
     }
 
     const aggregatedSignals = new Map<string, PredictiveSignalAggregated>();
-    const cryptoMap = new Map(cryptoData.map(crypto => [crypto.symbol, crypto]));
-
-    // Agrupar sinais por símbolo
-    const signalsBySymbol = new Map<string, any[]>();
-    dbSignals.forEach(signal => {
-      if (!signalsBySymbol.has(signal.symbol)) {
-        signalsBySymbol.set(signal.symbol, []);
-      }
-      signalsBySymbol.get(signal.symbol)!.push(signal);
+    
+    // Filtrar cryptos que têm dados suficientes para análise
+    const validCryptos = cryptoData.filter(crypto => {
+      return crypto.price && 
+             crypto.change24h !== undefined &&
+             crypto.volume24h &&
+             (symbols.length === 0 || symbols.includes(crypto.symbol || ''));
     });
 
-    // Processar sinais para cada símbolo
-    signalsBySymbol.forEach((symbolSignals, symbol) => {
-      const crypto = cryptoMap.get(symbol);
-      if (!crypto) return;
-
-      const onChain = onChainData?.get(symbol);
-      
-      // Separar sinais por tipo
-      const explosiveSignals: ExplosiveSignal[] = [];
-      const edgeSignals: EdgeSignal[] = [];
-      const bottomSignals: BottomSignal[] = [];
-
-      symbolSignals.forEach(signal => {
-        const baseSignal = {
-          symbol: signal.symbol,
-          confidence: Number(signal.confidence),
-          factors: signal.factors || [],
-          timestamp: signal.updated_at
-        };
-
-        switch (signal.signal_type) {
-          case 'explosive_upside':
-            explosiveSignals.push({
-              ...baseSignal,
-              signalType: 'explosive_upside',
-              riskLevel: signal.risk_level as 'low' | 'medium' | 'high',
-              targetGain: Number(signal.target_gain),
-              timeframe: signal.timeframe
-            });
-            break;
-          
-          case 'accumulation_edge':
-          case 'distribution_edge':
-            edgeSignals.push({
-              ...baseSignal,
-              signalType: signal.signal_type as 'accumulation_edge' | 'distribution_edge',
-              strength: Number(signal.strength),
-              phase: signal.phase as 'early' | 'middle' | 'late',
-              volumeAnomaly: signal.volume_anomaly,
-              smartMoneyFlow: signal.smart_money_flow as 'in' | 'out' | 'neutral'
-            });
-            break;
-          
-          case 'reversal_bottom':
-          case 'capitulation_bottom':
-            bottomSignals.push({
-              ...baseSignal,
-              signalType: signal.signal_type as 'reversal_bottom' | 'capitulation_bottom',
-              supportLevel: Number(signal.support_level),
-              volumeProfile: signal.volume_profile as 'decreasing' | 'spike' | 'normal',
-              rsiDivergence: signal.rsi_divergence
-            });
-            break;
+    // Processar sinais para cada crypto válida
+    validCryptos.forEach(crypto => {
+      try {
+        const processedSignal = RealTimeSignalProcessor.processAllSignals(crypto);
+        
+        // Só incluir se houver sinais significativos
+        if (processedSignal.overallScore > 0 || 
+            processedSignal.explosiveSignals.length > 0 ||
+            processedSignal.edgeSignals.length > 0 ||
+            processedSignal.bottomSignals.length > 0) {
+          aggregatedSignals.set(crypto.symbol || '', processedSignal);
         }
-      });
-
-      // Gerar sinais adicionais em tempo real usando o processador
-      const realtimeExplosive = explosiveSignalProcessor.processExplosiveSignals(crypto, onChain);
-      const realtimeEdge = explosiveSignalProcessor.processEdgeSignals(crypto, onChain);
-      const realtimeBottom = explosiveSignalProcessor.processBottomSignals(crypto, onChain);
-
-      if (realtimeExplosive && realtimeExplosive.confidence >= minConfidence) {
-        explosiveSignals.push(realtimeExplosive);
+      } catch (error) {
+        console.warn(`Erro ao processar sinais para ${crypto.symbol}:`, error);
       }
-      if (realtimeEdge) {
-        edgeSignals.push(realtimeEdge);
-      }
-      if (realtimeBottom && realtimeBottom.confidence >= minConfidence) {
-        bottomSignals.push(realtimeBottom);
-      }
-
-      // Calcular score geral
-      const allSignals = [...explosiveSignals, ...edgeSignals, ...bottomSignals];
-      const totalConfidence = allSignals.reduce((sum, signal) => {
-        const signalStrength = 'confidence' in signal ? signal.confidence : 
-                              'strength' in signal ? signal.strength : 0;
-        return sum + signalStrength;
-      }, 0);
-      const overallScore = Math.min(100, allSignals.length > 0 ? (totalConfidence / allSignals.length) * 100 : 0);
-
-      // Determinar ação recomendada
-      let recommendedAction: 'buy' | 'sell' | 'hold' | 'watch' = 'watch';
-      let riskLevel: 'very_low' | 'low' | 'medium' | 'high' | 'very_high' = 'medium';
-
-      if (explosiveSignals.length > 0 && explosiveSignals[0].confidence > 0.8) {
-        recommendedAction = 'buy';
-        riskLevel = explosiveSignals[0].riskLevel === 'low' ? 'low' : 'medium';
-      } else if (edgeSignals.some(s => s.signalType === 'distribution_edge')) {
-        recommendedAction = 'sell';
-        riskLevel = 'medium';
-      } else if (bottomSignals.length > 0) {
-        recommendedAction = 'buy';
-        riskLevel = 'low';
-      } else if (overallScore > 70) {
-        recommendedAction = 'hold';
-      }
-
-      aggregatedSignals.set(symbol, {
-        symbol,
-        explosiveSignals,
-        edgeSignals,
-        bottomSignals,
-        onChainData: onChain || null,
-        overallScore,
-        recommendedAction,
-        riskLevel,
-        timestamp: new Date().toISOString()
-      });
     });
 
     return aggregatedSignals;
