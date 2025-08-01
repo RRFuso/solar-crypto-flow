@@ -140,6 +140,87 @@ export type Database = {
         }
         Relationships: []
       }
+      cryptocurrencies: {
+        Row: {
+          ath: number | null
+          ath_change_percentage: number | null
+          ath_date: string | null
+          atl: number | null
+          atl_change_percentage: number | null
+          atl_date: string | null
+          circulating_supply: number | null
+          created_at: string | null
+          current_price: number | null
+          high_24h: number | null
+          id: string
+          last_updated: string | null
+          low_24h: number | null
+          market_cap: number | null
+          market_cap_change_24h: number | null
+          market_cap_change_percentage_24h: number | null
+          market_cap_rank: number | null
+          name: string
+          price_change_24h: number | null
+          price_change_percentage_24h: number | null
+          symbol: string
+          total_supply: number | null
+          total_volume: number | null
+          volume_24h: number | null
+        }
+        Insert: {
+          ath?: number | null
+          ath_change_percentage?: number | null
+          ath_date?: string | null
+          atl?: number | null
+          atl_change_percentage?: number | null
+          atl_date?: string | null
+          circulating_supply?: number | null
+          created_at?: string | null
+          current_price?: number | null
+          high_24h?: number | null
+          id: string
+          last_updated?: string | null
+          low_24h?: number | null
+          market_cap?: number | null
+          market_cap_change_24h?: number | null
+          market_cap_change_percentage_24h?: number | null
+          market_cap_rank?: number | null
+          name: string
+          price_change_24h?: number | null
+          price_change_percentage_24h?: number | null
+          symbol: string
+          total_supply?: number | null
+          total_volume?: number | null
+          volume_24h?: number | null
+        }
+        Update: {
+          ath?: number | null
+          ath_change_percentage?: number | null
+          ath_date?: string | null
+          atl?: number | null
+          atl_change_percentage?: number | null
+          atl_date?: string | null
+          circulating_supply?: number | null
+          created_at?: string | null
+          current_price?: number | null
+          high_24h?: number | null
+          id?: string
+          last_updated?: string | null
+          low_24h?: number | null
+          market_cap?: number | null
+          market_cap_change_24h?: number | null
+          market_cap_change_percentage_24h?: number | null
+          market_cap_rank?: number | null
+          name?: string
+          price_change_24h?: number | null
+          price_change_percentage_24h?: number | null
+          symbol?: string
+          total_supply?: number | null
+          total_volume?: number | null
+          volume_24h?: number | null
+        }
+        Relationships: []
+      }
       predictive_signals: {
         Row: {
           confidence: number | null
