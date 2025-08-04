@@ -2,20 +2,26 @@
 import React, { memo } from 'react';
 import { AdvancedRealTimeChart } from 'react-ts-tradingview-widgets';
 import { Studies } from '@/types/tradingview';
+import { mapCoinGeckoToTradingView } from '@/lib/tradingViewMapping';
 
 interface CryptoChartProps {
   crypto: {
     id: string;
     name: string;
+    symbol?: string;
   };
   showBtcDominance?: boolean;
   timeframe?: "D" | "W" | "240"; // Added timeframe prop
 }
 
 const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: CryptoChartProps) => {
-  const symbol = showBtcDominance 
+  // Map CoinGecko ID to correct TradingView symbol
+  const tradingViewSymbol = showBtcDominance 
     ? 'BTC.D'
-    : 'USDT' // Now always using USDT pair except for BTC.D
+    : mapCoinGeckoToTradingView({ 
+        id: crypto.id, 
+        symbol: crypto.symbol || crypto.id.toUpperCase() 
+      });
   
   const containerId = `tradingview_chart_${crypto.id}_${timeframe}`;
   
@@ -25,12 +31,12 @@ const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: Cryp
         <h2 className="text-xl font-bold">
           {showBtcDominance
             ? 'Dominância do Bitcoin (BTC.D)'
-            : `${crypto.name} (${crypto.id}/USDT)`}
+            : `${crypto.name} (${tradingViewSymbol}/USDT)`}
         </h2>
       </div>
       <div className="h-[calc(100%-4rem)]">
         <AdvancedRealTimeChart
-          symbol={`BINANCE:${crypto.id}${symbol}`}
+          symbol={showBtcDominance ? 'BINANCE:BTC.D' : `BINANCE:${tradingViewSymbol}USDT`}
           theme="dark"
           autosize
           interval={timeframe}
