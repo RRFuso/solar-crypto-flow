@@ -122,10 +122,13 @@ export const usePredictiveSignals = (
     
     // Filtrar cryptos que têm dados suficientes para análise
     const validCryptos = cryptoData.filter(crypto => {
-      return crypto.price && 
-             crypto.change24h !== undefined &&
-             crypto.volume24h &&
-             (symbols.length === 0 || symbols.includes(crypto.symbol || ''));
+      const hasBasicData = crypto.price && 
+             (crypto.change24h !== undefined || crypto.priceChange24h !== undefined || crypto.performance !== undefined) &&
+             (crypto.volume24h || crypto.volume);
+      
+      const symbolMatches = symbols.length === 0 || symbols.includes(crypto.symbol || '');
+      
+      return hasBasicData && symbolMatches;
     });
 
     // Processar sinais para cada crypto válida
@@ -133,13 +136,8 @@ export const usePredictiveSignals = (
       try {
         const processedSignal = RealTimeSignalProcessor.processAllSignals(crypto);
         
-        // Só incluir se houver sinais significativos
-        if (processedSignal.overallScore > 0 || 
-            processedSignal.explosiveSignals.length > 0 ||
-            processedSignal.edgeSignals.length > 0 ||
-            processedSignal.bottomSignals.length > 0) {
-          aggregatedSignals.set(crypto.symbol || '', processedSignal);
-        }
+        // Incluir todos os sinais processados para exibição
+        aggregatedSignals.set(crypto.symbol || '', processedSignal);
       } catch (error) {
         console.warn(`Erro ao processar sinais para ${crypto.symbol}:`, error);
       }

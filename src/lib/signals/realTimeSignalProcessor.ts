@@ -14,14 +14,15 @@ export class RealTimeSignalProcessor {
     const signals: ExplosiveSignal[] = [];
     
     // Verificar condições para sinal explosivo
-    const volumeRatio = crypto.volume24h && crypto.avgVolume24h ? 
-      crypto.volume24h / crypto.avgVolume24h : 1;
+    const volume24h = crypto.volume24h || crypto.volume || 0;
+    const avgVolume = crypto.avgVolume24h || (volume24h * 0.8); // Fallback se não tiver histórico
+    const volumeRatio = avgVolume > 0 ? volume24h / avgVolume : 1;
     
-    const priceChange = crypto.change24h || 0;
+    const priceChange = crypto.change24h || crypto.priceChange24h || crypto.performance || 0;
     const rsi = crypto.rsi || 50;
     
-    // Sinal explosivo de alta
-    if (volumeRatio > 2.5 && priceChange > 5 && rsi > 45 && rsi < 75) {
+    // Sinal explosivo de alta (condições mais flexíveis)
+    if (volumeRatio > 1.5 && priceChange > 2 && rsi > 40 && rsi < 80) {
       const factors = [];
       
       if (volumeRatio > 3) factors.push(`Volume ${volumeRatio.toFixed(1)}x acima da média`);
@@ -48,13 +49,15 @@ export class RealTimeSignalProcessor {
   static processEdgeSignals(crypto: CryptoData): EdgeSignal[] {
     const signals: EdgeSignal[] = [];
     
-    const volumeRatio = crypto.volume24h && crypto.avgVolume24h ? 
-      crypto.volume24h / crypto.avgVolume24h : 1;
-    const priceChange = crypto.change24h || 0;
+    const volume24h = crypto.volume24h || crypto.volume || 0;
+    const avgVolume = crypto.avgVolume24h || (volume24h * 0.8);
+    const volumeRatio = avgVolume > 0 ? volume24h / avgVolume : 1;
+    
+    const priceChange = crypto.change24h || crypto.priceChange24h || crypto.performance || 0;
     const rsi = crypto.rsi || 50;
     
-    // Sinal de acumulação
-    if (rsi < 35 && volumeRatio > 1.5 && priceChange > -5 && priceChange < 2) {
+    // Sinal de acumulação (condições mais flexíveis)
+    if (rsi < 45 && volumeRatio > 1.2 && priceChange > -10 && priceChange < 5) {
       signals.push({
         symbol: crypto.symbol || '',
         signalType: 'accumulation_edge',
@@ -66,8 +69,8 @@ export class RealTimeSignalProcessor {
       });
     }
     
-    // Sinal de distribuição
-    if (rsi > 70 && volumeRatio > 2 && priceChange > 5) {
+    // Sinal de distribuição (condições mais flexíveis)
+    if (rsi > 60 && volumeRatio > 1.3 && priceChange > 2) {
       signals.push({
         symbol: crypto.symbol || '',
         signalType: 'distribution_edge',
@@ -86,13 +89,15 @@ export class RealTimeSignalProcessor {
   static processBottomSignals(crypto: CryptoData): BottomSignal[] {
     const signals: BottomSignal[] = [];
     
-    const volumeRatio = crypto.volume24h && crypto.avgVolume24h ? 
-      crypto.volume24h / crypto.avgVolume24h : 1;
-    const priceChange = crypto.change24h || 0;
+    const volume24h = crypto.volume24h || crypto.volume || 0;
+    const avgVolume = crypto.avgVolume24h || (volume24h * 0.8);
+    const volumeRatio = avgVolume > 0 ? volume24h / avgVolume : 1;
+    
+    const priceChange = crypto.change24h || crypto.priceChange24h || crypto.performance || 0;
     const rsi = crypto.rsi || 50;
     
-    // Sinal de reversão de fundo
-    if (rsi < 30 && priceChange < -5 && priceChange > -15 && volumeRatio > 1.5) {
+    // Sinal de reversão de fundo (condições mais flexíveis)
+    if (rsi < 40 && priceChange < -2 && priceChange > -20 && volumeRatio > 1.2) {
       signals.push({
         symbol: crypto.symbol || '',
         signalType: 'reversal_bottom',
@@ -104,8 +109,8 @@ export class RealTimeSignalProcessor {
       });
     }
     
-    // Sinal de capitulação
-    if (rsi < 25 && priceChange < -15 && volumeRatio > 3) {
+    // Sinal de capitulação (condições mais flexíveis)
+    if (rsi < 35 && priceChange < -8 && volumeRatio > 1.5) {
       signals.push({
         symbol: crypto.symbol || '',
         signalType: 'capitulation_bottom',
@@ -122,9 +127,11 @@ export class RealTimeSignalProcessor {
   
   // Gerar dados on-chain simulados baseados em condições de mercado
   static generateOnChainData(crypto: CryptoData): OnChainData {
-    const volumeRatio = crypto.volume24h && crypto.avgVolume24h ? 
-      crypto.volume24h / crypto.avgVolume24h : 1;
-    const priceChange = crypto.change24h || 0;
+    const volume24h = crypto.volume24h || crypto.volume || 0;
+    const avgVolume = crypto.avgVolume24h || (volume24h * 0.8);
+    const volumeRatio = avgVolume > 0 ? volume24h / avgVolume : 1;
+    
+    const priceChange = crypto.change24h || crypto.priceChange24h || crypto.performance || 0;
     const rsi = crypto.rsi || 50;
     
     // Calcular atividade de baleias baseada em volume e volatilidade
