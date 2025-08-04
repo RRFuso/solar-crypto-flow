@@ -147,7 +147,7 @@ export const COINGECKO_TO_TRADINGVIEW_MAPPING: Record<string, string> = {
  * Maps a CoinGecko crypto ID to the corresponding TradingView symbol
  * Falls back to the symbol property if no mapping is found
  */
-export function mapCoinGeckoToTradingView(crypto: { id: string; symbol: string }): string {
+export function mapCoinGeckoToTradingView(crypto: { id: string; symbol?: string }): string {
   // First try to get the mapped symbol from CoinGecko ID
   const mappedSymbol = COINGECKO_TO_TRADINGVIEW_MAPPING[crypto.id];
   if (mappedSymbol) {
@@ -155,7 +155,13 @@ export function mapCoinGeckoToTradingView(crypto: { id: string; symbol: string }
   }
   
   // If no mapping found, use the symbol and make sure it's uppercase
-  return crypto.symbol.toUpperCase();
+  // Add proper null/undefined checking
+  if (crypto.symbol && typeof crypto.symbol === 'string') {
+    return crypto.symbol.toUpperCase();
+  }
+  
+  // Final fallback: use the ID converted to uppercase
+  return crypto.id.toUpperCase();
 }
 
 /**

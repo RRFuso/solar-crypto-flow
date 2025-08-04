@@ -18,10 +18,7 @@ const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: Cryp
   // Map CoinGecko ID to correct TradingView symbol
   const tradingViewSymbol = showBtcDominance 
     ? 'BTC.D'
-    : mapCoinGeckoToTradingView({ 
-        id: crypto.id, 
-        symbol: crypto.symbol || crypto.id.toUpperCase() 
-      });
+    : mapCoinGeckoToTradingView(crypto);
   
   const containerId = `tradingview_chart_${crypto.id}_${timeframe}`;
   
