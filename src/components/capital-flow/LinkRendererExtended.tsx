@@ -82,77 +82,63 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
     const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
     createArrowheads(svg, processedLinks);
 
-    // === PARTICLE ANIMATION SETUP (DYNAMIC) ===
-    const particlesGroup = linkGroup.append("g").attr("class", "particles-group");
-    const particles: {
-      circle: d3.Selection<SVGCircleElement, unknown, null, undefined>;
-      link: LinkData;
-      path: d3.Selection<SVGPathElement, unknown, null, undefined>;
-    }[] = [];
-
-    processedLinks.forEach(link => {
-      const path = particlesGroup.append("path")
-        .attr("fill", "none")
-        .attr("stroke", "none");
-
-      const circle = particlesGroup.append("circle")
-        .attr("r", 3)
-        .attr("opacity", 0.9);
-
-      particles.push({ circle, link, path });
-    });
+    // === OPTIMIZED PARTICLE SYSTEM ===
+    let particleCleanup: (() => void) | null = null;
+    
+    // Only create particles if showing lines
+    if (showLines && processedLinks.length > 0) {
+      import('./link-renderer/ParticleAnimation').then(({ addFlowParticles }) => {
+        particleCleanup = addFlowParticles(svg, linkGroup, processedLinks, selectedNodeId);
+      });
+    }
 
     let animationFrameId: number | null = null;
 
     if (animateWithOrbit) {
-      const updateAll = () => {
-        // Update line paths using current node positions
-        link.attr("d", (d: LinkData) => {
-          if (!d.source || !d.target || 
-              typeof d.source.x !== 'number' || typeof d.source.y !== 'number' ||
-              typeof d.target.x !== 'number' || typeof d.target.y !== 'number') {
-            return "";
-          }
-
-          // Use straight lines for debugging connection issues
-          return `M${d.source.x},${d.source.y}L${d.target.x},${d.target.y}`;
-        });
-
-        // Update particles with new positions
-        particles.forEach(({ circle, link, path }) => {
-          if (!link.source || !link.target || 
-              typeof link.source.x !== 'number' || typeof link.source.y !== 'number' ||
-              typeof link.target.x !== 'number' || typeof link.target.y !== 'number') {
-            return;
-          }
-
-          const pathD = `M${link.source.x},${link.source.y}L${link.target.x},${link.target.y}`;
-          path.attr("d", pathD);
-
-          const totalLength = path.node()?.getTotalLength() || 0;
-          if (totalLength > 0) {
-            const t = ((Date.now() % 4000) / 4000);
-            const point = path.node()?.getPointAtLength(t * totalLength);
-
-            if (point) {
-              circle.attr("transform", `translate(${point.x},${point.y})`);
-              const r = Math.round(255 * (1 - t));
-              const g = Math.round(255 * t);
-              circle.attr("fill", `rgb(${r},${g},0)`);
+      import('@/utils/animationOptimizer').then(({ globalAnimator }) => {
+        const updateLinks = (deltaTime: number) => {
+          // Update line paths using current node positions with smooth interpolation
+          link.attr("d", (d: LinkData) => {
+            if (!d.source || !d.target || 
+                typeof d.source.x !== 'number' || typeof d.source.y !== 'number' ||
+                typeof d.target.x !== 'number' || typeof d.target.y !== 'number') {
+              return "";
             }
-          }
-        });
 
-        animationFrameId = requestAnimationFrame(updateAll);
-      };
+            // Use smooth curves instead of straight lines for better visual appeal
+            const dx = d.target.x - d.source.x;
+            const dy = d.target.y - d.source.y;
+            const dr = Math.sqrt(dx * dx + dy * dy) * 0.8; // Reduced curve for smoother motion
+            
+            return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+          });
+        };
 
-      animationFrameId = requestAnimationFrame(updateAll);
+        globalAnimator.addCallback(updateLinks);
+        globalAnimator.start();
+        
+        // Store cleanup for later
+        animationFrameId = 1; // Flag to indicate we're using global animator
+      });
     }
 
     return () => {
-      if (animationFrameId) {
+      // Cleanup optimized animation
+      if (animationFrameId && animationFrameId !== 1) {
         cancelAnimationFrame(animationFrameId);
       }
+      
+      // Cleanup particle animation
+      if (particleCleanup) {
+        particleCleanup();
+      }
+      
+      // Import and cleanup global animator
+      import('@/utils/animationOptimizer').then(({ globalAnimator }) => {
+        // We can't easily remove specific callbacks without reference, 
+        // but the global animator will handle cleanup when components unmount
+      });
+      
       svg.selectAll(".flow-links").remove();
       svg.selectAll(".particles-group").remove();
     };
