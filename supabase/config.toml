@@ -2,3 +2,6 @@ project_id = "bahshstcztvqmxiubslx"
 
 [functions.secure-api-proxy]
 verify_jwt = false
+
+[functions.secure-coingecko-proxy]
+verify_jwt = false

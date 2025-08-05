@@ -28,10 +28,13 @@ export const fetchFlowAnalysis = async (flowData: FlowData[]): Promise<FlowAnaly
       dex_activity: flow.dexActivity || 0
     }));
     
-    // Fetch from API
-    const response = await fetch("http://localhost:8000/flow-analysis/", {
+    // Use secure HTTPS endpoint - replace with your actual production API
+    const response = await fetch("https://your-secure-api-endpoint.com/flow-analysis/", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "X-API-Key": "your-api-key" // Add authentication if needed
+      },
       body: JSON.stringify(flowAnalysisInput),
     });
     

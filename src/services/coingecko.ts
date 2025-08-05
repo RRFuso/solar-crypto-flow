@@ -1,18 +1,18 @@
 
-import axios from 'axios';
-
-const COINGECKO_API_BASE_URL = 'https://api.coingecko.com/api/v3';
-const API_KEY = 'CG-2GUE8CoGiFxsBtGVK8aS7FJD'; // Provided by the user
+import { supabase } from '@/integrations/supabase/client';
 
 export const fetchCoinGeckoData = async (endpoint: string, params?: Record<string, any>) => {
   try {
-    const response = await axios.get(`${COINGECKO_API_BASE_URL}${endpoint}`, {
-      params: {
-        ...params,
-        x_cg_demo_api_key: API_KEY, // Use the provided API key
-      },
+    const { data, error } = await supabase.functions.invoke('secure-coingecko-proxy', {
+      body: { endpoint, params }
     });
-    return response.data;
+
+    if (error) {
+      console.error(`Error calling CoinGecko proxy for endpoint ${endpoint}:`, error);
+      throw error;
+    }
+
+    return data;
   } catch (error) {
     console.error(`Error fetching data from CoinGecko API for endpoint ${endpoint}:`, error);
     throw error;
