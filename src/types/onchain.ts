@@ -33,4 +33,8 @@ export interface OnChainMetrics {
   exchangeFlow: ExchangeFlow;
   whaleTransactions: WhaleTransaction[];
   holderDistribution: HolderDistribution;
+  activeAddresses?: number;
+  newWallets?: number;
+  whaleMovements?: number;
+  dormantWakeups?: number;
 }

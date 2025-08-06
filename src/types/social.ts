@@ -21,3 +21,10 @@ export interface SocialMentionsData {
   topMentions: CryptoMention[];
   mentionsOverTime: MentionTimeSeries[];
 }
+
+export interface SocialMetrics {
+  symbol: string;
+  sentiment: number;
+  mentionVolume: number;
+  lastUpdated: string;
+}

@@ -1,15 +1,25 @@
 
 import React from 'react';
 import { AdvancedAIDashboard } from '@/components/ai/AdvancedAIDashboard';
-import { OnChainInsightsPanel } from '@/components/onchain/OnChainInsightsPanel';
+import { ExplosiveSignalsPanel } from '@/components/signals/ExplosiveSignalsPanel';
 
 const AI: React.FC = () => {
   return (
-    <div className="space-y-6">
-      <AdvancedAIDashboard />
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Análise On-Chain Detalhada</h2>
-        <OnChainInsightsPanel symbol="ETH" />
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent">
+            🔥 AI Explosive Signals
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Máquina de detecção de explosões de preço em tempo real
+          </p>
+        </div>
+        
+        <div className="grid gap-6">
+          <ExplosiveSignalsPanel />
+          <AdvancedAIDashboard />
+        </div>
       </div>
     </div>
   );
