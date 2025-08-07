@@ -153,7 +153,7 @@ const CryptoPanel = () => {
           <CryptoChart 
             crypto={selectedCrypto} 
             timeframe={getTimeframe()}
-            key={`${selectedCrypto.id}-${getTimeframe()}`}
+            key={`${selectedCrypto.id}-${getTimeframe()}-${dataSource}`}
           />
         </div>
         <div className="absolute top-4 right-4">

@@ -1,5 +1,8 @@
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  createBrowserRouter,
+  RouterProvider,
+} from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -18,27 +21,35 @@ function TooltipRenderer() {
   return isTooltipVisible ? <UnifiedTooltip data={tooltipData} position={tooltipPosition} /> : null;
 }
 
+const router = createBrowserRouter([
+  {
+    path: "/auth",
+    element: <AuthPage />,
+  },
+  {
+    path: "/",
+    element: (
+      <ProtectedRoute>
+        <Index />
+      </ProtectedRoute>
+    ),
+  },
+], {
+  future: {
+    // Use `startTransition` for state updates, aligning with React 18 behavior.
+    v7_startTransition: true,
+  },
+});
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <OnChainDataProvider>
           <TooltipProvider>
-            <Router>
-              <Routes>
-                <Route path="/auth" element={<AuthPage />} />
-                <Route 
-                  path="/" 
-                  element={
-                    <ProtectedRoute>
-                      <Index />
-                    </ProtectedRoute>
-                  } 
-                />
-              </Routes>
-              <Toaster />
-              <TooltipRenderer />
-            </Router>
+            <RouterProvider router={router} />
+            <Toaster />
+            <TooltipRenderer />
           </TooltipProvider>
         </OnChainDataProvider>
       </AuthProvider>

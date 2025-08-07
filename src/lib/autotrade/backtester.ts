@@ -238,7 +238,7 @@ export class Backtester {
     const profitFactor = avgLoss > 0 ? avgWin / avgLoss : 0;
 
     // More robust drawdown calculation
-    let equityCurve = [initialCapital];
+    const equityCurve = [initialCapital];
     let runningCapital = initialCapital;
     for (const trade of trades) {
       runningCapital += trade.pnl;

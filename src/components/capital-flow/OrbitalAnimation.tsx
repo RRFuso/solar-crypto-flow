@@ -142,7 +142,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
     if (!centralNode) return;
 
     let animationFrameId: number;
-    let startTime = Date.now();
+    const startTime = Date.now();
 
     const animate = () => {
       const currentTime = Date.now();
