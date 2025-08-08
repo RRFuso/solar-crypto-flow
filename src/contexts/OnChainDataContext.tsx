@@ -1,8 +1,7 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { ExchangeFlow, WhaleTransaction } from '@/types/onchain';
-import { alternativeOnChainProvider } from '@/services/alternative-onchain';
-import { supabase } from '@/integrations/supabase/client';
+import { getFlowMetricsForSymbols } from '@/services/onchain-coingecko';
 
 interface OnChainData {
   whaleTransactions: WhaleTransaction[];
@@ -60,22 +59,22 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
     setLoadingSymbols(prev => new Set([...prev, ...symbolsToProcess]));
 
+    const metricsMap = await getFlowMetricsForSymbols(symbolsToProcess);
+
     await Promise.all(symbolsToProcess.map(async (symbol) => {
       try {
-        // Use alternative on-chain provider
-        const metrics = await alternativeOnChainProvider.getTokenMetrics(symbol);
+        const metrics = metricsMap.get(symbol) ?? { symbol, netFlow: 0, inflow: 0, outflow: 0, sentiment: 'Neutral' as const };
         
-        // Convert metrics to our format
         const exchangeFlow: ExchangeFlow = {
           symbol: symbol,
           timestamp: Date.now(),
           netFlow: metrics.netFlow,
-          inflow: Math.max(0, metrics.netFlow),
-          outflow: Math.max(0, -metrics.netFlow)
+          inflow: metrics.inflow,
+          outflow: metrics.outflow
         };
 
         const newData: OnChainData = { 
-          whaleTransactions: [], // Using aggregated whale activity instead
+          whaleTransactions: [],
           exchangeFlow: exchangeFlow 
         };
 
@@ -89,7 +88,7 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
           sentiment: metrics.sentiment
         };
 
-        console.log(`[OnChainData] Data for ${symbol}:`, { newData, newScore, metrics });
+        console.log(`[OnChainData] Data (CG) for ${symbol}:`, { newData, newScore, metrics });
 
         setOnChainData(prev => new Map(prev).set(symbol, newData));
         setSmartMoneyScores(prev => new Map(prev).set(symbol, newScore));
