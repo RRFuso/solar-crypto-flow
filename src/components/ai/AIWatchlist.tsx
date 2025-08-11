@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Prediction } from '@/lib/aiModel';
 import CryptoLogo from './CryptoLogo';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
@@ -98,11 +98,11 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     staleTime: 1000 * 60 * 5, // Cache de 5 minutos
   });
 
-  // Extract symbols from predictions for the hook
-  const symbols = predictions.map(p => p.symbol);
+  // Extract unique symbols from predictions for the hook
+  const symbols = useMemo(() => Array.from(new Set(predictions.map(p => p.symbol))), [predictions]);
   const { signals, signalsLoading, realtimeConnected } = usePriceActionSignals(symbols);
 
-  const filtered = predictions
+  const filteredSorted = predictions
     .filter(p =>
       p.symbol.toLowerCase().includes(search.toLowerCase()) ||
       (p.name && p.name.toLowerCase().includes(search.toLowerCase()))
@@ -110,15 +110,23 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     .sort((a, b) => {
       const aSignal = signals.get(a.symbol);
       const bSignal = signals.get(b.symbol);
-      const explosiveOrder = { 'High': 4, 'Medium': 3, 'Low': 2, 'None': 1 };
-      const aExplosive = explosiveOrder[aSignal?.explosivePotential || 'None'];
-      const bExplosive = explosiveOrder[bSignal?.explosivePotential || 'None'];
+      const explosiveOrder = { 'High': 4, 'Medium': 3, 'Low': 2, 'None': 1 } as const;
+      const aExplosive = explosiveOrder[(aSignal?.explosivePotential || 'None') as keyof typeof explosiveOrder];
+      const bExplosive = explosiveOrder[(bSignal?.explosivePotential || 'None') as keyof typeof explosiveOrder];
       if (aExplosive !== bExplosive) return bExplosive - aExplosive;
       return b.confidence - a.confidence;
     });
 
-  const bullish = filtered.filter(p => p.bullish).slice(0, maxItems);
-  const bearish = filtered.filter(p => !p.bullish).slice(0, maxItems);
+  // Deduplicate by symbol after sorting so the highest-ranked entry wins
+  const seenSymbols = new Set<string>();
+  const deduped = filteredSorted.filter(p => {
+    if (seenSymbols.has(p.symbol)) return false;
+    seenSymbols.add(p.symbol);
+    return true;
+  });
+
+  const bullish = deduped.filter(p => p.bullish).slice(0, maxItems);
+  const bearish = deduped.filter(p => !p.bullish).slice(0, maxItems);
 
   const getExplosiveBadge = (explosivePotential?: string) => {
     if (!explosivePotential || explosivePotential === 'None') return null;
