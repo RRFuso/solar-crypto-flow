@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { CryptoData } from '@/types/crypto';
 import { useCryptoData } from './useCryptoData';
 import { realDataCalculator } from '@/lib/signals/realDataCalculator';
+import { fetchTechnicalIndicators } from '@/lib/dataFetcher';
 
 /**
  * Hook para dados de crypto aprimorados com métricas reais calculadas
@@ -26,18 +27,21 @@ export const useEnhancedCryptoData = () => {
             if (!crypto.symbol) return crypto;
             
             // Calcular métricas reais em paralelo
-            const [avgVolume, volatility, supportResistance] = await Promise.all([
+            const [avgVolume, volatility, supportResistance, indicators] = await Promise.all([
               realDataCalculator.calculateRealAverageVolume(crypto.symbol, 7),
               realDataCalculator.calculateRealVolatility(crypto.symbol, 30),
-              realDataCalculator.calculateSupportResistance(crypto.symbol, 30)
+              realDataCalculator.calculateSupportResistance(crypto.symbol, 30),
+              fetchTechnicalIndicators(crypto.symbol, '4h')
             ]);
 
             return {
               ...crypto,
-              avgVolume24h: avgVolume > 0 ? avgVolume : crypto.volume24h * 0.8,
+              avgVolume24h: avgVolume > 0 ? avgVolume : (crypto.volume24h || crypto.volume || 0) * 0.8,
               volatility,
               supportLevel: supportResistance.support,
-              resistanceLevel: supportResistance.resistance
+              resistanceLevel: supportResistance.resistance,
+              rsi: indicators.rsi,
+              rsi4h: indicators.rsi4h
             };
           })
         );
@@ -48,10 +52,12 @@ export const useEnhancedCryptoData = () => {
         // Fallback para dados base com valores padrão
         const fallbackData = baseCryptoData.map(crypto => ({
           ...crypto,
-          avgVolume24h: crypto.volume24h ? crypto.volume24h * 0.8 : undefined,
+          avgVolume24h: crypto.volume24h ? crypto.volume24h * 0.8 : (crypto.volume || 0) * 0.8,
           volatility: 0.5, // Volatilidade padrão
           supportLevel: crypto.price ? crypto.price * 0.95 : undefined,
-          resistanceLevel: crypto.price ? crypto.price * 1.05 : undefined
+          resistanceLevel: crypto.price ? crypto.price * 1.05 : undefined,
+          rsi: 50,
+          rsi4h: 50
         }));
         setEnhancedData(fallbackData);
       } finally {
