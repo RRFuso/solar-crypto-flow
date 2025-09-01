@@ -13,7 +13,7 @@ export const SignalsSummary: React.FC<SignalsSummaryProps> = ({ className }) => 
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Target className="h-5 w-5" />
-          Resumo dos Sinais Preditivos
+          Resumo dos Insights Preditivos
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

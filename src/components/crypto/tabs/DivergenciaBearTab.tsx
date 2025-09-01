@@ -24,7 +24,7 @@ const DivergenciaBearTab = ({ cryptos, selectedCrypto, onSelectCrypto, searchTer
     <div className="h-full flex flex-col">
       <ColumnHeader 
         title="Divergência de Baixa" 
-        subtitle="Sinais de reversão de alta para baixa" 
+        subtitle="Insights de reversão de alta para baixa" 
       />
       <ScrollArea className="flex-1 px-4">
         <div className="space-y-4 py-4">

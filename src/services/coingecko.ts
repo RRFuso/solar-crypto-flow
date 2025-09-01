@@ -30,3 +30,23 @@ export const getCoinMarketChart = async (id: string, vs_currency: string = 'usd'
 export const getCoinData = async (id: string) => {
   return fetchCoinGeckoData(`/coins/${id}`);
 };
+
+export const getTrendingCoins = async () => {
+  return fetchCoinGeckoData('/search/trending');
+};
+
+export const getGlobalData = async () => {
+  return fetchCoinGeckoData('/global');
+};
+
+export const getMarkets = async (params: Record<string, any> = {}) => {
+  const defaultParams = {
+    vs_currency: 'usd',
+    order: 'market_cap_desc',
+    per_page: 250,
+    page: 1,
+    sparkline: false,
+    price_change_percentage: '1h,24h,7d'
+  };
+  return fetchCoinGeckoData('/coins/markets', { ...defaultParams, ...params });
+};

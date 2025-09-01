@@ -49,7 +49,7 @@ export const PredictiveSignalsPanel: React.FC<PredictiveSignalsPanelProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
-            Sinais Preditivos
+            Insights Preditivos
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -71,7 +71,7 @@ export const PredictiveSignalsPanel: React.FC<PredictiveSignalsPanelProps> = ({
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <CardTitle className="flex items-center gap-2">
           <Target className="h-5 w-5" />
-          Sinais Preditivos
+          Insights Preditivos
         </CardTitle>
         <Button variant="outline" size="sm" onClick={refreshSignals}>
           <Activity className="h-4 w-4 mr-2" />
@@ -82,8 +82,8 @@ export const PredictiveSignalsPanel: React.FC<PredictiveSignalsPanelProps> = ({
         {signalArray.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum sinal preditivo detectado</p>
-            <p className="text-sm">Os sinais aparecerão quando condições específicas forem atendidas</p>
+            <p>Nenhum insight preditivo detectado</p>
+            <p className="text-sm">Os insights aparecerão quando condições específicas forem atendidas</p>
           </div>
         ) : (
           signalArray.map((signal) => (
@@ -112,7 +112,7 @@ export const PredictiveSignalsPanel: React.FC<PredictiveSignalsPanelProps> = ({
               {signal.explosiveSignals.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="font-medium text-sm flex items-center gap-2">
-                    🚀 Sinais Explosivos ({signal.explosiveSignals.length})
+                    🚀 Insights Explosivos ({signal.explosiveSignals.length})
                   </h4>
                   {signal.explosiveSignals.map((explosive, idx) => (
                     <div
@@ -150,7 +150,7 @@ export const PredictiveSignalsPanel: React.FC<PredictiveSignalsPanelProps> = ({
               {signal.edgeSignals.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="font-medium text-sm flex items-center gap-2">
-                    📊 Sinais de Borda ({signal.edgeSignals.length})
+                    📊 Insights de Borda ({signal.edgeSignals.length})
                   </h4>
                   {signal.edgeSignals.map((edge, idx) => (
                     <div
@@ -187,7 +187,7 @@ export const PredictiveSignalsPanel: React.FC<PredictiveSignalsPanelProps> = ({
               {signal.bottomSignals.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="font-medium text-sm flex items-center gap-2">
-                    📉 Sinais de Fundo ({signal.bottomSignals.length})
+                    📉 Insights de Fundo ({signal.bottomSignals.length})
                   </h4>
                   {signal.bottomSignals.map((bottom, idx) => (
                     <div

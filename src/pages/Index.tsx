@@ -4,12 +4,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import CryptoPanel from "@/components/CryptoPanel";
 import CapitalFlowPanel from "@/components/capital-flow/CapitalFlowPanel";
-import AutoTradePanel from "@/components/autotrade/AutoTradePanel";
 import { PredictiveSignalsPanel } from "@/components/signals/PredictiveSignalsPanel";
 import UserMenu from "@/components/auth/UserMenu";
+import MarketContextPanel from "@/components/market-context/MarketContextPanel";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("capital-flow");
+  const [activeTab, setActiveTab] = useState("market-context");
 
   return (
     <DashboardLayout>
@@ -31,6 +31,12 @@ const Index = () => {
           <div className="flex-grow flex justify-center">
             <TabsList className="grid w-full max-w-2xl grid-cols-4 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 h-10">
               <TabsTrigger 
+                value="market-context" 
+                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-sm"
+              >
+                🌎 Market Context
+              </TabsTrigger>
+              <TabsTrigger 
                 value="capital-flow" 
                 className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-sm"
               >
@@ -40,19 +46,13 @@ const Index = () => {
                 value="signals" 
                 className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-sm"
               >
-                🎯 Sinais AI
+                🎯 Insights AI
               </TabsTrigger>
               <TabsTrigger 
                 value="crypto" 
                 className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-sm"
               >
                 📊 Market Data
-              </TabsTrigger>
-              <TabsTrigger 
-                value="autotrade" 
-                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-sm"
-              >
-                🤖 AutoTrade
               </TabsTrigger>
             </TabsList>
           </div>
@@ -61,6 +61,9 @@ const Index = () => {
         </header>
 
         <div className="flex-1 w-full overflow-hidden">
+          <TabsContent value="market-context" className="h-full w-full">
+            <MarketContextPanel />
+          </TabsContent>
           <TabsContent value="capital-flow" className="h-full w-full">
             <CapitalFlowPanel />
           </TabsContent>
@@ -72,9 +75,6 @@ const Index = () => {
           </TabsContent>
           <TabsContent value="crypto" className="h-full w-full">
             <CryptoPanel />
-          </TabsContent>
-          <TabsContent value="autotrade" className="h-full w-full">
-            <AutoTradePanel />
           </TabsContent>
         </div>
       </Tabs>

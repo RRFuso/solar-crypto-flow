@@ -28,6 +28,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       <main className="flex-1 flex flex-col w-full overflow-y-auto">
         {children}
       </main>
+      <footer className="flex-shrink-0 px-4 h-10 flex items-center justify-center border-t border-slate-700/50">
+        <p className="text-xs text-slate-400">
+          A Solar Crypto fornece dados, visualizações e insights com fins informativos/educacionais. Não é aconselhamento financeiro ou recomendação de compra/venda. Faça sua própria pesquisa (DYOR).
+        </p>
+      </footer>
     </div>
   );
 };

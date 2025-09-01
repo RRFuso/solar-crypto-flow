@@ -1,0 +1,44 @@
+[
+  {
+    "name": "AI",
+    "status": "Hot",
+    "description": "Narrativa de Inteligência Artificial continua forte com novos desenvolvimentos.",
+    "tokens": ["TAO", "RNDR", "FET", "AGIX"],
+    "momentum": 92
+  },
+  {
+    "name": "RWA (Real World Assets)",
+    "status": "Trending",
+    "description": "Tokenização de ativos do mundo real ganhando tração institucional.",
+    "tokens": ["ONDO", "POLYX", "OM", "TOKEN"],
+    "momentum": 85
+  },
+  {
+    "name": "DePIN",
+    "status": "Trending",
+    "description": "Redes de infraestrutura física descentralizada mostrando crescimento consistente.",
+    "tokens": ["HNT", "FIL", "AR", "THETA"],
+    "momentum": 78
+  },
+  {
+    "name": "Gaming (GameFi)",
+    "status": "Neutral",
+    "description": "Setor aguardando novos lançamentos de jogos AAA para reacender o interesse.",
+    "tokens": ["IMX", "GALA", "AXS", "RON"],
+    "momentum": 60
+  },
+  {
+    "name": "Memecoins",
+    "status": "Cooling",
+    "description": "Após um período de euforia, o volume e o interesse estão diminuindo.",
+    "tokens": ["DOGE", "SHIB", "PEPE", "WIF"],
+    "momentum": 45
+  },
+  {
+    "name": "Layer 2s",
+    "status": "Neutral",
+    "description": "Soluções de escalabilidade continuam sendo fundamentais, mas sem novos catalisadores.",
+    "tokens": ["ARB", "OP", "MATIC", "STRK"],
+    "momentum": 65
+  }
+]

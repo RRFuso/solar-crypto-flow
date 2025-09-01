@@ -425,7 +425,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
               
               {strategy.priceActionSignals && strategy.priceActionSignals.length > 0 && (
                 <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 p-3 rounded-lg border border-purple-500/30">
-                  <h4 className="font-medium mb-2 text-purple-300">🔥 Sinais de Price Action:</h4>
+                  <h4 className="font-medium mb-2 text-purple-300">🔥 Insights de Price Action:</h4>
                   <ul className="space-y-1">
                     {strategy.priceActionSignals.map((signal, idx) => (
                       <li key={idx} className="text-xs text-purple-200">• {signal}</li>

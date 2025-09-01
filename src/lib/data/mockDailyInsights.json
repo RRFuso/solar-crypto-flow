@@ -1,0 +1,52 @@
+[
+  {
+    "id": "insight-001",
+    "title": "Atividade On-Chain em Alta para BTC",
+    "description": "O número de endereços ativos na rede Bitcoin aumentou 15% nas últimas 24 horas, sugerindo um aumento no interesse e na atividade da rede.",
+    "evidence": [
+      { "metric": "Endereços Ativos", "value": "+15%", "source": "Glassnode" }
+    ],
+    "category": "On-Chain",
+    "sentiment": "Bullish"
+  },
+  {
+    "id": "insight-002",
+    "title": "Fluxo de Saída de ETH das Exchanges",
+    "description": "Um volume significativo de ETH foi movido para fora das exchanges centralizadas, o que historicamente indica uma tendência de HODLing.",
+    "evidence": [
+      { "metric": "Fluxo Líquido em Exchanges", "value": "-$1.2B", "source": "Nansen" }
+    ],
+    "category": "Fluxo de Capital",
+    "sentiment": "Bullish"
+  },
+  {
+    "id": "insight-003",
+    "title": "Narrativa de RWA Aquece",
+    "description": "O volume de negociação para tokens da categoria Real World Assets (RWA) subiu 40% na semana, impulsionado por notícias de tokenização.",
+    "evidence": [
+      { "metric": "Volume Semanal (RWA)", "value": "+40%", "source": "CoinGecko" }
+    ],
+    "category": "Narrativa",
+    "sentiment": "Neutral"
+  },
+  {
+    "id": "insight-004",
+    "title": "Funding Rates Negativos em Futuros de SOL",
+    "description": "As taxas de financiamento para futuros perpétuos de Solana estão negativas, indicando que os vendedores a descoberto estão pagando aos compradores, o que pode preceder um 'short squeeze'.",
+    "evidence": [
+      { "metric": "Funding Rate (SOL)", "value": "-0.025%", "source": "Binance" }
+    ],
+    "category": "Técnico",
+    "sentiment": "Bullish"
+  },
+  {
+    "id": "insight-005",
+    "title": "Sentimento Social em Queda para Memecoins",
+    "description": "A contagem de menções e o sentimento ponderado para as principais memecoins diminuíram, sugerindo uma rotação de atenção para outras narrativas.",
+    "evidence": [
+      { "metric": "Menções Sociais", "value": "-25%", "source": "Santiment" }
+    ],
+    "category": "Social",
+    "sentiment": "Bearish"
+  }
+]

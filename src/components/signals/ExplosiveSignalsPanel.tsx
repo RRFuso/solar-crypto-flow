@@ -14,7 +14,7 @@ export const ExplosiveSignalsPanel: React.FC = () => {
       <Card className="bg-background/95 backdrop-blur border-border/50">
         <CardHeader>
           <CardTitle className="text-xl font-bold bg-gradient-to-r from-neon-green via-neon-green/90 to-neon-green/70 bg-clip-text text-transparent">
-            🚀 Sinais Explosivos (Dados Reais)
+            🚀 Insights Explosivos (Dados Reais)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -36,7 +36,7 @@ export const ExplosiveSignalsPanel: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold bg-gradient-to-r from-neon-green via-neon-green/90 to-neon-green/70 bg-clip-text text-transparent">
-              🚀 Sinais Explosivos (Dados Reais)
+              🚀 Insights Explosivos (Dados Reais)
             </h2>
             {lastUpdate && (
               <p className="text-sm text-muted-foreground mt-1">
