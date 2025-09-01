@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.dune-fetch]
 verify_jwt = false
+
+[functions.onchain-oracle]
+verify_jwt = false

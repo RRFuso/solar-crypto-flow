@@ -1,16 +1,26 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { ExchangeFlow, WhaleTransaction } from '@/types/onchain';
-import { getFlowMetricsForSymbols } from '@/services/onchain-coingecko';
+import { 
+  fetchOnChainMetrics, 
+  fetchBatchOnChainMetrics, 
+  calculateSmartMoneyScore, 
+  getCachedOnChainData,
+  OnChainMetrics,
+  SmartMoneyScore as OracleSmartMoneyScore
+} from '@/services/onchain-oracle';
 
 interface OnChainData {
   whaleTransactions: WhaleTransaction[];
   exchangeFlow: ExchangeFlow | null;
+  metrics?: OnChainMetrics;
 }
 
 interface SmartMoneyScore {
   score: number;
   sentiment: 'Bearish' | 'Neutral' | 'Bullish';
+  confidence?: number;
+  factors?: string[];
 }
 
 interface OnChainDataContextType {
@@ -59,56 +69,101 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
 
     setLoadingSymbols(prev => new Set([...prev, ...symbolsToProcess]));
 
-    const metricsMap = await getFlowMetricsForSymbols(symbolsToProcess);
-
-    await Promise.all(symbolsToProcess.map(async (symbol) => {
-      try {
-        const metrics = metricsMap.get(symbol) ?? { symbol, netFlow: 0, inflow: 0, outflow: 0, sentiment: 'Neutral' as const };
+    console.log('Fetching real on-chain data for symbols:', symbolsToProcess);
+    
+    try {
+      if (symbolsToProcess.length === 1) {
+        // Single symbol - fetch real-time data
+        const symbol = symbolsToProcess[0];
+        const symbolUpper = symbol.toUpperCase();
         
-        const exchangeFlow: ExchangeFlow = {
-          symbol: symbol,
-          timestamp: Date.now(),
-          netFlow: metrics.netFlow,
-          inflow: metrics.inflow,
-          outflow: metrics.outflow
-        };
-
-        const newData: OnChainData = { 
-          whaleTransactions: [],
-          exchangeFlow: exchangeFlow 
-        };
-
-        // Convert metrics sentiment to score
-        let score = 0;
-        if (metrics.sentiment === 'Bullish') score = 7;
-        else if (metrics.sentiment === 'Bearish') score = -7;
-
-        const newScore: SmartMoneyScore = {
-          score: score,
-          sentiment: metrics.sentiment
-        };
-
-        console.log(`[OnChainData] Data (CG) for ${symbol}:`, { newData, newScore, metrics });
-
-        setOnChainData(prev => new Map(prev).set(symbol, newData));
-        setSmartMoneyScores(prev => new Map(prev).set(symbol, newScore));
-
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`[OnChainData] Failed to process ${symbol}: ${errorMessage}`);
+        // Try cached data first
+        let metrics = await getCachedOnChainData(symbolUpper);
         
-        // Set neutral score on error
-        setOnChainData(prev => new Map(prev).set(symbol, { whaleTransactions: [], exchangeFlow: null }));
-        setSmartMoneyScores(prev => new Map(prev).set(symbol, { score: 0, sentiment: 'Neutral' }));
-      } finally {
-        setLoadingSymbols(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(symbol);
-          return newSet;
+        // If no cached data or data is stale, fetch fresh data
+        if (!metrics || isDataStale(metrics.lastUpdated)) {
+          metrics = await fetchOnChainMetrics(symbolUpper);
+        }
+        
+        if (metrics) {
+          const exchangeFlow: ExchangeFlow = {
+            symbol: symbolUpper,
+            timestamp: Date.now(),
+            netFlow: metrics.netFlow,
+            inflow: metrics.exchangeInflow,
+            outflow: metrics.exchangeOutflow
+          };
+
+          const newData: OnChainData = {
+            whaleTransactions: [],
+            exchangeFlow,
+            metrics
+          };
+
+          const oracleScore = calculateSmartMoneyScore(metrics);
+          const smartScore: SmartMoneyScore = {
+            score: oracleScore.score,
+            sentiment: oracleScore.sentiment,
+            confidence: oracleScore.confidence,
+            factors: oracleScore.factors
+          };
+
+          setOnChainData(prev => new Map(prev).set(symbolUpper, newData));
+          setSmartMoneyScores(prev => new Map(prev).set(symbolUpper, smartScore));
+        }
+      } else {
+        // Multiple symbols - use batch processing
+        const metricsMap = await fetchBatchOnChainMetrics(symbolsToProcess);
+        
+        metricsMap.forEach((metrics, symbolUpper) => {
+          const exchangeFlow: ExchangeFlow = {
+            symbol: symbolUpper,
+            timestamp: Date.now(),
+            netFlow: metrics.netFlow,
+            inflow: metrics.exchangeInflow,
+            outflow: metrics.exchangeOutflow
+          };
+
+          const newData: OnChainData = {
+            whaleTransactions: [],
+            exchangeFlow,
+            metrics
+          };
+
+          const oracleScore = calculateSmartMoneyScore(metrics);
+          const smartScore: SmartMoneyScore = {
+            score: oracleScore.score,
+            sentiment: oracleScore.sentiment,
+            confidence: oracleScore.confidence,
+            factors: oracleScore.factors
+          };
+
+          setOnChainData(prev => new Map(prev).set(symbolUpper, newData));
+          setSmartMoneyScores(prev => new Map(prev).set(symbolUpper, smartScore));
         });
       }
-    }));
+    } catch (error) {
+      console.error('Error fetching on-chain data:', error);
+      // Set neutral scores for failed symbols
+      symbolsToProcess.forEach(symbol => {
+        const symbolUpper = symbol.toUpperCase();
+        setOnChainData(prev => new Map(prev).set(symbolUpper, { whaleTransactions: [], exchangeFlow: null }));
+        setSmartMoneyScores(prev => new Map(prev).set(symbolUpper, { score: 0, sentiment: 'Neutral' }));
+      });
+    } finally {
+      setLoadingSymbols(prev => {
+        const newSet = new Set(prev);
+        symbolsToProcess.forEach(symbol => newSet.delete(symbol));
+        return newSet;
+      });
+    }
   }, [onChainData, loadingSymbols]);
+
+  // Helper function to check if data is stale (older than 5 minutes)
+  const isDataStale = (lastUpdated: string): boolean => {
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    return new Date(lastUpdated).getTime() < fiveMinutesAgo;
+  };
 
   const isLoading = (symbol: string): boolean => loadingSymbols.has(symbol);
 
