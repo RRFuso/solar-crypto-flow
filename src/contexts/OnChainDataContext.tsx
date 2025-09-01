@@ -4,7 +4,7 @@ import { ExchangeFlow, WhaleTransaction } from '@/types/onchain';
 import { 
   fetchOnChainMetrics, 
   fetchBatchOnChainMetrics, 
-  calculateSmartMoneyScore, 
+  calculateSmartMoneyScore as calculateOracleSmartMoneyScore, 
   getCachedOnChainData,
   OnChainMetrics,
   SmartMoneyScore as OracleSmartMoneyScore
@@ -85,32 +85,32 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
           metrics = await fetchOnChainMetrics(symbolUpper);
         }
         
-        if (metrics) {
-          const exchangeFlow: ExchangeFlow = {
-            symbol: symbolUpper,
-            timestamp: Date.now(),
-            netFlow: metrics.netFlow,
-            inflow: metrics.exchangeInflow,
-            outflow: metrics.exchangeOutflow
-          };
+          if (metrics) {
+            const exchangeFlow: ExchangeFlow = {
+              symbol: symbolUpper,
+              timestamp: Date.now(),
+              netFlow: metrics.netFlow,
+              inflow: metrics.exchangeInflow,
+              outflow: metrics.exchangeOutflow
+            };
 
-          const newData: OnChainData = {
-            whaleTransactions: [],
-            exchangeFlow,
-            metrics
-          };
+            const newData: OnChainData = {
+              whaleTransactions: [],
+              exchangeFlow,
+              metrics
+            };
 
-          const oracleScore = calculateSmartMoneyScore(metrics);
-          const smartScore: SmartMoneyScore = {
-            score: oracleScore.score,
-            sentiment: oracleScore.sentiment,
-            confidence: oracleScore.confidence,
-            factors: oracleScore.factors
-          };
+            const oracleScore = calculateOracleSmartMoneyScore(metrics);
+            const smartScore: SmartMoneyScore = {
+              score: oracleScore.score,
+              sentiment: oracleScore.sentiment,
+              confidence: oracleScore.confidence,
+              factors: oracleScore.factors
+            };
 
-          setOnChainData(prev => new Map(prev).set(symbolUpper, newData));
-          setSmartMoneyScores(prev => new Map(prev).set(symbolUpper, smartScore));
-        }
+            setOnChainData(prev => new Map(prev).set(symbolUpper, newData));
+            setSmartMoneyScores(prev => new Map(prev).set(symbolUpper, smartScore));
+          }
       } else {
         // Multiple symbols - use batch processing
         const metricsMap = await fetchBatchOnChainMetrics(symbolsToProcess);
@@ -130,7 +130,7 @@ export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ childre
             metrics
           };
 
-          const oracleScore = calculateSmartMoneyScore(metrics);
+          const oracleScore = calculateOracleSmartMoneyScore(metrics);
           const smartScore: SmartMoneyScore = {
             score: oracleScore.score,
             sentiment: oracleScore.sentiment,
