@@ -14,14 +14,29 @@ export class AlternativeOnChainProvider {
   // Fetch data from CoinGlass (funding rates, liquidations)
   async fetchCoinGlassData(symbol: string): Promise<Partial<TokenMetrics>> {
     try {
-      // This would integrate with CoinGlass API for funding rates and liquidations
-      // For now, returning simulated data
-      const fundingRate = (Math.random() - 0.5) * 0.02; // -1% to 1%
-      const liquidations = Math.random() * 10000000; // Up to 10M USD
+      const response = await fetch(`https://api.coinglass.com/api/exchange/balance/list?symbol=${symbol.toUpperCase()}`);
+      if (!response.ok) {
+        throw new Error(`CoinGlass API error: ${response.status}`);
+      }
+      const result = await response.json();
+      if (result.code !== "0" || !result.data) {
+        throw new Error(`CoinGlass API error: ${result.msg}`);
+      }
+
+      // Aggregate the 24h balance change from all exchanges as a proxy for net flow
+      const netFlow = result.data.reduce((acc: number, exchange: any) => {
+        const balanceChange = (exchange.balance_change_percent_1d / 100) * exchange.total_balance;
+        return acc + (isNaN(balanceChange) ? 0 : balanceChange);
+      }, 0);
       
+      // Determine sentiment based on net flow
+      // Positive netFlow (balance increase on exchanges) is often Bearish (more supply to sell)
+      // Negative netFlow (balance decrease) is often Bullish (supply moving off exchanges)
+      const sentiment = netFlow > 0 ? 'Bearish' : netFlow < 0 ? 'Bullish' : 'Neutral';
+
       return {
-        netFlow: fundingRate * 1000000, // Convert to flow estimation
-        sentiment: fundingRate > 0.001 ? 'Bullish' : fundingRate < -0.001 ? 'Bearish' : 'Neutral'
+        netFlow: netFlow,
+        sentiment: sentiment
       };
     } catch (error) {
       console.error('Error fetching CoinGlass data:', error);

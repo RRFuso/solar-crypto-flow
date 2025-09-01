@@ -113,31 +113,30 @@ Deno.serve(async (req) => {
           console.error(`Error storing technical indicators for ${symbol}:`, techError);
         }
 
-        // Calculate and store on-chain metrics (simulated but with realistic patterns)
-        const onChainMetrics = calculateOnChainMetrics(ticker, technicalIndicators);
-        
-        const { error: onChainError } = await supabase
-          .from('crypto_onchain_metrics')
-          .upsert({
-            symbol,
-            active_addresses: onChainMetrics.activeAddresses,
-            new_wallets: onChainMetrics.newWallets,
-            whale_movements: onChainMetrics.whaleMovements,
-            dormant_wakeups: onChainMetrics.dormantWakeups,
-            exchange_inflow: onChainMetrics.exchangeInflow,
-            exchange_outflow: onChainMetrics.exchangeOutflow,
-            net_flow: onChainMetrics.netFlow,
-            large_transactions: onChainMetrics.largeTransactions,
-            timestamp: new Date().toISOString()
-          }, {
-            onConflict: 'symbol,timestamp'
-          });
+        // Fetch on-chain metrics from CoinGlass
+        const { error: invokeError } = await supabase.functions.invoke('coinglass-fetcher', {
+          body: { symbol },
+        });
 
-        if (onChainError) {
-          console.error(`Error storing on-chain metrics for ${symbol}:`, onChainError);
+        if (invokeError) {
+          console.error(`Error invoking coinglass-fetcher for ${symbol}:`, invokeError);
         }
 
-        // Calculate and store social metrics
+        // Read the newly stored on-chain metrics to use in potential calculation
+        const { data: onChainMetrics, error: onChainError } = await supabase
+          .from('crypto_onchain_metrics')
+          .select('exchange_net_flow')
+          .eq('symbol', symbol)
+          .order('timestamp', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (onChainError || !onChainMetrics) {
+          console.error(`Error fetching on-chain metrics for ${symbol}:`, onChainError);
+          continue; // Skip if we don't have on-chain data
+        }
+
+        // Calculate and store social metrics (still simulated)
         const socialMetrics = calculateSocialMetrics(ticker, technicalIndicators);
         
         const { error: socialError } = await supabase
@@ -160,7 +159,7 @@ Deno.serve(async (req) => {
           console.error(`Error storing social metrics for ${symbol}:`, socialError);
         }
 
-        // Calculate explosive potential
+        // Calculate explosive potential using real on-chain flow
         const explosivePotential = calculateExplosivePotential(ticker, technicalIndicators, onChainMetrics, socialMetrics);
         
         const { error: signalError } = await supabase
@@ -171,7 +170,7 @@ Deno.serve(async (req) => {
             volume_anomaly: explosivePotential.volumeAnomaly,
             price_momentum: explosivePotential.priceMomentum,
             social_buzz: explosivePotential.socialBuzz,
-            whale_activity: explosivePotential.whaleActivity,
+            whale_activity: explosivePotential.whaleActivity, // This is now based on net flow
             technical_breakout: explosivePotential.technicalBreakout,
             confidence_score: explosivePotential.confidence,
             prediction_horizon: '4h',
@@ -269,26 +268,7 @@ function calculateTechnicalIndicators(klineData: KlineData[]) {
   };
 }
 
-function calculateOnChainMetrics(ticker: BinanceTickerData, technicalIndicators: any) {
-  const volume = parseFloat(ticker.quoteVolume);
-  const priceChange = parseFloat(ticker.priceChangePercent);
-  const volumeRatio = volume / 10000000; // Normalize to millions
-  
-  // Simulate realistic on-chain metrics based on market data
-  const baseActiveAddresses = Math.floor(1000 + volumeRatio * 500);
-  const volatilityFactor = Math.abs(priceChange) / 10;
-  
-  return {
-    activeAddresses: Math.floor(baseActiveAddresses * (1 + volatilityFactor)),
-    newWallets: Math.floor(50 + volatilityFactor * 100),
-    whaleMovements: Math.floor(5 + volatilityFactor * 10),
-    dormantWakeups: Math.floor(10 + volatilityFactor * 20),
-    exchangeInflow: volume * 0.3 * (1 + Math.random() * 0.5),
-    exchangeOutflow: volume * 0.25 * (1 + Math.random() * 0.5),
-    netFlow: volume * 0.05 * (Math.random() - 0.5),
-    largeTransactions: Math.floor(20 + volatilityFactor * 40)
-  };
-}
+
 
 function calculateSocialMetrics(ticker: BinanceTickerData, technicalIndicators: any) {
   const priceChange = parseFloat(ticker.priceChangePercent);
@@ -323,8 +303,9 @@ function calculateExplosivePotential(ticker: BinanceTickerData, tech: any, onCha
   // Social buzz: high sentiment and mentions
   const socialBuzz = social.sentimentScore > 0.3 && social.mentionVolume > 300;
   
-  // Whale activity: high whale movements
-  const whaleActivity = onChain.whaleMovements > 10;
+  // Whale activity: significant net outflow from exchanges (bullish)
+  // A negative net flow means assets are leaving exchanges.
+  const whaleActivity = onChain.exchange_net_flow && onChain.exchange_net_flow < -1000000; // Example: > $1M outflow
   
   // Technical breakout: RSI conditions and price action
   const technicalBreakout = (rsi > 70 && priceChange > 0) || (rsi < 30 && priceChange < 0);
