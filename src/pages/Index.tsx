@@ -6,9 +6,8 @@ import CryptoPanel from "@/components/CryptoPanel";
 import CapitalFlowPanel from "@/components/capital-flow/CapitalFlowPanel";
 import { PredictiveSignalsPanel } from "@/components/signals/PredictiveSignalsPanel";
 import UserMenu from "@/components/auth/UserMenu";
-import MarketContextPanel from "@/components/market-context/MarketContextPanel";
-import { OnChainInsightsPanel } from '@/components/onchain/OnChainInsightsPanel';
-import { OnChainTestButton } from '@/components/onchain/OnChainTestButton';
+import { DynamicOnChainOracle } from '@/components/onchain/DynamicOnChainOracle';
+import { MarketContextAndAIPanel } from '@/components/market-context/MarketContextAndAIPanel';
 import { OnChainDataProvider } from '@/contexts/OnChainDataContext';
 
 const Index = () => {
@@ -33,12 +32,12 @@ const Index = () => {
           </div>
 
           <div className="flex-grow flex justify-center">
-            <TabsList className="grid w-full max-w-3xl grid-cols-5 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 h-10">
+            <TabsList className="grid w-full max-w-3xl grid-cols-4 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 h-10">
               <TabsTrigger 
                 value="market-context" 
                 className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs"
               >
-                🌎 Market Context
+                🧠 Market Context & AI
               </TabsTrigger>
               <TabsTrigger 
                 value="oracle" 
@@ -56,7 +55,7 @@ const Index = () => {
                 value="signals" 
                 className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs"
               >
-                🎯 Insights AI
+                🎯 Signals
               </TabsTrigger>
               <TabsTrigger 
                 value="crypto" 
@@ -72,29 +71,10 @@ const Index = () => {
 
         <div className="flex-1 w-full overflow-hidden">
           <TabsContent value="market-context" className="h-full w-full">
-            <MarketContextPanel />
+            <MarketContextAndAIPanel />
           </TabsContent>
-          <TabsContent value="oracle" className="h-full w-full p-6 space-y-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
-                  ⚡ Oráculo On-Chain em Tempo Real
-                </h2>
-                <p className="text-muted-foreground mt-2">
-                  Dados reais via Etherscan + Dune Analytics + CoinGecko
-                </p>
-              </div>
-              <OnChainTestButton />
-            </div>
-            
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <OnChainInsightsPanel symbol="BTC" />
-              <OnChainInsightsPanel symbol="ETH" />
-              <OnChainInsightsPanel symbol="USDT" />
-              <OnChainInsightsPanel symbol="BNB" />
-              <OnChainInsightsPanel symbol="SOL" />
-              <OnChainInsightsPanel symbol="ADA" />
-            </div>
+          <TabsContent value="oracle" className="h-full w-full p-6">
+            <DynamicOnChainOracle />
           </TabsContent>
           <TabsContent value="capital-flow" className="h-full w-full">
             <CapitalFlowPanel />
