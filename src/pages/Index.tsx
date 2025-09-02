@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import CryptoPanel from "@/components/CryptoPanel";
 import CapitalFlowPanel from "@/components/capital-flow/CapitalFlowPanel";
-import { PredictiveSignalsPanel } from "@/components/signals/PredictiveSignalsPanel";
+
 import UserMenu from "@/components/auth/UserMenu";
 import { DynamicOnChainOracle } from '@/components/onchain/DynamicOnChainOracle';
 import { MarketContextAndAIPanel } from '@/components/market-context/MarketContextAndAIPanel';
@@ -52,12 +52,6 @@ const Index = () => {
                 💰 Capital Flow
               </TabsTrigger>
               <TabsTrigger 
-                value="signals" 
-                className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs"
-              >
-                🎯 Signals
-              </TabsTrigger>
-              <TabsTrigger 
                 value="crypto" 
                 className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs"
               >
@@ -78,12 +72,6 @@ const Index = () => {
           </TabsContent>
           <TabsContent value="capital-flow" className="h-full w-full">
             <CapitalFlowPanel />
-          </TabsContent>
-          <TabsContent value="signals" className="h-full w-full p-6">
-            <PredictiveSignalsPanel 
-              symbols={['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'AVAX', 'DOT', 'LINK']}
-              className="h-full"
-            />
           </TabsContent>
           <TabsContent value="crypto" className="h-full w-full">
             <CryptoPanel />
