@@ -1,13 +1,14 @@
 
 import React, { useState } from 'react';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
+import { useOnChainData } from '@/contexts/OnChainDataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { TrendingUp, TrendingDown, AlertTriangle, Brain, Target, Shield, Clock, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertTriangle, Brain, Target, Shield, Clock, Zap, Loader2 } from 'lucide-react';
 import { ExplosiveWatchPanel } from './ExplosiveWatchPanel';
 
 export const AdvancedAIDashboard: React.FC = () => {
@@ -25,10 +26,18 @@ export const AdvancedAIDashboard: React.FC = () => {
     getInsightsByRecommendation
   } = useAdvancedAI(selectedSymbols, selectedTimeframe);
 
+  // Get on-chain data context for additional insights
+  const { smartMoneyScores, onChainData } = useOnChainData();
+
   const topOpportunities = getTopOpportunities(65);
   const highRiskAssets = getHighRiskAssets(65);
   const strongBuys = getInsightsByRecommendation('strong_buy');
   const strongSells = getInsightsByRecommendation('strong_sell');
+
+  // Calculate additional metrics from on-chain data
+  const totalOnChainSignals = Array.from(smartMoneyScores.values()).length;
+  const bullishOnChainSignals = Array.from(smartMoneyScores.values())
+    .filter(score => score.sentiment === 'Bullish').length;
 
   const getRecommendationColor = (recommendation: string) => {
     switch (recommendation) {
@@ -56,122 +65,157 @@ export const AdvancedAIDashboard: React.FC = () => {
 
   if (error) {
     return (
-      <div className="p-6 text-center">
-        <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-red-600 mb-2">AI Analysis Error</h3>
-        <p className="text-gray-600 mb-4">{error}</p>
-        <Button onClick={refreshInsights} variant="outline">
-          Retry Analysis
-        </Button>
-      </div>
+      <Card>
+        <CardContent className="p-6 text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-red-600 mb-2">AI Analysis Error</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={refreshInsights} variant="outline">
+            Retry Analysis
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Processando dados com IA avançada...</p>
+          <div className="text-xs text-muted-foreground mt-2">
+            Integrando dados técnicos, on-chain e de sentiment
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Brain className="w-8 h-8 text-blue-500" />
-          <div>
-            <h1 className="text-2xl font-bold">Advanced AI Market Intelligence</h1>
-            <p className="text-gray-600">
-              {lastUpdate 
-                ? `Last updated: ${lastUpdate.toLocaleTimeString()}`
-                : 'Initializing AI analysis...'
-              }
-            </p>
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Brain className="w-6 h-6 text-primary" />
+            <div>
+              <h1 className="text-xl font-bold">Advanced AI Market Intelligence</h1>
+              <p className="text-sm text-muted-foreground">
+                {lastUpdate 
+                  ? `Última atualização: ${lastUpdate.toLocaleTimeString()}`
+                  : 'Inicializando análise AI...'
+                }
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={refreshInsights} disabled={isLoading} variant="outline">
-            {isLoading ? 'Analyzing...' : 'Refresh Analysis'}
+          <Button onClick={refreshInsights} disabled={isLoading} variant="outline" size="sm">
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Analisando...
+              </>
+            ) : (
+              'Atualizar'
+            )}
           </Button>
-          {isLoading && <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />}
-        </div>
-      </div>
-
-      {/* Overview Cards & Explosive Watch */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-green-500" />
-                  <div>
-                    <p className="text-sm text-gray-600">Top Opportunities</p>
-                    <p className="text-2xl font-bold text-green-600">{topOpportunities.length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-blue-500" />
-                  <div>
-                    <p className="text-sm text-gray-600">Strong Buys</p>
-                    <p className="text-2xl font-bold text-blue-600">{strongBuys.length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-red-500" />
-                  <div>
-                    <p className="text-sm text-gray-600">High Risk</p>
-                    <p className="text-2xl font-bold text-red-600">{highRiskAssets.length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <Brain className="w-5 h-5 text-purple-500" />
-                  <div>
-                    <p className="text-sm text-gray-600">Assets Analyzed</p>
-                    <p className="text-2xl font-bold text-purple-600">{insights.size}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-        <ExplosiveWatchPanel />
-      </div>
-
-      {/* Main Content */}
-      <Tabs defaultValue="opportunities" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="opportunities">Opportunities</TabsTrigger>
-          <TabsTrigger value="predictions">Predictions</TabsTrigger>
-          <TabsTrigger value="patterns">Patterns</TabsTrigger>
-          <TabsTrigger value="risk">Risk Analysis</TabsTrigger>
-          <TabsTrigger value="insights">Deep Insights</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="opportunities" className="space-y-4">
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Overview Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="w-5 h-5" />
-                Top Trading Opportunities
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {topOpportunities.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">No high-confidence opportunities found</p>
-                ) : (
-                  topOpportunities.map((insight) => (
-                    <div key={insight.symbol} className="border rounded-lg p-4">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-green-500" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Oportunidades</p>
+                  <p className="text-lg font-bold text-green-600">{topOpportunities.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-blue-500" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Strong Buys</p>
+                  <p className="text-lg font-bold text-blue-600">{strongBuys.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-500" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Alto Risco</p>
+                  <p className="text-lg font-bold text-red-600">{highRiskAssets.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-purple-500" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Analisados</p>
+                  <p className="text-lg font-bold text-purple-600">{insights.size}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* On-Chain Integration Summary */}
+        {totalOnChainSignals > 0 && (
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm font-medium">Sinais On-Chain Ativos</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-xs">
+                    <span className="text-green-600 font-bold">{bullishOnChainSignals}</span>
+                    <span className="text-muted-foreground"> bullish de </span>
+                    <span className="font-bold">{totalOnChainSignals}</span>
+                  </div>
+                  <Progress value={(bullishOnChainSignals / totalOnChainSignals) * 100} className="w-16 h-2" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Main Content */}
+        <Tabs defaultValue="opportunities" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="opportunities">Opportunities</TabsTrigger>
+            <TabsTrigger value="predictions">Predictions</TabsTrigger>
+            <TabsTrigger value="patterns">Patterns</TabsTrigger>
+            <TabsTrigger value="risk">Risk Analysis</TabsTrigger>
+            <TabsTrigger value="insights">Deep Insights</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="opportunities" className="space-y-4">
+            <div className="space-y-4">
+              {topOpportunities.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <p className="text-muted-foreground">Nenhuma oportunidade de alta confiança encontrada</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                topOpportunities.map((insight) => (
+                  <Card key={insight.symbol}>
+                    <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
                           <h3 className="text-lg font-semibold">{insight.symbol}</h3>
@@ -181,24 +225,24 @@ export const AdvancedAIDashboard: React.FC = () => {
                           </Badge>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm text-gray-600">Confidence</p>
+                          <p className="text-sm text-muted-foreground">Confiança</p>
                           <p className="text-lg font-bold">{Math.round(insight.confidence)}%</p>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-3 gap-4 mb-3">
                         <div>
-                          <p className="text-sm text-gray-600">Opportunity Score</p>
+                          <p className="text-sm text-muted-foreground">Opportunity Score</p>
                           <Progress value={insight.opportunityScore} className="mt-1" />
                           <p className="text-xs text-right mt-1">{Math.round(insight.opportunityScore)}/100</p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-600">Risk Score</p>
+                          <p className="text-sm text-muted-foreground">Risk Score</p>
                           <Progress value={insight.riskScore} className="mt-1" />
                           <p className="text-xs text-right mt-1">{Math.round(insight.riskScore)}/100</p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-600">Explosive Potential</p>
+                          <p className="text-sm text-muted-foreground">Explosive Potential</p>
                           <Progress value={insight.features.explosivePotential} className="mt-1" />
                           <p className="text-xs text-right mt-1">{Math.round(insight.features.explosivePotential)}/100</p>
                         </div>
@@ -206,7 +250,7 @@ export const AdvancedAIDashboard: React.FC = () => {
 
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <p className="text-sm text-gray-600">Key Patterns</p>
+                          <p className="text-sm text-muted-foreground">Key Patterns</p>
                           <div className="space-y-1">
                             {insight.patterns.slice(0, 2).map((pattern, idx) => (
                               <Badge key={idx} variant="outline" className="text-xs">
@@ -216,30 +260,29 @@ export const AdvancedAIDashboard: React.FC = () => {
                           </div>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-600">Next 24h Prediction</p>
+                          <p className="text-sm text-muted-foreground">Previsão 24h</p>
                           <div className="flex items-center gap-2">
                             <span className={`text-sm font-medium ${
                               insight.predictions.find(p => p.horizon === '1d')?.direction === 'bullish' 
                                 ? 'text-green-600' 
                                 : insight.predictions.find(p => p.horizon === '1d')?.direction === 'bearish'
                                 ? 'text-red-600'
-                                : 'text-gray-600'
+                                : 'text-muted-foreground'
                             }`}>
                               {insight.predictions.find(p => p.horizon === '1d')?.direction?.toUpperCase() || 'NEUTRAL'}
                             </span>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-muted-foreground">
                               ({Math.round(insight.predictions.find(p => p.horizon === '1d')?.confidence || 0)}%)
                             </span>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
 
         <TabsContent value="predictions" className="space-y-4">
           <Card>
@@ -428,7 +471,8 @@ export const AdvancedAIDashboard: React.FC = () => {
             ))}
           </div>
         </TabsContent>
-      </Tabs>
-    </div>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };
