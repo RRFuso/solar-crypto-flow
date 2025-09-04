@@ -11,7 +11,7 @@ export const SIGNAL_CATEGORIES: Record<string, SignalCategory> = {
   explosive: {
     id: 'explosive',
     name: 'Potencial Explosivo',
-    color: 'hsl(330, 85%, 60%)', // Rosa/Magenta vibrante 
+    color: 'hsl(270, 85%, 65%)', // Roxo vibrante
     description: 'Alta probabilidade de movimento explosivo',
     emoji: '🚀'
   },
@@ -32,7 +32,7 @@ export const SIGNAL_CATEGORIES: Record<string, SignalCategory> = {
   reversal: {
     id: 'reversal',
     name: 'Reversão de Fundo',
-    color: 'hsl(200, 85%, 60%)', // Azul ciano claro - distintamente diferente do verde
+    color: 'hsl(195, 90%, 55%)', // Azul turquesa forte - bem distinto do verde
     description: 'Sinal de reversão de tendência de baixa',
     emoji: '🔁'
   },

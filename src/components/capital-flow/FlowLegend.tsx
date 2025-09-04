@@ -15,7 +15,7 @@ export const FlowLegend: React.FC = () => {
               style={{ backgroundColor: category.color }}
             ></div>
             <span className="text-slate-300 font-medium">
-              {category.emoji} {category.name}
+              {category.name}
             </span>
           </div>
         ))}
