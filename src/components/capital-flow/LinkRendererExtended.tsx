@@ -31,14 +31,21 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
     if (getCategoryColor) {
       return getCategoryColor(category);
     }
-    switch (category) {
-      case "🚀 Alta": return "#00FF88";
-      case "🏃 Fuga": return "#FF3366";
-      case "🧱 Acum.": return "#FFCC00";
-      case "🔁 Rev.": return "#00CCFF";
-      case "⚠️ Alert": return "#FF9900";
-      default: return "#8A9196";
-    }
+    
+    // Importar as constantes de sinais
+    const { getCategoryColor: getSignalCategoryColor } = require('./constants/signalCategories');
+    
+    // Mapear categorias antigas para novas
+    const categoryMapping: Record<string, string> = {
+      "🚀 Alta": "explosive",
+      "🏃 Fuga": "capitulation", 
+      "🧱 Acum.": "accumulation",
+      "🔁 Rev.": "reversal",
+      "⚠️ Alert": "distribution"
+    };
+    
+    const signalCategory = categoryMapping[category] || 'neutral';
+    return getSignalCategoryColor(signalCategory);
   };
 
   useEffect(() => {

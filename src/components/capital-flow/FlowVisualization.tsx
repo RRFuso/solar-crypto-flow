@@ -15,6 +15,7 @@ import { useCryptoData } from '@/hooks/useCryptoData';
 import { usePriceActionSignals } from '@/hooks/usePriceActionSignals';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 import { useOnChainData } from '@/contexts/OnChainDataContext';
+import { mapAIRecommendationToSignal, getCategoryColor as getSignalCategoryColor, determineCryptoSignalCategory } from './constants/signalCategories';
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
@@ -101,26 +102,17 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   const getCategoryColor = (symbol: string) => {
     const aiInsight = aiInsights.get(symbol);
     if (aiInsight) {
-      switch (aiInsight.recommendation) {
-        case "strong_buy": return "#00FF88";
-        case "buy": return "#66FF99";
-        case "hold": return "#8A2BE2";
-        case "sell": return "#FF6666";
-        case "strong_sell": return "#FF3366";
-        default: return "#8A9196";
-      }
+      const signalCategory = mapAIRecommendationToSignal(aiInsight.recommendation);
+      return getSignalCategoryColor(signalCategory);
     }
 
     const crypto = cryptoDataMap.get(symbol);
-    const category = crypto?.category;
-    switch (category) {
-      case "🚀 Alta": return "#00FF88";
-      case "🏃 Fuga": return "#FF3366";
-      case "🧱 Acum.": return "#FFCC00";
-      case "🔁 Rev.": return "#00CCFF";
-      case "⚠️ Alert": return "#FF9900";
-      case "Neutro": default: return "#8A9196";
+    if (crypto) {
+      const signalCategory = determineCryptoSignalCategory(crypto);
+      return getSignalCategoryColor(signalCategory);
     }
+
+    return getSignalCategoryColor('neutral');
   };
 
   if (loadingCryptoData || loadingSignals || loadingAI) {
