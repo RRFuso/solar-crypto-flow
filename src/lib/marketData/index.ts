@@ -8,13 +8,14 @@ import { prioritizeAndSortFlows, ensureMinimumBtcFlows } from './flowUtils';
 
 export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> => {
   try {
-    // Clear cache to ensure new configuration is used
+    // Clear all market data cache to force refresh with new low-cap focus
     const keys = Object.keys(sessionStorage);
     keys.forEach(key => {
-      if (key.startsWith('market-data-')) {
+      if (key.startsWith('market-data-') || key.startsWith('crypto-') || key.startsWith('flow-')) {
         sessionStorage.removeItem(key);
       }
     });
+    console.log('Cache cleared - prioritizing low market cap cryptos for altseason detection');
     
     // Add caching and retry logic
     const cacheKey = `market-data-${timeframe}-${new Date().toISOString().split('T')[0]}`;
@@ -27,9 +28,9 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
     // Implement retry logic
     const fetchWithRetry = async (retries = 3): Promise<MarketData[]> => {
       try {
-        const response = await fetch(
-          `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=500&sparkline=false&price_change_percentage=24h,7d,30d`
-        );
+    const response = await fetch(
+      `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=500&sparkline=false&price_change_percentage=24h,7d,30d`
+    );
         
         if (!response.ok) {
           throw new Error(`Failed to fetch market data: ${response.status}`);

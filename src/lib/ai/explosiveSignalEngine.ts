@@ -337,9 +337,14 @@ export class ExplosiveSignalEngine {
   }
 
   private calculateExpectedMove(confidence: number, feature: ExplosiveFeatures): number {
-    const baseMove = confidence * 15; // Base 15% for high confidence
-    const volumeMultiplier = Math.min(feature.volume24h / 2, 2); // Max 2x
-    return baseMove * volumeMultiplier;
+    // Base move calculation with low-cap altcoin potential boost
+    const baseMove = confidence * 20; // Increased base for altseason
+    const volumeMultiplier = Math.min(feature.volume24h / 2, 3); // Increased max multiplier
+    
+    // Low market cap coins get higher expected moves during altseason
+    const lowCapBonus = feature.symbol.length > 0 ? 1.5 : 1; // Simplified low cap detection
+    
+    return baseMove * volumeMultiplier * lowCapBonus;
   }
 
   private calculateConfidenceInterval(confidence: number): [number, number] {

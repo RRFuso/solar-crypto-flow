@@ -5,7 +5,9 @@ export const EXPLOSIVE_CRITERIA = {
   adxStrength: 1,
   emaCrossover: 3,
   bollingerBreakout: 1,
-  fibonacciSupport: 2
+  fibonacciSupport: 2,
+  lowMarketCap: 3,
+  midLowMarketCap: 2
 } as const;
 
 export type ExplosiveCriteria = keyof typeof EXPLOSIVE_CRITERIA;

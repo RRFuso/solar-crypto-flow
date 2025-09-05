@@ -8,6 +8,8 @@ export const calculateExplosiveScore = (
     high24h?: string;
     low24h?: string;
     rsi4h?: number;
+    marketCap?: number;
+    change24h?: number;
   },
   technicalData: {
     volumeEMA: number[];
@@ -78,6 +80,22 @@ export const calculateExplosiveScore = (
       score += EXPLOSIVE_CRITERIA.fibonacciSupport;
       criteriaHit.push('fibonacciSupport');
     }
+  }
+
+  // Low market cap bonus for altseason potential
+  const marketCap = crypto.marketCap || 0;
+  if (marketCap > 0 && marketCap < 100_000_000) { // Less than $100M
+    score += 3; // Significant bonus for low caps
+    criteriaHit.push('lowMarketCap' as ExplosiveCriteria);
+  } else if (marketCap < 500_000_000) { // Less than $500M
+    score += 2; // Moderate bonus for mid-low caps
+    criteriaHit.push('midLowMarketCap' as ExplosiveCriteria);
+  }
+
+  // Penalize cryptos that already pumped significantly
+  const change24h = crypto.change24h || 0;
+  if (change24h > 20) {
+    score = Math.max(0, score - 2); // Reduce score for already pumped coins
   }
 
   return { score, criteriaHit };
