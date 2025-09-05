@@ -11,3 +11,6 @@ export const MIN_BTC_FLOWS = 5;  // Minimum number of BTC flows to include
 export const TOP_COINS_COUNT = 8;  // Number of top coins to consider for synthetic flows
 export const MAX_FLOWS = 35;  // Increased number of flows to return
 export const TOTAL_COINS_FETCH = 500;  // Total coins to fetch from API
+
+// API endpoints
+export const SUPABASE_FUNCTIONS_URL = 'https://bahshstcztvqmxiubslx.supabase.co/functions/v1';

@@ -2,6 +2,7 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
+import { PopulateCryptoButton } from '../../ui/populate-crypto-button';
 
 interface FlowPanelHeaderProps {
   chartTimeframe: string;
@@ -35,18 +36,21 @@ export const FlowPanelHeader: React.FC<FlowPanelHeaderProps> = ({
           <p className="text-white/60 text-sm">Market capital movements in real time</p>
         </div>
       </div>
-      <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-md">
-        <Clock size={14} className="text-gray-400" />
-        <Select value={chartTimeframe} onValueChange={onChartTimeframeChange}>
-          <SelectTrigger className="w-24 border-none bg-transparent text-white/80 h-6 py-0 px-1">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-gray-900 border-gray-800">
-            {TIMEFRAMES.map(tf => (
-              <SelectItem key={tf.value} value={tf.value}>{tf.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex items-center gap-3">
+        <PopulateCryptoButton />
+        <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-md">
+          <Clock size={14} className="text-gray-400" />
+          <Select value={chartTimeframe} onValueChange={onChartTimeframeChange}>
+            <SelectTrigger className="w-24 border-none bg-transparent text-white/80 h-6 py-0 px-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-900 border-gray-800">
+              {TIMEFRAMES.map(tf => (
+                <SelectItem key={tf.value} value={tf.value}>{tf.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );
