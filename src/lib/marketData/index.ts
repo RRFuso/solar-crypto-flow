@@ -3,12 +3,19 @@ import { FlowData } from '@/types/crypto';
 import { COINGECKO_API, MAX_FLOWS, MIN_BTC_FLOWS } from './config';
 import { MarketData } from './types';
 import { extractBtcFlows, generateSyntheticBtcFlows } from './btcFlows';
-import { extractEthDefiFlows, extractPlatformFlows, extractMarketCapFlows, extractNarrativeFlows, extractLowCapGemFlows } from './altcoinFlows';
+import { extractEthDefiFlows, extractPlatformFlows, extractMarketCapFlows } from './altcoinFlows';
 import { prioritizeAndSortFlows, ensureMinimumBtcFlows } from './flowUtils';
-import './cacheUtils'; // Clear cache on import to use new config
 
 export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> => {
   try {
+    // Clear cache to ensure new configuration is used
+    const keys = Object.keys(sessionStorage);
+    keys.forEach(key => {
+      if (key.startsWith('market-data-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+    
     // Add caching and retry logic
     const cacheKey = `market-data-${timeframe}-${new Date().toISOString().split('T')[0]}`;
     const cachedData = sessionStorage.getItem(cacheKey);
@@ -89,11 +96,9 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
     const ethDefiFlows = extractEthDefiFlows(data);
     const platformFlows = extractPlatformFlows(data);
     const marketCapFlows = extractMarketCapFlows(data);
-    const narrativeFlows = extractNarrativeFlows(data);
-    const lowCapGemFlows = extractLowCapGemFlows(data);
     
     // Combine all flows
-    flows = [...flows, ...ethDefiFlows, ...platformFlows, ...marketCapFlows, ...narrativeFlows, ...lowCapGemFlows];
+    flows = [...flows, ...ethDefiFlows, ...platformFlows, ...marketCapFlows];
     
     // Prioritize and sort flows
     const sortedFlows = prioritizeAndSortFlows(flows);

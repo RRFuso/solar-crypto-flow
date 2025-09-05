@@ -5,7 +5,7 @@ import { Prediction } from '@/lib/aiModel';
 import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
 import { LinkData } from '@/types/capitalFlow';
 import { NarrativeNode } from '@/types/narratives';
-import { getCategoryColor as getSignalCategoryColor, determineFlowCategory } from './constants/signalCategories';
+import { getCategoryColor as getSignalCategoryColor } from './constants/signalCategories';
 
 export interface LinkRendererExtendedProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -28,16 +28,23 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
   getCategoryColor,
   showLines
 }) => {
-  const getColorForFlow = (flow: LinkData) => {
+  const getColorForFlow = (category: string) => {
     if (getCategoryColor) {
-      // Usar a nova função para determinar categoria baseada no flow
-      const category = determineFlowCategory(flow);
-      return getSignalCategoryColor(category);
+      return getCategoryColor(category);
     }
     
-    // Usar a nova função como fallback
-    const category = determineFlowCategory(flow);
-    return getSignalCategoryColor(category);
+    // Mapear categorias antigas para novas
+    const categoryMapping: Record<string, string> = {
+      "🚀 Alta": "explosive",
+      "🏃 Fuga": "capitulation", 
+      "🧱 Acum.": "accumulation",
+      "💰 Normal": "neutral",
+      "🔁 Rev.": "reversal",
+      "⚠️ Alert": "distribution"
+    };
+    
+    const signalCategory = categoryMapping[category] || 'neutral';
+    return getSignalCategoryColor(signalCategory);
   };
 
   useEffect(() => {
@@ -66,7 +73,7 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
         source: sourceNode,
         target: targetNode,
         markerId: `marker-${sourceNode.id}-${targetNode.id}`,
-        categoryColor: getColorForFlow(link)
+        categoryColor: link.fromCategory ? getColorForFlow(link.fromCategory) : null
       };
     }).filter(Boolean) as LinkData[];
 
