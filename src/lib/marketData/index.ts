@@ -3,8 +3,9 @@ import { FlowData } from '@/types/crypto';
 import { COINGECKO_API, MAX_FLOWS, MIN_BTC_FLOWS } from './config';
 import { MarketData } from './types';
 import { extractBtcFlows, generateSyntheticBtcFlows } from './btcFlows';
-import { extractEthDefiFlows, extractPlatformFlows, extractMarketCapFlows } from './altcoinFlows';
+import { extractEthDefiFlows, extractPlatformFlows, extractMarketCapFlows, extractNarrativeFlows, extractLowCapGemFlows } from './altcoinFlows';
 import { prioritizeAndSortFlows, ensureMinimumBtcFlows } from './flowUtils';
+import './cacheUtils'; // Clear cache on import to use new config
 
 export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> => {
   try {
@@ -20,7 +21,7 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
     const fetchWithRetry = async (retries = 3): Promise<MarketData[]> => {
       try {
         const response = await fetch(
-          `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&sparkline=false&price_change_percentage=24h,7d,30d`
+          `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=500&sparkline=false&price_change_percentage=24h,7d,30d`
         );
         
         if (!response.ok) {
@@ -88,9 +89,11 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
     const ethDefiFlows = extractEthDefiFlows(data);
     const platformFlows = extractPlatformFlows(data);
     const marketCapFlows = extractMarketCapFlows(data);
+    const narrativeFlows = extractNarrativeFlows(data);
+    const lowCapGemFlows = extractLowCapGemFlows(data);
     
     // Combine all flows
-    flows = [...flows, ...ethDefiFlows, ...platformFlows, ...marketCapFlows];
+    flows = [...flows, ...ethDefiFlows, ...platformFlows, ...marketCapFlows, ...narrativeFlows, ...lowCapGemFlows];
     
     // Prioritize and sort flows
     const sortedFlows = prioritizeAndSortFlows(flows);

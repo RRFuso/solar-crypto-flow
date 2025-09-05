@@ -5,6 +5,7 @@ import { Prediction } from '@/lib/aiModel';
 import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
 import { LinkData } from '@/types/capitalFlow';
 import { NarrativeNode } from '@/types/narratives';
+import { getCategoryColor as getSignalCategoryColor, determineFlowCategory } from './constants/signalCategories';
 
 export interface LinkRendererExtendedProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -27,25 +28,16 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
   getCategoryColor,
   showLines
 }) => {
-  const getColorForFlow = (category: string) => {
+  const getColorForFlow = (flow: LinkData) => {
     if (getCategoryColor) {
-      return getCategoryColor(category);
+      // Usar a nova função para determinar categoria baseada no flow
+      const category = determineFlowCategory(flow);
+      return getSignalCategoryColor(category);
     }
     
-    // Importar as constantes de sinais
-    const { getCategoryColor: getSignalCategoryColor } = require('./constants/signalCategories');
-    
-    // Mapear categorias antigas para novas
-    const categoryMapping: Record<string, string> = {
-      "🚀 Alta": "explosive",
-      "🏃 Fuga": "capitulation", 
-      "🧱 Acum.": "accumulation",
-      "🔁 Rev.": "reversal",
-      "⚠️ Alert": "distribution"
-    };
-    
-    const signalCategory = categoryMapping[category] || 'neutral';
-    return getSignalCategoryColor(signalCategory);
+    // Usar a nova função como fallback
+    const category = determineFlowCategory(flow);
+    return getSignalCategoryColor(category);
   };
 
   useEffect(() => {
@@ -74,7 +66,7 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
         source: sourceNode,
         target: targetNode,
         markerId: `marker-${sourceNode.id}-${targetNode.id}`,
-        categoryColor: link.fromCategory ? getColorForFlow(link.fromCategory) : null
+        categoryColor: getColorForFlow(link)
       };
     }).filter(Boolean) as LinkData[];
 

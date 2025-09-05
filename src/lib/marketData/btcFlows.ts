@@ -7,8 +7,8 @@ import { BTC_FLOW_THRESHOLD } from './config';
 export const extractBtcFlows = (data: MarketData[], btcData: MarketData): FlowData[] => {
   const flows: FlowData[] = [];
   
-  // BTC vs other major coins flows
-  data.slice(0, 20).forEach((coin) => {
+  // BTC vs other major coins flows (expanded range)
+  data.slice(0, 100).forEach((coin) => {
     if (coin.symbol !== 'btc' && coin.market_cap_change_percentage_24h) {
       const relativeFlow = coin.market_cap_change_percentage_24h - btcData.market_cap_change_percentage_24h;
       const flowMagnitude = (coin.market_cap * Math.abs(relativeFlow)) / btcData.market_cap / 10;
