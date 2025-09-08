@@ -3,14 +3,15 @@ import MarketRegime from './MarketRegime';
 import NarrativeMaps from './NarrativeMaps';
 import DailyInsights from './DailyInsights';
 import { AdvancedAIDashboard } from '@/components/ai/AdvancedAIDashboard';
+import ModernAIChatPanel from '@/components/ai/ModernAIChatPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Brain, TrendingUp } from 'lucide-react';
 
 export const MarketContextAndAIPanel: React.FC = () => {
   return (
-    <div className="h-full w-full p-4 grid grid-cols-1 md:grid-cols-3 gap-4 overflow-y-auto">
+    <div className="h-full w-full p-4 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto">
       {/* Left Column */}
-      <div className="md:col-span-1 space-y-4 flex flex-col">
+      <div className="space-y-4 flex flex-col">
         <MarketRegime />
         <Card className="flex-grow">
           <CardHeader>
@@ -36,11 +37,16 @@ export const MarketContextAndAIPanel: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+        <DailyInsights />
       </div>
 
-      {/* Middle Column */}
-      <div className="md:col-span-1 space-y-4 flex flex-col">
-        <DailyInsights />
+      {/* Middle Column - AI Chat */}
+      <div className="space-y-4 flex flex-col">
+        <ModernAIChatPanel />
+      </div>
+
+      {/* Right Column */}
+      <div className="xl:col-span-1 lg:col-span-2 xl:col-span-1 space-y-4 flex flex-col">
         <Card className="flex-grow">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -54,10 +60,6 @@ export const MarketContextAndAIPanel: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Right Column */}
-      <div className="md:col-span-1 flex flex-col">
         <AdvancedAIDashboard />
       </div>
     </div>
