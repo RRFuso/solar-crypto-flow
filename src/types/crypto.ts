@@ -98,7 +98,7 @@ export interface CryptoData {
   tokenPrivacyDescription?: string;
   tokenInteroperabilityDescription?: string;
   tokenSustainabilityDescription?: string;
-  tokenDecentralizationDescription?:.ts
+  tokenDecentralizationDescription?: string;
   tokenCommunityGovernanceDescription?: string;
   tokenTreasuryManagementDescription?: string;
   tokenRiskManagementDescription?: string;
