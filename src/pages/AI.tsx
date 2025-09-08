@@ -2,6 +2,8 @@
 import React from 'react';
 import { AdvancedAIDashboard } from '@/components/ai/AdvancedAIDashboard';
 import { ExplosiveSignalsPanel } from '@/components/signals/ExplosiveSignalsPanel';
+import AIAnalystPanel from '@/components/ai/AIAnalystPanel';
+import AIChatPanel from '@/components/ai/AIChatPanel';
 
 const AI: React.FC = () => {
   return (
@@ -16,6 +18,11 @@ const AI: React.FC = () => {
           </p>
         </div>
         
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <AIAnalystPanel />
+          <AIChatPanel />
+        </div>
+
         <div className="grid gap-6">
           <ExplosiveSignalsPanel />
           <AdvancedAIDashboard />

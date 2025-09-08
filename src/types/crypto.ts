@@ -98,7 +98,7 @@ export interface CryptoData {
   tokenPrivacyDescription?: string;
   tokenInteroperabilityDescription?: string;
   tokenSustainabilityDescription?: string;
-  tokenDecentralizationDescription?: string;
+  tokenDecentralizationDescription?:.ts
   tokenCommunityGovernanceDescription?: string;
   tokenTreasuryManagementDescription?: string;
   tokenRiskManagementDescription?: string;
@@ -185,4 +185,19 @@ export interface IndexData {
   change: number;
   color: string;
   marketCap?: number;
+}
+
+export interface FearGreedIndex {
+  value: string;
+  value_classification: string;
+  timestamp: string;
+  time_until_update?: string;
+}
+
+export interface LongShortRatio {
+  symbol: string;
+  longShortRatio: string;
+  longAccount: string;
+  shortAccount: string;
+  timestamp: number;
 }
