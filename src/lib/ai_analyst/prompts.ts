@@ -57,7 +57,7 @@ Based on your comprehensive analysis, generate a list of entry and exit signals 
 
 Please provide your response in a single, valid JSON object. Do not include any text or formatting outside of the JSON object.
 
-```json
+Example JSON format:
 {
   "entrySignals": [
     {
@@ -76,7 +76,6 @@ Please provide your response in a single, valid JSON object. Do not include any 
   ],
   "marketSummary": "..."
 }
-```
 `;
 
 export const AI_CHAT_PROMPT = `

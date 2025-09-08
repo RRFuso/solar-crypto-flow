@@ -7,7 +7,7 @@ const GEMINI_API_KEY = 'AIzaSyBWPTRMt8W_bjPB12_gt5cxISQdEKANpLE';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
 
 async function getSolarCryptoSignals(): Promise<any[]> {
-  const { data, error } = await supabase.from('crypto_signals').select('*');
+  const { data, error } = await supabase.from('crypto_price_action_signals').select('*');
   if (error) {
     console.error('Error fetching data from Supabase:', error);
     throw new Error('Failed to fetch data from Supabase.');
