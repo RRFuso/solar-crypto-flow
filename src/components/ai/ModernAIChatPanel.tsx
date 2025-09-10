@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Bot } from 'lucide-react';
+import { Send, Loader2, Bot, ChevronsUp, MessageSquare } from 'lucide-react';
 import { ChatMessage } from '@/types/ai_analyst';
 import { getAIChatResponse } from '@/lib/ai_analyst';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -13,11 +13,12 @@ const ModernAIChatPanel: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       sender: 'ai',
-      text: '🚀 Olá! Eu sou o Analista Cósmico, seu assistente de IA especializado em análise de mercado cripto. Como posso ajudá-lo a navegar pelos mercados hoje?'
+      text: '🚀 Olá! Eu sou o Analista Solar, seu assistente de IA especializado em análise de mercado cripto. Como posso ajudá-lo a navegar pelos mercados hoje?'
     }
   ]);
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -25,8 +26,10 @@ const ModernAIChatPanel: React.FC = () => {
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (!isMinimized) {
+      scrollToBottom();
+    }
+  }, [messages, isMinimized]);
 
   const handleSendMessage = async () => {
     if (!userInput.trim() || isLoading) return;
@@ -56,24 +59,38 @@ const ModernAIChatPanel: React.FC = () => {
     }
   };
 
+  if (isMinimized) {
+    return (
+      <Button
+        onClick={() => setIsMinimized(false)}
+        className="rounded-full w-16 h-16 bg-primary hover:bg-primary/90 shadow-lg"
+      >
+        <MessageSquare className="h-8 w-8 text-primary-foreground" />
+      </Button>
+    );
+  }
+
   return (
-    <Card className="h-[600px] flex flex-col bg-card/50 backdrop-blur-sm border-border/50">
+    <Card className="w-[400px] h-[600px] flex flex-col bg-card/50 backdrop-blur-sm border-border/50 shadow-2xl">
       {/* Header */}
-      <div className="p-4 border-b border-border/50 bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10">
+      <div className="p-4 border-b border-border/50 bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 ring-2 ring-primary/20">
-            <AvatarImage src={astronautAvatar} alt="Analista Cósmico" />
+            <AvatarImage src={astronautAvatar} alt="Analista Solar" />
             <AvatarFallback className="bg-primary/20">
               <Bot className="h-5 w-5" />
             </AvatarFallback>
           </Avatar>
           <div>
-            <h3 className="font-semibold text-foreground">Analista Cósmico</h3>
+            <h3 className="font-semibold text-foreground">Analista Solar</h3>
             <p className="text-sm text-muted-foreground">
-              {isLoading ? 'Analisando dados do espaço...' : 'Online • IA Especialista'}
+              {isLoading ? 'Analisando dados...' : 'Online'}
             </p>
           </div>
         </div>
+        <Button variant="ghost" size="icon" onClick={() => setIsMinimized(true)}>
+          <ChevronsUp className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Messages */}
@@ -88,7 +105,7 @@ const ModernAIChatPanel: React.FC = () => {
             >
               {msg.sender === 'ai' && (
                 <Avatar className="h-8 w-8 ring-1 ring-primary/20 shrink-0">
-                  <AvatarImage src={astronautAvatar} alt="Analista Cósmico" />
+                  <AvatarImage src={astronautAvatar} alt="Analista Solar" />
                   <AvatarFallback className="bg-primary/20 text-xs">
                     <Bot className="h-4 w-4" />
                   </AvatarFallback>
@@ -118,7 +135,7 @@ const ModernAIChatPanel: React.FC = () => {
           {isLoading && (
             <div className="flex gap-3 animate-fade-in">
               <Avatar className="h-8 w-8 ring-1 ring-primary/20 shrink-0">
-                <AvatarImage src={astronautAvatar} alt="Analista Cósmico" />
+                <AvatarImage src={astronautAvatar} alt="Analista Solar" />
                 <AvatarFallback className="bg-primary/20 text-xs">
                   <Bot className="h-4 w-4" />
                 </AvatarFallback>
@@ -126,7 +143,7 @@ const ModernAIChatPanel: React.FC = () => {
               <div className="bg-secondary/50 text-secondary-foreground border border-border/30 p-3 rounded-2xl">
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">Analisando dados cósmicos...</span>
+                  <span className="text-sm">Analisando...</span>
                 </div>
               </div>
             </div>
@@ -142,7 +159,7 @@ const ModernAIChatPanel: React.FC = () => {
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Pergunte sobre análises de mercado, sinais, ou estratégias..."
+            placeholder="Pergunte sobre o mercado..."
             disabled={isLoading}
             className="flex-1 bg-background/50 border-border/50 focus:ring-primary/20"
           />
@@ -160,7 +177,7 @@ const ModernAIChatPanel: React.FC = () => {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          🚀 Powered by Gemini AI • Pressione Enter para enviar
+          Powered by Gemini AI
         </p>
       </div>
     </Card>

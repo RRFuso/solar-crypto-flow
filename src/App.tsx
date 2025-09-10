@@ -11,6 +11,7 @@ import { OnChainDataProvider } from "@/contexts/OnChainDataContext";
 import { UnifiedTooltip } from "@/components/ui/UnifiedTooltip";
 import AuthPage from "@/components/auth/AuthPage";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import ModernAIChatPanel from "@/components/ai/ModernAIChatPanel";
 import Index from "./pages/Index";
 import "./App.css";
 
@@ -45,6 +46,9 @@ function App() {
             <RouterProvider router={router} />
             <Toaster />
             <TooltipRenderer />
+            <div className="fixed bottom-4 right-4 z-50">
+              <ModernAIChatPanel />
+            </div>
           </TooltipProvider>
         </OnChainDataProvider>
       </AuthProvider>

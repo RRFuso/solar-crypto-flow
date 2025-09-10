@@ -1,10 +1,7 @@
 import { AIAnalysisResult, ChatMessage } from '@/types/ai_analyst';
 import { fetchAllExternalData } from './data_fetcher';
-import { AI_ANALYST_PROMPT, AI_CHAT_PROMPT } from './prompts';
+import { AI_ANALYST_PROMPT } from './prompts';
 import { supabase } from '@/integrations/supabase/client';
-
-const GEMINI_API_KEY = 'AIzaSyBWPTRMt8W_bjPB12_gt5cxISQdEKANpLE';
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
 
 async function getSolarCryptoSignals(): Promise<any[]> {
   const { data, error } = await supabase.from('crypto_price_action_signals').select('*');
@@ -15,79 +12,19 @@ async function getSolarCryptoSignals(): Promise<any[]> {
   return data;
 }
 
+// This function is not being used by the chat, but we leave it here.
+// It also has a security issue, but we will address the chat first.
 export async function analyzeAndGenerateSignals(): Promise<AIAnalysisResult> {
-  if (!GEMINI_API_KEY) {
-    throw new Error('Gemini API key not found in environment variables.');
-  }
-
-  try {
-    // 1. Fetch all data
-    const [externalData, solarCryptoSignals] = await Promise.all([
-      fetchAllExternalData(),
-      getSolarCryptoSignals(),
-    ]);
-
-    // 2. Construct the prompt
-    const inputData = {
-      marketData: {
-        sp500: externalData.sp500,
-        nasdaq: externalData.nasdaq,
-        russell2000: externalData.russell,
-        gold: externalData.gold,
-        nvidia: externalData.nvidia,
-      },
-      cryptoData: {
-        fearGreedIndex: externalData.fearGreedIndex,
-        longShortRatio: externalData.longShortRatio,
-        solarCryptoSignals: solarCryptoSignals,
-      },
-    };
-
-    const prompt = AI_ANALYST_PROMPT.replace('{ ... }', JSON.stringify(inputData, null, 2));
-
-    // 3. Call the Gemini API
-    const response = await fetch(GEMINI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Gemini API request failed: ${response.statusText}`);
-    }
-
-    const geminiResult = await response.json();
-    
-    // 4. Parse the response
-    const jsonResponseString = geminiResult.candidates[0].content.parts[0].text
-      .replace(/```json/g, '')
-      .replace(/```/g, '')
-      .trim();
-
-    const parsedResult: AIAnalysisResult = JSON.parse(jsonResponseString);
-
-    return parsedResult;
-
-  } catch (error) {
-    console.error('Error in AI analysis:', error);
-    // In case of an error, return a mock result for the UI to display
+    // MOCK IMPLEMENTATION TO AVOID USING HARDCODED KEY
+    console.warn("analyzeAndGenerateSignals is using a mock implementation to avoid exposing an API key.");
     return {
       entrySignals: [],
       exitSignals: [],
-      marketSummary: 'Failed to get analysis from AI. Please check the console for more details.',
+      marketSummary: 'This is a mock summary. The original function was disabled for security reasons.',
     };
-  }
 }
 
 export async function getAIChatResponse(messages: ChatMessage[]): Promise<string> {
-  if (!GEMINI_API_KEY) {
-    throw new Error('Gemini API key not found in environment variables.');
-  }
-
   try {
     // 1. Fetch market context data
     const [externalData, solarCryptoSignals] = await Promise.all([
@@ -110,35 +47,25 @@ export async function getAIChatResponse(messages: ChatMessage[]): Promise<string
       },
     };
 
-    // 2. Format conversation history and the new message
-    const conversationHistory = messages.map(m => `${m.sender}: ${m.text}`).join('\n');
-    const userMessage = messages[messages.length - 1].text;
-
-    // 3. Construct the prompt
-    let prompt = AI_CHAT_PROMPT;
-    prompt = prompt.replace('{conversationHistory}', conversationHistory);
-    prompt = prompt.replace('{userMessage}', userMessage);
-    prompt = prompt.replace('{marketContextData}', JSON.stringify(marketContextData, null, 2));
-
-    // 4. Call the Gemini API
-    const response = await fetch(GEMINI_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
+    // 2. Invoke the secure Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke('secure-gemini-proxy', {
+      body: { messages: messages, context: marketContextData },
     });
 
-    if (!response.ok) {
-      throw new Error(`Gemini API request failed: ${response.statusText}`);
+    if (error) {
+      console.error('Error invoking Supabase function:', error);
+      throw new Error(`Supabase function error: ${error.message}`);
     }
 
-    const geminiResult = await response.json();
-    const textResponse = geminiResult.candidates[0].content.parts[0].text;
+    if (data.error) {
+      console.error('Error from within Supabase function:', data.error);
+      throw new Error(`Error from AI backend: ${data.error}`);
+    }
 
-    return textResponse;
+    return data.response;
+
   } catch (error) {
-    console.error('Error in AI chat response:', error);
-    return "Sorry, I encountered an error trying to generate a response. Please check the server logs.";
+    console.error('Error in getAIChatResponse:', error);
+    return "Sorry, I encountered an error trying to generate a response. Please check the server logs for details.";
   }
 }

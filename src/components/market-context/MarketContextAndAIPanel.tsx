@@ -3,7 +3,6 @@ import MarketRegime from './MarketRegime';
 import NarrativeMaps from './NarrativeMaps';
 import DailyInsights from './DailyInsights';
 import { AdvancedAIDashboard } from '@/components/ai/AdvancedAIDashboard';
-import ModernAIChatPanel from '@/components/ai/ModernAIChatPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Brain, TrendingUp } from 'lucide-react';
 
@@ -42,7 +41,7 @@ export const MarketContextAndAIPanel: React.FC = () => {
 
       {/* Middle Column - AI Chat */}
       <div className="space-y-4 flex flex-col">
-        <ModernAIChatPanel />
+        {/* AI Chat Panel Removed */}
       </div>
 
       {/* Right Column */}

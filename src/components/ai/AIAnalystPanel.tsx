@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AIAnalysisResult } from '@/types/ai_analyst';
 import { analyzeAndGenerateSignals } from '@/lib/ai_analyst';
-import ModernAIChatPanel from './ModernAIChatPanel';
 
 const AIAnalystPanel: React.FC = () => {
   const [analysis, setAnalysis] = useState<AIAnalysisResult | null>(null);
@@ -73,7 +72,6 @@ const AIAnalystPanel: React.FC = () => {
           </div>
         </div>
       </div>
-      <ModernAIChatPanel />
     </div>
   );
 };
