@@ -24,15 +24,7 @@ export async function fetchAllExternalData(): Promise<any> {
     return data;
   } catch (error) {
     console.error("Error fetching external market data:", error);
-    // Return a mock/fallback structure to prevent UI crashes
-    return {
-      fearGreedIndex: [],
-      longShortRatio: [],
-      sp500: {},
-      nasdaq: {},
-      russell: {},
-      nvidia: {},
-      gold: {},
-    };
+    // Re-throw the error to be caught by the calling function, making debugging clearer.
+    throw error;
   }
 }

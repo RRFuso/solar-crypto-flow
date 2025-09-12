@@ -1,4 +1,4 @@
-import { serve } from 'https-deno.land/std@0.168.0/http/server.ts'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
 const ALPHA_VANTAGE_API_KEY = Deno.env.get('ALPHA_VANTAGE_API_KEY')
@@ -35,18 +35,22 @@ async function getStockData(symbol: string) {
   return fetchJson(url)
 }
 
-// Fetch commodity data from Alpha Vantage
-async function getCommodityData(commodity: 'GOLD') {
-  if (!ALPHA_VANTAGE_API_KEY) {
-    throw new Error('Alpha Vantage API key not found in environment variables.')
-  }
-  const url = `${ALPHA_VANTAGE_BASE_URL}?function=WGC/GOLD_DAILY_USD&apikey=${ALPHA_VANTAGE_API_KEY}`
-  return fetchJson(url)
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  // Helper to wrap promises with error handling
+  const fetchWithErrorHandling = async <T>(
+    promise: Promise<T>,
+    identifier: string
+  ): Promise<T | null> => {
+    try {
+      return await promise
+    } catch (error) {
+      console.error(`Error fetching ${identifier}:`, error.message)
+      return null // Return null on failure
+    }
   }
 
   try {
@@ -59,17 +63,17 @@ serve(async (req) => {
       nvidia,
       gold,
     ] = await Promise.all([
-      getFearGreedIndex(),
-      getLongShortRatio('BTCUSDT'),
-      getStockData('SPY'), // SPDR S&P 500 ETF
-      getStockData('QQQ'), // Invesco QQQ Trust (Nasdaq-100)
-      getStockData('IWM'), // iShares Russell 2000 ETF
-      getStockData('NVDA'),
-      getCommodityData('GOLD'),
+      fetchWithErrorHandling(getFearGreedIndex(), 'Fear & Greed Index'),
+      fetchWithErrorHandling(getLongShortRatio('BTCUSDT'), 'Long/Short Ratio'),
+      fetchWithErrorHandling(getStockData('SPY'), 'S&P 500'),
+      fetchWithErrorHandling(getStockData('QQQ'), 'Nasdaq'),
+      fetchWithErrorHandling(getStockData('IWM'), 'Russell 2000'),
+      fetchWithErrorHandling(getStockData('NVDA'), 'NVIDIA'),
+      fetchWithErrorHandling(getStockData('GLD'), 'Gold (GLD ETF)'), // Corrected to use a reliable Gold ETF
     ])
 
     const responseData = {
-      fearGreedIndex: fearGreedIndex.data,
+      fearGreedIndex: fearGreedIndex?.data,
       longShortRatio,
       sp500,
       nasdaq,
@@ -83,7 +87,9 @@ serve(async (req) => {
       status: 200,
     })
   } catch (err) {
-    console.error(err)
+    // This outer catch is now for more general errors, 
+    // as individual fetch errors are handled.
+    console.error('General error in market data fetcher:', err)
     return new Response(JSON.stringify({ error: err.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

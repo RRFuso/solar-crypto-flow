@@ -32,20 +32,34 @@ export async function getAIChatResponse(messages: ChatMessage[]): Promise<string
       getSolarCryptoSignals(),
     ]);
 
-    const marketContextData = {
-      marketData: {
-        sp500: externalData.sp500,
-        nasdaq: externalData.nasdaq,
-        russell2000: externalData.russell,
-        gold: externalData.gold,
-        nvidia: externalData.nvidia,
-      },
-      cryptoData: {
-        fearGreedIndex: externalData.fearGreedIndex,
-        longShortRatio: externalData.longShortRatio,
-        solarCryptoSignals: solarCryptoSignals.slice(0, 20), // Limit signals to keep prompt size manageable
-      },
+    const marketContextData: any = {
+      marketData: {},
+      cryptoData: {},
     };
+
+    if (externalData.sp500) marketContextData.marketData.sp500 = externalData.sp500;
+    if (externalData.nasdaq) marketContextData.marketData.nasdaq = externalData.nasdaq;
+    if (externalData.russell) marketContextData.marketData.russell2000 = externalData.russell;
+    if (externalData.gold) marketContextData.marketData.gold = externalData.gold;
+    if (externalData.nvidia) marketContextData.marketData.nvidia = externalData.nvidia;
+
+    if (externalData.fearGreedIndex && externalData.fearGreedIndex.length > 0) {
+      marketContextData.cryptoData.fearGreedIndex = externalData.fearGreedIndex;
+    }
+    if (externalData.longShortRatio && externalData.longShortRatio.length > 0) {
+      marketContextData.cryptoData.longShortRatio = externalData.longShortRatio;
+    }
+    if (solarCryptoSignals && solarCryptoSignals.length > 0) {
+      marketContextData.cryptoData.solarCryptoSignals = solarCryptoSignals.slice(0, 20);
+    }
+
+    // Remove empty parent keys
+    if (Object.keys(marketContextData.marketData).length === 0) {
+      delete marketContextData.marketData;
+    }
+    if (Object.keys(marketContextData.cryptoData).length === 0) {
+      delete marketContextData.cryptoData;
+    }
 
     // 2. Invoke the secure Supabase Edge Function
     const { data, error } = await supabase.functions.invoke('secure-gemini-proxy', {
