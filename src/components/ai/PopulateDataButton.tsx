@@ -7,6 +7,34 @@ import { Database, Loader2, Zap } from 'lucide-react';
 const PopulateDataButton = () => {
   const [isPopulatingHistory, setIsPopulatingHistory] = useState(false);
   const [isPopulatingWatchlist, setIsPopulatingWatchlist] = useState(false);
+  const [isExpandingTokens, setIsExpandingTokens] = useState(false);
+
+  const expandTokenCoverage = async () => {
+    setIsExpandingTokens(true);
+    try {
+      toast.info('Expandindo cobertura de tokens...', {
+        description: 'Buscando todos os tokens disponíveis na Binance'
+      });
+
+      const { data, error } = await supabase.functions.invoke('binance-all-symbols');
+      
+      if (error) {
+        throw error;
+      }
+
+      toast.success('Cobertura de tokens expandida com sucesso!', {
+        description: `${data?.totalSymbols || 0} símbolos processados, ${data?.newCryptoEntries || 0} novos tokens adicionados`
+      });
+
+    } catch (error) {
+      console.error('Error expanding token coverage:', error);
+      toast.error('Erro ao expandir cobertura de tokens', {
+        description: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    } finally {
+      setIsExpandingTokens(false);
+    }
+  };
 
   const populatePriceHistory = async () => {
     setIsPopulatingHistory(true);
@@ -68,6 +96,21 @@ const PopulateDataButton = () => {
       </h3>
       
       <Button 
+        onClick={expandTokenCoverage}
+        disabled={isExpandingTokens}
+        variant="outline"
+        size="sm"
+        className="w-full justify-start"
+      >
+        {isExpandingTokens ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <Zap className="mr-2 h-4 w-4" />
+        )}
+        {isExpandingTokens ? 'Expandindo...' : 'Expandir Cobertura de Tokens'}
+      </Button>
+
+      <Button 
         onClick={populatePriceHistory}
         disabled={isPopulatingHistory}
         variant="outline"
@@ -82,7 +125,7 @@ const PopulateDataButton = () => {
         {isPopulatingHistory ? 'Populando...' : 'Popular Histórico de Preços'}
       </Button>
 
-      <Button 
+      <Button
         onClick={populateWatchlistSignals}
         disabled={isPopulatingWatchlist}
         variant="outline"
@@ -98,7 +141,9 @@ const PopulateDataButton = () => {
       </Button>
 
       <p className="text-xs text-gray-400 mt-2">
-        Clique nos botões acima para popular as tabelas necessárias para o funcionamento completo do analista AI.
+        <strong>1.</strong> Primeiro expanda a cobertura de tokens<br/>
+        <strong>2.</strong> Depois popule o histórico de preços<br/>
+        <strong>3.</strong> Por último, popule a AI Watchlist
       </p>
     </div>
   );
