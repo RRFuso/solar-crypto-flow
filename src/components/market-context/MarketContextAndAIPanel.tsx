@@ -5,6 +5,8 @@ import DailyInsights from './DailyInsights';
 import { AdvancedAIDashboard } from '@/components/ai/AdvancedAIDashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Brain, TrendingUp } from 'lucide-react';
+import ModernAIChatPanel from '../ai/ModernAIChatPanel';
+import PopulateDataButton from '../ai/PopulateDataButton';
 
 export const MarketContextAndAIPanel: React.FC = () => {
   return (
@@ -41,7 +43,10 @@ export const MarketContextAndAIPanel: React.FC = () => {
 
       {/* Middle Column - AI Chat */}
       <div className="space-y-4 flex flex-col">
-        {/* AI Chat Panel Removed */}
+        <PopulateDataButton />
+        <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-lg p-4 flex-1">
+          <ModernAIChatPanel />
+        </div>
       </div>
 
       {/* Right Column */}

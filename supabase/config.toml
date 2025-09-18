@@ -12,24 +12,29 @@ verify_jwt = false
 [functions.onchain-oracle]
 verify_jwt = false
 
+[functions.populate-crypto-signals]
+verify_jwt = false
+
+[functions.secure-market-data-fetcher]
+verify_jwt = false
+
+[functions.secure-gemini-proxy]
+verify_jwt = false
+
+[functions.crypto-data-collector]
+verify_jwt = false
+
+[functions.coinglass-fetcher]
+verify_jwt = false
+
 [functions.temp-migration-func]
-enabled = true
-verify_jwt = true
-import_map = "./functions/temp-migration-func/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/temp-migration-func/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/temp-migration-func/*.html" ]
+verify_jwt = false
 
 [functions.populate-price-history]
-enabled = true
-verify_jwt = true
-import_map = "./functions/populate-price-history/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/populate-price-history/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/populate-price-history/*.html" ]
+verify_jwt = false
+
+[functions.populate-watchlist-signals]
+verify_jwt = false
+
+[functions.populate-multiple-price-history]
+verify_jwt = false
