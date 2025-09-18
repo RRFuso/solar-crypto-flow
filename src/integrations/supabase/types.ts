@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_watchlist: {
+        Row: {
+          created_at: string | null
+          id: number
+          reason: string | null
+          symbol: string
+          upside_potential: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          reason?: string | null
+          symbol: string
+          upside_potential?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          reason?: string | null
+          symbol?: string
+          upside_potential?: number | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -50,6 +74,45 @@ export type Database = {
           table_name?: string | null
           user_agent?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      binance_symbols: {
+        Row: {
+          base_asset: string
+          binance_symbol: string
+          created_at: string
+          id: string
+          is_trading_allowed: boolean
+          last_price: number | null
+          price_change_percent_24h: number | null
+          quote_volume_24h: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          base_asset: string
+          binance_symbol: string
+          created_at?: string
+          id?: string
+          is_trading_allowed?: boolean
+          last_price?: number | null
+          price_change_percent_24h?: number | null
+          quote_volume_24h?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          base_asset?: string
+          binance_symbol?: string
+          created_at?: string
+          id?: string
+          is_trading_allowed?: boolean
+          last_price?: number | null
+          price_change_percent_24h?: number | null
+          quote_volume_24h?: number | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -137,6 +200,36 @@ export type Database = {
           smart_money_sentiment?: string | null
           symbol?: string
           whale_activity?: number | null
+        }
+        Relationships: []
+      }
+      crypto_price_history: {
+        Row: {
+          close: number
+          high: number
+          low: number
+          open: number
+          symbol: string
+          timestamp: string
+          volume: number
+        }
+        Insert: {
+          close: number
+          high: number
+          low: number
+          open: number
+          symbol: string
+          timestamp: string
+          volume: number
+        }
+        Update: {
+          close?: number
+          high?: number
+          low?: number
+          open?: number
+          symbol?: string
+          timestamp?: string
+          volume?: number
         }
         Relationships: []
       }
@@ -346,6 +439,18 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      get_price_history: {
+        Args: { p_end_time: string; p_start_time: string; p_symbol: string }
+        Returns: {
+          close: number
+          high: number
+          low: number
+          open: number
+          symbol: string
+          timestamp: string
+          volume: number
+        }[]
       }
       has_role: {
         Args: {
