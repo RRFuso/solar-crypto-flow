@@ -61,11 +61,12 @@ Deno.serve(async (req) => {
     const tickerData: BinanceTickerData[] = await tickerResponse.json();
     console.log(`Fetched ${tickerData.length} tickers from Binance`);
 
-    // Filter for top USDT pairs
+    // Filter for USDT pairs with expanded coverage
     const usdtPairs = tickerData
       .filter(ticker => ticker.symbol.endsWith('USDT'))
-      .filter(ticker => parseFloat(ticker.quoteVolume) > 1000000) // Min $1M daily volume
-      .slice(0, 50); // Top 50 by volume
+      .filter(ticker => parseFloat(ticker.quoteVolume) > 100000) // Reduced min to $100K daily volume
+      .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+      .slice(0, 200); // Expanded to top 200 by volume
 
     console.log(`Processing ${usdtPairs.length} USDT pairs`);
 

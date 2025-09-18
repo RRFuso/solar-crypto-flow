@@ -51,8 +51,8 @@ Deno.serve(async (req) => {
 
     const allCryptos: CoinGeckoMarketData[] = [];
 
-    // Fetch in batches to get 500 cryptocurrencies
-    for (let page = 1; page <= 2; page++) {
+    // Fetch in batches to get 2000+ cryptocurrencies
+    for (let page = 1; page <= 8; page++) {
       url.searchParams.set('page', page.toString());
       
       console.log(`Fetching page ${page} from CoinGecko...`);
@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
       console.log(`Fetched ${pageData.length} cryptocurrencies from page ${page}`);
       
       // Rate limiting - wait 1 second between requests
-      if (page < 2) {
+      if (page < 8) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }

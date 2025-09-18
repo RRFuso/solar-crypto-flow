@@ -30,6 +30,9 @@ verify_jwt = false
 [functions.temp-migration-func]
 verify_jwt = false
 
+[functions.binance-all-symbols]
+verify_jwt = false
+
 [functions.populate-price-history]
 verify_jwt = false
 
