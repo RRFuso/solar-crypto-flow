@@ -141,9 +141,9 @@ const PopulateDataButton = () => {
       </Button>
 
       <p className="text-xs text-gray-400 mt-2">
-        <strong>1.</strong> Primeiro expanda a cobertura de tokens<br/>
-        <strong>2.</strong> Depois popule o histórico de preços<br/>
-        <strong>3.</strong> Por último, popule a AI Watchlist
+        <strong>1.</strong> Primeiro expanda a cobertura de tokens (BROCCOLI714, DEXE, LA etc.)<br/>
+        <strong>2.</strong> Depois popule o histórico de preços para análise<br/>
+        <strong>3.</strong> Por último, popule a AI Watchlist com sinais
       </p>
     </div>
   );
