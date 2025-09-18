@@ -78,12 +78,12 @@ Deno.serve(async (req) => {
     if (watchlistEntries.length > 0) {
       console.log(`Inserting ${watchlistEntries.length} watchlist entries...`)
       
+      // Delete existing entries first
+      await supabase.from('ai_watchlist').delete().neq('id', 0)
+      
       const { error: insertError } = await supabase
         .from('ai_watchlist')
-        .upsert(watchlistEntries, { 
-          onConflict: 'symbol',
-          ignoreDuplicates: false 
-        })
+        .insert(watchlistEntries)
 
       if (insertError) {
         throw insertError

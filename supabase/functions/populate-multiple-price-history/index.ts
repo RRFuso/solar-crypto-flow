@@ -8,13 +8,38 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-// Top cryptocurrencies to populate
-const TOP_CRYPTOS = [
-  'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT', 
-  'SOLUSDT', 'DOGEUSDT', 'TRXUSDT', 'LINKUSDT', 'AVAXUSDT',
-  'DOTUSDT', 'MATICUSDT', 'LTCUSDT', 'UNIUSDT', 'ATOMUSDT',
-  'FILUSDT', 'VETUSDT', 'ETCUSDT', 'XLMUSDT', 'ALGOUSDT'
-]
+async function getAllCryptosFromDatabase(): Promise<string[]> {
+  try {
+    const { data: cryptos, error } = await supabase
+      .from('cryptocurrencies')
+      .select('symbol')
+      .order('market_cap_rank', { ascending: true })
+      .limit(200)
+    
+    if (error) {
+      console.error('Error fetching cryptos from database:', error)
+      // Fallback to top cryptos
+      return [
+        'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT', 
+        'SOLUSDT', 'DOGEUSDT', 'TRXUSDT', 'LINKUSDT', 'AVAXUSDT',
+        'DOTUSDT', 'MATICUSDT', 'LTCUSDT', 'UNIUSDT', 'ATOMUSDT',
+        'FILUSDT', 'VETUSDT', 'ETCUSDT', 'XLMUSDT', 'ALGOUSDT'
+      ]
+    }
+    
+    // Convert symbols to Binance format (add USDT if not present)
+    return cryptos?.map(crypto => {
+      const symbol = crypto.symbol.toUpperCase()
+      return symbol.endsWith('USDT') ? symbol : `${symbol}USDT`
+    }) || []
+  } catch (error) {
+    console.error('Error in getAllCryptosFromDatabase:', error)
+    return [
+      'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT', 
+      'SOLUSDT', 'DOGEUSDT', 'TRXUSDT', 'LINKUSDT', 'AVAXUSDT'
+    ]
+  }
+}
 
 async function fetchPriceHistoryForSymbol(symbol: string): Promise<any[]> {
   try {
@@ -54,18 +79,21 @@ Deno.serve(async (req) => {
   try {
     console.log('Starting bulk price history population...')
     
+    const allCryptos = await getAllCryptosFromDatabase()
+    console.log(`Found ${allCryptos.length} cryptocurrencies to process`)
+    
     const allHistoryData = []
     
     // Fetch data for all symbols with rate limiting
-    for (let i = 0; i < TOP_CRYPTOS.length; i++) {
-      const symbol = TOP_CRYPTOS[i]
+    for (let i = 0; i < allCryptos.length; i++) {
+      const symbol = allCryptos[i]
       
       try {
         const historyData = await fetchPriceHistoryForSymbol(symbol)
         allHistoryData.push(...historyData)
         
         // Rate limiting - wait 100ms between requests
-        if (i < TOP_CRYPTOS.length - 1) {
+        if (i < allCryptos.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 100))
         }
         
@@ -101,7 +129,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      symbols_processed: TOP_CRYPTOS.length,
+      symbols_processed: allCryptos.length,
       records_inserted: allHistoryData.length
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
