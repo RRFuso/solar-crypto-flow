@@ -1,0 +1,1 @@
+SELECT 'cryptocurrencies' AS table_name, COUNT(*) FROM public.cryptocurrencies;

@@ -42,10 +42,11 @@ const ModernAIChatPanel: React.FC = () => {
     try {
       const aiResponse = await getAIChatResponse(newMessages);
       setMessages([...newMessages, { sender: 'ai', text: aiResponse }]);
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.message || 'An unknown error occurred.';
       setMessages([...newMessages, { 
         sender: 'ai', 
-        text: '🛰️ Desculpe, encontrei uma interferência cósmica. Tente novamente em alguns instantes.' 
+        text: `🛰️ Desculpe, ocorreu um erro:\n\n${errorMessage}`
       }]);
     } finally {
       setIsLoading(false);
