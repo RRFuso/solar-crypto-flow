@@ -5,12 +5,10 @@ import DailyInsights from './DailyInsights';
 import { AdvancedAIDashboard } from '@/components/ai/AdvancedAIDashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Brain, TrendingUp } from 'lucide-react';
-import ModernAIChatPanel from '../ai/ModernAIChatPanel';
-import PopulateDataButton from '../ai/PopulateDataButton';
 
 export const MarketContextAndAIPanel: React.FC = () => {
   return (
-    <div className="h-full w-full p-4 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto">
+    <div className="h-full w-full p-4 grid grid-cols-1 xl:grid-cols-2 gap-4 overflow-y-auto">
       {/* Left Column */}
       <div className="space-y-4 flex flex-col">
         <MarketRegime />
@@ -41,17 +39,9 @@ export const MarketContextAndAIPanel: React.FC = () => {
         <DailyInsights />
       </div>
 
-      {/* Middle Column - AI Chat */}
-      <div className="space-y-4 flex flex-col">
-        <PopulateDataButton />
-        <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-lg p-4 flex-1">
-          <ModernAIChatPanel />
-        </div>
-      </div>
-
       {/* Right Column */}
-      <div className="xl:col-span-1 lg:col-span-2 xl:col-span-1 space-y-4 flex flex-col">
-        <Card className="flex-grow">
+      <div className="space-y-4 flex flex-col">
+        <Card className="flex-grow h-full">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Brain className="h-5 w-5" />

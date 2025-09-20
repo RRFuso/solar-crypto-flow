@@ -7,10 +7,15 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, Database } from 'lucide-react';
 
-const UserMenu: React.FC = () => {
+interface UserMenuProps {
+  openDataPopulationModal: () => void;
+}
+
+const UserMenu: React.FC<UserMenuProps> = ({ openDataPopulationModal }) => {
   const { user, signOut } = useAuth();
 
   if (!user) return null;
@@ -23,10 +28,22 @@ const UserMenu: React.FC = () => {
           {user.email?.split('@')[0]}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+      <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 text-white">
+        {user.email === 'prof.rafaelfuso@gmail.com' && (
+          <>
+            <DropdownMenuItem
+              onClick={openDataPopulationModal}
+              className="hover:bg-gray-700 cursor-pointer"
+            >
+              <Database className="h-4 w-4 mr-2" />
+              População de Dados
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-gray-700" />
+          </>
+        )}
         <DropdownMenuItem 
           onClick={signOut}
-          className="text-white hover:bg-gray-700 cursor-pointer"
+          className="hover:bg-gray-700 cursor-pointer"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Sign Out

@@ -9,8 +9,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { TooltipProvider, useTooltip } from "@/contexts/TooltipContext";
 import { OnChainDataProvider } from "@/contexts/OnChainDataContext";
 import { UnifiedTooltip } from "@/components/ui/UnifiedTooltip";
-import AuthPage from "@/components/auth/AuthPage";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import ModernAIChatPanel from "@/components/ai/ModernAIChatPanel";
 import Index from "./pages/Index";
 import "./App.css";
@@ -24,16 +22,8 @@ function TooltipRenderer() {
 
 const router = createBrowserRouter([
   {
-    path: "/auth",
-    element: <AuthPage />,
-  },
-  {
     path: "/",
-    element: (
-      <ProtectedRoute>
-        <Index />
-      </ProtectedRoute>
-    ),
+    element: <Index />,
   },
 ]);
 
