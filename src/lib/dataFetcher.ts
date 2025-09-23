@@ -16,7 +16,7 @@ export async function fetchCryptoDataCoinGecko(): Promise<CryptoData[]> {
     const data = await fetchCoinGeckoData('/coins/markets', {
       vs_currency: 'usd',
       order: 'market_cap_desc',
-      per_page: 150,
+      per_page: 2000,
       sparkline: false,
       price_change_percentage: '1h,24h,7d'
     });

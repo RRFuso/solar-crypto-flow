@@ -120,7 +120,7 @@ export const FlowControls: React.FC<FlowControlsProps> = ({
             <h4 className="font-medium text-sm text-gray-300">Visible Flows</h4>
             <Slider
               defaultValue={[flowLimit]}
-              max={100}
+              max={2000}
               min={5}
               step={5}
               onValueChange={handleLimitChange}
@@ -128,7 +128,7 @@ export const FlowControls: React.FC<FlowControlsProps> = ({
             />
             <div className="flex justify-between text-xs text-gray-400">
               <span>5 (Less clutter)</span>
-              <span>100 (More detail)</span>
+              <span>2000 (More detail)</span>
             </div>
           </div>
         </PopoverContent>
