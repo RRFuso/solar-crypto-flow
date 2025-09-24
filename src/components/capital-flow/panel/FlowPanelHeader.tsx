@@ -24,17 +24,7 @@ export const FlowPanelHeader: React.FC<FlowPanelHeaderProps> = ({
 }) => {
   return (
     <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <img 
-          src="/lovable-uploads/8b011f9d-f3aa-4409-8750-9bd757d934fc.png" 
-          alt="SolarCrypto Logo" 
-          className="h-12 object-contain"
-        />
-        <div className="flex flex-col">
-          <h2 className="text-xl font-bold text-white">Crypto Capital Flow</h2>
-          <p className="text-white/60 text-sm">Market capital movements in real time</p>
-        </div>
-      </div>
+
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-md">
           <Clock size={14} className="text-gray-400" />

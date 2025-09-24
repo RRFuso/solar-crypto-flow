@@ -62,7 +62,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
-  const adjustedZoomLevel = zoomLevel * 1.2;
+  const adjustedZoomLevel = dimensions.width < 768 ? zoomLevel * 0.6 : zoomLevel * 1.2;
 
   const cryptoDataMap = React.useMemo(() => {
     const map = new Map<string, CryptoData>();
