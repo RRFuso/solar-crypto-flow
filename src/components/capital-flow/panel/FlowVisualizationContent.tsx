@@ -75,8 +75,8 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
         showLines={showLines}
       />
       
-      {/* Legend positioned at bottom center */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 pointer-events-none md:flow-legend">
+      {/* Legend positioned at bottom */}
+      <div className="absolute bottom-0 left-0 w-full md:w-auto md:left-1/2 md:transform md:-translate-x-1/2 z-10 pointer-events-none">
         <FlowLegend />
       </div>
     </div>

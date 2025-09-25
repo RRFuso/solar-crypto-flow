@@ -27,7 +27,7 @@ const Index = () => {
   // State lifted from CapitalFlowPanel
   const [timeframe, setTimeframe] = useState('24h');
   const [chartTimeframe, setChartTimeframe] = useState('4h');
-  const [zoomLevel, setZoomLevel] = useState(60);
+  const [zoomLevel, setZoomLevel] = useState(15);
   const [flowLimit, setFlowLimit] = useState(30);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
@@ -78,11 +78,11 @@ const Index = () => {
       <DashboardLayout>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
           {/* Unified Header */}
-          <header className="flex-shrink-0 px-4 h-auto md:h-16 flex flex-col md:flex-row items-center justify-between border-b border-slate-700/50 py-2 md:py-0">
+          <header className="flex-shrink-0 px-2 md:px-4 h-auto md:h-16 flex flex-col md:flex-row items-center justify-between border-b border-slate-700/50 py-2 md:py-0">
             <div className="w-full md:w-auto flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <img src="/SOLCRY.png" alt="SOLCRY Logo" className="w-8 h-8" />
-                <h1 className="text-xl font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+              <div className="flex items-center space-x-2">
+                <img src="/SOLCRY.png" alt="SOLCRY Logo" className="w-7 h-7" />
+                <h1 className="text-lg font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
                   SOLCRY
                 </h1>
                 <div className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full">
@@ -94,7 +94,7 @@ const Index = () => {
               </div>
             </div>
 
-            <div className="flex-grow flex justify-center px-2 mt-2 md:mt-0">
+            <div className="flex-grow w-full md:w-auto flex justify-center px-0 md:px-2 mt-2 md:mt-0">
               <TabsList className="grid w-full max-w-3xl grid-cols-3 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 h-10 md:h-10">
                 <TabsTrigger 
                   value="market-context" 
@@ -123,14 +123,11 @@ const Index = () => {
           </header>
 
           {activeTab === 'capital-flow' && (
-            <div className="md:hidden p-2 border-b border-slate-700/50">
-              <div className="flex flex-col items-center gap-2">
-                  <FlowPanelHeader 
-                    chartTimeframe={chartTimeframe}
-                    onChartTimeframeChange={handleChartTimeframeChange}
-                  />
+            <div className="md:hidden py-2 px-1 border-b border-slate-700/50">
+              <div className="flex flex-row flex-wrap items-center justify-center gap-2">
                   <FlowControls
                     chartTimeframe={chartTimeframe}
+                    onChartTimeframeChange={handleChartTimeframeChange}
                     showOnlyStrongSignals={showOnlyStrongSignals}
                     setShowOnlyStrongSignals={setShowOnlyStrongSignals}
                     zoomLevel={zoomLevel}

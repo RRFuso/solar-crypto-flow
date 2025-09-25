@@ -1,69 +1,58 @@
 
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchMarketDataCoinGecko, fetchMarketDataBinance } from '@/lib/marketData';
-import { toast } from 'sonner';
+import React from 'react';
 import { FlowPanelHeader } from './panel/FlowPanelHeader';
 import { FlowControls } from './panel/FlowControls';
-import { CategoryFilters } from './panel/CategoryFilters';
 import { FlowVisualizationContent } from './panel/FlowVisualizationContent';
-import { usePredictions } from '@/hooks/capital-flow/usePredictions';
-import { useFilteredFlowData } from '@/hooks/capital-flow/useFilteredFlowData';
+import { FlowData } from '@/types/crypto';
+import { Prediction } from '@/lib/aiModel';
 
-const CapitalFlowPanel = () => {
-  const [timeframe, setTimeframe] = useState('24h');
-  const [chartTimeframe, setChartTimeframe] = useState('4h');
-  const [zoomLevel, setZoomLevel] = useState(60);
-  const [flowLimit, setFlowLimit] = useState(30);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [showLines, setShowLines] = useState(true);
-  const [dataSource, setDataSource] = useState<'coingecko' | 'binance'>('coingecko'); // New state for data source
+interface CapitalFlowPanelProps {
+  isLoading: boolean;
+  error: unknown;
+  processedFlowData: FlowData[];
+  zoomLevel: number;
+  filteredPredictions: Prediction[];
+  chartTimeframe: string;
+  activeCategory: string;
+  showLines: boolean;
+  handleZoomIn: () => void;
+  handleZoomOut: () => void;
+  flowLimit: number;
+  handleLimitChange: (value: number[]) => void;
+  handleChartTimeframeChange: (value: string) => void;
+  showOnlyStrongSignals: boolean;
+  setShowOnlyStrongSignals: (value: boolean) => void;
+  selectedCategory: string;
+  setSelectedCategory: (category: string) => void;
+  refetch: () => void;
+  setShowLines: (value: boolean) => void;
+}
 
-  const { data: flowData, isLoading, error, refetch } = useQuery({
-    queryKey: ['capital-flow', timeframe, dataSource],
-    queryFn: () => {
-      if (dataSource === 'binance') {
-        return fetchMarketDataBinance();
-      } else {
-        return fetchMarketDataCoinGecko(timeframe);
-      }
-    },
-    refetchOnWindowFocus: false, // Opcional: previne refetch ao focar na janela
-    staleTime: 1000 * 60 * 5, // 5 minutos
-    meta: {
-      onError: () => {
-        toast("Failed to fetch market data. Please try again later.", {
-          description: "An error occurred while fetching market data."
-        });
-      }
-    }
-  });
-
-  const processedFlowData = useFilteredFlowData(flowData, flowLimit, activeCategory);
-  const { predictions } = usePredictions(flowData, selectedCategory, chartTimeframe);
-
-  const filteredPredictions = React.useMemo(() => {
-    if (showOnlyStrongSignals) {
-      return predictions.filter(p => p.confidence >= 0.6);
-    }
-    return predictions;
-  }, [predictions, showOnlyStrongSignals]);
-
-  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 150));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 20));
-  const handleLimitChange = (value: number[]) => setFlowLimit(value[0]);
-  const handleChartTimeframeChange = (value: string) => {
-    setChartTimeframe(value);
-    refetch();
-  };
-  const handleCategoryClick = (category: string) => setActiveCategory(category);
-
+const CapitalFlowPanel: React.FC<CapitalFlowPanelProps> = ({
+  isLoading,
+  error,
+  processedFlowData,
+  zoomLevel,
+  filteredPredictions,
+  chartTimeframe,
+  activeCategory,
+  showLines,
+  handleZoomIn,
+  handleZoomOut,
+  flowLimit,
+  handleLimitChange,
+  handleChartTimeframeChange,
+  showOnlyStrongSignals,
+  setShowOnlyStrongSignals,
+  selectedCategory,
+  setSelectedCategory,
+  refetch,
+  setShowLines,
+}) => {
   return (
-    <div className="h-full w-full flex overflow-hidden p-4 gap-4 capital-flow-panel">
-      {/* Left Sidebar - AI Watchlist - Largura reduzida e scroll vertical */}
-      <div className="w-80 md:w-96 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm rounded-lg overflow-hidden capital-flow-sidebar">
+    <div className="h-full w-full flex flex-col md:flex-row overflow-hidden p-1 md:p-4 gap-1 md:gap-4 capital-flow-panel">
+      {/* Left Sidebar - AI Watchlist */}
+      <div className="w-full md:w-96 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm rounded-lg overflow-hidden capital-flow-sidebar">
         <FlowVisualizationContent 
           isLoading={isLoading}
           error={error}
@@ -77,22 +66,16 @@ const CapitalFlowPanel = () => {
         />
       </div>
 
-      {/* Main Content Area - Ocupa o espaço restante */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden rounded-lg capital-flow-main">
-        {/* Header Controls - Compacto em linha única */}
-        <div className="flex-shrink-0 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm z-10">
-          <div className="p-3">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-4">
-                <FlowPanelHeader 
-                  chartTimeframe={chartTimeframe}
-                  onChartTimeframeChange={handleChartTimeframeChange}
-                />
-              </div>
-              
-              <div className="flex-shrink-0">
+        {/* Header Controls for Desktop */}
+        <div className="hidden md:flex flex-shrink-0 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm z-10">
+          <div className="p-3 w-full">
+            <div className="flex flex-row items-center justify-center gap-4 flex-wrap">
+              <div>
                 <FlowControls
                   chartTimeframe={chartTimeframe}
+                  onChartTimeframeChange={handleChartTimeframeChange}
                   showOnlyStrongSignals={showOnlyStrongSignals}
                   setShowOnlyStrongSignals={setShowOnlyStrongSignals}
                   zoomLevel={zoomLevel}
@@ -102,7 +85,7 @@ const CapitalFlowPanel = () => {
                   handleLimitChange={handleLimitChange}
                   selectedCategory={selectedCategory}
                   setSelectedCategory={setSelectedCategory}
-                  onRefresh={() => refetch()}
+                  onRefresh={refetch}
                   showLines={showLines}
                   setShowLines={setShowLines}
                 />
@@ -111,7 +94,7 @@ const CapitalFlowPanel = () => {
           </div>
         </div>
 
-        {/* Main Visualization - Ocupa toda altura restante */}
+        {/* Main Visualization */}
         <div className="flex-1 relative overflow-hidden">
           <FlowVisualizationContent 
             isLoading={isLoading}

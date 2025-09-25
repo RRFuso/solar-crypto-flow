@@ -24,22 +24,7 @@ export const FlowPanelHeader: React.FC<FlowPanelHeaderProps> = ({
 }) => {
   return (
     <div className="flex items-center justify-between">
-
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-md">
-          <Clock size={14} className="text-gray-400" />
-          <Select value={chartTimeframe} onValueChange={onChartTimeframeChange}>
-            <SelectTrigger className="w-24 border-none bg-transparent text-white/80 h-6 py-0 px-1">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-900 border-gray-800">
-              {TIMEFRAMES.map(tf => (
-                <SelectItem key={tf.value} value={tf.value}>{tf.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      {/* Timeframe selector will be moved to FlowControls */}
     </div>
   );
 };
