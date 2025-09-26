@@ -5,12 +5,14 @@ import { calculateNodePositions, OrbitalNode } from '../NodePlacement';
 import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
 import { AIInsight } from '@/hooks/useAdvancedAI';
 import { CapitalFlowLink, LinkData } from '@/types/capitalFlow';
-
 import { ExtendedOrbitalNode } from '@/types/orbitalNodes';
 
 interface UseVisualizationDataProps {
   flowData: FlowData[];
-  cryptoDataMap: Map<string, CryptoData>;
+  cryptoDataMaps: {
+    bySymbol: Map<string, CryptoData>;
+    byId: Map<string, CryptoData>;
+  };
   priceActionSignals: Map<string, PriceActionSignal> | null;
   aiInsights: Map<string, AIInsight>;
   svgRef: React.RefObject<SVGSVGElement>;
@@ -32,7 +34,6 @@ interface UseVisualizationDataProps {
   activeCategory?: string;
 }
 
-// Helper function to safely parse volume to number
 const getVolumeAsNumber = (vol: number | string | undefined): number | undefined => {
     if (typeof vol === 'number') return vol;
     if (typeof vol === 'string') {
@@ -42,7 +43,6 @@ const getVolumeAsNumber = (vol: number | string | undefined): number | undefined
     return undefined;
 };
 
-// CRITICAL FIX: Conservative radius calculation
 const calculateConservativeRadius = (node: OrbitalNode, zoomLevel: number, isCentral: boolean = false): number => {
   const baseRadius = isCentral ? 25 : 15;
   const zoomFactor = Math.min(1.5, Math.max(0.7, zoomLevel / 100));
@@ -54,7 +54,7 @@ const calculateConservativeRadius = (node: OrbitalNode, zoomLevel: number, isCen
 
 export const useVisualizationData = ({
   flowData,
-  cryptoDataMap,
+  cryptoDataMaps,
   priceActionSignals,
   aiInsights,
   svgRef,
@@ -81,14 +81,11 @@ export const useVisualizationData = ({
 
     d3.select(svgRef.current).selectAll("*").remove();
 
-    const width = dimensions.width;
-    const height = dimensions.height;
-
     const { nodes: baseNodes, links, centralNode: baseCentralNode } = createOrbitalVisualization(
       flowData, 
       svgRef.current, 
-      width,
-      height
+      dimensions.width,
+      dimensions.height
     );
 
     if (baseNodes.length === 0) {
@@ -97,21 +94,23 @@ export const useVisualizationData = ({
     }
 
     const enrichedNodes: ExtendedOrbitalNode[] = baseNodes.map(node => {
-      const cryptoInfo = cryptoDataMap.get(node.id);
-      const signalInfo = priceActionSignals?.get(node.id);
-      const aiModel = aiInsights.get(node.id);
+      const cryptoInfo = cryptoDataMaps.byId.get(node.id) || cryptoDataMaps.bySymbol.get(node.id.toUpperCase());
+      const signalInfo = priceActionSignals?.get(node.id.toUpperCase());
+      const aiModel = aiInsights.get(node.id.toUpperCase());
       const capitalFlows = links.filter(link => link.source.id === node.id || link.target.id === node.id);
+      
+      const volume = getVolumeAsNumber(node.volume) || getVolumeAsNumber(cryptoInfo?.volume);
 
       return {
         ...node,
-        name: node.id,               // Use id as name
-        value: 0,                    // Default value property  
-        color: '#3b82f6',            // Default color property
-        tokens: [],                  // Default tokens property
-        fx: null,                    // Default fx property
-        fy: null,                    // Default fy property
-        price: cryptoInfo?.price?.toString() || '0',  // Convert to string to match ExtendedOrbitalNode type
-        volume: getVolumeAsNumber(node.volume ?? cryptoInfo?.volume),
+        name: cryptoInfo?.name || node.id,
+        value: volume || 0,
+        color: '#3b82f6',
+        tokens: [],
+        fx: null,
+        fy: null,
+        price: cryptoInfo?.price?.toString() || 'N/A',
+        volume: volume,
         priceChange24h: cryptoInfo?.priceChange24h,
         priceActionSignal: signalInfo,
         aiModel: aiModel,
@@ -121,17 +120,17 @@ export const useVisualizationData = ({
     
     const enrichedCentralNode: ExtendedOrbitalNode | null = baseCentralNode ? {
         ...baseCentralNode,
-        name: baseCentralNode.id,    // Use id as name
-        value: 0,                    // Default value property
-        color: '#3b82f6',            // Default color property
-        tokens: [],                  // Default tokens property
-        fx: null,                    // Default fx property
-        fy: null,                    // Default fy property
-        price: cryptoDataMap.get(baseCentralNode.id)?.price?.toString() || '0',  // Convert to string
-        volume: getVolumeAsNumber(baseCentralNode.volume ?? cryptoDataMap.get(baseCentralNode.id)?.volume),
-        priceChange24h: cryptoDataMap.get(baseCentralNode.id)?.priceChange24h,
-        priceActionSignal: priceActionSignals?.get(baseCentralNode.id),
-        aiModel: aiInsights.get(baseCentralNode.id),
+        name: cryptoDataMaps.byId.get(baseCentralNode.id)?.name || baseCentralNode.id,
+        value: 0,
+        color: '#3b82f6',
+        tokens: [],
+        fx: null,
+        fy: null,
+        price: cryptoDataMaps.byId.get(baseCentralNode.id)?.price?.toString() || 'N/A',
+        volume: getVolumeAsNumber(baseCentralNode.volume ?? cryptoDataMaps.byId.get(baseCentralNode.id)?.volume),
+        priceChange24h: cryptoDataMaps.byId.get(baseCentralNode.id)?.priceChange24h,
+        priceActionSignal: priceActionSignals?.get(baseCentralNode.id.toUpperCase()),
+        aiModel: aiInsights.get(baseCentralNode.id.toUpperCase()),
         capitalFlows: links.filter(link => link.source.id === baseCentralNode.id || link.target.id === baseCentralNode.id),
     } : null;
 
@@ -140,22 +139,20 @@ export const useVisualizationData = ({
     let filteredCentralNode = enrichedCentralNode;
 
     if (activeCategory !== 'all') {
+      const centralId = enrichedCentralNode?.id;
       filteredNodes = enrichedNodes.filter(node => {
-        if (node.id === enrichedCentralNode?.id) return true;
-        const cryptoInfo = cryptoDataMap.get(node.id);
+        if (node.id === centralId) return true;
+        const cryptoInfo = cryptoDataMaps.byId.get(node.id) || cryptoDataMaps.bySymbol.get(node.id.toUpperCase());
         return cryptoInfo?.category === activeCategory;
       });
 
-      const filteredNodeIds = filteredNodes.map(node => node.id);
+      const filteredNodeIds = new Set(filteredNodes.map(node => node.id));
       filteredLinks = links.filter(link => 
-        filteredNodeIds.includes(link.source.id) && 
-        filteredNodeIds.includes(link.target.id)
+        filteredNodeIds.has(link.source.id) && 
+        filteredNodeIds.has(link.target.id)
       );
       
-      if (enrichedCentralNode && !filteredNodes.find(n => n.id === enrichedCentralNode.id)) {
-          filteredNodes.push(enrichedCentralNode);
-      }
-      if (!filteredNodeIds.includes(enrichedCentralNode?.id || '')) {
+      if (centralId && !filteredNodeIds.has(centralId)) {
           filteredCentralNode = null;
       }
     }
@@ -165,20 +162,14 @@ export const useVisualizationData = ({
       node.radius = calculateConservativeRadius(node, zoomLevel, isCentral);
     });
 
-    const nonCentralNodes = filteredNodes.filter(n => n.id !== filteredCentralNode?.id);
-    const orbitLayers = Math.min(5, Math.ceil(nonCentralNodes.length / 8));
-    const baseRadius = Math.min(width, height) * 0.2;
-
-    const nodePositionsProps = { 
+    calculateNodePositions({ 
       nodes: filteredNodes, 
       centralNode: filteredCentralNode, 
-      width, 
-      height, 
-      orbitLayers, 
-      baseRadius 
-    };
-    
-    calculateNodePositions(nodePositionsProps);
+      width: dimensions.width, 
+      height: dimensions.height, 
+      orbitLayers: Math.min(5, Math.ceil(filteredNodes.filter(n => n.id !== filteredCentralNode?.id).length / 8)), 
+      baseRadius: Math.min(dimensions.width, dimensions.height) * 0.2 
+    });
 
     setVisualizationData({ 
       nodes: filteredNodes, 
@@ -187,10 +178,5 @@ export const useVisualizationData = ({
       selectedNodeId: null
     });
 
-    return () => {
-      if (svgRef.current) {
-        d3.select(svgRef.current).selectAll("*").remove();
-      }
-    };
-  }, [flowData, cryptoDataMap, priceActionSignals, aiInsights, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory, svgRef]); 
+  }, [flowData, cryptoDataMaps, priceActionSignals, aiInsights, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory, svgRef]); 
 };

@@ -59,6 +59,27 @@ const calculateNodeRadius = (node: ExtendedOrbitalNode, zoomLevel: number, isCen
   return Math.max(minRadius, Math.min(maxRadius, calculatedRadius));
 };
 
+const generatePriceActionAnalysis = (node: ExtendedOrbitalNode): string => {
+  if (typeof node.priceChange24h !== 'number') {
+    return "Análise de preço indisponível.";
+  }
+
+  const change = node.priceChange24h;
+  if (change > 5) {
+    return `Forte tendência de alta nas últimas 24h (+${change.toFixed(2)}%). O volume acompanha o movimento.`;
+  }
+  if (change > 1) {
+    return `Leve tendência de alta nas últimas 24h (+${change.toFixed(2)}%).`;
+  }
+  if (change < -5) {
+    return `Forte tendência de baixa nas últimas 24h (${change.toFixed(2)}%). Recomenda-se cautela.`;
+  }
+  if (change < -1) {
+    return `Leve tendência de baixa nas últimas 24h (${change.toFixed(2)}%).`;
+  }
+  return `Preço estável nas últimas 24h (${change.toFixed(2)}%). Movimento lateral.`;
+};
+
 const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, AIInsight>) => {
     const aiInsight = aiInsights.get(node.id);
     const trendReasons = [];
@@ -70,19 +91,25 @@ const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, AI
             trendReasons.push(...aiInsight.predictions[0].bearishFactors);
         }
     }
+    
+    const priceActionAnalysisText = generatePriceActionAnalysis(node);
+
     return {
         id: node.id,
-        name: node.name,
-        price: node.price,
+        name: node.name || 'Unknown',
+        price: node.price ? `$${parseFloat(node.price).toFixed(4)}` : "N/A",
         priceChange24h: node.priceChange24h,
-        volume: node.volume,
+        volume: node.volume ? `$${(node.volume / 1_000_000).toFixed(2)}M` : "N/A",
         capitalFlows: node.capitalFlows,
         aiModel: aiInsight,
         trendReasons: trendReasons,
-        aiAnalysis: aiInsight ? {
-            recommendation: aiInsight.recommendation,
-            confidence: aiInsight.confidence,
-        } : undefined,
+        aiAnalysis: {
+            ...aiInsight,
+            recommendation: aiInsight?.recommendation || 'N/A',
+            confidence: aiInsight?.confidence || 0,
+            // Adicionando a análise de price action aqui para ser usada no tooltip
+            priceAction: priceActionAnalysisText,
+        },
         explosivePotential: node.priceActionSignal?.explosivePotential,
         keyFactors: aiInsight?.predictions[0]?.keyFactors,
     };

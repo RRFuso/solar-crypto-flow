@@ -49,7 +49,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     return visualizationData.nodes.map(node => node.id);
   }, [visualizationData]);
 
-  const { data: cryptoData, isLoading: loadingCryptoData } = useCryptoData();
+  const { cryptoDataMaps, isLoading: loadingCryptoData } = useCryptoData();
   const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(symbolsInView);
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(symbolsInView);
   const { smartMoneyScores, requestOnChainData } = useOnChainData();
@@ -63,20 +63,10 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
   const adjustedZoomLevel = dimensions.width < 768 ? zoomLevel * 0.6 : zoomLevel * 1.2;
-
-  const cryptoDataMap = React.useMemo(() => {
-    const map = new Map<string, CryptoData>();
-    if (cryptoData) {
-      cryptoData.forEach(crypto => {
-        map.set(crypto.symbol, crypto);
-      });
-    }
-    return map;
-  }, [cryptoData]);
   
   useVisualizationData({
     flowData,
-    cryptoDataMap,
+    cryptoDataMaps,
     priceActionSignals,
     aiInsights,
     svgRef,
