@@ -16,13 +16,14 @@ export const useRealtimePrice = (symbol: string) => {
     setLoading(true);
     setError(null);
 
-    // Function to fetch initial price
+    // Function to fetch initial price (otimizado para reduzir Egress)
     const fetchInitialPrice = async () => {
       try {
         const { data, error: supabaseError } = await supabase
           .from('crypto_historical_data')
-          .select('price')
+          .select('price') // Apenas campo necessário
           .eq('symbol', symbol)
+          .limit(1) // Explicitamente limitar a 1
           .single();
 
         if (supabaseError) {
@@ -48,32 +49,32 @@ export const useRealtimePrice = (symbol: string) => {
 
     fetchInitialPrice();
 
-    // Set up Realtime subscription
+    // Set up Realtime subscription (otimizado)
     const channel = supabase
-      .channel(`price_changes_${symbol}`)
+      .channel(`price_changes_${symbol}`, {
+        config: {
+          broadcast: { self: false }, // Não receber próprias mensagens
+        }
+      })
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'crypto_prices', filter: `symbol=eq.${symbol}` },
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'crypto_prices', 
+          filter: `symbol=eq.${symbol}` 
+        },
         (payload) => {
-          console.log('Realtime price update received:', payload);
+          // Remover logs desnecessários para reduzir overhead
           if (payload.new && (payload.new as any).price !== undefined) {
             setPrice((payload.new as any).price);
           }
         }
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`Realtime subscription to ${symbol} prices SUBSCRIBED`);
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error(`Realtime subscription to ${symbol} prices CHANNEL_ERROR`);
-        } else if (status === 'CLOSED') {
-          console.log(`Realtime subscription to ${symbol} prices CLOSED`);
-        }
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
-      console.log(`Realtime subscription to ${symbol} prices REMOVED`);
     };
   }, [symbol]);
 

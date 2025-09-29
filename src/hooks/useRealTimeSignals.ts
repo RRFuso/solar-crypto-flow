@@ -30,7 +30,7 @@ export const useRealTimeSignals = () => {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const { toast } = useToast();
 
-  // Fetch latest signals
+  // Fetch latest signals (otimizado)
   const fetchSignals = async () => {
     try {
       const { data, error } = await supabase
@@ -82,9 +82,13 @@ export const useRealTimeSignals = () => {
   useEffect(() => {
     fetchSignals();
 
-    // Set up real-time subscription
+    // Set up real-time subscription (otimizado)
     const channel = supabase
-      .channel('crypto_signals')
+      .channel('crypto_signals', {
+        config: {
+          broadcast: { self: false },
+        }
+      })
       .on(
         'postgres_changes',
         {
@@ -92,15 +96,15 @@ export const useRealTimeSignals = () => {
           schema: 'public',
           table: 'crypto_price_action_signals'
         },
-        (payload) => {
-          console.log('Real-time signal update:', payload);
+        () => {
+          // Remover logs para reduzir overhead
           fetchSignals(); // Refresh on any change
         }
       )
       .subscribe();
 
-    // Auto-refresh every 5 minutes
-    const interval = setInterval(fetchSignals, 5 * 60 * 1000);
+    // Auto-refresh aumentado para 15 minutos (reduz Egress)
+    const interval = setInterval(fetchSignals, 15 * 60 * 1000);
 
     return () => {
       supabase.removeChannel(channel);
