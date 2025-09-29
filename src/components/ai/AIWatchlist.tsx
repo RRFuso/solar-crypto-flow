@@ -79,15 +79,46 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [selectedSymbolForHistory, setSelectedSymbolForHistory] = useState<string | null>(null);
 
-  // Component to display realtime price
-  const RealtimePriceDisplay: React.FC<{ symbol: string }> = ({ symbol }) => {
+  // Component to display realtime price and 24h change
+  const PriceInfo: React.FC<{ symbol: string }> = ({ symbol }) => {
     const { price, loading, error } = useRealtimePrice(symbol);
+    const [priceChange24h, setPriceChange24h] = useState<number | null>(null);
 
-    if (loading) return <span className="text-xs text-gray-500">Loading price...</span>;
-    if (error) return <span className="text-xs text-red-500">Error</span>;
-    if (price === null) return <span className="text-xs text-gray-500">N/A</span>;
+    useEffect(() => {
+      const fetchPriceChange = async () => {
+        // Busca os 2 últimos registros para calcular a mudança de 24h
+        const { data } = await supabase
+          .from('crypto_historical_data')
+          .select('close')
+          .eq('symbol', symbol)
+          .order('date', { ascending: false })
+          .limit(2);
+        
+        if (data && data.length >= 2) {
+          const currentPrice = data[0].close;
+          const price24hAgo = data[1].close;
+          const change = ((currentPrice - price24hAgo) / price24hAgo) * 100;
+          setPriceChange24h(change);
+        }
+      };
+      fetchPriceChange();
+    }, [symbol]);
 
-    return <span className="text-sm font-semibold text-yellow-400">${price.toFixed(4)}</span>;
+    if (loading) return <div className="text-xs text-gray-500">Carregando...</div>;
+    if (error) return <div className="text-xs text-red-500">Erro ao carregar</div>;
+
+    return (
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold text-white">
+          ${price?.toFixed(4) || 'N/A'}
+        </span>
+        {priceChange24h !== null && (
+          <span className={`text-xs font-medium ${priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {priceChange24h >= 0 ? '+' : ''}{priceChange24h.toFixed(2)}%
+          </span>
+        )}
+      </div>
+    );
   };
 
   // Hook para buscar dados históricos quando uma estratégia é selecionada
@@ -310,7 +341,9 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
               </div>
             </div>
             
-            <div className="text-xs text-gray-400 mb-2 line-clamp-2">{p.factors[0]}</div>
+            <div className="mb-2">
+              <PriceInfo symbol={p.symbol} />
+            </div>
             
             {/* Price Action Signals from Supabase */}
             {signal && (signal.isBreakout || signal.isExpansion || signal.isAccelerating) && (
