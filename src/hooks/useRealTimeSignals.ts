@@ -82,7 +82,7 @@ export const useRealTimeSignals = () => {
   useEffect(() => {
     fetchSignals();
 
-    // Set up real-time subscription (otimizado)
+    // Set up real-time subscription (INSTANTÂNEO - não depende de polling)
     const channel = supabase
       .channel('crypto_signals', {
         config: {
@@ -92,19 +92,20 @@ export const useRealTimeSignals = () => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: '*', // Escuta INSERT, UPDATE, DELETE em tempo real
           schema: 'public',
           table: 'crypto_price_action_signals'
         },
         () => {
-          // Remover logs para reduzir overhead
-          fetchSignals(); // Refresh on any change
+          // Atualização INSTANTÂNEA via Realtime (não conta muito no Egress)
+          fetchSignals();
         }
       )
       .subscribe();
 
-    // Auto-refresh aumentado para 15 minutos (reduz Egress)
-    const interval = setInterval(fetchSignals, 15 * 60 * 1000);
+    // Polling como fallback apenas (caso realtime falhe)
+    // 10 minutos é suficiente pois o realtime é instantâneo
+    const interval = setInterval(fetchSignals, 10 * 60 * 1000);
 
     return () => {
       supabase.removeChannel(channel);
