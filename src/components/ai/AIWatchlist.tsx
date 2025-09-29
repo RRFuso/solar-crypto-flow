@@ -80,25 +80,30 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
   const [selectedSymbolForHistory, setSelectedSymbolForHistory] = useState<string | null>(null);
 
   // Component to display realtime price and 24h change
-  const PriceInfo: React.FC<{ symbol: string }> = ({ symbol }) => {
+  const PriceInfo: React.FC<{ symbol: string; prediction: Prediction }> = ({ symbol, prediction }) => {
     const { price, loading, error } = useRealtimePrice(symbol);
     const [priceChange24h, setPriceChange24h] = useState<number | null>(null);
 
     useEffect(() => {
       const fetchPriceChange = async () => {
-        // Busca os 2 últimos registros para calcular a mudança de 24h
-        const { data } = await supabase
-          .from('crypto_historical_data')
-          .select('close')
-          .eq('symbol', symbol)
-          .order('date', { ascending: false })
-          .limit(2);
-        
-        if (data && data.length >= 2) {
-          const currentPrice = data[0].close;
-          const price24hAgo = data[1].close;
-          const change = ((currentPrice - price24hAgo) / price24hAgo) * 100;
-          setPriceChange24h(change);
+        try {
+          // Busca os 2 últimos registros para calcular a mudança de 24h
+          const { data, error: fetchError } = await supabase
+            .from('crypto_historical_data')
+            .select('close')
+            .eq('symbol', symbol)
+            .order('date', { ascending: false })
+            .limit(2);
+          
+          if (!fetchError && data && data.length >= 2) {
+            const currentPrice = data[0].close;
+            const price24hAgo = data[1].close;
+            const change = ((currentPrice - price24hAgo) / price24hAgo) * 100;
+            setPriceChange24h(change);
+          }
+        } catch (err) {
+          // Silenciosamente ignora erros - o campo de mudança simplesmente não será exibido
+          console.debug('Could not fetch 24h price change for', symbol);
         }
       };
       fetchPriceChange();
@@ -107,10 +112,12 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     if (loading) return <div className="text-xs text-gray-500">Carregando...</div>;
     if (error) return <div className="text-xs text-red-500">Erro ao carregar</div>;
 
+    const displayPrice = price || parseFloat(prediction.price || '0');
+
     return (
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-white">
-          ${price?.toFixed(4) || 'N/A'}
+          ${displayPrice > 0 ? displayPrice.toFixed(4) : 'N/A'}
         </span>
         {priceChange24h !== null && (
           <span className={`text-xs font-medium ${priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -342,7 +349,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
             </div>
             
             <div className="mb-2">
-              <PriceInfo symbol={p.symbol} />
+              <PriceInfo symbol={p.symbol} prediction={p} />
             </div>
             
             {/* Price Action Signals from Supabase */}
