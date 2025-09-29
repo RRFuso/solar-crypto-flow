@@ -134,14 +134,6 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
             </div>
           )}
 
-          {data.aiAnalysis?.priceAction && (
-            <div className="border-t border-slate-700 pt-2 mt-2">
-              <h4 className="font-bold text-slate-300 mb-1">Price Action</h4>
-              <p className="text-xs text-slate-400 italic">
-                {data.aiAnalysis.priceAction}
-              </p>
-            </div>
-          )}
 
           {data.aiModel && (
             <div className="border-t border-slate-700 pt-2 mt-2">

@@ -96,7 +96,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
       return getSignalCategoryColor(signalCategory);
     }
 
-    const crypto = cryptoDataMap.get(symbol);
+    const crypto = cryptoDataMaps.bySymbol.get(symbol);
     if (crypto) {
       const signalCategory = determineCryptoSignalCategory(crypto);
       return getSignalCategoryColor(signalCategory);
