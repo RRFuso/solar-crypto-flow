@@ -9,6 +9,7 @@ import { useOnChainData } from '@/contexts/OnChainDataContext';
 import { CapitalFlowLink } from '@/types/capitalFlow';
 
 import { ExtendedOrbitalNode } from '@/types/orbitalNodes';
+import { belongsToCategory } from '@/lib/marketData/categoryMapping';
 
 interface NodeRendererProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -18,6 +19,7 @@ interface NodeRendererProps {
   zoomLevel: number;
   aiInsights: Map<string, AIInsight>;
   smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish' }>;
+  activeCategory?: string;
 }
 
 const getAIRecommendationColor = (recommendation: string): string => {
@@ -125,6 +127,7 @@ const renderOrUpdateVisualization = (
   smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish' }>,
   showTooltip: (data: any, position: { x: number, y: number }) => void,
   hideTooltip: () => void,
+  activeCategory: string = 'all',
 ) => {
   let defs = svg.select('defs');
   if (defs.empty()) {
@@ -225,7 +228,14 @@ const renderOrUpdateVisualization = (
   const nodeUpdate = nodeEnter.merge(nodeSelection as d3.Selection<SVGGElement, ExtendedOrbitalNode, SVGGElement, unknown>);
 
   nodeUpdate.transition().duration(750)
-    .attr('transform', (d: ExtendedOrbitalNode) => `translate(${d.x}, ${d.y}) scale(1)`);
+    .attr('transform', (d: ExtendedOrbitalNode) => `translate(${d.x}, ${d.y}) scale(1)`)
+    .style('opacity', (d: ExtendedOrbitalNode) => {
+      // Se uma categoria específica está selecionada, reduz opacidade dos nós que não pertencem a ela
+      if (activeCategory !== 'all' && !belongsToCategory(d.id, activeCategory)) {
+        return 0.2;
+      }
+      return 1;
+    });
 
   nodeUpdate.select('circle.node-glow')
     .transition().duration(750)
@@ -323,10 +333,11 @@ export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
         props.aiInsights,
         props.smartMoneyScores,
         showTooltip,
-        hideTooltip
+        hideTooltip,
+        props.activeCategory || 'all'
       );
     }
-  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip]);
+  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip, props.activeCategory]);
 
   return null;
 });

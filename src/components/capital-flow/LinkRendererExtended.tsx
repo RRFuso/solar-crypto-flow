@@ -16,6 +16,7 @@ export interface LinkRendererExtendedProps {
   animateWithOrbit?: boolean;
   getCategoryColor?: (category: string) => string;
   showLines: boolean;
+  activeCategory?: string;
 }
 
 export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
@@ -26,7 +27,8 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
   predictions,
   animateWithOrbit = false,
   getCategoryColor,
-  showLines
+  showLines,
+  activeCategory = 'all'
 }) => {
   const getColorForFlow = (category: string) => {
     if (getCategoryColor) {
@@ -85,7 +87,7 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
       // Placeholder for future implementation
     };
 
-    const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut);
+    const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut, activeCategory);
     createArrowheads(svg, processedLinks);
 
     // === OPTIMIZED PARTICLE SYSTEM ===
@@ -148,7 +150,7 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
       svg.selectAll(".flow-links").remove();
       svg.selectAll(".particles-group").remove();
     };
-  }, [svg, links, nodes, selectedNodeId, animateWithOrbit, getCategoryColor, showLines]);
+  }, [svg, links, nodes, selectedNodeId, animateWithOrbit, getCategoryColor, showLines, activeCategory]);
 
   return null;
 };

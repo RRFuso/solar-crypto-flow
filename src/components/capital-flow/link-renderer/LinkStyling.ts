@@ -1,6 +1,7 @@
 
 import * as d3 from 'd3';
 import { LinkData } from '@/types/capitalFlow';
+import { belongsToCategory } from '@/lib/marketData/categoryMapping';
 
 /**
  * Creates stylized curved links with varying thickness based on flow value
@@ -11,7 +12,8 @@ export const stylizeLinks = (
   links: LinkData[],
   selectedNodeId?: string | null,
   handleMouseOver?: (event: MouseEvent, linkData: LinkData) => void,
-  handleMouseOut?: (event: MouseEvent, linkData: LinkData) => void
+  handleMouseOut?: (event: MouseEvent, linkData: LinkData) => void,
+  activeCategory: string = 'all'
 ) => {
   // Create gradient definitions section
   const defs = svg.append("defs");
@@ -62,6 +64,17 @@ export const stylizeLinks = (
     })
     .attr("fill", "none")
     .attr("opacity", (d: LinkData) => {
+      // Opacity based on category filter
+      if (activeCategory !== 'all') {
+        const sourceInCategory = belongsToCategory(d.source.id, activeCategory);
+        const targetInCategory = belongsToCategory(d.target.id, activeCategory);
+        
+        // Se nenhum dos nós pertence à categoria, opacidade reduzida
+        if (!sourceInCategory && !targetInCategory) {
+          return 0.1;
+        }
+      }
+      
       // Opacity based on selection
       if (selectedNodeId) {
         return d.source.id === selectedNodeId || d.target.id === selectedNodeId ? 0.9 : 0.15;
@@ -105,6 +118,16 @@ export const stylizeLinks = (
             return selectedNodeId && (d.source?.id === selectedNodeId || d.target?.id === selectedNodeId) ? baseWidth * 1.5 : baseWidth;
           })
           .attr("opacity", (d: LinkData) => {
+            // Opacity based on category filter
+            if (activeCategory !== 'all') {
+              const sourceInCategory = belongsToCategory(d.source.id, activeCategory);
+              const targetInCategory = belongsToCategory(d.target.id, activeCategory);
+              
+              if (!sourceInCategory && !targetInCategory) {
+                return 0.1;
+              }
+            }
+            
             if (selectedNodeId) {
               return d.source?.id === selectedNodeId || d.target?.id === selectedNodeId ? 0.9 : 0.15;
             }

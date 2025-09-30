@@ -170,6 +170,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             animateWithOrbit={true}
             getCategoryColor={getCategoryColor}
             showLines={showLines}
+            activeCategory={activeCategory}
           />
           <NodeRendererComponent 
             svg={d3.select(svgRef.current)}
@@ -179,6 +180,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             zoomLevel={adjustedZoomLevel}
             aiInsights={aiInsights}
             smartMoneyScores={smartMoneyScores}
+            activeCategory={activeCategory}
           />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
