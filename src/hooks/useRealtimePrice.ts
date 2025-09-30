@@ -24,7 +24,7 @@ export const useRealtimePrice = (symbol: string) => {
           .select('price') // Apenas campo necessário
           .eq('symbol', symbol)
           .limit(1) // Explicitamente limitar a 1
-          .single();
+          .maybeSingle();
 
         if (supabaseError) {
           console.error('Supabase error fetching initial price:', supabaseError);

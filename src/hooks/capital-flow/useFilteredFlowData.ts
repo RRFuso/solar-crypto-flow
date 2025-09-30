@@ -1,6 +1,7 @@
 
 import { useMemo } from 'react';
 import { FlowData } from '@/types/crypto';
+import { getCategoriesForSymbol } from '@/lib/marketData/categoryMapping';
 
 export const useFilteredFlowData = (
   flowData: FlowData[] | undefined, 
@@ -14,20 +15,16 @@ export const useFilteredFlowData = (
     // Sort by value (volume) to get the most significant flows
     let sortedFlows = [...flowData].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
     
-    // Filter by category if selected
-    if (activeCategory !== 'all') {
-      sortedFlows = sortedFlows.filter(flow => {
-        const fromHasCategory = flow.fromCategory === activeCategory || 
-                               (flow.categories && flow.categories.includes(activeCategory));
-        const toHasCategory = flow.toCategory === activeCategory || 
-                             (flow.categories && flow.categories.includes(activeCategory));
-        return fromHasCategory || toHasCategory || flow.category === activeCategory;
-      });
-    }
+    // Enrich flows with category data for both `from` and `to` symbols
+    const enrichedFlows = sortedFlows.map(flow => ({
+      ...flow,
+      fromCategories: getCategoriesForSymbol(flow.from),
+      toCategories: getCategoriesForSymbol(flow.to),
+    }));
     
     // Limit to the top N flows to reduce visual clutter
-    return sortedFlows.slice(0, flowLimit);
-  }, [flowData, flowLimit, activeCategory]);
+    return enrichedFlows.slice(0, flowLimit);
+  }, [flowData, flowLimit]);
 
   return processedFlowData;
 };
