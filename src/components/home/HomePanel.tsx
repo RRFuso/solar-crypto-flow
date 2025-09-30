@@ -14,7 +14,6 @@ const HomePanel = () => {
   const [flowLimit, setFlowLimit] = useState(30);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [showLines, setShowLines] = useState(true);
   const [dataSource, setDataSource] = useState<'coingecko' | 'binance'>('coingecko');
 
@@ -38,7 +37,7 @@ const HomePanel = () => {
     }
   });
 
-  const processedFlowData = useFilteredFlowData(flowData, flowLimit, activeCategory);
+  const processedFlowData = useFilteredFlowData(flowData, flowLimit, selectedCategory);
   const { predictions } = usePredictions(flowData, selectedCategory, chartTimeframe);
 
   const filteredPredictions = useMemo(() => {
@@ -66,7 +65,7 @@ const HomePanel = () => {
           zoomLevel={zoomLevel}
           filteredPredictions={filteredPredictions}
           chartTimeframe={chartTimeframe}
-          activeCategory={activeCategory}
+          activeCategory={selectedCategory}
           showLines={showLines}
           handleZoomIn={handleZoomIn}
           handleZoomOut={handleZoomOut}

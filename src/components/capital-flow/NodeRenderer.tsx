@@ -231,8 +231,10 @@ const renderOrUpdateVisualization = (
     .attr('transform', (d: ExtendedOrbitalNode) => `translate(${d.x}, ${d.y}) scale(1)`)
     .style('opacity', (d: ExtendedOrbitalNode) => {
       // Se uma categoria específica está selecionada, reduz opacidade dos nós que não pertencem a ela
-      if (activeCategory !== 'all' && !belongsToCategory(d.id, activeCategory)) {
-        return 0.2;
+      if (activeCategory !== 'all') {
+        const belongsTo = belongsToCategory(d.id, activeCategory);
+        console.log(`Node ${d.id} belongs to ${activeCategory}:`, belongsTo);
+        return belongsTo ? 1 : 0.2;
       }
       return 1;
     });
