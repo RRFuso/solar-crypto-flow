@@ -17,6 +17,8 @@ const HomePanel = () => {
   const [showLines, setShowLines] = useState(true);
   const [dataSource, setDataSource] = useState<'coingecko' | 'binance'>('coingecko');
 
+  console.log('HomePanel: selectedCategory =', selectedCategory);
+
   const { data: flowData, isLoading, error, refetch } = useQuery({
     queryKey: ['capital-flow', timeframe, dataSource],
     queryFn: () => {
