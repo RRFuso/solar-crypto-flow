@@ -66,10 +66,10 @@ export const stylizeLinks = (
     .attr("opacity", (d: LinkData) => {
       // Opacity based on category filter
       if (activeCategory !== 'all') {
-        const sourceInCategory = belongsToCategory(d.source.id, activeCategory);
-        const targetInCategory = belongsToCategory(d.target.id, activeCategory);
+        const sourceInCategory = d.source.categories?.includes(activeCategory);
+        const targetInCategory = d.target.categories?.includes(activeCategory);
         
-        // Se nenhum dos nós pertence à categoria, opacidade reduzida
+        // Se PELO MENOS UM dos nós pertence à categoria, opacidade normal. Senão, reduzida.
         if (!sourceInCategory && !targetInCategory) {
           return 0.1;
         }
@@ -120,8 +120,8 @@ export const stylizeLinks = (
           .attr("opacity", (d: LinkData) => {
             // Opacity based on category filter
             if (activeCategory !== 'all') {
-              const sourceInCategory = belongsToCategory(d.source.id, activeCategory);
-              const targetInCategory = belongsToCategory(d.target.id, activeCategory);
+              const sourceInCategory = d.source.categories?.includes(activeCategory);
+              const targetInCategory = d.target.categories?.includes(activeCategory);
               
               if (!sourceInCategory && !targetInCategory) {
                 return 0.1;

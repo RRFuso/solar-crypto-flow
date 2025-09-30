@@ -9,7 +9,6 @@ import { useOnChainData } from '@/contexts/OnChainDataContext';
 import { CapitalFlowLink } from '@/types/capitalFlow';
 
 import { ExtendedOrbitalNode } from '@/types/orbitalNodes';
-import { belongsToCategory } from '@/lib/marketData/categoryMapping';
 
 interface NodeRendererProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -232,8 +231,8 @@ const renderOrUpdateVisualization = (
     .style('opacity', (d: ExtendedOrbitalNode) => {
       // Se uma categoria específica está selecionada, reduz opacidade dos nós que não pertencem a ela
       if (activeCategory !== 'all') {
-        const belongsTo = belongsToCategory(d.id, activeCategory);
-        console.log(`Node ${d.id} belongs to ${activeCategory}:`, belongsTo);
+        // A 'categories' agora é um array no nó
+        const belongsTo = d.categories?.includes(activeCategory);
         return belongsTo ? 1 : 0.2;
       }
       return 1;

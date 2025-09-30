@@ -15,6 +15,7 @@ import { useCryptoData } from '@/hooks/useCryptoData';
 import { usePriceActionSignals } from '@/hooks/usePriceActionSignals';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 import { useOnChainData } from '@/contexts/OnChainDataContext';
+import { getCategoriesForSymbol } from '@/lib/marketData/categoryMapping';
 import { mapAIRecommendationToSignal, getCategoryColor as getSignalCategoryColor, determineCryptoSignalCategory } from './constants/signalCategories';
 
 interface FlowVisualizationProps {
@@ -106,6 +107,14 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     return getSignalCategoryColor('neutral');
   };
 
+  const enrichedNodes = React.useMemo(() => {
+    if (!visualizationData || !visualizationData.nodes) return [];
+    return visualizationData.nodes.map(node => ({
+      ...node,
+      categories: getCategoriesForSymbol(node.id),
+    }));
+  }, [visualizationData]);
+
   if (loadingCryptoData || loadingSignals || loadingAI) {
     return (
       <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
@@ -165,7 +174,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
           <LinkRendererExtended
             svg={d3.select(svgRef.current)}
             links={visualizationData.links}
-            nodes={visualizationData.nodes}
+            nodes={enrichedNodes}
             selectedNodeId={selectedNodeId}
             predictions={predictions}
             animateWithOrbit={true}
@@ -175,7 +184,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
           />
           <NodeRendererComponent 
             svg={d3.select(svgRef.current)}
-            nodes={visualizationData.nodes}
+            nodes={enrichedNodes}
             centralNode={visualizationData.centralNode}
             selectedNodeId={selectedNodeId}
             zoomLevel={adjustedZoomLevel}
@@ -185,7 +194,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
           />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
-            nodes={visualizationData.nodes}
+            nodes={enrichedNodes}
             width={dimensions.width}
             height={dimensions.height}
             rotationSpeed={0.00001}
