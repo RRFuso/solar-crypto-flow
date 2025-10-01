@@ -233,6 +233,7 @@ const renderOrUpdateVisualization = (
       if (activeCategory !== 'all') {
         // A 'categories' agora é um array no nó
         const belongsTo = d.categories?.includes(activeCategory);
+        console.log(`NodeRenderer: ${d.id} belongs to ${activeCategory}?`, belongsTo, 'categories:', d.categories);
         return belongsTo ? 1 : 0.2;
       }
       return 1;

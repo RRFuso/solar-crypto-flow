@@ -108,11 +108,17 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
 
   const enrichedNodes = React.useMemo(() => {
     if (!visualizationData || !visualizationData.nodes) return [];
-    return visualizationData.nodes.map(node => ({
-      ...node,
-      categories: getCategoriesForSymbol(node.id),
-    }));
-  }, [visualizationData]);
+    const nodes = visualizationData.nodes.map(node => {
+      const categories = getCategoriesForSymbol(node.id);
+      console.log(`Node ${node.id} categories:`, categories);
+      return {
+        ...node,
+        categories,
+      };
+    });
+    console.log('FlowVisualization enrichedNodes:', nodes.length, 'activeCategory:', activeCategory);
+    return nodes;
+  }, [visualizationData, activeCategory]);
 
   if (loadingCryptoData || loadingSignals || loadingAI) {
     return (
