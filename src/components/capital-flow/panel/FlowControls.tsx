@@ -167,7 +167,9 @@ export const FlowControls: React.FC<FlowControlsProps> = ({
       <Select 
         value={selectedCategory} 
         onValueChange={(value) => {
+          console.log('🎨 FlowControls: Category changed from', selectedCategory, 'to', value);
           setSelectedCategory(value);
+          console.log('🎨 FlowControls: setSelectedCategory called');
         }}
       >
         <SelectTrigger className="w-28 md:w-40 h-7 md:h-9 bg-white/5 border-white/10 text-[10px] md:text-sm">

@@ -13,6 +13,11 @@ const HomePanel = () => {
   const [zoomLevel, setZoomLevel] = useState(15);
   const [flowLimit, setFlowLimit] = useState(30);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  
+  // Debug log para monitorar mudanças de categoria
+  React.useEffect(() => {
+    console.log('🏠 HomePanel: selectedCategory changed to:', selectedCategory);
+  }, [selectedCategory]);
   const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
   const [showLines, setShowLines] = useState(true);
   const [dataSource, setDataSource] = useState<'coingecko' | 'binance'>('coingecko');
