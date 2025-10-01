@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchCryptoData } from '@/lib/dataFetcher';
 import { CryptoData } from '@/types/crypto';
 import React from 'react';
+import { getCategoriesForSymbol } from '@/lib/marketData/categoryMapping';
 
 interface CryptoDataOptions {
   timeframe?: string;
@@ -38,10 +39,16 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
     };
     if (queryResult.data) {
       queryResult.data.forEach(crypto => {
-        if (crypto.symbol) {
-          maps.bySymbol.set(crypto.symbol.toUpperCase(), crypto);
+        const categories = getCategoriesForSymbol(crypto.symbol);
+        const cryptoWithCategory = {
+          ...crypto,
+          category: categories.length > 0 ? categories[0] : undefined,
+        };
+
+        if (cryptoWithCategory.symbol) {
+          maps.bySymbol.set(cryptoWithCategory.symbol.toUpperCase(), cryptoWithCategory);
         }
-        maps.byId.set(crypto.id, crypto);
+        maps.byId.set(cryptoWithCategory.id, cryptoWithCategory);
       });
     }
     return maps;

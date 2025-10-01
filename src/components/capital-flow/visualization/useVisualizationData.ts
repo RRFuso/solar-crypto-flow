@@ -134,47 +134,24 @@ export const useVisualizationData = ({
         capitalFlows: links.filter(link => link.source.id === baseCentralNode.id || link.target.id === baseCentralNode.id),
     } : null;
 
-    let filteredNodes = enrichedNodes;
-    let filteredLinks = links;
-    let filteredCentralNode = enrichedCentralNode;
-
-    if (activeCategory !== 'all') {
-      const centralId = enrichedCentralNode?.id;
-      filteredNodes = enrichedNodes.filter(node => {
-        if (node.id === centralId) return true;
-        const cryptoInfo = cryptoDataMaps.byId.get(node.id) || cryptoDataMaps.bySymbol.get(node.id.toUpperCase());
-        return cryptoInfo?.category === activeCategory;
-      });
-
-      const filteredNodeIds = new Set(filteredNodes.map(node => node.id));
-      filteredLinks = links.filter(link => 
-        filteredNodeIds.has(link.source.id) && 
-        filteredNodeIds.has(link.target.id)
-      );
-      
-      if (centralId && !filteredNodeIds.has(centralId)) {
-          filteredCentralNode = null;
-      }
-    }
-
-    filteredNodes.forEach(node => {
-      const isCentral = node.id === filteredCentralNode?.id;
+    enrichedNodes.forEach(node => {
+      const isCentral = node.id === enrichedCentralNode?.id;
       node.radius = calculateConservativeRadius(node, zoomLevel, isCentral);
     });
 
     calculateNodePositions({ 
-      nodes: filteredNodes, 
-      centralNode: filteredCentralNode, 
+      nodes: enrichedNodes, 
+      centralNode: enrichedCentralNode, 
       width: dimensions.width, 
       height: dimensions.height, 
-      orbitLayers: Math.min(5, Math.ceil(filteredNodes.filter(n => n.id !== filteredCentralNode?.id).length / 8)), 
+      orbitLayers: Math.min(5, Math.ceil(enrichedNodes.filter(n => n.id !== enrichedCentralNode?.id).length / 8)), 
       baseRadius: Math.min(dimensions.width, dimensions.height) * 0.2 
     });
 
     setVisualizationData({ 
-      nodes: filteredNodes, 
-      links: filteredLinks, 
-      centralNode: filteredCentralNode,
+      nodes: enrichedNodes, 
+      links: links, 
+      centralNode: enrichedCentralNode,
       selectedNodeId: null
     });
 
