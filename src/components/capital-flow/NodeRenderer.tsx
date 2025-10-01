@@ -226,6 +226,8 @@ const renderOrUpdateVisualization = (
 
   const nodeUpdate = nodeEnter.merge(nodeSelection as d3.Selection<SVGGElement, ExtendedOrbitalNode, SVGGElement, unknown>);
 
+  console.log('🎯 NodeRenderer activeCategory:', activeCategory);
+  
   nodeUpdate.transition().duration(750)
     .attr('transform', (d: ExtendedOrbitalNode) => `translate(${d.x}, ${d.y}) scale(1)`)
     .style('opacity', (d: ExtendedOrbitalNode) => {
@@ -233,7 +235,7 @@ const renderOrUpdateVisualization = (
       if (activeCategory !== 'all') {
         // A 'categories' agora é um array no nó
         const belongsTo = d.categories?.includes(activeCategory);
-        console.log(`NodeRenderer: ${d.id} belongs to ${activeCategory}?`, belongsTo, 'categories:', d.categories);
+        console.log(`🔍 ${d.id}: activeCategory="${activeCategory}", categories=`, d.categories, `belongsTo=${belongsTo}`);
         return belongsTo ? 1 : 0.2;
       }
       return 1;

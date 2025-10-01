@@ -110,13 +110,13 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     if (!visualizationData || !visualizationData.nodes) return [];
     const nodes = visualizationData.nodes.map(node => {
       const categories = getCategoriesForSymbol(node.id);
-      console.log(`Node ${node.id} categories:`, categories);
       return {
         ...node,
         categories,
       };
     });
-    console.log('FlowVisualization enrichedNodes:', nodes.length, 'activeCategory:', activeCategory);
+    console.log('📊 FlowVisualization - enrichedNodes:', nodes.length, 'activeCategory:', activeCategory);
+    console.log('📊 Sample node categories:', nodes.slice(0, 3).map(n => ({ id: n.id, categories: n.categories })));
     return nodes;
   }, [visualizationData, activeCategory]);
 
