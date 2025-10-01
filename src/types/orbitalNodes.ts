@@ -16,4 +16,5 @@ export interface ExtendedOrbitalNode extends OrbitalNode {
   fy: number | null;
   capitalFlows?: CapitalFlowLink[];
   aiModel?: AIInsight;
+  categories?: string[];
 }

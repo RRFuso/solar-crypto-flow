@@ -2,6 +2,7 @@ import { BaseNode } from './nodes';
 
 export interface CapitalFlowNode extends BaseNode {
   marketCap?: number;
+  categories?: string[];
 }
 
 export interface CapitalFlowLink {

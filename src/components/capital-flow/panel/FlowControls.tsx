@@ -167,7 +167,6 @@ export const FlowControls: React.FC<FlowControlsProps> = ({
       <Select 
         value={selectedCategory} 
         onValueChange={(value) => {
-          console.log('FlowControls: Changing category to:', value);
           setSelectedCategory(value);
         }}
       >

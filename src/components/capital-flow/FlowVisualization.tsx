@@ -35,7 +35,6 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   activeCategory = 'all',
   showLines
 }) => {
-  console.log('FlowVisualization activeCategory:', activeCategory);
   const {
     svgRef,
     containerRef,
