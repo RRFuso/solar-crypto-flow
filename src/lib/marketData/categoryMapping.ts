@@ -1,25 +1,27 @@
 // Mapeamento de criptomoedas para categorias
 export const CRYPTO_CATEGORIES: Record<string, string[]> = {
-  'layer1': ['BTC', 'ETH', 'SOL', 'ADA', 'AVAX', 'DOT', 'NEAR', 'BNB', 'XRP', 'TRX', 'LTC', 'ATOM', 'ALGO', 'XTZ', 'FTM', 'EOS', 'VET', 'HBAR', 'EGLD', 'FLOW', 'ICP', 'KAS', 'INJ', 'SUI', 'SEI'],
+  'layer1': ['BTC', 'ETH', 'SOL', 'ADA', 'AVAX', 'DOT', 'NEAR', 'BNB', 'XRP', 'TRX', 'LTC', 'ATOM', 'ALGO', 'XTZ', 'FTM', 'EOS', 'VET', 'HBAR', 'EGLD', 'FLOW', 'ICP', 'KAS', 'INJ', 'SUI', 'SEI', 'TON', 'APT', 'ETC', 'FLR'],
   'layer2': ['OP', 'ARB', 'MATIC', 'STRK', 'IMX', 'MANTA', 'METIS', 'SKL', 'BOBA', 'OMG', 'ZKS', 'CELO', 'POLYGON'],
-  'defi': ['UNI', 'AAVE', 'MKR', 'COMP', 'CRV', 'SNX', 'CAKE', 'LDO', 'FXS', 'RUNE', 'RPL', 'SUSHI', 'YFI', 'ZRX', '1INCH', 'BAL', 'GMX', 'PENDLE', 'JOE', 'DYDX'],
-  'memecoin': ['DOGE', 'SHIB', 'PEPE', 'FLOKI', 'WIF', 'BONK', 'BOME', 'MEME', 'TURBO', 'COQ', 'MYRO', 'MOG', 'PEPECOIN'],
-  'stablecoin': ['USDT', 'USDC', 'DAI', 'TUSD', 'BUSD', 'FRAX', 'USDP', 'GUSD', 'PAXG'],
+  'defi': ['UNI', 'AAVE', 'MKR', 'COMP', 'CRV', 'SNX', 'CAKE', 'LDO', 'FXS', 'RUNE', 'RPL', 'SUSHI', 'YFI', 'ZRX', '1INCH', 'BAL', 'GMX', 'PENDLE', 'JOE', 'DYDX', 'ENA', 'JLP'],
+  'memecoin': ['DOGE', 'SHIB', 'PEPE', 'FLOKI', 'WIF', 'BONK', 'BOME', 'MEME', 'TURBO', 'COQ', 'MYRO', 'MOG', 'PEPECOIN', 'TRUMP', 'PUMP', 'PENGU'],
+  'stablecoin': ['USDT', 'USDC', 'DAI', 'TUSD', 'BUSD', 'FRAX', 'USDP', 'GUSD', 'PAXG', 'PYUSD', 'USDE', 'BSC-USD', 'USDF', 'USDS', 'SUSDE'],
   'gaming': ['AXS', 'SAND', 'GALA', 'ENJ', 'MANA', 'IMX', 'BEAM', 'PRIME', 'RONIN', 'ILV', 'YGG', 'PYR', 'UOS', 'ALICE', 'NAKA'],
-  'ai': ['FET', 'AGIX', 'RNDR', 'GRT', 'OCEAN', 'NMR', 'TAO', 'ARKM', 'WLD', 'AKT', 'PAAL', 'AIOZ', 'ORAI'],
+  'ai': ['FET', 'AGIX', 'RNDR', 'GRT', 'OCEAN', 'NMR', 'TAO', 'ARKM', 'WLD', 'AKT', 'PAAL', 'AIOZ', 'ORAI', 'RENDER'],
   'privacy': ['XMR', 'ZEC', 'DASH', 'ZEN', 'SCRT', 'DERO', 'ROSE', 'NYM', 'BEAM'],
-  'solana': ['SOL', 'RAY', 'JTO', 'PYTH', 'JUP', 'ORCA', 'WIF', 'BONK', 'MOBILE', 'RENDER', 'HNT', 'FIDA', 'SAMO'],
-  'ethereum': ['ETH', 'OP', 'ARB', 'MATIC', 'STRK', 'IMX', 'ENS', 'LDO', 'SHIB', 'LINK', 'UNI', 'AAVE'],
-  'bitcoin': ['BTC', 'STX', 'ORDI', 'SATS', 'BCH', 'BSV', 'ROOT'],
+  'solana': ['SOL', 'RAY', 'JTO', 'PYTH', 'JUP', 'ORCA', 'WIF', 'BONK', 'MOBILE', 'RENDER', 'HNT', 'FIDA', 'SAMO', 'JITOSOL', 'BNSOL'],
+  'ethereum': ['ETH', 'OP', 'ARB', 'MATIC', 'STRK', 'IMX', 'ENS', 'LDO', 'SHIB', 'LINK', 'UNI', 'AAVE', 'STETH', 'WETH', 'WBETH', 'RETH', 'OSETH', 'LSETH', 'RSETH', 'WEETH'],
+  'bitcoin': ['BTC', 'STX', 'ORDI', 'SATS', 'BCH', 'BSV', 'ROOT', 'WBTC', 'LBTC'],
   'bnb': ['BNB', 'CAKE', 'BSW', 'XVS', 'ALPACA', 'TWT'],
-  'rwa': ['ONDO', 'MKR', 'CFG', 'RIO', 'PROPS', 'POLY', 'TRADE', 'TOKEN'],
+  'rwa': ['ONDO', 'MKR', 'CFG', 'RIO', 'PROPS', 'POLY', 'TRADE', 'TOKEN', 'BUIDL'],
   'depin': ['HNT', 'FIL', 'AR', 'RNDR', 'THETA', 'AKT', 'IOTX', 'LPT'],
-  'oracles': ['LINK', 'BAND', 'TRB', 'API3', 'UMA', 'DIA'],
+  'oracles': ['LINK', 'BAND', 'TRB', 'API3', 'UMA', 'DIA', 'PYTH'],
   'payments': ['XRP', 'XLM', 'BCH', 'LTC', 'DASH', 'NANO', 'DGB', 'MOB'],
   'metaverse': ['MANA', 'SAND', 'AXS', 'ENJ', 'GALA', 'APE', 'THETA', 'HIGH', 'RACA'],
   'nft': ['BLUR', 'LOOKS', 'APE', 'ENJ', 'IMX', 'MAGIC', 'X2Y2', 'SUPER', 'RARE'],
   'storage': ['FIL', 'AR', 'STORJ', 'SC', 'BTT', 'BLZ'],
-  'infrastructure': ['LINK', 'GRT', 'FIL', 'AR', 'HBAR', 'ICP', 'ANKR', 'KDA', 'SYS'],
+  'infrastructure': ['LINK', 'GRT', 'FIL', 'AR', 'HBAR', 'ICP', 'ANKR', 'KDA', 'SYS', 'QNT'],
+  'cex-token': ['BNB', 'OKB', 'CRO', 'WBT', 'GT', 'KCS', 'LEO', 'BGB', 'MNT'],
+  'lst': ['STETH', 'WSTETH', 'WBETH', 'RETH', 'JITOSOL', 'OSETH', 'LSETH', 'RSETH', 'WEETH', 'BNSOL']
 };
 
 /**
