@@ -28,7 +28,9 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
     .sort((a, b) => b.marketCap - a.marketCap);
   
   // **CRITICAL: Much more compact and uniform orbital distribution**
-  const maxRadius = Math.min(width, height) * 0.35; // Reduced from larger values
+  // Add margin to keep nodes fully visible (accounting for node size + extra padding)
+  const margin = 60; // Space for largest nodes plus padding
+  const maxRadius = Math.min(width, height) / 2 - margin;
   const minRadius = maxRadius * 0.25; // Start closer to center
   
   // Calculate optimal nodes per orbit for uniform distribution
@@ -69,17 +71,21 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
       const testX = width / 2 + Math.cos(angle) * orbitRadius;
       const testY = height / 2 + Math.sin(angle) * orbitRadius;
       
-      // Simple bounds checking
-      const margin = node.radius + 5;
-      if (testX >= margin && testX <= width - margin && 
-          testY >= margin && testY <= height - margin) {
+      // Enhanced bounds checking with proper margins
+      const safeMargin = node.radius + 20; // Ensure full node visibility with padding
+      if (testX >= safeMargin && testX <= width - safeMargin && 
+          testY >= safeMargin && testY <= height - safeMargin) {
         node.x = testX;
         node.y = testY;
       } else {
-        // Fallback: adjust radius slightly inward
-        const adjustedRadius = orbitRadius * 0.9;
-        node.x = width / 2 + Math.cos(angle) * adjustedRadius;
-        node.y = height / 2 + Math.sin(angle) * adjustedRadius;
+        // Fallback: adjust radius significantly inward to ensure visibility
+        const adjustedRadius = orbitRadius * 0.8;
+        const fallbackX = width / 2 + Math.cos(angle) * adjustedRadius;
+        const fallbackY = height / 2 + Math.sin(angle) * adjustedRadius;
+        
+        // Clamp to safe bounds
+        node.x = Math.max(safeMargin, Math.min(width - safeMargin, fallbackX));
+        node.y = Math.max(safeMargin, Math.min(height - safeMargin, fallbackY));
       }
       
       placedNodes.push({ x: node.x, y: node.y, radius: node.radius * 2 });

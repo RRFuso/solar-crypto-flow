@@ -49,7 +49,9 @@ export const useOrbitalVisualization = () => {
     // Create nodes with better orbital positioning
     const centerX = width / 2;
     const centerY = height / 2;
-    const maxRadius = Math.min(width, height) * 0.35;
+    // Add margin to keep nodes fully visible (accounting for node size + extra padding)
+    const margin = 60; // Space for largest nodes plus padding
+    const maxRadius = Math.min(width, height) / 2 - margin;
     
     // Sort assets by volume for better orbital arrangement
     const sortedAssets = assets.sort((a, b) => {
