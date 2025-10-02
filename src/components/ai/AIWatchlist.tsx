@@ -115,7 +115,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     const displayPrice = price || parseFloat(prediction.price || '0');
 
     return (
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-center gap-4">
         <span className="text-sm font-semibold text-white">
           ${displayPrice > 0 ? displayPrice.toFixed(4) : 'N/A'}
         </span>

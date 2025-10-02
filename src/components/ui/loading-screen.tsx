@@ -1,10 +1,9 @@
-
 import React from 'react';
 
 const LoadingScreen: React.FC = () => {
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black flex items-center justify-center z-50">
-      <div className="text-center">
+      <div className="text-center flex flex-col items-center">
         {/* Solar logo animation */}
         <div className="relative mb-8">
           <div className="w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center animate-pulse">
