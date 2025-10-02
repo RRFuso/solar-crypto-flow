@@ -32,6 +32,7 @@ interface UseVisualizationDataProps {
     height: number
   ) => { svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, nodes: OrbitalNode[], links: LinkData[], centralNode: OrbitalNode | null };
   activeCategory?: string;
+  dataFullyLoaded: boolean;
 }
 
 const getVolumeAsNumber = (vol: number | string | undefined): number | undefined => {
@@ -63,9 +64,12 @@ export const useVisualizationData = ({
   setVisualizationData,
   animationRef,
   createOrbitalVisualization,
-  activeCategory = 'all'
+  activeCategory = 'all',
+  dataFullyLoaded
 }: UseVisualizationDataProps) => {
   useEffect(() => {
+    // Only create visualization once data is fully loaded
+    if (!dataFullyLoaded) return;
     if (!flowData || flowData.length === 0 || !svgRef.current || !dimensions.width) return;
 
     if (animationRef.current) {
@@ -155,5 +159,5 @@ export const useVisualizationData = ({
       selectedNodeId: null
     });
 
-  }, [flowData, cryptoDataMaps, priceActionSignals, aiInsights, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory, svgRef]); 
+  }, [flowData, dimensions.width, dimensions.height, zoomLevel, activeCategory, dataFullyLoaded, svgRef, createOrbitalVisualization, setVisualizationData, animationRef]);
 };

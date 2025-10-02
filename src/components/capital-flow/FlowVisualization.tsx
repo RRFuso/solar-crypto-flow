@@ -75,6 +75,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   
   const adjustedZoomLevel = dimensions.width < 768 ? zoomLevel * 0.6 : zoomLevel * 1.2;
   
+  // Only create visualization once all data is fully loaded
   useVisualizationData({
     flowData,
     cryptoDataMaps,
@@ -86,7 +87,8 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     setVisualizationData,
     animationRef,
     createOrbitalVisualization,
-    activeCategory
+    activeCategory,
+    dataFullyLoaded
   });
 
   useEffect(() => {
