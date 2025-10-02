@@ -55,11 +55,21 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(symbolsInView);
   const { smartMoneyScores, requestOnChainData } = useOnChainData();
 
+  // Track if data has been fully loaded at least once
+  const [dataFullyLoaded, setDataFullyLoaded] = useState(false);
+
   useEffect(() => {
     if (symbolsInView.length > 0) {
       requestOnChainData(symbolsInView);
     }
   }, [symbolsInView, requestOnChainData]);
+
+  // Mark data as fully loaded once all sources have finished loading
+  useEffect(() => {
+    if (!loadingCryptoData && !loadingSignals && !loadingAI && symbolsInView.length > 0) {
+      setDataFullyLoaded(true);
+    }
+  }, [loadingCryptoData, loadingSignals, loadingAI, symbolsInView.length]);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
@@ -120,12 +130,22 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     return nodes;
   }, [visualizationData, activeCategory]);
 
-  if (loadingCryptoData || loadingSignals || loadingAI) {
+  // Show loading state only until first complete data load
+  const isInitialLoading = !dataFullyLoaded && (loadingCryptoData || loadingSignals || loadingAI);
+
+  if (isInitialLoading) {
     return (
       <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading AI-powered visualization...</p>
+          {/* BTC Logo spinning */}
+          <div className="relative w-24 h-24 mx-auto mb-6">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-yellow-500 rounded-full animate-spin" style={{ animationDuration: '3s' }} />
+            <div className="absolute inset-2 bg-slate-900 rounded-full flex items-center justify-center">
+              <span className="text-3xl font-bold text-orange-500">₿</span>
+            </div>
+          </div>
+          <p className="text-slate-400 text-lg font-medium">Loading AI-powered visualization...</p>
+          <p className="text-slate-500 text-sm mt-2">Aggregating market data</p>
         </div>
       </div>
     );
