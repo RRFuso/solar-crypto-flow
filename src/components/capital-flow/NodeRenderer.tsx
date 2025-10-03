@@ -105,10 +105,9 @@ const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, AI
         aiModel: aiInsight,
         trendReasons: trendReasons,
         aiAnalysis: {
-            ...aiInsight,
+            ...(aiInsight || {}),
             recommendation: aiInsight?.recommendation || 'N/A',
             confidence: aiInsight?.confidence || 0,
-            // Adicionando a análise de price action aqui para ser usada no tooltip
             priceAction: priceActionAnalysisText,
         },
         explosivePotential: node.priceActionSignal?.explosivePotential,
@@ -191,6 +190,8 @@ const renderOrUpdateVisualization = (
     .attr('transform', (d: ExtendedOrbitalNode) => `translate(${d.x}, ${d.y}) scale(0)`)
     .remove();
 
+  let tooltipHideTimer: NodeJS.Timeout;
+
   const nodeEnter = nodeSelection.enter()
     .append('g')
     .attr('class', 'node')
@@ -201,11 +202,14 @@ const renderOrUpdateVisualization = (
       document.dispatchEvent(clickEvent);
     })
     .on('mouseover', (event: MouseEvent, d: ExtendedOrbitalNode) => {
+        clearTimeout(tooltipHideTimer);
         const tooltipData = createTooltipData(d, aiInsights);
         showTooltip(tooltipData, { x: event.clientX, y: event.clientY });
     })
     .on('mouseout', () => {
-        hideTooltip();
+        tooltipHideTimer = setTimeout(() => {
+            hideTooltip();
+        }, 300);
     });
 
   nodeEnter.append('circle')
