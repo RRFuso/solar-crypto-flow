@@ -6,23 +6,41 @@ interface StarfieldBackgroundProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   width: number;
   height: number;
+  showLines: boolean;
 }
 
-/**
- * Starfield desativado para melhorar performance.
- */
-export const StarfieldBackground: React.FC<StarfieldBackgroundProps> = ({ svg, width, height }) => {
+export const StarfieldBackground: React.FC<StarfieldBackgroundProps> = ({ svg, width, height, showLines }) => {
   useEffect(() => {
-    // Remove qualquer fundo anterior
     svg.selectAll('.starfield').remove();
 
-    // Se desejar manter a estrutura para reativar no futuro:
-    svg.append("g").attr("class", "starfield");
+    if (showLines) {
+      // If lines are shown, do not render the starfield.
+      return;
+    }
+
+    const starfield = svg.append('g').attr('class', 'starfield');
+    const numStars = 200; // A reasonable number of stars
+    const stars = Array.from({ length: numStars }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      radius: Math.random() * 1.5 + 0.5,
+    }));
+
+    starfield.selectAll('.star')
+      .data(stars)
+      .enter()
+      .append('circle')
+      .attr('class', 'star')
+      .attr('cx', d => d.x)
+      .attr('cy', d => d.y)
+      .attr('r', d => d.radius)
+      .style('fill', 'white')
+      .style('fill-opacity', 0.7);
 
     return () => {
       svg.selectAll('.starfield').remove();
     };
-  }, [svg, width, height]);
+  }, [svg, width, height, showLines]);
 
   return null;
 };

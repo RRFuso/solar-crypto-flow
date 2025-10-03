@@ -167,6 +167,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             svg={d3.select(svgRef.current)}
             width={dimensions.width}
             height={dimensions.height}
+            showLines={showLines}
           />
           <OrbitLayersComponent 
             svg={d3.select(svgRef.current)}
@@ -175,6 +176,7 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
             orbitLayers={4}
             baseRadius={Math.min(dimensions.width, dimensions.height) * 0.12}
             extendFullScreen={true}
+            showLines={showLines}
           />
           <LinkRendererExtended
             svg={d3.select(svgRef.current)}

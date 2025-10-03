@@ -9,6 +9,7 @@ interface OrbitLayersProps {
   orbitLayers: number;
   baseRadius: number;
   extendFullScreen?: boolean;
+  showLines: boolean;
 }
 
 export const OrbitLayersComponent: React.FC<OrbitLayersProps> = ({
@@ -17,13 +18,19 @@ export const OrbitLayersComponent: React.FC<OrbitLayersProps> = ({
   height,
   orbitLayers,
   baseRadius,
-  extendFullScreen = false
+  extendFullScreen = false,
+  showLines
 }) => {
   useEffect(() => {
     if (!svg) return;
 
     // Remove existing orbit layers
-    svg.selectAll('.orbit-layer').remove();
+    svg.selectAll('.orbit-layers').remove();
+
+    if (showLines) {
+      // If lines are shown, do not render the orbits to reduce clutter.
+      return;
+    }
 
     const orbitGroup = svg.append('g').attr('class', 'orbit-layers');
     const centerX = width / 2;
@@ -82,7 +89,7 @@ export const OrbitLayersComponent: React.FC<OrbitLayersProps> = ({
     return () => {
       svg.selectAll('.orbit-layers').remove();
     };
-  }, [svg, width, height, orbitLayers, baseRadius, extendFullScreen]);
+  }, [svg, width, height, orbitLayers, baseRadius, extendFullScreen, showLines]);
 
   return null;
 };
