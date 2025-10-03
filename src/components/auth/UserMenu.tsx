@@ -9,14 +9,15 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { User, LogOut, Database } from 'lucide-react';
+import { User, LogOut, Database, CreditCard } from 'lucide-react';
 
 interface UserMenuProps {
   openDataPopulationModal: () => void;
+  openSubscriptionModal: () => void;
 }
 
-const UserMenu: React.FC<UserMenuProps> = ({ openDataPopulationModal }) => {
-  const { user, signOut } = useAuth();
+const UserMenu: React.FC<UserMenuProps> = ({ openDataPopulationModal, openSubscriptionModal }) => {
+  const { user, signOut, subscriptionPlan } = useAuth();
 
   if (!user) return null;
 
@@ -29,6 +30,17 @@ const UserMenu: React.FC<UserMenuProps> = ({ openDataPopulationModal }) => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 text-white">
+        <DropdownMenuItem
+          onClick={openSubscriptionModal}
+          className="hover:bg-gray-700 cursor-pointer"
+        >
+          <CreditCard className="h-4 w-4 mr-2" />
+          <div className="flex flex-col">
+            <span>Assinatura</span>
+            <span className="text-xs text-gray-400">{subscriptionPlan.toUpperCase()}</span>
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="bg-gray-700" />
         {user.email === 'prof.rafaelfuso@gmail.com' && (
           <>
             <DropdownMenuItem

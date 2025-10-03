@@ -7,6 +7,10 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  subscriptionPlan: 'free' | 'pro' | 'premium';
+  subscriptionEnd: string | null;
+  isSubscribed: boolean;
+  checkSubscription: () => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -26,6 +30,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [subscriptionPlan, setSubscriptionPlan] = useState<'free' | 'pro' | 'premium'>('free');
+  const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  const checkSubscription = async () => {
+    if (!session) {
+      setSubscriptionPlan('free');
+      setIsSubscribed(false);
+      setSubscriptionEnd(null);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('check-subscription');
+      
+      if (error) {
+        console.error('Error checking subscription:', error);
+        return;
+      }
+
+      setSubscriptionPlan(data.plan || 'free');
+      setIsSubscribed(data.subscribed || false);
+      setSubscriptionEnd(data.subscription_end || null);
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener
@@ -34,6 +65,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Check subscription when auth state changes
+        if (session) {
+          setTimeout(() => checkSubscription(), 0);
+        } else {
+          setSubscriptionPlan('free');
+          setIsSubscribed(false);
+          setSubscriptionEnd(null);
+        }
       }
     );
 
@@ -42,10 +82,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      if (session) {
+        setTimeout(() => checkSubscription(), 0);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Refresh subscription status periodically
+  useEffect(() => {
+    if (!session) return;
+
+    const interval = setInterval(() => {
+      checkSubscription();
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [session]);
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
@@ -76,6 +131,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     loading,
+    subscriptionPlan,
+    subscriptionEnd,
+    isSubscribed,
+    checkSubscription,
     signUp,
     signIn,
     signOut

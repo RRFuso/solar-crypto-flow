@@ -12,6 +12,7 @@ import { OnChainDataProvider } from '@/contexts/OnChainDataContext';
 import { useAuth } from "@/contexts/AuthContext";
 import DataPopulationPanel from "@/components/admin/DataPopulationPanel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { SubscriptionPlans } from "@/components/subscription/SubscriptionPlans";
 import { FlowControls } from "@/components/capital-flow/panel/FlowControls";
 import { FlowPanelHeader } from "@/components/capital-flow/panel/FlowPanelHeader";
 import { fetchMarketDataCoinGecko, fetchMarketDataBinance } from '@/lib/marketData';
@@ -22,6 +23,7 @@ import { usePredictions } from '@/hooks/capital-flow/usePredictions';
 const Index = () => {
   const [activeTab, setActiveTab] = useState("capital-flow");
   const [isDataPopulationModalOpen, setIsDataPopulationModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const { user } = useAuth();
 
   // State lifted from CapitalFlowPanel
@@ -89,7 +91,12 @@ const Index = () => {
                 </div>
               </div>
               <div className="md:hidden">
-                {user ? <UserMenu openDataPopulationModal={() => setIsDataPopulationModalOpen(true)} /> : <Auth />}
+                {user ? (
+                  <UserMenu 
+                    openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
+                    openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+                  />
+                ) : <Auth />}
               </div>
             </div>
 
@@ -117,7 +124,12 @@ const Index = () => {
             </div>
 
             <div className="hidden md:block">
-              {user ? <UserMenu openDataPopulationModal={() => setIsDataPopulationModalOpen(true)} /> : <Auth />}
+              {user ? (
+                <UserMenu 
+                  openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
+                  openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+                />
+              ) : <Auth />}
             </div>
           </header>
 
@@ -187,6 +199,15 @@ const Index = () => {
             </DialogContent>
           </Dialog>
         )}
+
+        <Dialog open={isSubscriptionModalOpen} onOpenChange={setIsSubscriptionModalOpen}>
+          <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-7xl">
+            <DialogHeader>
+              <DialogTitle>Gerenciar Assinatura</DialogTitle>
+            </DialogHeader>
+            <SubscriptionPlans />
+          </DialogContent>
+        </Dialog>
       </DashboardLayout>
     </OnChainDataProvider>
   );
