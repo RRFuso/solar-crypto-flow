@@ -27,7 +27,7 @@ const Index = () => {
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { user } = useAuth();
-  const { canAccessFlow } = useCredits();
+  const { canAccessFlow, getMaxFlows } = useCredits();
 
   // State lifted from CapitalFlowPanel
   const [timeframe, setTimeframe] = useState('24h');
@@ -63,13 +63,18 @@ const Index = () => {
   const { predictions } = usePredictions(flowData, selectedCategory, chartTimeframe);
 
   // Apply flow limit based on user credits
+  const maxFlows = getMaxFlows();
   const effectiveFlowLimit = useMemo(() => {
-    if (!canAccessFlow(flowLimit)) {
-      toast.error('Limite de flows atingido. Faça upgrade para acesso ilimitado.');
-      return user ? 60 : 30; // Free registered: 60, non-registered: 30
+    const limitedFlow = Math.min(flowLimit, maxFlows);
+    if (flowLimit > maxFlows) {
+      if (!user) {
+        toast.error('Limite de 30 flows. Cadastre-se para expandir para 60 flows.');
+      } else {
+        toast.error('Limite de flows atingido. Faça upgrade para acesso ilimitado.');
+      }
     }
-    return flowLimit;
-  }, [flowLimit, canAccessFlow, user]);
+    return limitedFlow;
+  }, [flowLimit, maxFlows, user]);
 
   const filteredPredictions = useMemo(() => {
     if (showOnlyStrongSignals) {

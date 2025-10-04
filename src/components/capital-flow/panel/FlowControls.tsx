@@ -133,7 +133,7 @@ export const FlowControls: React.FC<FlowControlsProps> = ({
           <div className="space-y-2 md:space-y-4">
             <h4 className="font-medium text-xs md:text-sm text-gray-300">Visible Flows</h4>
             <Slider
-              defaultValue={[flowLimit]}
+              value={[flowLimit]}
               max={2000}
               min={5}
               step={5}

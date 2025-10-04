@@ -41,12 +41,19 @@ export const useCredits = () => {
     fetchCredits();
   }, [user]);
 
-  const canAccessFlow = (currentFlows: number): boolean => {
-    if (!user) return currentFlows < 30; // Free non-registered: 30 flows max
+  const canAccessFlow = (requestedFlows: number): boolean => {
     if (subscriptionPlan !== 'free') return true; // Paid users: unlimited
-    if (!credits) return false;
+    if (!user) return requestedFlows <= 30; // Free non-registered: 30 flows max
+    if (!credits) return requestedFlows <= 30;
     
-    return currentFlows < credits.flows_limit; // Free registered: use flows_limit
+    return requestedFlows <= credits.flows_limit; // Free registered: use flows_limit
+  };
+
+  const getMaxFlows = (): number => {
+    if (subscriptionPlan !== 'free') return 2000; // Paid users: unlimited
+    if (!user) return 30; // Free non-registered: 30 flows max
+    if (!credits) return 30;
+    return credits.flows_limit; // Free registered: use flows_limit (60)
   };
 
   const canAccessAIWatchlist = (): boolean => {
@@ -90,6 +97,7 @@ export const useCredits = () => {
     credits,
     loading,
     canAccessFlow,
+    getMaxFlows,
     canAccessAIWatchlist,
     canAccessAIAnalyst,
     hasUnlimitedAccess,

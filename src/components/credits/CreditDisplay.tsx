@@ -60,7 +60,11 @@ export const CreditDisplay: React.FC<CreditDisplayProps> = ({ onUpgradeClick }) 
                 <span className="text-xs text-muted-foreground">Faça login para expandir</span>
               </div>
             </div>
-            <Button size="sm" variant="outline" onClick={onUpgradeClick}>
+            <Button 
+              size="sm" 
+              onClick={onUpgradeClick}
+              className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 hover:from-yellow-500 hover:via-orange-600 hover:to-red-600 text-black font-semibold min-w-[100px]"
+            >
               Cadastrar
             </Button>
           </div>
@@ -88,7 +92,11 @@ export const CreditDisplay: React.FC<CreditDisplayProps> = ({ onUpgradeClick }) 
               <span className="text-xs text-muted-foreground">Plano Free</span>
             </div>
           </div>
-          <Button size="sm" variant="default" onClick={onUpgradeClick}>
+          <Button 
+            size="sm" 
+            onClick={onUpgradeClick}
+            className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 hover:from-yellow-500 hover:via-orange-600 hover:to-red-600 text-black font-semibold min-w-[100px]"
+          >
             Upgrade
           </Button>
         </div>
