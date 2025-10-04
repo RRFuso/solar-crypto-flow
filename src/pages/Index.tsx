@@ -19,12 +19,15 @@ import { fetchMarketDataCoinGecko, fetchMarketDataBinance } from '@/lib/marketDa
 import { toast } from 'sonner';
 import { useFilteredFlowData } from '@/hooks/capital-flow/useFilteredFlowData';
 import { usePredictions } from '@/hooks/capital-flow/usePredictions';
+import { useCredits } from '@/hooks/useCredits';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("capital-flow");
   const [isDataPopulationModalOpen, setIsDataPopulationModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { user } = useAuth();
+  const { canAccessFlow } = useCredits();
 
   // State lifted from CapitalFlowPanel
   const [timeframe, setTimeframe] = useState('24h');
@@ -58,6 +61,15 @@ const Index = () => {
 
   const processedFlowData = useFilteredFlowData(flowData, flowLimit, selectedCategory);
   const { predictions } = usePredictions(flowData, selectedCategory, chartTimeframe);
+
+  // Apply flow limit based on user credits
+  const effectiveFlowLimit = useMemo(() => {
+    if (!canAccessFlow(flowLimit)) {
+      toast.error('Limite de flows atingido. Faça upgrade para acesso ilimitado.');
+      return user ? 60 : 30; // Free registered: 60, non-registered: 30
+    }
+    return flowLimit;
+  }, [flowLimit, canAccessFlow, user]);
 
   const filteredPredictions = useMemo(() => {
     if (showOnlyStrongSignals) {
@@ -95,8 +107,15 @@ const Index = () => {
                   <UserMenu 
                     openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
                     openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+                    openAuthModal={() => setIsAuthModalOpen(true)}
                   />
-                ) : <Auth />}
+                ) : (
+                  <UserMenu 
+                    openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
+                    openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+                    openAuthModal={() => setIsAuthModalOpen(true)}
+                  />
+                )}
               </div>
             </div>
 
@@ -128,8 +147,15 @@ const Index = () => {
                 <UserMenu 
                   openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
                   openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+                  openAuthModal={() => setIsAuthModalOpen(true)}
                 />
-              ) : <Auth />}
+              ) : (
+                <UserMenu 
+                  openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
+                  openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+                  openAuthModal={() => setIsAuthModalOpen(true)}
+                />
+              )}
             </div>
           </header>
 
@@ -144,7 +170,7 @@ const Index = () => {
                     zoomLevel={zoomLevel}
                     handleZoomIn={handleZoomIn}
                     handleZoomOut={handleZoomOut}
-                    flowLimit={flowLimit}
+                    flowLimit={effectiveFlowLimit}
                     handleLimitChange={handleLimitChange}
                     selectedCategory={selectedCategory}
                     setSelectedCategory={setSelectedCategory}
@@ -172,7 +198,7 @@ const Index = () => {
                 showLines={showLines}
                 handleZoomIn={handleZoomIn}
                 handleZoomOut={handleZoomOut}
-                flowLimit={flowLimit}
+                flowLimit={effectiveFlowLimit}
                 handleLimitChange={handleLimitChange}
                 handleChartTimeframeChange={handleChartTimeframeChange}
                 showOnlyStrongSignals={showOnlyStrongSignals}
@@ -206,6 +232,15 @@ const Index = () => {
               <DialogTitle>Gerenciar Assinatura</DialogTitle>
             </DialogHeader>
             <SubscriptionPlans />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen}>
+          <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md">
+            <DialogHeader>
+              <DialogTitle>Login / Cadastro</DialogTitle>
+            </DialogHeader>
+            <Auth />
           </DialogContent>
         </Dialog>
       </DashboardLayout>
