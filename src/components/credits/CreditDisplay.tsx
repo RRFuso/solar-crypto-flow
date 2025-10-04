@@ -50,10 +50,10 @@ export const CreditDisplay: React.FC<CreditDisplayProps> = ({ onUpgradeClick }) 
 
   if (!user) {
     return (
-      <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
+      <Card className="border-border/40 bg-crypto-dark backdrop-blur-sm w-full">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-auto">
               <Coins className="h-5 w-5 text-primary" />
               <div className="flex flex-col">
                 <span className="text-sm font-medium text-foreground">Flows: 0/30</span>

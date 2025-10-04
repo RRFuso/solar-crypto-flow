@@ -99,7 +99,7 @@ const Index = () => {
           <header className="flex-shrink-0 px-2 md:px-4 h-auto md:h-16 flex flex-col md:flex-row items-center justify-between border-b border-slate-700/50 py-2 md:py-0">
             <div className="w-full md:w-auto flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <img src="/SOLCRY.png" alt="SOLCRY Logo" className="w-7 h-7" />
+                <img src="/SOLCRY.webp" alt="SOLCRY Logo" className="w-10 h-10" />
                 <h1 className="text-lg font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
                   SOLCRY
                 </h1>

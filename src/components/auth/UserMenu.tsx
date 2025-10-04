@@ -25,7 +25,7 @@ const UserMenu: React.FC<UserMenuProps> = ({
   const { user, signOut, subscriptionPlan } = useAuth();
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3 w-full justify-between">
       <CreditDisplay onUpgradeClick={user ? openSubscriptionModal : openAuthModal} />
       
       {user ? (
@@ -71,10 +71,9 @@ const UserMenu: React.FC<UserMenuProps> = ({
         </DropdownMenu>
       ) : (
         <Button 
-          variant="outline" 
           size="sm"
           onClick={openAuthModal}
-          className="text-white border-white/20 hover:bg-white/10"
+          className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 hover:from-yellow-500 hover:via-orange-600 hover:to-red-600 text-black font-semibold min-w-[100px]"
         >
           Entrar
         </Button>
