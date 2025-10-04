@@ -1,7 +1,8 @@
 import { BinanceTicker, BinanceKline } from '@/types/binance';
 import { filterValidTickers } from './tickerValidation';
 
-const BINANCE_API_URL = 'https://api.binance.com/api/v3';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const BINANCE_PROXY = `${SUPABASE_URL}/functions/v1/binance-proxy`;
 
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -40,7 +41,7 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): P
 export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => {
   try {
     console.log('Fetching tickers from Binance...');
-    const response = await fetchWithRetry(`${BINANCE_API_URL}/ticker/24hr`, {
+    const response = await fetchWithRetry(`${BINANCE_PROXY}/ticker/24hr`, {
       method: 'GET',
     });
     
@@ -61,7 +62,7 @@ export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => 
 export const fetchKlines = async (symbol: string, interval: string, options?: { startTime?: number; endTime?: number; limit?: number }): Promise<BinanceKline[]> => {
   try {
     console.log(`Fetching klines for ${symbol}...`);
-    const url = `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}${options?.startTime ? `&startTime=${options.startTime}` : ''}${options?.endTime ? `&endTime=${options.endTime}` : ''}${options?.limit ? `&limit=${options.limit}` : ''}`;
+    const url = `${BINANCE_PROXY}/klines?symbol=${symbol}&interval=${interval}${options?.startTime ? `&startTime=${options.startTime}` : ''}${options?.endTime ? `&endTime=${options.endTime}` : ''}${options?.limit ? `&limit=${options.limit}` : ''}`;
     console.log(`Binance Klines URL: ${url}`);
     const response = await fetchWithRetry(
       url,

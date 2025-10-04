@@ -41,3 +41,9 @@ verify_jwt = false
 
 [functions.populate-multiple-price-history]
 verify_jwt = false
+
+[functions.coingecko-proxy]
+verify_jwt = false
+
+[functions.binance-proxy]
+verify_jwt = false
