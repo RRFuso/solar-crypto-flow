@@ -51,21 +51,25 @@ const generateFallbackSvg = (symbol: string): string => {
 export const getLogoUrls = (symbol: string): string[] => {
   const normalizedSymbol = symbol.toUpperCase();
   const coinId = symbolToIdMap[normalizedSymbol];
+  const supabaseUrl = "https://bahshstcztvqmxiubslx.supabase.co";
 
   const urls: string[] = [];
 
-  // 1. Primary Source: CoinMarketCap (high quality, if ID is known)
+  // 1. PRIMARY: Supabase Storage (cached with CDN, fastest)
+  urls.push(`${supabaseUrl}/storage/v1/object/public/crypto-logos/${normalizedSymbol}.png`);
+
+  // 2. CoinMarketCap (high quality, if ID is known)
   if (coinId) {
     urls.push(`https://s2.coinmarketcap.com/static/img/coins/64x64/${coinId}.png`);
   }
 
-  // 2. Secondary Source: TradingView (good for major symbols)
+  // 3. TradingView (good for major symbols)
   urls.push(`https://s3-symbol-logo.tradingview.com/crypto/XTVC${normalizedSymbol}.svg`);
   
-  // 3. Tertiary Source: CryptoCompare
+  // 4. CryptoCompare
   urls.push(`https://www.cryptocompare.com/media/37746238/${normalizedSymbol}.png`);
 
-  // 4. Final Fallback: A dynamically generated SVG placeholder
+  // 5. Final Fallback: A dynamically generated SVG placeholder
   urls.push(generateFallbackSvg(normalizedSymbol));
 
   return urls;

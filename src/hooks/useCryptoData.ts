@@ -29,7 +29,8 @@ export const useCryptoData = (options: CryptoDataOptions = {}) => {
       return allCryptos;
     },
     retry: 3,
-    staleTime: 600000 // Increased staleTime to 10 minutes
+    staleTime: 30 * 60 * 1000, // 30 minutes - crypto list doesn't change frequently
+    gcTime: 60 * 60 * 1000 // 1 hour - keep in cache longer
   });
 
   const cryptoDataMaps = React.useMemo(() => {

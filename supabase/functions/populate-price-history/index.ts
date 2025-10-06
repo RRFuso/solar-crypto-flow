@@ -71,7 +71,11 @@ Deno.serve(async (req) => {
     console.log(`Successfully inserted/updated ${historyRows.length} records for ${symbol}.`)
 
     return new Response(JSON.stringify({ success: true, records_added: historyRows.length }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=3600' // 1 hour cache for historical data
+      },
       status: 200,
     })
   } catch (error) {

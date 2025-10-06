@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.populate-multiple-price-history]
 verify_jwt = false
+
+[functions.cache-crypto-logo]
+verify_jwt = false

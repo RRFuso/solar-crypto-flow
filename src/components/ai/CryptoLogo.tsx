@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getLogoUrls } from '@/lib/cryptoLogos';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CryptoLogoProps {
   symbol: string;
@@ -11,24 +12,50 @@ const CryptoLogo: React.FC<CryptoLogoProps> = ({ symbol, className }) => {
   const [logoUrl, setLogoUrl] = useState<string>('');
 
   useEffect(() => {
-    const urls = getLogoUrls(symbol);
-    let currentUrlIndex = 0;
+    const loadLogo = async () => {
+      // First, try to get from cache
+      const { data: cached } = await supabase
+        .from('cached_crypto_logos')
+        .select('storage_path')
+        .eq('symbol', symbol.toUpperCase())
+        .single();
 
-    const tryNextUrl = () => {
-      if (currentUrlIndex < urls.length) {
-        const img = new Image();
-        img.src = urls[currentUrlIndex];
-        img.onload = () => {
-          setLogoUrl(urls[currentUrlIndex]);
-        };
-        img.onerror = () => {
-          currentUrlIndex++;
-          tryNextUrl();
-        };
+      if (cached) {
+        const { data: publicUrl } = supabase.storage
+          .from('crypto-logos')
+          .getPublicUrl(cached.storage_path);
+        setLogoUrl(publicUrl.publicUrl);
+        return;
       }
+
+      // If not cached, try URLs with fallback
+      const urls = getLogoUrls(symbol);
+      let currentUrlIndex = 0;
+
+      const tryNextUrl = () => {
+        if (currentUrlIndex < urls.length) {
+          const img = new Image();
+          img.src = urls[currentUrlIndex];
+          img.onload = () => {
+            setLogoUrl(urls[currentUrlIndex]);
+            // Trigger background caching for next time
+            if (currentUrlIndex > 0) {
+              supabase.functions.invoke('cache-crypto-logo', {
+                body: { symbol: symbol.toUpperCase() }
+              }).catch(() => {}); // Silent fail, it's just for caching
+            }
+          };
+          img.onerror = () => {
+            currentUrlIndex++;
+            tryNextUrl();
+          };
+        }
+      };
+
+      tryNextUrl();
     };
 
-    tryNextUrl();
+    loadLogo();
   }, [symbol]);
 
   if (!logoUrl) {

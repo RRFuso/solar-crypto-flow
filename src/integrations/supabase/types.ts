@@ -116,6 +116,30 @@ export type Database = {
         }
         Relationships: []
       }
+      cached_crypto_logos: {
+        Row: {
+          cached_at: string | null
+          last_accessed: string | null
+          source_url: string
+          storage_path: string
+          symbol: string
+        }
+        Insert: {
+          cached_at?: string | null
+          last_accessed?: string | null
+          source_url: string
+          storage_path: string
+          symbol: string
+        }
+        Update: {
+          cached_at?: string | null
+          last_accessed?: string | null
+          source_url?: string
+          storage_path?: string
+          symbol?: string
+        }
+        Relationships: []
+      }
       crypto_historical_data: {
         Row: {
           close: number | null
