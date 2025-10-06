@@ -78,7 +78,21 @@ Deno.serve(async (req) => {
     }
 
     if (!logoBlob) {
-      throw new Error('Failed to fetch logo from any source')
+      console.log(`No logo found for ${symbol}, will use fallback`)
+      return new Response(
+        JSON.stringify({ 
+          url: null,
+          cached: false,
+          fallback: true
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=86400'
+          }
+        }
+      )
     }
 
     // Upload to Supabase Storage
@@ -92,7 +106,22 @@ Deno.serve(async (req) => {
       })
 
     if (uploadError) {
-      throw uploadError
+      console.error(`Upload error for ${symbol}:`, uploadError)
+      return new Response(
+        JSON.stringify({ 
+          url: null,
+          cached: false,
+          fallback: true,
+          error: uploadError.message
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json'
+          },
+          status: 500
+        }
+      )
     }
 
     // Save metadata

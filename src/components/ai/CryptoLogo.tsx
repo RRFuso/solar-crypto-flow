@@ -38,8 +38,8 @@ const CryptoLogo: React.FC<CryptoLogoProps> = ({ symbol, className }) => {
           img.src = urls[currentUrlIndex];
           img.onload = () => {
             setLogoUrl(urls[currentUrlIndex]);
-            // Trigger background caching for next time
-            if (currentUrlIndex > 0) {
+            // Trigger background caching for next time (only for external URLs, not fallback SVG)
+            if (currentUrlIndex > 0 && !urls[currentUrlIndex].startsWith('data:')) {
               supabase.functions.invoke('cache-crypto-logo', {
                 body: { symbol: symbol.toUpperCase() }
               }).catch(() => {}); // Silent fail, it's just for caching
