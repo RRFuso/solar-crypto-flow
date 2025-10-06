@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { User, LogOut, Database, CreditCard } from 'lucide-react';
 import { CreditDisplay } from '@/components/credits/CreditDisplay';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface UserMenuProps {
   openDataPopulationModal: () => void;
@@ -23,6 +24,7 @@ const UserMenu: React.FC<UserMenuProps> = ({
   openAuthModal 
 }) => {
   const { user, signOut, subscriptionPlan } = useAuth();
+  const { isAdmin } = useUserRole();
 
   return (
     <div className="flex items-center gap-3 w-full justify-between">
@@ -48,7 +50,7 @@ const UserMenu: React.FC<UserMenuProps> = ({
               </div>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-gray-700" />
-            {user.email === 'prof.rafaelfuso@gmail.com' && (
+            {isAdmin && (
               <>
                 <DropdownMenuItem
                   onClick={openDataPopulationModal}

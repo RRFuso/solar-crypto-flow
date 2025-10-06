@@ -12,7 +12,7 @@ interface CreditDisplayProps {
 
 export const CreditDisplay: React.FC<CreditDisplayProps> = ({ onUpgradeClick }) => {
   const { user, subscriptionPlan } = useAuth();
-  const { credits, loading, hasUnlimitedAccess } = useCredits();
+  const { credits, loading, hasUnlimitedAccess, isAdmin } = useCredits();
 
   if (loading) {
     return (
@@ -27,7 +27,7 @@ export const CreditDisplay: React.FC<CreditDisplayProps> = ({ onUpgradeClick }) 
     );
   }
 
-  if (hasUnlimitedAccess()) {
+  if (isAdmin || hasUnlimitedAccess()) {
     return (
       <Card className="border-primary/40 bg-gradient-to-br from-primary/10 to-accent/10 backdrop-blur-sm">
         <CardContent className="p-4">
@@ -36,11 +36,13 @@ export const CreditDisplay: React.FC<CreditDisplayProps> = ({ onUpgradeClick }) 
               <Infinity className="h-5 w-5 text-primary" />
               <div className="flex flex-col">
                 <span className="text-sm font-medium text-foreground">Acesso Ilimitado</span>
-                <span className="text-xs text-muted-foreground">Plano {subscriptionPlan.toUpperCase()}</span>
+                <span className="text-xs text-muted-foreground">
+                  {isAdmin ? 'Admin' : `Plano ${subscriptionPlan.toUpperCase()}`}
+                </span>
               </div>
             </div>
             <Badge variant="default" className="bg-primary/20 text-primary">
-              Premium
+              {isAdmin ? 'Admin' : 'Premium'}
             </Badge>
           </div>
         </CardContent>
