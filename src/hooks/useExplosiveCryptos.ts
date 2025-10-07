@@ -16,20 +16,26 @@ export const useExplosiveCryptos = () => {
     const explosiveResults: ExplosiveCrypto[] = [];
     
     cryptos.forEach(crypto => {
-      // Example criteria for explosive potential:
-      // - Significant 24h price change (e.g., > 10%)
-      // - High 24h volume (e.g., > $50M)
-      // - RSI not overbought (e.g., < 70)
+      // More aggressive criteria to catch explosive movers
+      const priceChange24h = crypto.change24h || crypto.priceChange24h || 0;
+      const priceChange1h = crypto.priceChange1h || 0;
+      const volume = crypto.volume24h || crypto.volume || 0;
+      
+      // Lowered thresholds to capture more opportunities
       const isExplosive = 
-        crypto.change24h > 10 && 
-        crypto.volume24h > 50_000_000 && 
-        (crypto.rsi || 0) < 70;
+        (priceChange24h > 8 || priceChange1h > 3) && 
+        volume > 10_000_000 && // Reduced from 50M
+        (crypto.rsi || 50) < 75; // More permissive RSI
 
       if (isExplosive) {
         const factors: string[] = [];
-        if (crypto.change24h > 10) factors.push('Price Surge (>10%)');
-        if (crypto.volume24h > 50_000_000) factors.push('High Volume (>$50M)');
-        if ((crypto.rsi || 0) < 70) factors.push('RSI Not Overbought');
+        if (priceChange24h > 15) factors.push('Spike Massivo (>15%)');
+        else if (priceChange24h > 10) factors.push('Alta Forte (>10%)');
+        else if (priceChange24h > 8) factors.push('Alta (>8%)');
+        if (priceChange1h > 3) factors.push('Explosão 1h');
+        if (volume > 50_000_000) factors.push('Volume Alto');
+        else if (volume > 10_000_000) factors.push('Volume Significativo');
+        if ((crypto.rsi || 50) < 70) factors.push('RSI Favorável');
         
         explosiveResults.push({ symbol: crypto.symbol, factors });
       }

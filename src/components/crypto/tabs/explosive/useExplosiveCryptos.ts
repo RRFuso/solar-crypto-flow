@@ -9,12 +9,13 @@ import {
 } from '@/lib/technicalAnalysis';
 
 const SCORE_CRITERIA = {
-  volumeExplosive: 3,
+  volumeExplosive: 4,
+  priceSpike: 5, // New: High weight for sudden price spikes
   macdCrossover: 2,
   rsiBuyZone: 2,
   adxStrength: 1,
-  emaCrossover: 3,
-  fibonacciSupport: 2,
+  emaCrossover: 2,
+  fibonacciSupport: 1,
   bollingerBreakout: 1
 };
 
@@ -31,22 +32,37 @@ export const useExplosiveCryptos = (cryptos: CryptoData[]) => {
           return null;
         }
 
+        // Price spike detection - highest priority
+        const priceChange24h = crypto.priceChange24h || 0;
+        const priceChange1h = crypto.priceChange1h || 0;
+        
+        if (priceChange24h > 15) {
+          score += SCORE_CRITERIA.priceSpike;
+          criteriaHit.push('Spike de preço 24h');
+        } else if (priceChange24h > 10) {
+          score += SCORE_CRITERIA.priceSpike * 0.7;
+          criteriaHit.push('Alta forte 24h');
+        } else if (priceChange1h > 5) {
+          score += SCORE_CRITERIA.priceSpike * 0.6;
+          criteriaHit.push('Spike de preço 1h');
+        }
+
         // Volume analysis with validation
         const volume = crypto.volume;
         if (volume !== undefined && volume > 0) {
-          const volumeMA = volume * 1.2; // Reduced from 1.5 to 1.2
+          const volumeMA = volume * 1.1; // Reduced threshold
           if (volume > volumeMA) {
             score += SCORE_CRITERIA.volumeExplosive;
             criteriaHit.push('Volume explosivo');
           }
         }
 
-        // RSI analysis with validation
+        // RSI analysis - more permissive
         const rsi = crypto.rsi4h || 0;
         if (rsi > 0) {
-          if (rsi >= 35 && rsi <= 65) { // Expanded range from 40-55 to 35-65
+          if (rsi >= 30 && rsi <= 70) { // Wider range
             score += SCORE_CRITERIA.rsiBuyZone;
-            criteriaHit.push('RSI zona de compra');
+            criteriaHit.push('RSI favorável');
           }
         }
 
@@ -103,7 +119,7 @@ export const useExplosiveCryptos = (cryptos: CryptoData[]) => {
           ...crypto,
           score,
           criteriaHit,
-          isExplosive: score >= 8 // Reduced threshold from 10 to 8
+          isExplosive: score >= 5 // Reduced threshold to capture more opportunities
         };
       } catch (error) {
         console.error(`Error processing ${crypto.id}:`, error);
@@ -116,9 +132,17 @@ export const useExplosiveCryptos = (cryptos: CryptoData[]) => {
       isExplosive: boolean 
     }) => 
       crypto !== null && 
-      crypto.score >= 8 // Reduced threshold from 10 to 8
+      crypto.score >= 5 // Lowered to capture more opportunities
     )
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => {
+      // Prioritize by price change first, then score
+      const priceChangeA = a.priceChange24h || 0;
+      const priceChangeB = b.priceChange24h || 0;
+      if (Math.abs(priceChangeB - priceChangeA) > 5) {
+        return priceChangeB - priceChangeA;
+      }
+      return b.score - a.score;
+    });
 
   console.log('Explosive cryptos found:', explosiveCryptos.length);
   return explosiveCryptos;

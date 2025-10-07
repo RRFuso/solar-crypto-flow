@@ -13,10 +13,12 @@ export async function fetchCryptoDataCoinGecko(): Promise<CryptoData[]> {
   try {
     // Using the existing CoinGecko service with API key
     const { fetchCoinGeckoData } = await import('@/services/coingecko');
+    // Fetch more coins to capture emerging opportunities
     const data = await fetchCoinGeckoData('/coins/markets', {
       vs_currency: 'usd',
-      order: 'market_cap_desc',
-      per_page: 2000,
+      order: 'volume_desc', // Changed to volume to catch explosive movers
+      per_page: 250,
+      page: 1,
       sparkline: false,
       price_change_percentage: '1h,24h,7d'
     });
