@@ -199,7 +199,7 @@ export const createNodes = (
     .attr("font-size", "10px")
     .text(d => (d.change >= 0 ? "+" : "") + d.change + "%");
   
-  // Add pulsating effect for central node
+  // Add pulsating effect and rotation for central node
   if (centralNode) {
     const centralPulse = nodeGroup.append("circle")
       .attr("class", "central-pulse")
@@ -233,6 +233,50 @@ export const createNodes = (
           .attr("stroke-opacity", 0.5)
           .on("end", repeat);
       });
+    
+    // Add rotation animation to central node
+    const centralNodeElement = nodeGroup.selectAll(".node")
+      .filter((d: any) => d.isCentral);
+    
+    function rotateCentralNode() {
+      centralNodeElement
+        .transition()
+        .duration(3000)
+        .ease(d3.easeLinear)
+        .attrTween("transform", function(d: any) {
+          return d3.interpolateString(
+            `translate(${d.x || 0},${d.y || 0}) rotate(0)`,
+            `translate(${d.x || 0},${d.y || 0}) rotate(360)`
+          );
+        })
+        .on("end", rotateCentralNode);
+    }
+    rotateCentralNode();
+    
+    // Add loading message below central node
+    const loadingText = nodeGroup.append("text")
+      .attr("class", "loading-message")
+      .attr("x", centralNode.x)
+      .attr("y", centralNode.y + centralNode.radius + 30)
+      .attr("text-anchor", "middle")
+      .attr("fill", "#F7931A")
+      .attr("font-size", "14px")
+      .attr("font-weight", "bold")
+      .attr("opacity", 0)
+      .text("Carregando dados do mercado...");
+    
+    // Fade in/out animation for loading message
+    function animateLoadingText() {
+      loadingText
+        .transition()
+        .duration(1000)
+        .attr("opacity", 1)
+        .transition()
+        .duration(1000)
+        .attr("opacity", 0.5)
+        .on("end", animateLoadingText);
+    }
+    animateLoadingText();
   }
   
   return nodes;
