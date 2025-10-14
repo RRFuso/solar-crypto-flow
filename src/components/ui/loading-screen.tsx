@@ -12,13 +12,13 @@ const LoadingScreen: React.FC = () => {
           
           {/* Orbital rings */}
           <div className="absolute inset-0 -m-4">
-            <div className="w-32 h-32 border border-yellow-400/30 rounded-full animate-spin"></div>
+            <div className="w-32 h-32 border border-yellow-400/30 rounded-full animate-spin" style={{ animationDuration: '4s' }}></div>
           </div>
           <div className="absolute inset-0 -m-8">
-            <div className="w-40 h-40 border border-orange-400/20 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '3s' }}></div>
+            <div className="w-40 h-40 border border-orange-400/20 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '6s' }}></div>
           </div>
           <div className="absolute inset-0 -m-12">
-            <div className="w-48 h-48 border border-red-400/10 rounded-full animate-spin" style={{ animationDuration: '4s' }}></div>
+            <div className="w-48 h-48 border border-red-400/10 rounded-full animate-spin" style={{ animationDuration: '8s' }}></div>
           </div>
         </div>
 
@@ -28,11 +28,11 @@ const LoadingScreen: React.FC = () => {
         </h1>
         
         {/* Loading text */}
-        <p className="text-gray-400 text-lg mb-6">Inicializando sistema...</p>
+        <p className="text-gray-400 text-lg mb-6">Montando sistema solar...</p>
         
         {/* Loading progress */}
         <div className="w-64 h-1 bg-gray-800 rounded-full overflow-hidden mx-auto">
-          <div className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full animate-pulse"></div>
+          <div className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full animate-pulse" style={{ width: '100%' }}></div>
         </div>
         
         {/* Particles effect */}

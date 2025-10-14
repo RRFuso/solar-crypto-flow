@@ -12,22 +12,26 @@ interface MarketFlowCoreProps {
 
 export const MarketFlowCore: React.FC<MarketFlowCoreProps> = ({ data, width, height }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const { initializeVisualization, cleanupAnimation } = useMarketFlowAnimation();
+  const isInitializedRef = useRef(false);
+  const { initializeVisualization, updateVisualization, cleanupAnimation } = useMarketFlowAnimation();
   
   useEffect(() => {
     if (!data || !svgRef.current) return;
     
-    // Clear previous SVG content
-    d3.select(svgRef.current).selectAll("*").remove();
-    
-    // Initialize the visualization
-    const animationFrameId = initializeVisualization(svgRef.current, data, width, height);
-    
-    // Cleanup on unmount
-    return () => {
-      cleanupAnimation(animationFrameId);
-    };
-  }, [data, width, height, initializeVisualization, cleanupAnimation]);
+    // Initialize only once, then update
+    if (!isInitializedRef.current) {
+      const animationFrameId = initializeVisualization(svgRef.current, data, width, height);
+      isInitializedRef.current = true;
+      
+      return () => {
+        cleanupAnimation(animationFrameId);
+        isInitializedRef.current = false;
+      };
+    } else {
+      // Update existing visualization
+      updateVisualization(svgRef.current, data, width, height);
+    }
+  }, [data, width, height, initializeVisualization, updateVisualization, cleanupAnimation]);
   
   return (
     <svg 
