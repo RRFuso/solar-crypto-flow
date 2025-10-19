@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_predictions: {
+        Row: {
+          confidence: number
+          created_at: string | null
+          features: Json | null
+          id: string
+          model_version: string | null
+          predicted_at: string | null
+          predicted_value: number | null
+          prediction_horizon: string
+          prediction_type: string
+          risk_score: number | null
+          supporting_factors: string[] | null
+          symbol: string
+          timeframe: string
+          valid_until: string
+        }
+        Insert: {
+          confidence: number
+          created_at?: string | null
+          features?: Json | null
+          id?: string
+          model_version?: string | null
+          predicted_at?: string | null
+          predicted_value?: number | null
+          prediction_horizon: string
+          prediction_type: string
+          risk_score?: number | null
+          supporting_factors?: string[] | null
+          symbol: string
+          timeframe?: string
+          valid_until: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string | null
+          features?: Json | null
+          id?: string
+          model_version?: string | null
+          predicted_at?: string | null
+          predicted_value?: number | null
+          prediction_horizon?: string
+          prediction_type?: string
+          risk_score?: number | null
+          supporting_factors?: string[] | null
+          symbol?: string
+          timeframe?: string
+          valid_until?: string
+        }
+        Relationships: []
+      }
       ai_watchlist: {
         Row: {
           created_at: string | null
@@ -398,6 +449,45 @@ export type Database = {
         }
         Relationships: []
       }
+      sentiment_data: {
+        Row: {
+          analyzed_at: string | null
+          confidence: number | null
+          created_at: string | null
+          id: string
+          key_topics: string[] | null
+          sentiment_label: string
+          sentiment_score: number
+          source: string
+          symbol: string
+          volume: number | null
+        }
+        Insert: {
+          analyzed_at?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          key_topics?: string[] | null
+          sentiment_label: string
+          sentiment_score: number
+          source: string
+          symbol: string
+          volume?: number | null
+        }
+        Update: {
+          analyzed_at?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          key_topics?: string[] | null
+          sentiment_label?: string
+          sentiment_score?: number
+          source?: string
+          symbol?: string
+          volume?: number | null
+        }
+        Relationships: []
+      }
       token_contracts: {
         Row: {
           chain: string
@@ -460,6 +550,84 @@ export type Database = {
           flows_used?: number
           id?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_interactions: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          interaction_type: string
+          metadata: Json | null
+          symbol: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          interaction_type: string
+          metadata?: Json | null
+          symbol?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          interaction_type?: string
+          metadata?: Json | null
+          symbol?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          created_at: string | null
+          enable_notifications: boolean | null
+          id: string
+          investment_horizon: string
+          max_position_size: number | null
+          notification_frequency: string | null
+          preferred_assets: string[] | null
+          preferred_categories: string[] | null
+          risk_profile: string
+          stop_loss_percentage: number | null
+          take_profit_percentage: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          enable_notifications?: boolean | null
+          id?: string
+          investment_horizon?: string
+          max_position_size?: number | null
+          notification_frequency?: string | null
+          preferred_assets?: string[] | null
+          preferred_categories?: string[] | null
+          risk_profile?: string
+          stop_loss_percentage?: number | null
+          take_profit_percentage?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          enable_notifications?: boolean | null
+          id?: string
+          investment_horizon?: string
+          max_position_size?: number | null
+          notification_frequency?: string | null
+          preferred_assets?: string[] | null
+          preferred_categories?: string[] | null
+          risk_profile?: string
+          stop_loss_percentage?: number | null
+          take_profit_percentage?: number | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

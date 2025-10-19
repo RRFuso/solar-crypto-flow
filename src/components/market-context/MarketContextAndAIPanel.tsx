@@ -3,10 +3,23 @@ import MarketRegime from './MarketRegime';
 import NarrativeMaps from './NarrativeMaps';
 import DailyInsights from './DailyInsights';
 import { AdvancedAIDashboard } from '@/components/ai/AdvancedAIDashboard';
+import { EnhancedAIInsights } from '@/components/ai/EnhancedAIInsights';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, TrendingUp } from 'lucide-react';
+import { Brain, TrendingUp, Sparkles } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchMarketDataCoinGecko } from '@/lib/marketData';
 
 export const MarketContextAndAIPanel: React.FC = () => {
+  // Fetch top symbols for AI analysis
+  const { data: flowData } = useQuery({
+    queryKey: ['market-data-for-ai'],
+    queryFn: () => fetchMarketDataCoinGecko('24h'),
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+  });
+
+  const topSymbols = flowData?.slice(0, 15).map(f => f.to) || [];
+
   return (
     <div className="h-full w-full p-4 grid grid-cols-1 xl:grid-cols-2 gap-4 overflow-y-auto">
       {/* Left Column */}
@@ -15,25 +28,12 @@ export const MarketContextAndAIPanel: React.FC = () => {
         <Card className="flex-grow">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Quick Stats
+              <Sparkles className="h-5 w-5 text-purple-400" />
+              Insights de IA Avançada
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Market Sentiment</span>
-                <span className="font-medium">Neutral</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Volatility</span>
-                <span className="font-medium text-orange-500">Moderate</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Flow Direction</span>
-                <span className="font-medium text-green-500">Bullish</span>
-              </div>
-            </div>
+            <EnhancedAIInsights symbols={topSymbols} />
           </CardContent>
         </Card>
         <DailyInsights />

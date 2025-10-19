@@ -44,3 +44,9 @@ verify_jwt = false
 
 [functions.cache-crypto-logo]
 verify_jwt = false
+
+[functions.sentiment-analysis]
+verify_jwt = false
+
+[functions.ml-predictions]
+verify_jwt = false
