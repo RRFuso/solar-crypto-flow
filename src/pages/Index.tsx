@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -65,15 +65,25 @@ const Index = () => {
   // Apply flow limit based on user credits
   const maxFlows = getMaxFlows();
   const effectiveFlowLimit = useMemo(() => {
-    const limitedFlow = Math.min(flowLimit, maxFlows);
+    return Math.min(flowLimit, maxFlows);
+  }, [flowLimit, maxFlows]);
+
+  // Handle flow limit toast notifications separately
+  const hasShownToastRef = useRef(false);
+  useEffect(() => {
     if (flowLimit > maxFlows) {
-      if (!user) {
-        toast.error('Limite de 30 flows. Cadastre-se para expandir para 60 flows.');
-      } else {
-        toast.error('Limite de flows atingido. Faça upgrade para acesso ilimitado.');
+      if (!hasShownToastRef.current) {
+        if (!user) {
+          toast.error('Limite de 30 flows. Cadastre-se para expandir para 60 flows.');
+        } else {
+          toast.error('Limite de flows atingido. Faça upgrade para acesso ilimitado.');
+        }
+        hasShownToastRef.current = true;
+        setTimeout(() => {
+          hasShownToastRef.current = false;
+        }, 5000);
       }
     }
-    return limitedFlow;
   }, [flowLimit, maxFlows, user]);
 
   const filteredPredictions = useMemo(() => {
@@ -86,10 +96,31 @@ const Index = () => {
   const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 150));
   const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 20));
   const handleLimitChange = (value: number[]) => setFlowLimit(value[0]);
-  const handleChartTimeframeChange = (value: string) => {
+  
+  // Debounced refetch to avoid excessive API calls
+  const refetchTimeoutRef = useRef<NodeJS.Timeout>();
+  const handleChartTimeframeChange = useCallback((value: string) => {
     setChartTimeframe(value);
-    refetch();
-  };
+    
+    // Clear existing timeout
+    if (refetchTimeoutRef.current) {
+      clearTimeout(refetchTimeoutRef.current);
+    }
+    
+    // Debounce refetch by 500ms
+    refetchTimeoutRef.current = setTimeout(() => {
+      refetch();
+    }, 500);
+  }, [refetch]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (refetchTimeoutRef.current) {
+        clearTimeout(refetchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <OnChainDataProvider>
