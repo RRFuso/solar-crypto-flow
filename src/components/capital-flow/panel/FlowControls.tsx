@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { RefreshCcw, ZoomIn, ZoomOut, Filter, Clock } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
@@ -64,7 +64,7 @@ const TIMEFRAMES = [
   { value: '7d', label: '7 days' },
 ];
 
-export const FlowControls: React.FC<FlowControlsProps> = ({
+const FlowControls: React.FC<FlowControlsProps> = ({
   chartTimeframe,
   onChartTimeframeChange,
   showOnlyStrongSignals,
@@ -211,3 +211,5 @@ export const FlowControls: React.FC<FlowControlsProps> = ({
     </div>
   );
 };
+
+export default memo(FlowControls);

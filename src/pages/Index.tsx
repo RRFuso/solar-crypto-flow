@@ -9,11 +9,12 @@ import Auth from "@/components/auth/Auth";
 import UserMenu from "@/components/auth/UserMenu";
 import { MarketContextAndAIPanel } from '@/components/market-context/MarketContextAndAIPanel';
 import { OnChainDataProvider } from '@/contexts/OnChainDataContext';
+import { FlowControlsProvider, useFlowControls } from '@/contexts/FlowControlsContext';
 import { useAuth } from "@/contexts/AuthContext";
 import DataPopulationPanel from "@/components/admin/DataPopulationPanel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SubscriptionPlans } from "@/components/subscription/SubscriptionPlans";
-import { FlowControls } from "@/components/capital-flow/panel/FlowControls";
+import FlowControls from "@/components/capital-flow/panel/FlowControls";
 import { FlowPanelHeader } from "@/components/capital-flow/panel/FlowPanelHeader";
 import { fetchMarketDataCoinGecko, fetchMarketDataBinance } from '@/lib/marketData';
 import { toast } from 'sonner';
@@ -21,7 +22,7 @@ import { useFilteredFlowData } from '@/hooks/capital-flow/useFilteredFlowData';
 import { usePredictions } from '@/hooks/capital-flow/usePredictions';
 import { useCredits } from '@/hooks/useCredits';
 
-const Index = () => {
+const IndexContent = () => {
   const [activeTab, setActiveTab] = useState("capital-flow");
   const [isDataPopulationModalOpen, setIsDataPopulationModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
@@ -29,15 +30,24 @@ const Index = () => {
   const { user } = useAuth();
   const { canAccessFlow, getMaxFlows } = useCredits();
 
-  // State lifted from CapitalFlowPanel
-  const [timeframe, setTimeframe] = useState('24h');
-  const [chartTimeframe, setChartTimeframe] = useState('4h');
-  const [zoomLevel, setZoomLevel] = useState(15);
-  const [flowLimit, setFlowLimit] = useState(30);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
-  const [showLines, setShowLines] = useState(true);
-  const [dataSource, setDataSource] = useState<'coingecko' | 'binance'>('coingecko');
+  // Use FlowControls context
+  const {
+    timeframe,
+    chartTimeframe,
+    zoomLevel,
+    flowLimit,
+    selectedCategory,
+    showOnlyStrongSignals,
+    showLines,
+    dataSource,
+    setChartTimeframe,
+    setShowOnlyStrongSignals,
+    setSelectedCategory,
+    setShowLines,
+    handleZoomIn,
+    handleZoomOut,
+    handleLimitChange,
+  } = useFlowControls();
 
   const { data: flowData, isLoading, error, refetch } = useQuery({
     queryKey: ['capital-flow', timeframe, dataSource],
@@ -49,7 +59,9 @@ const Index = () => {
       }
     },
     refetchOnWindowFocus: false,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2, // 2 minutes for high-priority data
+    gcTime: 1000 * 60 * 30, // 30 minutes cache retention
+    refetchInterval: 1000 * 60 * 1, // Auto-refetch every 1 minute for timeliness
     meta: {
       onError: () => {
         toast("Failed to fetch market data. Please try again later.", {
@@ -93,11 +105,7 @@ const Index = () => {
     return predictions;
   }, [predictions, showOnlyStrongSignals]);
 
-  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 150));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 20));
-  const handleLimitChange = (value: number[]) => setFlowLimit(value[0]);
-  
-  // Debounced refetch to avoid excessive API calls
+  // Debounced chart timeframe change to avoid excessive re-renders
   const refetchTimeoutRef = useRef<NodeJS.Timeout>();
   const handleChartTimeframeChange = useCallback((value: string) => {
     setChartTimeframe(value);
@@ -107,11 +115,11 @@ const Index = () => {
       clearTimeout(refetchTimeoutRef.current);
     }
     
-    // Debounce refetch by 500ms
+    // Debounce by 300ms - no need to refetch since refetchInterval handles it
     refetchTimeoutRef.current = setTimeout(() => {
-      refetch();
-    }, 500);
-  }, [refetch]);
+      // Just update state, refetchInterval will handle data updates
+    }, 300);
+  }, [setChartTimeframe]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -281,6 +289,14 @@ const Index = () => {
         </Dialog>
       </DashboardLayout>
     </OnChainDataProvider>
+  );
+};
+
+const Index = () => {
+  return (
+    <FlowControlsProvider>
+      <IndexContent />
+    </FlowControlsProvider>
   );
 };
 

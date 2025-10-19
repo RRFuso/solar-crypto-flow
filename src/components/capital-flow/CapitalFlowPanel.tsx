@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { FlowPanelHeader } from './panel/FlowPanelHeader';
-import { FlowControls } from './panel/FlowControls';
+import FlowControls from './panel/FlowControls';
 import { FlowVisualizationContent } from './panel/FlowVisualizationContent';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
@@ -113,4 +113,4 @@ const CapitalFlowPanel: React.FC<CapitalFlowPanelProps> = ({
   );
 };
 
-export default CapitalFlowPanel;
+export default memo(CapitalFlowPanel);
