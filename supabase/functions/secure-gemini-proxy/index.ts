@@ -92,12 +92,17 @@ Dados de trading em tempo real:
 - **quote_volume_24h**: Volume em USDT/BUSD
 
 ### 9. ÍNDICES DE MERCADO (marketData)
-Contexto macro dos mercados tradicionais:
-- SP500, NASDAQ, Russell2000: Contexto do mercado de ações
-- Gold: Indicador de risk-off/risk-on
-- NVIDIA: Proxy para setor tech
+Contexto macro e sentimento do mercado cripto:
 - **Fear & Greed Index**: Sentimento geral cripto (0-100)
+  - 0-25: Extreme Fear (medo extremo - possível fundo de mercado)
+  - 25-45: Fear (medo)
+  - 45-55: Neutral (neutro)
+  - 55-75: Greed (ganância)
+  - 75-100: Extreme Greed (ganância extrema - possível topo de mercado)
 - **Long/Short Ratio**: Proporção de posições compradas vs vendidas
+  - Ratio > 1: Mais traders em long (otimistas)
+  - Ratio < 1: Mais traders em short (pessimistas)
+  - Dados históricos de 30 períodos para análise de tendência
 
 ### 10. INTERAÇÕES DE USUÁRIOS (Agregado)
 Padrões de comportamento da comunidade:
@@ -338,18 +343,10 @@ serve(async (req) => {
 
     // Structure the comprehensive context data
     const marketContextData: any = {
-      // Traditional market context
-      marketData: {
-        sp500: externalData.sp500,
-        nasdaq: externalData.nasdaq,
-        russell2000: externalData.russell,
-        gold: externalData.gold,
-        nvidia: externalData.nvidia,
-      },
-      // Crypto market overview
+      // Crypto market overview with sentiment indicators
       cryptoMarket: {
         fearGreedIndex: externalData.fearGreedIndex?.[0],
-        longShortRatio: externalData.longShortRatio?.slice(0, 10),
+        longShortRatio: externalData.longShortRatio,
         topCryptocurrencies: supabaseData.cryptocurrencies.slice(0, 20),
         topBinanceSymbols: supabaseData.binanceSymbols.slice(0, 20),
       },

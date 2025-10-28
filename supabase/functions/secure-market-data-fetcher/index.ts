@@ -1,9 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
-const ALPHA_VANTAGE_API_KEY = Deno.env.get('ALPHA_VANTAGE_API_KEY')
-const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query'
-
 // Helper to fetch and parse JSON
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, options)
@@ -22,17 +19,8 @@ async function getFearGreedIndex() {
 
 // Fetch Long/Short Ratio from Binance
 async function getLongShortRatio(symbol = 'BTCUSDT', period = '1h') {
-  const url = `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=${period}&limit=1`
+  const url = `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=${period}&limit=30`
   return await fetchJson<any[]>(url)
-}
-
-// Fetch stock data from Alpha Vantage
-async function getStockData(symbol: string) {
-  if (!ALPHA_VANTAGE_API_KEY) {
-    throw new Error('Alpha Vantage API key not found in environment variables.')
-  }
-  const url = `${ALPHA_VANTAGE_BASE_URL}?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`
-  return fetchJson(url)
 }
 
 serve(async (req) => {
@@ -57,29 +45,14 @@ serve(async (req) => {
     const [
       fearGreedIndex,
       longShortRatio,
-      sp500,
-      nasdaq,
-      russell,
-      nvidia,
-      gold,
     ] = await Promise.all([
       fetchWithErrorHandling(getFearGreedIndex(), 'Fear & Greed Index'),
       fetchWithErrorHandling(getLongShortRatio('BTCUSDT'), 'Long/Short Ratio'),
-      fetchWithErrorHandling(getStockData('SPY'), 'S&P 500'),
-      fetchWithErrorHandling(getStockData('QQQ'), 'Nasdaq'),
-      fetchWithErrorHandling(getStockData('IWM'), 'Russell 2000'),
-      fetchWithErrorHandling(getStockData('NVDA'), 'NVIDIA'),
-      fetchWithErrorHandling(getStockData('GLD'), 'Gold (GLD ETF)'), // Corrected to use a reliable Gold ETF
     ])
 
     const responseData = {
       fearGreedIndex: fearGreedIndex?.data,
       longShortRatio,
-      sp500,
-      nasdaq,
-      russell,
-      nvidia,
-      gold,
     }
 
     return new Response(JSON.stringify(responseData), {
