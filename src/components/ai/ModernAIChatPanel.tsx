@@ -178,7 +178,7 @@ const ModernAIChatPanel: React.FC = () => {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          Powered by Gemini AI
+          Powered by Lovable AI
         </p>
       </div>
     </Card>

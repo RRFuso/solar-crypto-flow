@@ -2,8 +2,8 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 import { supabase } from '../_shared/supabaseClient.ts'
 
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
+const AI_API_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions'
 
 const AI_CHAT_PROMPT = `
 Você é o "Analista Solar", uma IA especialista em análise de criptomoedas. Sua missão é fornecer insights claros, concisos e acionáveis.
@@ -163,11 +163,11 @@ serve(async (req) => {
     }
     console.log('--- [secure-gemini-proxy] Request body parsed successfully ---');
 
-    if (!GEMINI_API_KEY) {
-      console.error('--- [secure-gemini-proxy] GEMINI_API_KEY not found ---');
-      throw new Error('Gemini API key not found in environment variables.');
+    if (!LOVABLE_API_KEY) {
+      console.error('--- [secure-gemini-proxy] LOVABLE_API_KEY not found ---');
+      throw new Error('Lovable AI API key not found in environment variables.');
     }
-    console.log('--- [secure-gemini-proxy] GEMINI_API_KEY found ---');
+    console.log('--- [secure-gemini-proxy] LOVABLE_API_KEY found ---');
 
     console.log('--- [secure-gemini-proxy] Fetching market context data ---');
     const [externalData, solarCryptoSignals, aiWatchlist] = await Promise.all([
@@ -248,24 +248,39 @@ serve(async (req) => {
     // console.log(prompt); // Avoid logging the full prompt with API key
     console.log("------------------------------\n");
 
-    console.log('--- [secure-gemini-proxy] Sending request to Gemini API ---');
-    const response = await fetch(GEMINI_API_URL, {
+    console.log('--- [secure-gemini-proxy] Sending request to Lovable AI ---');
+    const response = await fetch(AI_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: prompt },
+          { role: 'user', content: userMessage }
+        ],
       }),
     });
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error('--- [secure-gemini-proxy] Gemini API request failed ---', errorBody);
-      throw new Error(`Gemini API request failed: ${response.statusText}`);
+      console.error('--- [secure-gemini-proxy] Lovable AI request failed ---', errorBody);
+      
+      if (response.status === 429) {
+        throw new Error('Rate limit atingido. Por favor, aguarde um momento e tente novamente.');
+      }
+      if (response.status === 402) {
+        throw new Error('Créditos esgotados. Por favor, adicione créditos ao workspace.');
+      }
+      
+      throw new Error(`AI request failed: ${response.statusText}`);
     }
-    console.log('--- [secure-gemini-proxy] Gemini API request successful ---');
+    console.log('--- [secure-gemini-proxy] Lovable AI request successful ---');
 
-    const geminiResult = await response.json();
-    const textResponse = geminiResult.candidates[0].content.parts[0].text;
+    const aiResult = await response.json();
+    const textResponse = aiResult.choices[0].message.content;
 
     console.log('--- [secure-gemini-proxy] Function finished successfully ---');
     return new Response(JSON.stringify({ response: textResponse }), {
