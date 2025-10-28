@@ -37,9 +37,12 @@ export async function fetchCryptoDataCoinGecko(): Promise<CryptoData[]> {
       performance: coin.price_change_percentage_24h || 0,
       price: coin.current_price,
       volume: coin.total_volume,
+      volume24h: coin.total_volume, // Add volume24h mapping
       marketCap: coin.market_cap,
       high24h: coin.high_24h || 0,
       low24h: coin.low_24h || 0,
+      change24h: coin.price_change_percentage_24h || 0, // Add change24h mapping
+      change7d: coin.price_change_percentage_7d_in_currency || 0, // Add change7d mapping
       priceChange1h: coin.price_change_percentage_1h_in_currency || 0,
       priceChange24h: coin.price_change_percentage_24h || 0,
       priceChange7d: coin.price_change_percentage_7d_in_currency || 0,

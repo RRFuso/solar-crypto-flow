@@ -22,18 +22,42 @@ const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: Cryp
   
   const containerId = `tradingview_chart_${crypto.id}_${timeframe}`;
   
+  // Try multiple exchanges to find the chart
+  const getSymbolVariants = () => {
+    if (showBtcDominance) return ['BINANCE:BTC.D'];
+    
+    // Try different exchange/quote currency combinations
+    const variants = [
+      `BINANCE:${tradingViewSymbol}USDT`,
+      `BINANCE:${tradingViewSymbol}BUSD`,
+      `COINBASE:${tradingViewSymbol}USD`,
+      `KRAKEN:${tradingViewSymbol}USD`,
+      `BITFINEX:${tradingViewSymbol}USD`,
+    ];
+    
+    return variants;
+  };
+  
+  const symbolVariants = getSymbolVariants();
+  const primarySymbol = symbolVariants[0];
+  
   return (
     <div className="h-full bg-gray-900 rounded-lg overflow-hidden">
       <div className="p-4 border-b border-gray-800">
         <h2 className="text-xl font-bold">
           {showBtcDominance
             ? 'Dominância do Bitcoin (BTC.D)'
-            : `${crypto.name} (${tradingViewSymbol}/USDT)`}
+            : `${crypto.name} (${tradingViewSymbol})`}
         </h2>
+        {!showBtcDominance && (
+          <p className="text-xs text-gray-400 mt-1">
+            Gráfico pode não estar disponível para todos os ativos
+          </p>
+        )}
       </div>
       <div className="h-[calc(100%-4rem)]">
         <AdvancedRealTimeChart
-          symbol={showBtcDominance ? 'BINANCE:BTC.D' : `BINANCE:${tradingViewSymbol}USDT`}
+          symbol={primarySymbol}
           theme="dark"
           autosize
           interval={timeframe}
@@ -43,7 +67,7 @@ const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: Cryp
           toolbar_bg="#1a1b1e"
           enable_publishing={false}
           hide_top_toolbar={false}
-          allow_symbol_change={false}
+          allow_symbol_change={true}
           studies={[
             "MACD@tv-basicstudies",
             "RSI@tv-basicstudies"
