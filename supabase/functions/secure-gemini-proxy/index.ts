@@ -6,54 +6,185 @@ const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
 const AI_API_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions'
 
 const AI_CHAT_PROMPT = `
-Você é o "Analista Solar", uma IA especialista em análise de criptomoedas. Sua missão é fornecer insights claros, concisos e acionáveis.
+Você é o "Analista Solar", uma IA avançada do ecossistema Solar Cripto - uma plataforma completa de análise e trading de criptomoedas.
 
-**Regras Estritas:**
-1.  **Foco Total:** Responda APENAS a perguntas relacionadas a criptomoedas, finanças, blockchain, análise de mercado e trading. Se o usuário perguntar sobre qualquer outro tópico, recuse educadamente.
-2.  **Sem Aconselhamento Financeiro:** NUNCA forneça aconselhamento financeiro direto. Use frases como "uma possível interpretação é...", "alguns analistas consideram que...".
-3.  **Tom Profissional:** Mantenha um tom profissional, analítico e ligeiramente formal.
-4.  **Use o Contexto:** Baseie suas respostas nos dados de contexto fornecidos abaixo. Integre esses dados de forma natural em suas análises.
+## SOBRE O SOLAR CRIPTO
+O Solar Cripto é um sistema inteligente que:
+- Monitora mercados cripto em tempo real usando múltiplas fontes de dados
+- Analisa padrões técnicos, sentimento de mercado e fluxo de capital
+- Gera sinais preditivos baseados em IA e machine learning
+- Rastreia atividade de baleias e "smart money"
+- Fornece visualizações espaciais de fluxo de capital entre setores
 
-**Contexto de Mercado Principal:**
-Este objeto JSON contém os dados de mercado que você deve usar como base para suas análises. Preste atenção especial aos seguintes campos:
-- **aiWatchlist**: Uma lista de criptomoedas selecionadas por outra IA para monitoramento. Contém o símbolo do ativo, o motivo da inclusão (reason) e o potencial de alta (upside_potential). Use esta informação para responder sobre tokens que estão sendo observados.
-- **solarCryptoSignals**: Sinais de análise técnica para vários ativos.
-- **fearGreedIndex**: O sentimento geral do mercado.
-- **longShortRatio**: A proporção de posições de compra vs. venda.
+## SUA MISSÃO
+Você tem acesso a um ecossistema completo de dados em tempo real. Sua missão é:
+1. **Analisar padrões nos dados** - Identifique correlações, tendências e anomalias
+2. **Aprender continuamente** - Use os dados históricos para melhorar suas análises
+3. **Fornecer insights acionáveis** - Traduza dados complexos em recomendações claras
+4. **Personalizar respostas** - Adapte suas análises ao perfil de risco do usuário quando disponível
 
+## REGRAS ESTRITAS
+1. **Foco Total:** Responda APENAS sobre criptomoedas, blockchain, análise de mercado e trading
+2. **Sem Aconselhamento Direto:** Use frases como "os dados sugerem...", "uma interpretação possível é..."
+3. **Baseie-se em Dados:** SEMPRE cite os dados do contexto que você está usando
+4. **Tom Profissional:** Mantenha um tom analítico e confiante, mas humilde sobre incertezas
+
+## DADOS DISPONÍVEIS (Atualizados em Tempo Real)
+
+### 1. SINAIS TÉCNICOS (solarCryptoSignals)
+Sinais de preço e volume calculados pelo sistema:
+- **is_breakout**: Rompimento de resistência confirmado
+- **is_expansion**: Expansão de volatilidade (Bollinger Bands)
+- **is_accelerating**: Aceleração de momentum
+- **is_accumulation/is_distribution**: Padrões de acumulação/distribuição de volume
+- **explosive_potential**: Classificação do potencial explosivo (high/medium/low)
+- **factors**: Fatores que contribuem para o sinal
+
+### 2. WATCHLIST DA IA (aiWatchlist)
+Criptomoedas selecionadas por algoritmos de ML:
+- **reason**: Por que o ativo foi selecionado
+- **upside_potential**: Potencial de valorização estimado
+
+### 3. PREVISÕES DE IA (aiPredictions)
+Previsões de preço geradas por modelos de machine learning:
+- **prediction_type**: Tipo de previsão (price/volatility/breakout)
+- **predicted_value**: Valor previsto
+- **confidence**: Nível de confiança (0-1)
+- **risk_score**: Score de risco
+- **supporting_factors**: Fatores que suportam a previsão
+- **valid_until**: Validade da previsão
+
+### 4. SINAIS PREDITIVOS (predictiveSignals)
+Sinais avançados de entrada/saída:
+- **signal_type**: Tipo (bullish_reversal, explosive_breakout, etc)
+- **confidence**: Confiança no sinal
+- **strength**: Força do sinal
+- **target_gain**: Ganho alvo esperado
+- **phase**: Fase do movimento (early/middle/late)
+- **risk_level**: Nível de risco
+- **factors**: Fatores técnicos que suportam o sinal
+
+### 5. ANÁLISE DE SENTIMENTO (sentimentData)
+Sentimento agregado de múltiplas fontes:
+- **sentiment_score**: Score de -1 (negativo) a +1 (positivo)
+- **sentiment_label**: Classificação (bullish/bearish/neutral)
+- **confidence**: Confiança na análise
+- **key_topics**: Tópicos principais sendo discutidos
+- **volume**: Volume de menções
+
+### 6. DADOS DE MERCADO (cryptocurrencies)
+Dados fundamentais atualizados:
+- Preço, market cap, volume 24h
+- Mudanças percentuais (24h, 7d)
+- ATH/ATL e distâncias
+- Circulating/Total supply
+
+### 7. HISTÓRICO DE PREÇOS (crypto_price_history)
+Dados OHLCV para análise técnica:
+- Use para calcular médias móveis, RSI, MACD
+- Identifique padrões de candlestick
+- Analise tendências de volume
+
+### 8. SÍMBOLOS BINANCE (binanceSymbols)
+Dados de trading em tempo real:
+- **last_price**: Último preço
+- **price_change_percent_24h**: Variação 24h
+- **quote_volume_24h**: Volume em USDT/BUSD
+
+### 9. ÍNDICES DE MERCADO (marketData)
+Contexto macro dos mercados tradicionais:
+- SP500, NASDAQ, Russell2000: Contexto do mercado de ações
+- Gold: Indicador de risk-off/risk-on
+- NVIDIA: Proxy para setor tech
+- **Fear & Greed Index**: Sentimento geral cripto (0-100)
+- **Long/Short Ratio**: Proporção de posições compradas vs vendidas
+
+### 10. INTERAÇÕES DE USUÁRIOS (Agregado)
+Padrões de comportamento da comunidade:
+- Ativos mais visualizados
+- Categorias de interesse
+- Tendências de interação
+
+## COMO APRENDER E MELHORAR
+
+1. **Identifique Padrões Recorrentes**
+   - Quais sinais técnicos precedem grandes movimentos?
+   - Como o sentimento se correlaciona com ação de preço?
+   - Quais fatores aparecem juntos em previsões precisas?
+
+2. **Compare Múltiplas Fontes**
+   - Confirme sinais quando várias fontes concordam
+   - Identifique divergências que podem indicar oportunidades
+   - Pese a confiança de cada fonte
+
+3. **Contexto Temporal**
+   - Use dados históricos para validar padrões atuais
+   - Considere a fase do ciclo de mercado
+   - Adapte análises baseado em regime de volatilidade
+
+4. **Validação Cruzada**
+   - Sinais técnicos + Sentimento + Previsões IA = Alta confiança
+   - Discordância entre fontes = Cautela necessária
+   - Volume anômalo + Accumulation = Possível setup
+
+## ESTRUTURA DE RESPOSTA IDEAL
+
+Para cada pergunta:
+1. **Análise dos Dados**: Cite dados específicos relevantes
+2. **Interpretação**: O que esses dados significam
+3. **Contexto**: Como se encaixa no quadro maior do mercado
+4. **Conclusão Acionável**: O que isso sugere para o trader
+
+## CONTEXTO ATUAL DO MERCADO
 {marketContextData}
 
-**Dados Adicionais (Sob Demanda):**
-Se o usuário perguntar sobre um token específico, os dados de preço (atuais e históricos) dele aparecerão aqui. Use-os como a fonte principal para sua análise sobre esse token.
-- **price_history**: Contém dados OHLCV (Open, High, Low, Close, Volume) dos últimos 90 dias. Use estes dados para analisar tendências, calcular médias móveis simples (SMA), ou identificar padrões de preço.
-
+## DADOS ESPECÍFICOS SOLICITADOS
 {additionalData}
 
-**Histórico da Conversa:**
+## HISTÓRICO DA CONVERSA
 {conversationHistory}
 
-**Pergunta do Usuário:**
+## PERGUNTA DO USUÁRIO
 {userMessage}
 
-**Sua Resposta:**
+## SUA RESPOSTA (Baseada em Dados)
 `
 
-async function getSolarCryptoSignals(): Promise<any[]> {
-  const { data, error } = await supabase.from('crypto_price_action_signals').select('*');
-  if (error) {
-    console.error('Error fetching crypto_price_action_signals:', error);
-    return [];
-  }
-  return data || [];
-}
+// Fetch all relevant data from Supabase tables
+async function getAllSupabaseData() {
+  console.log('--- Fetching all Supabase tables ---');
+  
+  const [
+    solarCryptoSignals,
+    aiWatchlist,
+    aiPredictions,
+    predictiveSignals,
+    sentimentData,
+    cryptocurrencies,
+    binanceSymbols,
+    recentInteractions
+  ] = await Promise.all([
+    supabase.from('crypto_price_action_signals').select('*').limit(50),
+    supabase.from('ai_watchlist').select('*'),
+    supabase.from('ai_predictions').select('*').gte('valid_until', new Date().toISOString()).limit(100),
+    supabase.from('predictive_signals').select('*').order('created_at', { ascending: false }).limit(50),
+    supabase.from('sentiment_data').select('*').order('analyzed_at', { ascending: false }).limit(100),
+    supabase.from('cryptocurrencies').select('symbol, name, current_price, market_cap, market_cap_rank, total_volume, price_change_percentage_24h, high_24h, low_24h').order('market_cap_rank', { ascending: true }).limit(100),
+    supabase.from('binance_symbols').select('binance_symbol, base_asset, last_price, price_change_percent_24h, quote_volume_24h').eq('is_trading_allowed', true).order('quote_volume_24h', { ascending: false }).limit(100),
+    // Aggregate user interactions (no PII)
+    supabase.from('user_interactions').select('symbol, interaction_type, category').order('created_at', { ascending: false }).limit(200)
+  ]);
 
-async function getAIWatchlist(): Promise<any[]> {
-  const { data, error } = await supabase.from('ai_watchlist').select('*');
-  if (error) {
-    console.error('Error fetching ai_watchlist:', error);
-    return [];
-  }
-  return data || [];
+  return {
+    solarCryptoSignals: solarCryptoSignals.data || [],
+    aiWatchlist: aiWatchlist.data || [],
+    aiPredictions: aiPredictions.data || [],
+    predictiveSignals: predictiveSignals.data || [],
+    sentimentData: sentimentData.data || [],
+    cryptocurrencies: cryptocurrencies.data || [],
+    binanceSymbols: binanceSymbols.data || [],
+    recentInteractions: recentInteractions.data || []
+  };
 }
 
 async function fetchAllExternalData(req: Request): Promise<any> {
@@ -102,6 +233,35 @@ function detectTickers(message: string): string[] {
   });
 
   return formattedTickers;
+}
+
+// Helper functions to aggregate user interaction data (privacy-safe)
+function aggregateTrendingAssets(interactions: any[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  interactions.forEach(i => {
+    if (i.symbol) {
+      counts[i.symbol] = (counts[i.symbol] || 0) + 1;
+    }
+  });
+  return Object.fromEntries(
+    Object.entries(counts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10)
+  );
+}
+
+function aggregatePopularCategories(interactions: any[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  interactions.forEach(i => {
+    if (i.category) {
+      counts[i.category] = (counts[i.category] || 0) + 1;
+    }
+  });
+  return Object.fromEntries(
+    Object.entries(counts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+  );
 }
 
 async function fetchPriceHistory(symbol: string): Promise<any[]> {
@@ -169,50 +329,56 @@ serve(async (req) => {
     }
     console.log('--- [secure-gemini-proxy] LOVABLE_API_KEY found ---');
 
-    console.log('--- [secure-gemini-proxy] Fetching market context data ---');
-    const [externalData, solarCryptoSignals, aiWatchlist] = await Promise.all([
+    console.log('--- [secure-gemini-proxy] Fetching ALL data sources ---');
+    const [externalData, supabaseData] = await Promise.all([
       fetchAllExternalData(req),
-      getSolarCryptoSignals(),
-      getAIWatchlist(),
+      getAllSupabaseData(),
     ]);
-    console.log('--- [secure-gemini-proxy] Market context data fetched successfully ---');
+    console.log('--- [secure-gemini-proxy] All data sources fetched successfully ---');
 
-    // 2. Sanitize and structure the context data
+    // Structure the comprehensive context data
     const marketContextData: any = {
-      marketData: {},
-      cryptoData: {},
+      // Traditional market context
+      marketData: {
+        sp500: externalData.sp500,
+        nasdaq: externalData.nasdaq,
+        russell2000: externalData.russell,
+        gold: externalData.gold,
+        nvidia: externalData.nvidia,
+      },
+      // Crypto market overview
+      cryptoMarket: {
+        fearGreedIndex: externalData.fearGreedIndex?.[0],
+        longShortRatio: externalData.longShortRatio?.slice(0, 10),
+        topCryptocurrencies: supabaseData.cryptocurrencies.slice(0, 20),
+        topBinanceSymbols: supabaseData.binanceSymbols.slice(0, 20),
+      },
+      // AI-generated signals and predictions
+      aiInsights: {
+        solarCryptoSignals: supabaseData.solarCryptoSignals.slice(0, 30),
+        aiWatchlist: supabaseData.aiWatchlist,
+        aiPredictions: supabaseData.aiPredictions.slice(0, 20),
+        predictiveSignals: supabaseData.predictiveSignals.slice(0, 20),
+      },
+      // Market sentiment
+      sentiment: {
+        recentSentiment: supabaseData.sentimentData.slice(0, 20),
+      },
+      // User behavior patterns (aggregated, no PII)
+      marketActivity: {
+        trendingAssets: aggregateTrendingAssets(supabaseData.recentInteractions),
+        popularCategories: aggregatePopularCategories(supabaseData.recentInteractions),
+      }
     };
 
-    if (externalData.sp500) marketContextData.marketData.sp500 = externalData.sp500;
-    if (externalData.nasdaq) marketContextData.marketData.nasdaq = externalData.nasdaq;
-    if (externalData.russell) marketContextData.marketData.russell2000 = externalData.russell;
-    if (externalData.gold) marketContextData.marketData.gold = externalData.gold;
-    if (externalData.nvidia) marketContextData.marketData.nvidia = externalData.nvidia;
-
-    if (externalData.fearGreedIndex && externalData.fearGreedIndex.length > 0) {
-      marketContextData.cryptoData.fearGreedIndex = externalData.fearGreedIndex;
-    }
-    if (externalData.longShortRatio && externalData.longShortRatio.length > 0) {
-      marketContextData.cryptoData.longShortRatio = externalData.longShortRatio;
-    }
-    if (solarCryptoSignals && solarCryptoSignals.length > 0) {
-      marketContextData.cryptoData.solarCryptoSignals = solarCryptoSignals.slice(0, 20);
-    }
-    if (aiWatchlist && aiWatchlist.length > 0) {
-      marketContextData.cryptoData.aiWatchlist = aiWatchlist;
-    }
-
-    // Remove empty parent keys
-    if (Object.keys(marketContextData.marketData).length === 0) {
-      delete marketContextData.marketData;
-    }
-    if (Object.keys(marketContextData.cryptoData).length === 0) {
-      delete marketContextData.cryptoData;
-    }
+    // Clean up empty sections
+    Object.keys(marketContextData).forEach(key => {
+      if (marketContextData[key] && Object.keys(marketContextData[key]).length === 0) {
+        delete marketContextData[key];
+      }
+    });
     
-    console.log("--- [secure-gemini-proxy] Fetched Market Context Data ---");
-    console.log(JSON.stringify(marketContextData, null, 2));
-    console.log("------------------------------------\n");
+    console.log("--- [secure-gemini-proxy] Comprehensive Context Data Prepared ---");
 
     const conversationHistory = messages.map((m: { sender: string; text: string }) => `${m.sender}: ${m.text}`).join('\n');
     const userMessage = messages[messages.length - 1].text;
