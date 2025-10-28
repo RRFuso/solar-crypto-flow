@@ -140,7 +140,37 @@ export const COINGECKO_TO_TRADINGVIEW_MAPPING: Record<string, string> = {
   'restaked-swell': 'RSWETH',
   'wrapped-beacon-eth': 'WBETH',
   'lido-staked-ether': 'STETH',
-  'rocket-pool-eth': 'RETH'
+  'rocket-pool-eth': 'RETH',
+  
+  // Additional mappings for better coverage
+  'wrapped-bitcoin': 'WBTC',
+  'bittorrent': 'BTT',
+  'quant-network': 'QNT',
+  'multiversx-egld': 'EGLD',
+  'flow': 'FLOW',
+  'trust-wallet-token': 'TWT',
+  'kucoin-shares': 'KCS',
+  'conflux-token': 'CFX',
+  'bitdao': 'BIT',
+  'gnosis': 'GNO',
+  'tokenize-xchange': 'TKX',
+  'blur': 'BLUR',
+  'magic': 'MAGIC',
+  'astar': 'ASTR',
+  'kava': 'KAVA',
+  'flare-networks': 'FLR',
+  'celo': 'CELO',
+  'mina-protocol': 'MINA',
+  'echelon-prime': 'PRIME',
+  'woo-network': 'WOO',
+  'mask-network': 'MASK',
+  '1000sats-ordinals': '1000SATS',
+  'ordi': 'ORDI',
+  'dydx': 'DYDX',
+  'gmx': 'GMX',
+  'frax-share': 'FXS',
+  'convex-finance': 'CVX',
+  'rocket-pool': 'RPL'
 };
 
 /**
@@ -165,11 +195,32 @@ export function mapCoinGeckoToTradingView(crypto: { id: string; symbol?: string 
 }
 
 /**
- * Checks if a symbol is available on Binance (TradingView uses Binance data)
- * This helps filter out symbols that might not have charts available
+ * Gets all possible symbol variants to try for TradingView
+ * Tries multiple exchanges and quote currencies
+ */
+export function getSymbolVariants(symbol: string): string[] {
+  // For BTC dominance
+  if (symbol === 'BTC.D') {
+    return ['CRYPTOCAP:BTC.D', 'BINANCE:BTC.D'];
+  }
+  
+  // Try different exchange and quote currency combinations
+  return [
+    `BINANCE:${symbol}USDT`,
+    `BINANCE:${symbol}BUSD`,
+    `BINANCE:${symbol}BTC`,
+    `COINBASE:${symbol}USD`,
+    `KRAKEN:${symbol}USD`,
+    `BITFINEX:${symbol}USD`,
+    `CRYPTOCAP:${symbol}`,
+  ];
+}
+
+/**
+ * Checks if a symbol is likely to be available on major exchanges
  */
 export function isValidTradingViewSymbol(symbol: string): boolean {
-  // Common symbols that are always available
+  // Extended list of commonly available symbols
   const commonSymbols = [
     'BTC', 'ETH', 'BNB', 'XRP', 'SOL', 'ADA', 'DOGE', 'AVAX', 'DOT', 'LINK',
     'LTC', 'BCH', 'XLM', 'VET', 'FIL', 'TRX', 'HBAR', 'ICP', 'GRT', 'ATOM',
@@ -177,7 +228,10 @@ export function isValidTradingViewSymbol(symbol: string): boolean {
     'SAND', 'MANA', 'AXS', 'GALA', 'ENJ', 'FET', 'AGIX', 'OCEAN', 'RNDR',
     'MATIC', 'OP', 'ARB', 'IMX', 'NEAR', 'FTM', 'ONE', 'ZIL', 'CHZ', 'CRO',
     'TON', 'APT', 'SUI', 'SEI', 'TIA', 'INJ', 'KAS', 'WLD', 'PYTH', 'JTO',
-    'JUP', 'W', 'ENA', 'NOT', 'IO', 'ZK', 'PENDLE', 'OM'
+    'JUP', 'W', 'ENA', 'NOT', 'IO', 'ZK', 'PENDLE', 'OM', 'WBTC', 'OKB',
+    'LEO', 'BTT', 'QNT', 'EGLD', 'FLOW', 'TWT', 'KCS', 'CFX', 'BIT', 'GNO',
+    'BLUR', 'MAGIC', 'ASTR', 'KAVA', 'FLR', 'CELO', 'MINA', 'PRIME', 'WOO',
+    'MASK', '1000SATS', 'ORDI', 'DYDX', 'GMX', 'FXS', 'CVX', 'RPL'
   ];
   
   return commonSymbols.includes(symbol);
