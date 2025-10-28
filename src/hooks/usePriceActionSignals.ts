@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface PriceActionSignal {
@@ -16,6 +16,9 @@ export const usePriceActionSignals = (symbols: string[]) => {
   const [signalsLoading, setSignalsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [realtimeConnected, setRealtimeConnected] = useState(false);
+
+  // Stabilize symbols array to prevent unnecessary re-subscriptions
+  const symbolsKey = useMemo(() => symbols.sort().join(','), [symbols.sort().join(',')]);
 
   useEffect(() => {
     setSignalsLoading(true);
@@ -117,7 +120,7 @@ export const usePriceActionSignals = (symbols: string[]) => {
       supabase.removeChannel(channel);
       console.log('Realtime subscription to crypto_price_action_signals REMOVED');
     };
-  }, [symbols.join(',')]); // Re-subscribe if symbols change
+  }, [symbolsKey]); // Re-subscribe only if sorted symbols string changes
 
   return { signals, signalsLoading, error, realtimeConnected };
 };

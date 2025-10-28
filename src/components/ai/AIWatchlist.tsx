@@ -136,8 +136,12 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     staleTime: 1000 * 60 * 5, // Cache de 5 minutos
   });
 
-  // Extract unique symbols from predictions for the hook
-  const symbols = useMemo(() => Array.from(new Set(predictions.map(p => p.symbol))), [predictions]);
+  // Extract unique symbols from predictions for the hook - stabilize to prevent reconnections
+  const symbols = useMemo(() => {
+    const uniqueSymbols = Array.from(new Set(predictions.map(p => p.symbol)));
+    return uniqueSymbols.sort(); // Sort to ensure consistent order
+  }, [predictions.map(p => p.symbol).sort().join(',')]); // Only change if actual symbols change
+  
   const { signals, signalsLoading, realtimeConnected } = usePriceActionSignals(symbols);
 
   const filteredSorted = predictions
@@ -291,16 +295,16 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
     });
   };
 
-  // Atualiza a estratégia quando os dados históricos carregam
+  // Atualiza a estratégia quando os dados históricos carregam - only once per symbol
   useEffect(() => {
-    if (strategy && selectedSymbolForHistory === strategy.symbol && historicalData && !isLoadingHistory) {
-      const prediction = predictions.find(p => p.symbol === strategy.symbol);
+    if (selectedSymbolForHistory && historicalData && !isLoadingHistory) {
+      const prediction = predictions.find(p => p.symbol === selectedSymbolForHistory);
       if (prediction) {
         calculateStrategy(prediction, historicalData);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [historicalData, isLoadingHistory]); // Depende do histórico e do loading
+  }, [selectedSymbolForHistory, historicalData, isLoadingHistory]); // Fixed dependencies
 
   // Função chamada ao clicar em "Ver Estratégia"
   const handleShowStrategyClick = (p: Prediction) => {
