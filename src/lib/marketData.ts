@@ -30,9 +30,9 @@ export const fetchMarketDataCoinGecko = async (timeframe: string): Promise<FlowD
     }
     
     console.log('Fetching fresh market data...');
-    // Increase per_page to 100 to capture top 100 cryptocurrencies
+    // Use 250 coins ordered by volume to match Market Data section
     const response = await fetch(
-      `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&sparkline=false&price_change_percentage=24h,7d,30d`
+      `${COINGECKO_API}/coins/markets?vs_currency=usd&order=volume_desc&per_page=250&sparkline=false&price_change_percentage=24h,7d,30d`
     );
     
     if (!response.ok) {
@@ -49,8 +49,8 @@ export const fetchMarketDataCoinGecko = async (timeframe: string): Promise<FlowD
     // Calculate flows between different categories
     const flows: FlowData[] = [];
     
-    // BTC vs other major coins flows
-    data.slice(0, 100).forEach((coin) => {
+    // BTC vs other major coins flows - using all 250 coins
+    data.forEach((coin) => {
       if (coin.symbol !== 'btc' && coin.market_cap_change_percentage_24h) {
         const relativeFlow = coin.market_cap_change_percentage_24h - btcData.market_cap_change_percentage_24h;
         const flowMagnitude = (coin.market_cap * Math.abs(relativeFlow)) / btcData.market_cap / 10;
@@ -73,10 +73,10 @@ export const fetchMarketDataCoinGecko = async (timeframe: string): Promise<FlowD
     });
     
     // Also add flows between other top cryptocurrencies
-    for (let i = 1; i < Math.min(data.length, 100); i++) {
+    for (let i = 1; i < Math.min(data.length, 250); i++) {
       const coin = data[i];
       
-      // Create node entry for all top 100 cryptocurrencies
+      // Create node entry for all cryptocurrencies
       if (!flows.some(f => f.from === coin.symbol.toUpperCase() || f.to === coin.symbol.toUpperCase())) {
         // If no flows exist yet, create at least one flow to ensure the node appears
         const flowTarget = 'BTC';
@@ -95,8 +95,8 @@ export const fetchMarketDataCoinGecko = async (timeframe: string): Promise<FlowD
       }
     }
     
-    // Add some flows between non-BTC cryptocurrencies
-    for (let i = 1; i < Math.min(data.length - 1, 50); i++) {
+    // Add some flows between non-BTC cryptocurrencies - increased to 100 pairs
+    for (let i = 1; i < Math.min(data.length - 1, 100); i++) {
       const coinA = data[i];
       const coinB = data[i + 1];
       
