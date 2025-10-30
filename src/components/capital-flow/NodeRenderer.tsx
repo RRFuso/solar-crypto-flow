@@ -151,30 +151,42 @@ const renderOrUpdateVisualization = (
   patterns.exit().remove();
 
   const patternEnter = patterns.enter().append('pattern')
-    .attr('id', (d: ExtendedOrbitalNode) => `logo-${d.id}`)
+    .attr('id', (d: ExtendedOrbitalNode) => {
+      // Sanitize ID to prevent encoding issues with special characters
+      const sanitizedId = d.id.replace(/[^a-zA-Z0-9-_]/g, '_');
+      return `logo-${sanitizedId}`;
+    })
     .attr('width', 1)
     .attr('height', 1)
     .attr('patternContentUnits', 'objectBoundingBox');
 
   patternEnter.each(function(d) {
     const pattern = d3.select(this);
-    const logoUrls = getLogoUrls(d.id);
-    let currentUrlIndex = 0;
-    const loadImage = () => {
-      if (currentUrlIndex >= logoUrls.length) return;
-      const imageUrl = logoUrls[currentUrlIndex];
-      pattern.select('image').remove();
-      pattern.append('image')
-        .attr('href', imageUrl)
-        .attr('width', 1)
-        .attr('height', 1)
-        .attr('preserveAspectRatio', 'xMidYMid slice')
-        .on('error', () => {
-          currentUrlIndex++;
-          loadImage();
-        });
-    };
-    loadImage();
+    try {
+      const logoUrls = getLogoUrls(d.id);
+      let currentUrlIndex = 0;
+      const loadImage = () => {
+        if (currentUrlIndex >= logoUrls.length) return;
+        try {
+          const imageUrl = logoUrls[currentUrlIndex];
+          pattern.select('image').remove();
+          pattern.append('image')
+            .attr('href', imageUrl)
+            .attr('width', 1)
+            .attr('height', 1)
+            .attr('preserveAspectRatio', 'xMidYMid slice')
+            .on('error', () => {
+              currentUrlIndex++;
+              loadImage();
+            });
+        } catch (e) {
+          console.warn(`Failed to load image for ${d.id}:`, e);
+        }
+      };
+      loadImage();
+    } catch (e) {
+      console.warn(`Failed to create pattern for ${d.id}:`, e);
+    }
   });
 
   let nodesGroup = svg.select('.nodes-group');
@@ -297,7 +309,11 @@ const renderOrUpdateVisualization = (
   nodeUpdate.select('circle.node-circle')
     .transition().duration(750)
     .attr('r', (d: ExtendedOrbitalNode) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id))
-    .attr('fill', (d: ExtendedOrbitalNode) => `url(#logo-${d.id})`)
+    .attr('fill', (d: ExtendedOrbitalNode) => {
+      // Use sanitized ID to match pattern creation
+      const sanitizedId = d.id.replace(/[^a-zA-Z0-9-_]/g, '_');
+      return `url(#logo-${sanitizedId})`;
+    })
     .attr('stroke', (d: ExtendedOrbitalNode) => {
       if (selectedNodeId === d.id) return '#ffffff';
       if (d.priceActionSignal?.explosivePotential === 'High') return '#800080';

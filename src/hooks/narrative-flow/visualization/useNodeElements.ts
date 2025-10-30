@@ -112,7 +112,7 @@ export const useNodeElements = () => {
         
         const logoUrls = getLogoUrls(token.symbol);
         
-        // Add the logo image with error handling
+        // Add the logo image with error handling and proper encoding
         const img = d3.select(this)
           .append("image")
           .attr("x", x - logoRadius)
@@ -123,9 +123,13 @@ export const useNodeElements = () => {
           .attr("clip-path", `url(#${clipId})`)
           .attr("preserveAspectRatio", "xMidYMid slice");
         
-        // Add error handling for the image
+        // Add error handling for the image with fallback
         img.on("error", function() {
-          d3.select(this).attr("href", logoUrls[1] || logoUrls[0]);
+          try {
+            d3.select(this).attr("href", logoUrls[1] || logoUrls[0]);
+          } catch (e) {
+            console.warn(`Failed to load logo for ${token.symbol}`, e);
+          }
         });
       });
     });
