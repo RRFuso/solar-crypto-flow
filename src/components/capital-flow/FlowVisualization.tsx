@@ -59,45 +59,34 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     createOrbitalVisualization
   } = useVisualizationSetup(flowData, zoomLevel);
   
-  // Memoize symbols to prevent unnecessary hook re-renders
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  
+  // All hooks must be called in the same order every render
+  const { cryptoDataMaps, isLoading: loadingCryptoData } = useCryptoData();
+  
+  // Memoize symbols to prevent unnecessary re-calculations
   const symbolsInView = useMemo(() => {
     if (!visualizationData?.nodes) return [];
     return visualizationData.nodes.map(node => node.id);
   }, [visualizationData?.nodes]);
 
-  // Memoize crypto data fetching
-  const { cryptoDataMaps, isLoading: loadingCryptoData } = useCryptoData();
-  
-  // Only fetch signals if we have symbols
-  const shouldFetchSignals = symbolsInView.length > 0;
-  const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(
-    shouldFetchSignals ? symbolsInView : []
-  );
-  
-  const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(
-    shouldFetchSignals ? symbolsInView : []
-  );
-  
+  // These hooks must always be called, regardless of symbolsInView
+  const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(symbolsInView);
+  const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(symbolsInView);
   const { smartMoneyScores, requestOnChainData } = useOnChainData();
 
-  // Memoize on-chain data request
-  const memoizedRequestOnChainData = useCallback(() => {
-    if (symbolsInView.length > 0) {
-      requestOnChainData(symbolsInView);
-    }
-  }, [symbolsInView, requestOnChainData]);
-
-  useEffect(() => {
-    memoizedRequestOnChainData();
-  }, [memoizedRequestOnChainData]);
-
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  
-  // Memoize zoom calculation
+  // Memoize adjusted zoom level
   const adjustedZoomLevel = useMemo(
     () => dimensions.width < 768 ? zoomLevel * 0.6 : zoomLevel * 1.2,
     [dimensions.width, zoomLevel]
   );
+
+  // Effect for on-chain data request
+  useEffect(() => {
+    if (symbolsInView.length > 0) {
+      requestOnChainData(symbolsInView);
+    }
+  }, [symbolsInView, requestOnChainData]);
   
   useVisualizationData({
     flowData,
@@ -113,18 +102,17 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     activeCategory
   });
 
-  // Memoize node click handler
-  const handleNodeClick = useCallback((event: CustomEvent) => {
-    const nodeId = event.detail.nodeId;
-    setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
-  }, []);
-
+  // Node click handler effect
   useEffect(() => {
+    const handleNodeClick = (event: CustomEvent) => {
+      const nodeId = event.detail.nodeId;
+      setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
+    };
     document.addEventListener('node-click', handleNodeClick as EventListener);
     return () => {
       document.removeEventListener('node-click', handleNodeClick as EventListener);
     };
-  }, [handleNodeClick]);
+  }, []);
 
   // Memoize category color function
   const getCategoryColor = useCallback((symbol: string) => {
