@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, Profiler } from 'react';
 import * as d3 from 'd3';
 import { FlowData, CryptoData } from '@/types/crypto';
 import { ExtendedOrbitalNode } from '@/types/orbitalNodes';
@@ -27,7 +27,21 @@ interface FlowVisualizationProps {
   showLines: boolean;
 }
 
-export const FlowVisualization: React.FC<FlowVisualizationProps> = ({ 
+// Performance profiler callback (only logs in development)
+const onRenderCallback = (
+  id: string,
+  phase: "mount" | "update",
+  actualDuration: number,
+  baseDuration: number,
+  startTime: number,
+  commitTime: number
+) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[FlowViz ${phase}] Render time: ${actualDuration.toFixed(2)}ms (base: ${baseDuration.toFixed(2)}ms)`);
+  }
+};
+
+const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({ 
   flowData, 
   zoomLevel = 60,
   predictions = [],
@@ -45,25 +59,45 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     createOrbitalVisualization
   } = useVisualizationSetup(flowData, zoomLevel);
   
-  const symbolsInView = React.useMemo(() => {
-    if (!visualizationData || !visualizationData.nodes) return [];
+  // Memoize symbols to prevent unnecessary hook re-renders
+  const symbolsInView = useMemo(() => {
+    if (!visualizationData?.nodes) return [];
     return visualizationData.nodes.map(node => node.id);
-  }, [visualizationData]);
+  }, [visualizationData?.nodes]);
 
+  // Memoize crypto data fetching
   const { cryptoDataMaps, isLoading: loadingCryptoData } = useCryptoData();
-  const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(symbolsInView);
-  const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(symbolsInView);
+  
+  // Only fetch signals if we have symbols
+  const shouldFetchSignals = symbolsInView.length > 0;
+  const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(
+    shouldFetchSignals ? symbolsInView : []
+  );
+  
+  const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(
+    shouldFetchSignals ? symbolsInView : []
+  );
+  
   const { smartMoneyScores, requestOnChainData } = useOnChainData();
 
-  useEffect(() => {
+  // Memoize on-chain data request
+  const memoizedRequestOnChainData = useCallback(() => {
     if (symbolsInView.length > 0) {
       requestOnChainData(symbolsInView);
     }
   }, [symbolsInView, requestOnChainData]);
 
+  useEffect(() => {
+    memoizedRequestOnChainData();
+  }, [memoizedRequestOnChainData]);
+
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
-  const adjustedZoomLevel = dimensions.width < 768 ? zoomLevel * 0.6 : zoomLevel * 1.2;
+  // Memoize zoom calculation
+  const adjustedZoomLevel = useMemo(
+    () => dimensions.width < 768 ? zoomLevel * 0.6 : zoomLevel * 1.2,
+    [dimensions.width, zoomLevel]
+  );
   
   useVisualizationData({
     flowData,
@@ -79,18 +113,21 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     activeCategory
   });
 
+  // Memoize node click handler
+  const handleNodeClick = useCallback((event: CustomEvent) => {
+    const nodeId = event.detail.nodeId;
+    setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
+  }, []);
+
   useEffect(() => {
-    const handleNodeClick = (event: CustomEvent) => {
-      const nodeId = event.detail.nodeId;
-      setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
-    };
     document.addEventListener('node-click', handleNodeClick as EventListener);
     return () => {
       document.removeEventListener('node-click', handleNodeClick as EventListener);
     };
-  }, []);
+  }, [handleNodeClick]);
 
-  const getCategoryColor = (symbol: string) => {
+  // Memoize category color function
+  const getCategoryColor = useCallback((symbol: string) => {
     const aiInsight = aiInsights.get(symbol);
     if (aiInsight) {
       const signalCategory = mapAIRecommendationToSignal(aiInsight.recommendation);
@@ -104,21 +141,24 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     }
 
     return getSignalCategoryColor('neutral');
-  };
+  }, [aiInsights, cryptoDataMaps.bySymbol]);
 
-  const enrichedNodes = React.useMemo(() => {
-    if (!visualizationData || !visualizationData.nodes) return [];
-    const nodes = visualizationData.nodes.map(node => {
-      const categories = getCategoriesForSymbol(node.id);
-      return {
-        ...node,
-        categories,
-      };
-    });
-    console.log('📊 FlowVisualization - enrichedNodes:', nodes.length, 'activeCategory:', activeCategory);
-    console.log('📊 Sample node categories:', nodes.slice(0, 3).map(n => ({ id: n.id, categories: n.categories })));
+  // Memoize enriched nodes calculation
+  const enrichedNodes = useMemo(() => {
+    if (!visualizationData?.nodes) return [];
+    
+    const nodes = visualizationData.nodes.map(node => ({
+      ...node,
+      categories: getCategoriesForSymbol(node.id),
+    }));
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📊 FlowVisualization - enrichedNodes:', nodes.length, 'activeCategory:', activeCategory);
+      console.log('📊 Sample node categories:', nodes.slice(0, 3).map(n => ({ id: n.id, categories: n.categories })));
+    }
+    
     return nodes;
-  }, [visualizationData, activeCategory]);
+  }, [visualizationData?.nodes, activeCategory]);
 
   if (loadingCryptoData || loadingSignals || loadingAI) {
     return (
@@ -142,14 +182,16 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
     );
   }
 
-  // Verificação de segurança antes de renderizar
-  const renderVisualization = svgRef.current && 
-                             dimensions.width > 0 && 
-                             visualizationData && 
-                             visualizationData.nodes && 
-                             visualizationData.nodes.length > 0;
+  // Memoize render check
+  const renderVisualization = useMemo(
+    () => svgRef.current && 
+          dimensions.width > 0 && 
+          visualizationData?.nodes?.length > 0,
+    [svgRef.current, dimensions.width, visualizationData?.nodes?.length]
+  );
 
   return (
+    <Profiler id="FlowVisualization" onRender={onRenderCallback}>
     <div ref={containerRef} className="w-full h-full relative overflow-hidden">
       <div className="w-full h-full flex items-center justify-center">
         <svg 
@@ -211,5 +253,19 @@ export const FlowVisualization: React.FC<FlowVisualizationProps> = ({
       )}
       </div>
     </div>
+    </Profiler>
   );
 };
+
+// Export memoized component with custom comparison
+export const FlowVisualization = React.memo(FlowVisualizationComponent, (prevProps, nextProps) => {
+  // Custom comparison for better performance
+  return (
+    prevProps.zoomLevel === nextProps.zoomLevel &&
+    prevProps.chartTimeframe === nextProps.chartTimeframe &&
+    prevProps.activeCategory === nextProps.activeCategory &&
+    prevProps.showLines === nextProps.showLines &&
+    prevProps.flowData.length === nextProps.flowData.length &&
+    prevProps.predictions?.length === nextProps.predictions?.length
+  );
+});
