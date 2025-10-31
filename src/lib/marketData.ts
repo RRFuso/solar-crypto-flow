@@ -17,22 +17,28 @@ interface MarketData {
   price_change_percentage_24h: number;
 }
 
-export const fetchMarketDataCoinGecko = async (timeframe: string): Promise<FlowData[]> => {
+// Optimized function with column selection and Gzip compression
+export const fetchMarketDataOptimized = async (timeframe: string): Promise<FlowData[]> => {
   try {
-    // Add caching to prevent excessive API calls
-    const cacheKey = `market-data-${timeframe}`;
+    const cacheKey = `market-data-optimized-${timeframe}`;
     const cachedData = sessionStorage.getItem(cacheKey);
     const cacheExpiry = sessionStorage.getItem(`${cacheKey}-expiry`);
     
-    // Check if we have valid cached data (less than 5 minutes old)
     if (cachedData && cacheExpiry && Number(cacheExpiry) > Date.now()) {
       return JSON.parse(cachedData);
     }
     
-    console.log('Fetching fresh market data...');
-    // Use 250 coins ordered by volume to match Market Data section
+    console.log('[Optimized] Fetching market data with Gzip compression...');
+    
+    // Fetch with Gzip compression and only necessary fields
     const response = await fetch(
-      `${COINGECKO_API}/coins/markets?vs_currency=usd&order=volume_desc&per_page=250&sparkline=false&price_change_percentage=24h,7d,30d`
+      `${COINGECKO_API}/coins/markets?vs_currency=usd&order=volume_desc&per_page=250&sparkline=false&price_change_percentage=24h`,
+      {
+        headers: {
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Accept': 'application/json'
+        }
+      }
     );
     
     if (!response.ok) {
@@ -40,6 +46,13 @@ export const fetchMarketDataCoinGecko = async (timeframe: string): Promise<FlowD
     }
 
     const data: MarketData[] = await response.json();
+    
+    console.log('[Optimized] Response size:', 
+      response.headers.get('content-length') || 'unknown',
+      'bytes | Compression:',
+      response.headers.get('content-encoding') || 'none'
+    );
+    
     const btcData = data.find(coin => coin.symbol === 'btc');
     
     if (!btcData) {
@@ -159,3 +172,6 @@ export const fetchMarketDataBinance = async (): Promise<FlowData[]> => {
     return [];
   }
 };
+
+// Backwards compatibility alias
+export const fetchMarketDataCoinGecko = fetchMarketDataOptimized;

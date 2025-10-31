@@ -20,6 +20,8 @@ import { toast } from 'sonner';
 import { useFilteredFlowData } from '@/hooks/capital-flow/useFilteredFlowData';
 import { usePredictions } from '@/hooks/capital-flow/usePredictions';
 import { useCredits } from '@/hooks/useCredits';
+import { useRealtimeMarketData } from '@/hooks/useRealtimeMarketData';
+import { Badge } from '@/components/ui/badge';
 
 const IndexContent = () => {
   const [activeTab, setActiveTab] = useState("capital-flow");
@@ -48,8 +50,18 @@ const IndexContent = () => {
     handleLimitChange,
   } = useFlowControls();
 
-  const { data: flowData, isLoading, error, refetch } = useQuery({
-    queryKey: ['capital-flow', timeframe, dataSource],
+  // Use Realtime hook for crypto_prices table
+  const { 
+    data: realtimeFlowData, 
+    isLoading: isRealtimeLoading, 
+    error: realtimeError, 
+    isConnected,
+    refetch: realtimeRefetch 
+  } = useRealtimeMarketData();
+
+  // Fallback to polling if Realtime is not connected or has errors
+  const { data: pollingFlowData, isLoading: isPollingLoading, error: pollingError, refetch: pollingRefetch } = useQuery({
+    queryKey: ['capital-flow-fallback', timeframe, dataSource],
     queryFn: () => {
       if (dataSource === 'binance') {
         return fetchMarketDataBinance();
@@ -57,10 +69,11 @@ const IndexContent = () => {
         return fetchMarketDataCoinGecko(timeframe);
       }
     },
+    enabled: !isConnected || !!realtimeError, // Only enable if Realtime is disconnected or has error
     refetchOnWindowFocus: false,
-    staleTime: 1000 * 60 * 2, // 2 minutes for high-priority data
-    gcTime: 1000 * 60 * 30, // 30 minutes cache retention
-    refetchInterval: 1000 * 60 * 1, // Auto-refetch every 1 minute for timeliness
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 30,
+    refetchInterval: 1000 * 60 * 1, // Polling every 1 minute as fallback
     meta: {
       onError: () => {
         toast("Failed to fetch market data. Please try again later.", {
@@ -69,6 +82,12 @@ const IndexContent = () => {
       }
     }
   });
+
+  // Use Realtime data if connected, otherwise use polling data
+  const flowData = isConnected ? realtimeFlowData : pollingFlowData;
+  const isLoading = isConnected ? isRealtimeLoading : isPollingLoading;
+  const error = isConnected ? realtimeError : pollingError;
+  const refetch = isConnected ? realtimeRefetch : pollingRefetch;
 
   const processedFlowData = useFilteredFlowData(flowData, flowLimit, selectedCategory);
   const { predictions } = usePredictions(flowData, selectedCategory, chartTimeframe);
@@ -144,6 +163,17 @@ const IndexContent = () => {
                 <div className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full">
                   Oracle
                 </div>
+                {/* Realtime Connection Indicator */}
+                <Badge 
+                  variant={isConnected ? "default" : "secondary"}
+                  className={`text-[10px] px-2 py-0.5 ${
+                    isConnected 
+                      ? 'bg-green-500/20 text-green-400 border-green-500/50' 
+                      : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50'
+                  }`}
+                >
+                  {isConnected ? '🟢 RT' : '🟡 Poll'}
+                </Badge>
               </div>
               <div className="md:hidden">
                 {user ? (
