@@ -148,6 +148,12 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     return nodes;
   }, [visualizationData?.nodes, activeCategory]);
 
+  // All hooks MUST be called before any conditional returns
+  // This simple check doesn't need useMemo
+  const renderVisualization = svgRef.current && 
+                               dimensions.width > 0 && 
+                               visualizationData?.nodes?.length > 0;
+
   if (loadingCryptoData || loadingSignals || loadingAI) {
     return (
       <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
@@ -169,14 +175,6 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
       </div>
     );
   }
-
-  // Memoize render check
-  const renderVisualization = useMemo(
-    () => svgRef.current && 
-          dimensions.width > 0 && 
-          visualizationData?.nodes?.length > 0,
-    [svgRef.current, dimensions.width, visualizationData?.nodes?.length]
-  );
 
   return (
     <Profiler id="FlowVisualization" onRender={onRenderCallback}>
