@@ -53,14 +53,8 @@ export const addFlowParticles = (
     
     // Create particles for this link
     for (let i = 0; i < particleCount; i++) {
-      // Determine color based on predictions and flow direction
-      let particleColor: string;
-      
-      if (link.predictionColor) {
-        particleColor = link.predictionColor;
-      } else {
-        particleColor = link.percentage > 0 ? "#4ade80" : "#f43f5e";
-      }
+      // Use consistent yellow/gold color for all particles
+      const particleColor = "#facc15"; // yellow-400 - cor padrão amarela/dourada
       
       // Initial position along the path with better distribution
       const initialPosition = (i + Math.random() * 0.3) / particleCount;
