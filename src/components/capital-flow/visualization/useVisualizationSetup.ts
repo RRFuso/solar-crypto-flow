@@ -58,8 +58,10 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
       resizeObserver.observe(containerRef.current);
     }
     
-    // Initial dimension update
-    updateDimensions();
+    // Initial dimension update - use requestAnimationFrame to ensure container is rendered
+    requestAnimationFrame(() => {
+      updateDimensions();
+    });
     
     // Fallback to window resize listener
     window.addEventListener('resize', updateDimensions);
