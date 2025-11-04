@@ -27,7 +27,7 @@ interface FlowVisualizationProps {
   showLines: boolean;
 }
 
-// Performance profiler callback (only logs in development)
+// Performance profiler callback (disabled in production)
 const onRenderCallback = (
   id: string,
   phase: "mount" | "update",
@@ -36,9 +36,7 @@ const onRenderCallback = (
   startTime: number,
   commitTime: number
 ) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[FlowViz ${phase}] Render time: ${actualDuration.toFixed(2)}ms (base: ${baseDuration.toFixed(2)}ms)`);
-  }
+  // Profiling disabled - enable only when debugging performance
 };
 
 const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({ 
@@ -135,26 +133,21 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   const enrichedNodes = useMemo(() => {
     if (!visualizationData?.nodes) return [];
     
-    const nodes = visualizationData.nodes.map(node => ({
+    return visualizationData.nodes.map(node => ({
       ...node,
       categories: getCategoriesForSymbol(node.id),
     }));
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('📊 FlowVisualization - enrichedNodes:', nodes.length, 'activeCategory:', activeCategory);
-      console.log('📊 Sample node categories:', nodes.slice(0, 3).map(n => ({ id: n.id, categories: n.categories })));
-    }
-    
-    return nodes;
   }, [visualizationData?.nodes, activeCategory]);
 
   // All hooks MUST be called before any conditional returns
-  // This simple check doesn't need useMemo
+  // Wait for proper dimensions before rendering to avoid initial zoom issues
+  const hasValidDimensions = dimensions.width > 100 && dimensions.height > 100;
   const renderVisualization = svgRef.current && 
-                               dimensions.width > 0 && 
+                               hasValidDimensions && 
                                visualizationData?.nodes?.length > 0;
 
-  if (loadingCryptoData || loadingSignals || loadingAI) {
+  // Show loading until we have valid dimensions
+  if (!hasValidDimensions || loadingCryptoData || loadingSignals || loadingAI) {
     return (
       <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
         <div className="text-center">

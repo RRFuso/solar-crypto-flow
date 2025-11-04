@@ -113,7 +113,6 @@ export const useAdvancedAI = (
 
       setInsights(newInsights);
       setLastUpdate(new Date());
-      console.log(`Generated insights for ${newInsights.size} symbols`);
 
     } catch (err) {
       console.error('Error generating AI insights:', err);
