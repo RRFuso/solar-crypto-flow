@@ -73,11 +73,13 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(symbolsInView);
   const { smartMoneyScores, requestOnChainData } = useOnChainData();
 
-  // Memoize adjusted zoom level
-  const adjustedZoomLevel = useMemo(
-    () => dimensions.width < 768 ? zoomLevel * 0.6 : zoomLevel * 1.2,
-    [dimensions.width, zoomLevel]
-  );
+  // Memoize adjusted zoom level - only calculate when we have valid dimensions
+  const adjustedZoomLevel = useMemo(() => {
+    if (dimensions.width === 0 || dimensions.height === 0) {
+      return zoomLevel; // Return base zoom as fallback
+    }
+    return dimensions.width < 768 ? zoomLevel * 0.6 : zoomLevel * 1.2;
+  }, [dimensions.width, dimensions.height, zoomLevel]);
 
   // Effect for on-chain data request
   useEffect(() => {
@@ -140,14 +142,13 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   }, [visualizationData?.nodes, activeCategory]);
 
   // All hooks MUST be called before any conditional returns
-  // Wait for proper dimensions before rendering to avoid initial zoom issues
+  // Wait for proper dimensions AND data before rendering
   const hasValidDimensions = dimensions.width > 100 && dimensions.height > 100;
-  const renderVisualization = svgRef.current && 
-                               hasValidDimensions && 
-                               visualizationData?.nodes?.length > 0;
-
-  // Show loading until we have valid dimensions
-  if (!hasValidDimensions || loadingCryptoData || loadingSignals || loadingAI) {
+  const hasVisualizationData = visualizationData?.nodes?.length > 0;
+  const isDataReady = !loadingCryptoData && !loadingSignals && !loadingAI;
+  
+  // Show loading until everything is ready
+  if (!hasValidDimensions || !isDataReady) {
     return (
       <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
         <div className="text-center">
@@ -182,9 +183,9 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
           viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
           preserveAspectRatio="xMidYMid meet"
         />
-      {renderVisualization && svgRef.current && (
+      {hasVisualizationData && svgRef.current && (
         <>
-          <StarfieldBackground 
+          <StarfieldBackground
             svg={d3.select(svgRef.current)}
             width={dimensions.width}
             height={dimensions.height}
