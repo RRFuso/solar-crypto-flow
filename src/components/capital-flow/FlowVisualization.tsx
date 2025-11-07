@@ -76,9 +76,16 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   // Memoize adjusted zoom level - only calculate when we have valid dimensions
   const adjustedZoomLevel = useMemo(() => {
     if (dimensions.width === 0 || dimensions.height === 0) {
+      console.log('[FlowVisualization] Invalid dimensions, using base zoom:', zoomLevel);
       return zoomLevel; // Return base zoom as fallback
     }
-    return dimensions.width < 768 ? zoomLevel * 0.6 : zoomLevel * 1.2;
+    const calculated = dimensions.width < 768 ? zoomLevel * 0.6 : zoomLevel * 1.2;
+    console.log('[FlowVisualization] Calculated adjustedZoomLevel:', {
+      dimensions,
+      zoomLevel,
+      calculated
+    });
+    return calculated;
   }, [dimensions.width, dimensions.height, zoomLevel]);
 
   // Effect for on-chain data request
@@ -146,6 +153,14 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   const hasValidDimensions = dimensions.width > 100 && dimensions.height > 100;
   const hasVisualizationData = visualizationData?.nodes?.length > 0;
   const isDataReady = !loadingCryptoData && !loadingSignals && !loadingAI;
+  
+  console.log('[FlowVisualization] Render state:', {
+    dimensions,
+    hasValidDimensions,
+    hasVisualizationData,
+    isDataReady,
+    adjustedZoomLevel
+  });
   
   // Show loading until everything is ready
   if (!hasValidDimensions || !isDataReady) {

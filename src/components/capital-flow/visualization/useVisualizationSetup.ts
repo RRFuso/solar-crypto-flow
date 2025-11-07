@@ -37,6 +37,11 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
         const newWidth = Math.max(width, 300);
         const newHeight = Math.max(height, 300);
         
+        console.log('[useVisualizationSetup] Updating dimensions:', { 
+          raw: { width, height }, 
+          final: { newWidth, newHeight } 
+        });
+        
         setDimensions({ width: newWidth, height: newHeight });
       }
     };
