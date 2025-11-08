@@ -71,9 +71,11 @@ const IndexContent = () => {
     },
     enabled: !isConnected || !!realtimeError, // Only enable if Realtime is disconnected or has error
     refetchOnWindowFocus: false,
-    staleTime: 1000 * 60 * 2,
+    // Cache otimizado - dados ficam fresh por 3 min, persistem por 30 min
+    staleTime: 1000 * 60 * 3,
     gcTime: 1000 * 60 * 30,
-    refetchInterval: 1000 * 60 * 1, // Polling every 1 minute as fallback
+    refetchOnMount: false, // Não refetch ao montar se ainda fresh
+    refetchInterval: 1000 * 60 * 2, // Polling a cada 2 minutos (mais econômico)
     meta: {
       onError: () => {
         toast("Failed to fetch market data. Please try again later.", {
@@ -249,8 +251,12 @@ const IndexContent = () => {
             </div>
           )}
 
-          <div className="flex-1 w-full md:overflow-hidden">
-            <TabsContent value="capital-flow" className="h-full w-full">
+          {/* Mantém ambos montados para cache, esconde o inativo */}
+          <div className="flex-1 w-full md:overflow-hidden relative">
+            <div 
+              className="h-full w-full absolute inset-0"
+              style={{ display: activeTab === 'capital-flow' ? 'block' : 'none' }}
+            >
               <CapitalFlowPanel 
                 isLoading={isLoading}
                 error={error}
@@ -272,10 +278,13 @@ const IndexContent = () => {
                 refetch={refetch}
                 setShowLines={setShowLines}
               />
-            </TabsContent>
-            <TabsContent value="crypto" className="h-full w-full">
+            </div>
+            <div 
+              className="h-full w-full absolute inset-0"
+              style={{ display: activeTab === 'crypto' ? 'block' : 'none' }}
+            >
               <CryptoPanel />
-            </TabsContent>
+            </div>
           </div>
         </Tabs>
         
