@@ -143,20 +143,9 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
 
   // All hooks MUST be called before any conditional returns
   // Wait for proper dimensions AND data before rendering
-  // Accept dimensions that are either different from the 300x300 fallback OR reasonably sized
-  const hasValidDimensions = (dimensions.width > 250 && dimensions.height > 250) && 
-                              !(dimensions.width === 300 && dimensions.height === 300);
+  const hasValidDimensions = dimensions.width > 100 && dimensions.height > 100;
   const hasVisualizationData = visualizationData?.nodes?.length > 0;
   const isDataReady = !loadingCryptoData && !loadingSignals && !loadingAI;
-  
-  console.log('[FlowVisualization] Loading check:', {
-    dimensions,
-    hasValidDimensions,
-    isDataReady,
-    loadingCryptoData,
-    loadingSignals,
-    loadingAI
-  });
   
   // Show loading until everything is ready
   if (!hasValidDimensions || !isDataReady) {

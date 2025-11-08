@@ -33,11 +33,10 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
     const updateDimensions = () => {
       if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
-        // Ensure we get valid dimensions
-        const newWidth = Math.max(width, 300);
-        const newHeight = Math.max(height, 300);
-        
-        setDimensions({ width: newWidth, height: newHeight });
+        // Only update if we get real dimensions (not 0)
+        if (width > 0 && height > 0) {
+          setDimensions({ width, height });
+        }
       }
     };
     
@@ -45,28 +44,29 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
     let resizeObserver: ResizeObserver | null = null;
     
     if (containerRef.current) {
+      // Immediate dimension capture
+      updateDimensions();
+      
       resizeObserver = new ResizeObserver((entries) => {
         for (const entry of entries) {
           const { width, height } = entry.contentRect;
-          setDimensions({
-            width: Math.max(width, 300),
-            height: Math.max(height, 300)
-          });
+          if (width > 0 && height > 0) {
+            setDimensions({ width, height });
+          }
         }
       });
       
       resizeObserver.observe(containerRef.current);
     }
     
-    // Initial dimension update - use requestAnimationFrame to ensure container is rendered
-    requestAnimationFrame(() => {
-      updateDimensions();
-    });
+    // Double-check with a small delay to ensure layout is complete
+    const timeoutId = setTimeout(updateDimensions, 50);
     
     // Fallback to window resize listener
     window.addEventListener('resize', updateDimensions);
     
     return () => {
+      clearTimeout(timeoutId);
       window.removeEventListener('resize', updateDimensions);
       if (resizeObserver) {
         resizeObserver.disconnect();
