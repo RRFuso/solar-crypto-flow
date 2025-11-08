@@ -8,17 +8,22 @@ import { prioritizeAndSortFlows, ensureMinimumBtcFlows } from './flowUtils';
 
 export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> => {
   try {
-    // Cache inteligente - não limpa todo o cache, usa cache por dia
+    // Clear all market data cache to force refresh with new low-cap focus
+    const keys = Object.keys(sessionStorage);
+    keys.forEach(key => {
+      if (key.startsWith('market-data-') || key.startsWith('crypto-') || key.startsWith('flow-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+    console.log('Cache cleared - prioritizing low market cap cryptos for altseason detection');
+    
+    // Add caching and retry logic
     const cacheKey = `market-data-${timeframe}-${new Date().toISOString().split('T')[0]}`;
     const cachedData = sessionStorage.getItem(cacheKey);
     
-    // Se tem cache válido, retorna imediatamente
     if (cachedData) {
-      console.log('Using cached market data');
       return JSON.parse(cachedData);
     }
-    
-    console.log('Fetching fresh market data');
     
     // Implement retry logic
     const fetchWithRetry = async (retries = 3): Promise<MarketData[]> => {
