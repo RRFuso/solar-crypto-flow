@@ -36,7 +36,36 @@ export const BTCTooltip: React.FC<BTCTooltipProps> = ({ data, position }) => {
     : 0;
 
   const netFlow = totalInflow - totalOutflow;
-  const maxFlow = Math.max(totalInflow, totalOutflow, Math.abs(netFlow));
+  // Use maior valor individual como referência para as barras
+  const maxFlow = Math.max(totalInflow, totalOutflow);
+
+  // Calcular posicionamento inteligente do tooltip
+  const tooltipWidth = 384; // w-96 = 24rem = 384px
+  const tooltipHeight = 600; // altura estimada
+  const screenWidth = window.innerWidth;
+  const screenHeight = window.innerHeight;
+  
+  // Posição padrão: direita
+  let left = position.x + 20;
+  let top = position.y - 100;
+  
+  // Se não couber à direita, mostrar à esquerda
+  if (left + tooltipWidth > screenWidth - 20) {
+    left = position.x - tooltipWidth - 20;
+  }
+  
+  // Se não couber à esquerda também, centralizar na tela
+  if (left < 20) {
+    left = Math.max(20, (screenWidth - tooltipWidth) / 2);
+  }
+  
+  // Ajustar verticalmente se necessário
+  if (top + tooltipHeight > screenHeight - 20) {
+    top = Math.max(20, screenHeight - tooltipHeight - 20);
+  }
+  if (top < 20) {
+    top = 20;
+  }
 
   // Get macro market data
   const sp500 = marketRotation?.indices.find(idx => idx.id === 'SP500');
@@ -50,10 +79,10 @@ export const BTCTooltip: React.FC<BTCTooltipProps> = ({ data, position }) => {
 
   return (
     <div
-      className="absolute z-50 p-2 transition-opacity duration-200"
+      className="fixed z-50 p-2 transition-all duration-200"
       style={{
-        left: position.x + 15,
-        top: position.y + 15,
+        left: `${left}px`,
+        top: `${top}px`,
         pointerEvents: 'none',
       }}
     >
