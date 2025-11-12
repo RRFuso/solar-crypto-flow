@@ -40,7 +40,7 @@ const CryptoCard: React.FC<CryptoCardProps> = ({
     const tooltipData = {
       id,
       name,
-      price: displayPrice.toString(),
+      price: displayPrice,
       priceChange24h: performance,
       volume: volume24h
     };

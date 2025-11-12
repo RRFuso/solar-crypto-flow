@@ -95,12 +95,21 @@ const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, AI
     
     const priceActionAnalysisText = generatePriceActionAnalysis(node);
 
+    // Parse price properly - handle both string and number formats
+    let priceValue: number | undefined;
+    if (typeof node.price === 'string') {
+        const cleaned = node.price.replace(/[$,]/g, '');
+        priceValue = parseFloat(cleaned);
+    } else if (typeof node.price === 'number') {
+        priceValue = node.price;
+    }
+
     return {
         id: node.id,
         name: node.name || 'Unknown',
-        price: node.price ? `$${parseFloat(node.price).toFixed(4)}` : "N/A",
+        price: priceValue,
         priceChange24h: node.priceChange24h,
-        volume: node.volume ? `$${(node.volume / 1_000_000).toFixed(2)}M` : "N/A",
+        volume: node.volume,
         capitalFlows: node.capitalFlows,
         aiModel: aiInsight,
         trendReasons: trendReasons,

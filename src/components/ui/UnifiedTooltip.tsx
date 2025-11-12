@@ -4,15 +4,18 @@ import { Badge } from './badge';
 import { CapitalFlowLink } from '@/types/capitalFlow';
 import { Prediction } from '@/lib/aiModel';
 import { useOnChainData } from '@/contexts/OnChainDataContext';
+import { BTCTooltip } from './BTCTooltip';
+import { FlowBar, NetFlowBar } from './FlowBar';
+import { AIInsight } from '@/hooks/useAdvancedAI';
 
 interface TooltipData {
   id: string;
   name?: string;
-  price?: string;
+  price?: number;
   priceChange24h?: number;
   volume?: number;
   capitalFlows?: CapitalFlowLink[];
-  aiModel?: Prediction;
+  aiModel?: Prediction | AIInsight;
   trendReasons?: string[];
   aiAnalysis?: {
     recommendation: string;
@@ -68,6 +71,11 @@ const OnChainTooltipContent: React.FC<{ symbol: string }> = ({ symbol }) => {
 export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }) => {
   if (!data) return null;
 
+  // Special tooltip for BTC
+  if (data.id === 'BTC' || data.id === 'BTCUSDT') {
+    return <BTCTooltip data={data} position={position} />;
+  }
+
   const totalInflow = data.capitalFlows
     ? data.capitalFlows
         .filter(flow => flow.target.id === data.id)
@@ -79,6 +87,16 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
         .filter(flow => flow.source.id === data.id)
         .reduce((acc, flow) => acc + flow.value, 0)
     : 0;
+
+  const netFlow = totalInflow - totalOutflow;
+  const maxFlow = Math.max(totalInflow, totalOutflow, Math.abs(netFlow));
+
+  // Check if aiModel is AIInsight type
+  const isAIInsight = (model: any): model is AIInsight => {
+    return model && 'recommendation' in model && 'confidence' in model && 'opportunityScore' in model;
+  };
+
+  const aiInsight = isAIInsight(data.aiModel) ? data.aiModel : null;
 
   return (
     <div
@@ -100,53 +118,83 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
             <div>
               <span className="text-slate-400">Price:</span>
-              <span className="block font-mono">{data.price ? `${parseFloat(data.price).toLocaleString()}` : 'N/A'}</span>
-            </div>
-            <div>
-              <span className="text-slate-400">24h Change:</span>
-              <span className={`block font-mono ${data.priceChange24h && data.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {data.priceChange24h?.toFixed(2) ?? 'N/A'}%
+              <span className="block font-mono font-bold">
+                ${data.price ? data.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : 'N/A'}
               </span>
             </div>
             <div>
+              <span className="text-slate-400">24h Change:</span>
+              <span className={`block font-mono font-bold ${data.priceChange24h && data.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {data.priceChange24h !== undefined ? `${data.priceChange24h >= 0 ? '+' : ''}${data.priceChange24h.toFixed(2)}%` : 'N/A'}
+              </span>
+            </div>
+            <div className="col-span-2">
               <span className="text-slate-400">Volume (24h):</span>
-              <span className="block font-mono">{data.volume ? `${data.volume.toLocaleString()}` : 'N/A'}</span>
+              <span className="block font-mono">
+                ${data.volume ? (data.volume / 1e6).toFixed(2) : 'N/A'}M
+              </span>
             </div>
           </div>
 
           {data.capitalFlows && data.capitalFlows.length > 0 && (
-            <div className="border-t border-slate-700 pt-2 mt-2">
-              <h4 className="font-bold text-slate-300 mb-1">Capital Flow</h4>
-              <div className="flex justify-between">
-                <span className="text-green-400">Inflow:</span>
-                <span className="font-mono">${totalInflow.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-red-400">Outflow:</span>
-                <span className="font-mono">${totalOutflow.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between font-bold">
-                <span className="text-slate-300">Net Flow:</span>
-                <span className={`font-mono ${(totalInflow - totalOutflow) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  ${(totalInflow - totalOutflow).toLocaleString()}
-                </span>
-              </div>
+            <div className="border-t border-slate-700 pt-3 space-y-2">
+              <h4 className="font-bold text-slate-300 mb-2">Capital Flow</h4>
+              <FlowBar 
+                value={totalInflow} 
+                maxValue={maxFlow} 
+                type="inflow" 
+                label="Inflow"
+              />
+              <FlowBar 
+                value={totalOutflow} 
+                maxValue={maxFlow} 
+                type="outflow" 
+                label="Outflow"
+              />
+              <NetFlowBar netFlow={netFlow} maxAbsFlow={maxFlow} />
             </div>
           )}
 
 
-          {data.aiModel && (
+          {aiInsight && (
             <div className="border-t border-slate-700 pt-2 mt-2">
-              <h4 className="font-bold text-slate-300 mb-1">AI Analysis</h4>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">Prediction:</span>
-                <Badge variant={data.aiModel.bullish ? 'default' : 'destructive'}>
-                  {data.aiModel.bullish ? 'Bullish' : 'Bearish'}
-                </Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Confidence:</span>
-                <span className="font-mono">{data.aiModel.confidence.toFixed(1)}%</span>
+              <h4 className="font-bold text-slate-300 mb-2">🤖 AI Analysis</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Recommendation:</span>
+                  <Badge 
+                    variant={
+                      aiInsight.recommendation === 'strong_buy' || aiInsight.recommendation === 'buy' 
+                        ? 'default' 
+                        : aiInsight.recommendation === 'strong_sell' || aiInsight.recommendation === 'sell'
+                        ? 'destructive'
+                        : 'secondary'
+                    }
+                    className="font-semibold"
+                  >
+                    {aiInsight.recommendation.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col">
+                    <span className="text-slate-400 text-xs">Confidence</span>
+                    <span className="font-mono font-bold">{aiInsight.confidence.toFixed(0)}%</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-slate-400 text-xs">Opportunity</span>
+                    <span className="font-mono font-bold text-green-400">{aiInsight.opportunityScore.toFixed(0)}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-slate-400 text-xs">Risk Score</span>
+                    <span className="font-mono font-bold text-red-400">{aiInsight.riskScore.toFixed(0)}</span>
+                  </div>
+                  {aiInsight.patterns && aiInsight.patterns.length > 0 && (
+                    <div className="flex flex-col">
+                      <span className="text-slate-400 text-xs">Patterns</span>
+                      <span className="font-mono font-bold">{aiInsight.patterns.length}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

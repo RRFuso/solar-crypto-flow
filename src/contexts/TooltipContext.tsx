@@ -5,7 +5,7 @@ import React, { createContext, useState, useContext, useCallback } from 'react';
 interface TooltipData {
   id: string;
   name?: string;
-  price?: string;
+  price?: number;
   priceChange24h?: number;
   volume?: number;
   capitalFlows?: CapitalFlowLink[];

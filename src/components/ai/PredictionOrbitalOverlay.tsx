@@ -170,10 +170,15 @@ export const PredictionOrbitalOverlay: React.FC<PredictionOrbitalOverlayProps> =
         }
         
         node.on("mouseover", function(event) {
+          // Parse price as number
+          const priceValue = typeof prediction.price === 'string' 
+            ? parseFloat(prediction.price.replace(/[$,]/g, '')) 
+            : prediction.price;
+          
           const tooltipData = {
             id: d.id,
             name: prediction.name,
-            price: prediction.price,
+            price: priceValue,
             volume: cryptoDataMap.get(d.id)?.volume || 0,
             capitalFlow: d.value,
             aiModel: prediction,
