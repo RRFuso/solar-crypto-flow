@@ -71,9 +71,16 @@ const OnChainTooltipContent: React.FC<{ symbol: string }> = ({ symbol }) => {
 export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }) => {
   if (!data) return null;
 
-  // Special tooltip for BTC
-  if (data.id === 'BTC' || data.id === 'BTCUSDT') {
-    return <BTCTooltip data={data} position={position} />;
+  // Check if aiModel is AIInsight type
+  const isAIInsight = (model: any): model is AIInsight => {
+    return model && 'predictions' in model && 'patterns' in model && 'features' in model;
+  };
+
+  // Render BTC tooltip if it's Bitcoin
+  if (data.id === 'BTC' || data.id === 'bitcoin' || data.id === 'BTCUSDT') {
+    // Pass AI insight to BTC tooltip
+    const aiInsight = isAIInsight(data.aiModel) ? data.aiModel : undefined;
+    return <BTCTooltip data={{ ...data, aiInsight }} position={position} />;
   }
 
   const totalInflow = data.capitalFlows
@@ -119,11 +126,6 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
   if (top < 20) {
     top = 20;
   }
-
-  // Check if aiModel is AIInsight type
-  const isAIInsight = (model: any): model is AIInsight => {
-    return model && 'recommendation' in model && 'confidence' in model && 'opportunityScore' in model;
-  };
 
   const aiInsight = isAIInsight(data.aiModel) ? data.aiModel : null;
 

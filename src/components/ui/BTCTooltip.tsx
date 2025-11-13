@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { Badge } from './badge';
 import { useMarketRotation } from '@/hooks/useMarketRotation';
 import { FlowBar, NetFlowBar } from './FlowBar';
 import { CapitalFlowLink } from '@/types/capitalFlow';
+import { AIInsight } from '@/hooks/useAdvancedAI';
+import { LongShortRatio } from '@/types/crypto';
 
 interface BTCTooltipData {
   id: string;
@@ -13,6 +15,7 @@ interface BTCTooltipData {
   volume?: number;
   capitalFlows?: CapitalFlowLink[];
   explosivePotential?: string;
+  aiInsight?: AIInsight;
 }
 
 interface BTCTooltipProps {
@@ -22,6 +25,41 @@ interface BTCTooltipProps {
 
 export const BTCTooltip: React.FC<BTCTooltipProps> = ({ data, position }) => {
   const { data: marketRotation } = useMarketRotation('7d');
+  const [longShortRatio, setLongShortRatio] = useState<LongShortRatio | null>(null);
+  const [etfFlow, setEtfFlow] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Fetch Long/Short Ratio from secure-market-data-fetcher
+    const fetchMarketData = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/secure-market-data-fetcher`,
+          {
+            headers: {
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+          }
+        );
+        if (response.ok) {
+          const result = await response.json();
+          if (result.longShortRatio && result.longShortRatio.length > 0) {
+            const latest = result.longShortRatio[0];
+            setLongShortRatio({
+              symbol: latest.symbol,
+              longShortRatio: latest.longShortRatio,
+              longAccount: latest.longAccount,
+              shortAccount: latest.shortAccount,
+              timestamp: latest.timestamp,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching market data:', error);
+      }
+    };
+
+    fetchMarketData();
+  }, []);
   
   const totalInflow = data.capitalFlows
     ? data.capitalFlows
@@ -171,7 +209,7 @@ export const BTCTooltip: React.FC<BTCTooltipProps> = ({ data, position }) => {
               )}
             </div>
             
-            {/* Market Correlation Insight */}
+          {/* Market Correlation Insight */}
             <div className="mt-3 p-2 bg-orange-500/10 rounded border border-orange-500/20">
               <p className="text-xs text-orange-200">
                 {sp500 && sp500.change > 0 && data.priceChange24h && data.priceChange24h > 0 
@@ -184,6 +222,74 @@ export const BTCTooltip: React.FC<BTCTooltipProps> = ({ data, position }) => {
               </p>
             </div>
           </div>
+
+          {/* Long/Short Ratio */}
+          {longShortRatio && (
+            <div className="border-t border-orange-500/30 pt-3">
+              <h4 className="font-bold text-orange-300 mb-2">📈 Futures Market</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center bg-slate-800/50 rounded p-2">
+                  <span className="text-slate-300">Long/Short Ratio</span>
+                  <span className={`font-mono font-bold ${
+                    parseFloat(longShortRatio.longShortRatio) > 1 ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {parseFloat(longShortRatio.longShortRatio).toFixed(2)}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="bg-green-500/10 rounded p-2 border border-green-500/20">
+                    <span className="text-green-400">Long: {(parseFloat(longShortRatio.longAccount) * 100).toFixed(1)}%</span>
+                  </div>
+                  <div className="bg-red-500/10 rounded p-2 border border-red-500/20">
+                    <span className="text-red-400">Short: {(parseFloat(longShortRatio.shortAccount) * 100).toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* AI Analysis */}
+          {data.aiInsight && (
+            <div className="border-t border-orange-500/30 pt-3">
+              <h4 className="font-bold text-orange-300 mb-2">🤖 AI Analysis</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center bg-slate-800/50 rounded p-2">
+                  <span className="text-slate-300">Recommendation</span>
+                  <Badge className={`${
+                    data.aiInsight.recommendation === 'strong_buy' || data.aiInsight.recommendation === 'buy'
+                      ? 'bg-green-500/20 text-green-300 border-green-500/30'
+                      : data.aiInsight.recommendation === 'hold'
+                      ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                      : 'bg-red-500/20 text-red-300 border-red-500/30'
+                  }`}>
+                    {data.aiInsight.recommendation.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center bg-slate-800/50 rounded p-2">
+                  <span className="text-slate-300">Confidence</span>
+                  <span className="font-mono font-bold text-orange-300">
+                    {(data.aiInsight.confidence * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-slate-800/50 rounded p-2">
+                    <div className="text-xs text-slate-400">Opportunity</div>
+                    <div className="font-bold text-green-400">{data.aiInsight.opportunityScore.toFixed(0)}</div>
+                  </div>
+                  <div className="bg-slate-800/50 rounded p-2">
+                    <div className="text-xs text-slate-400">Risk</div>
+                    <div className="font-bold text-red-400">{data.aiInsight.riskScore.toFixed(0)}</div>
+                  </div>
+                </div>
+                {data.aiInsight.patterns.length > 0 && (
+                  <div className="text-xs text-slate-300 bg-slate-800/30 rounded p-2">
+                    <span className="font-semibold">Patterns: </span>
+                    {data.aiInsight.patterns.map(p => p.pattern).join(', ')}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {data.explosivePotential === 'High' && (
             <div className="border-t border-orange-500/30 pt-3 text-center">
