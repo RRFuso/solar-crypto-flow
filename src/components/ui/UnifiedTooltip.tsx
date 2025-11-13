@@ -104,28 +104,52 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
   const tooltipHeight = 500; // altura estimada
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
   const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
+  const padding = 16; // Margem de segurança
   
-  // Posição padrão: direita
+  // Determinar posição horizontal
   let left = position.x + 20;
+  
+  // Verificar se há espaço à direita
+  const hasSpaceRight = (position.x + 20 + tooltipWidth + padding) <= screenWidth;
+  // Verificar se há espaço à esquerda
+  const hasSpaceLeft = (position.x - 20 - tooltipWidth) >= padding;
+  
+  if (!hasSpaceRight && hasSpaceLeft) {
+    // Não cabe à direita, mas cabe à esquerda
+    left = position.x - tooltipWidth - 20;
+  } else if (!hasSpaceRight && !hasSpaceLeft) {
+    // Não cabe em nenhum lado, centralizar com base na posição do mouse
+    if (position.x < screenWidth / 2) {
+      // Mouse na esquerda, alinhar pela esquerda
+      left = padding;
+    } else {
+      // Mouse na direita, alinhar pela direita
+      left = screenWidth - tooltipWidth - padding;
+    }
+  }
+  // Se hasSpaceRight, mantém a posição padrão (direita)
+  
+  // Garantir que não saia das bordas horizontais
+  left = Math.max(padding, Math.min(left, screenWidth - tooltipWidth - padding));
+  
+  // Determinar posição vertical
   let top = position.y - 100;
   
-  // Se não couber à direita, mostrar à esquerda
-  if (left + tooltipWidth > screenWidth - 20) {
-    left = position.x - tooltipWidth - 20;
+  // Verificar se há espaço abaixo
+  const hasSpaceBelow = (top + tooltipHeight + padding) <= screenHeight;
+  
+  if (!hasSpaceBelow) {
+    // Tentar posicionar acima
+    top = position.y - tooltipHeight - 20;
+    
+    // Se também não couber acima, centralizar verticalmente
+    if (top < padding) {
+      top = Math.max(padding, (screenHeight - tooltipHeight) / 2);
+    }
   }
   
-  // Se não couber à esquerda também, centralizar
-  if (left < 20) {
-    left = Math.max(20, (screenWidth - tooltipWidth) / 2);
-  }
-  
-  // Ajustar verticalmente se necessário
-  if (top + tooltipHeight > screenHeight - 20) {
-    top = Math.max(20, screenHeight - tooltipHeight - 20);
-  }
-  if (top < 20) {
-    top = 20;
-  }
+  // Garantir que não saia das bordas verticais
+  top = Math.max(padding, Math.min(top, screenHeight - tooltipHeight - padding));
 
   const aiInsight = isAIInsight(data.aiModel) ? data.aiModel : null;
 
