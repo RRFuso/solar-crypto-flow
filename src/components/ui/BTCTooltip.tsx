@@ -29,7 +29,6 @@ export const BTCTooltip: React.FC<BTCTooltipProps> = ({ data, position }) => {
   const [etfFlow, setEtfFlow] = useState<number | null>(null);
 
   useEffect(() => {
-    // Fetch Long/Short Ratio from secure-market-data-fetcher
     const fetchMarketData = async () => {
       try {
         const response = await fetch(
@@ -42,6 +41,8 @@ export const BTCTooltip: React.FC<BTCTooltipProps> = ({ data, position }) => {
         );
         if (response.ok) {
           const result = await response.json();
+          
+          // Set Long/Short Ratio
           if (result.longShortRatio && result.longShortRatio.length > 0) {
             const latest = result.longShortRatio[0];
             setLongShortRatio({
@@ -51,6 +52,16 @@ export const BTCTooltip: React.FC<BTCTooltipProps> = ({ data, position }) => {
               shortAccount: latest.shortAccount,
               timestamp: latest.timestamp,
             });
+          }
+          
+          // Set ETF Flow
+          if (result.btcEtfFlow && result.btcEtfFlow.length > 0) {
+            // Calculate total net flow from ETF data
+            const totalNetFlow = result.btcEtfFlow.reduce((acc: number, etf: any) => {
+              const btcChange = etf.asset_details?.btc_change_24h || 0;
+              return acc + btcChange;
+            }, 0);
+            setEtfFlow(totalNetFlow);
           }
         }
       } catch (error) {
@@ -243,6 +254,27 @@ export const BTCTooltip: React.FC<BTCTooltipProps> = ({ data, position }) => {
                   <div className="bg-red-500/10 rounded p-2 border border-red-500/20">
                     <span className="text-red-400">Short: {(parseFloat(longShortRatio.shortAccount) * 100).toFixed(1)}%</span>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ETF Flows */}
+          {etfFlow !== null && (
+            <div className="border-t border-blue-500/30 pt-3">
+              <h4 className="font-bold text-blue-300 mb-2">📊 ETF Flows (24h)</h4>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between bg-slate-800/50 rounded p-2">
+                  <span className="text-slate-300">Net Flow</span>
+                  <span className={`text-sm font-semibold ${etfFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {etfFlow >= 0 ? '+' : ''}{etfFlow.toFixed(2)} BTC
+                  </span>
+                </div>
+                <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all ${etfFlow >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
+                    style={{ width: `${Math.min(Math.abs(etfFlow) / 1000 * 100, 100)}%` }}
+                  />
                 </div>
               </div>
             </div>

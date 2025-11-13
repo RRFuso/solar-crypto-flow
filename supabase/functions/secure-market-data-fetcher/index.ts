@@ -23,6 +23,36 @@ async function getLongShortRatio(symbol = 'BTCUSDT', period = '1h') {
   return await fetchJson<any[]>(url)
 }
 
+// Fetch Bitcoin ETF data from Dune Analytics
+async function getBtcEtfFlow() {
+  const DUNE_API_KEY = Deno.env.get('DUNE_API_KEY')
+  if (!DUNE_API_KEY) {
+    console.warn('DUNE_API_KEY not configured')
+    return null
+  }
+
+  try {
+    // Using Dune query for Bitcoin ETF flows
+    // Query ID: 4245527 (Bitcoin ETF Holdings and Flows)
+    const response = await fetch('https://api.dune.com/api/v1/query/4245527/results', {
+      headers: {
+        'x-dune-api-key': DUNE_API_KEY,
+      },
+    })
+
+    if (!response.ok) {
+      console.error('Dune API error:', response.statusText)
+      return null
+    }
+
+    const data = await response.json()
+    return data?.result?.rows || null
+  } catch (error) {
+    console.error('Error fetching BTC ETF data from Dune:', error)
+    return null
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -45,14 +75,17 @@ serve(async (req) => {
     const [
       fearGreedIndex,
       longShortRatio,
+      btcEtfFlow,
     ] = await Promise.all([
       fetchWithErrorHandling(getFearGreedIndex(), 'Fear & Greed Index'),
       fetchWithErrorHandling(getLongShortRatio('BTCUSDT'), 'Long/Short Ratio'),
+      fetchWithErrorHandling(getBtcEtfFlow(), 'BTC ETF Flow'),
     ])
 
     const responseData = {
       fearGreedIndex: fearGreedIndex?.data,
       longShortRatio,
+      btcEtfFlow,
     }
 
     return new Response(JSON.stringify(responseData), {
