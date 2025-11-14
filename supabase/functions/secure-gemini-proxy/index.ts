@@ -407,8 +407,8 @@ serve(async (req) => {
     
     console.log("--- [secure-gemini-proxy] Comprehensive Context Data Prepared ---");
 
-    const conversationHistory = messages.map((m: { sender: string; text: string }) => `${m.sender}: ${m.text}`).join('\n');
-    const userMessage = messages[messages.length - 1].text;
+    const conversationHistory = messages.map((m: { role: string; content: string }) => `${m.role}: ${m.content}`).join('\n');
+    const userMessage = messages[messages.length - 1].content;
 
     console.log('--- [secure-gemini-proxy] Starting tool use step ---');
     const detectedTickers = detectTickers(userMessage);
