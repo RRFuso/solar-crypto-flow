@@ -15,9 +15,15 @@ export async function analyzeAndGenerateSignals(): Promise<AIAnalysisResult> {
 
 export async function getAIChatResponse(messages: ChatMessage[]): Promise<string> {
   try {
+    // Transform messages to the format expected by the edge function
+    const transformedMessages = messages.map(msg => ({
+      role: msg.sender === 'user' ? 'user' : 'assistant',
+      content: msg.text
+    }));
+
     // 1. Invoke the secure Supabase Edge Function
     const { data, error } = await supabase.functions.invoke('secure-gemini-proxy', {
-      body: { messages: messages },
+      body: { messages: transformedMessages },
     });
 
     if (error) {
