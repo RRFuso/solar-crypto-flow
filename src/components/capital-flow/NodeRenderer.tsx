@@ -19,6 +19,7 @@ interface NodeRendererProps {
   aiInsights: Map<string, AIInsight>;
   smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish' }>;
   activeCategory?: string;
+  links?: CapitalFlowLink[]; // All capital flows for global scale calculation
 }
 
 const getAIRecommendationColor = (recommendation: string): string => {
@@ -81,7 +82,7 @@ const generatePriceActionAnalysis = (node: ExtendedOrbitalNode): string => {
   return `Preço estável nas últimas 24h (${change.toFixed(2)}%). Movimento lateral.`;
 };
 
-const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, AIInsight>) => {
+const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, AIInsight>, allCapitalFlows?: CapitalFlowLink[]) => {
     const aiInsight = aiInsights.get(node.id);
     const trendReasons = [];
     if (aiInsight) {
@@ -111,6 +112,7 @@ const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, AI
         priceChange24h: node.priceChange24h,
         volume: node.volume,
         capitalFlows: node.capitalFlows,
+        allCapitalFlows: allCapitalFlows, // Pass all flows for global scale
         aiModel: aiInsight,
         trendReasons: trendReasons,
         aiAnalysis: {
@@ -135,6 +137,7 @@ const renderOrUpdateVisualization = (
   showTooltip: (data: any, position: { x: number, y: number }) => void,
   hideTooltip: () => void,
   activeCategory: string = 'all',
+  allCapitalFlows?: CapitalFlowLink[],
 ) => {
   let defs = svg.select('defs');
   if (defs.empty()) {
@@ -224,7 +227,7 @@ const renderOrUpdateVisualization = (
     })
     .on('mouseover', (event: MouseEvent, d: ExtendedOrbitalNode) => {
         clearTimeout(tooltipHideTimer);
-        const tooltipData = createTooltipData(d, aiInsights);
+        const tooltipData = createTooltipData(d, aiInsights, allCapitalFlows);
         showTooltip(tooltipData, { x: event.clientX, y: event.clientY });
     })
     .on('mouseout', () => {
@@ -364,10 +367,11 @@ export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
         props.smartMoneyScores,
         showTooltip,
         hideTooltip,
-        props.activeCategory || 'all'
+        props.activeCategory || 'all',
+        props.links
       );
     }
-  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip, props.activeCategory]);
+  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip, props.activeCategory, props.links]);
 
   return null;
 });

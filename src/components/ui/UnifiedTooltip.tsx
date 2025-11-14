@@ -15,6 +15,7 @@ interface TooltipData {
   priceChange24h?: number;
   volume?: number;
   capitalFlows?: CapitalFlowLink[];
+  allCapitalFlows?: CapitalFlowLink[]; // All flows for global scale calculation
   aiModel?: Prediction | AIInsight;
   trendReasons?: string[];
   aiAnalysis?: {
@@ -96,8 +97,13 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
     : 0;
 
   const netFlow = totalInflow - totalOutflow;
-  // Use maior valor individual como referência para as barras
-  const maxFlow = Math.max(totalInflow, totalOutflow);
+  
+  // Calculate global max flow for consistent scale across all tooltips
+  const maxFlow = data.allCapitalFlows && data.allCapitalFlows.length > 0
+    ? Math.max(
+        ...data.allCapitalFlows.map(flow => flow.value)
+      )
+    : Math.max(totalInflow, totalOutflow);
 
   // Calcular posicionamento inteligente do tooltip
   const tooltipWidth = 320; // w-80 = 20rem = 320px

@@ -220,6 +220,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
             aiInsights={aiInsights}
             smartMoneyScores={smartMoneyScores}
             activeCategory={activeCategory}
+            links={visualizationData.links}
           />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
