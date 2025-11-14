@@ -1,52 +1,61 @@
 project_id = "bahshstcztvqmxiubslx"
 
 [functions.secure-api-proxy]
-verify_jwt = false
+verify_jwt = true
 
 [functions.secure-coingecko-proxy]
-verify_jwt = false
+verify_jwt = true
 
 [functions.dune-fetch]
-verify_jwt = false
+verify_jwt = true
 
 [functions.onchain-oracle]
-verify_jwt = false
+verify_jwt = true
 
 [functions.populate-crypto-signals]
-verify_jwt = false
+verify_jwt = true
 
 [functions.secure-market-data-fetcher]
-verify_jwt = false
+verify_jwt = true
 
 [functions.secure-gemini-proxy]
-verify_jwt = false
+verify_jwt = true
 
 [functions.crypto-data-collector]
-verify_jwt = false
+verify_jwt = true
 
 [functions.coinglass-fetcher]
-verify_jwt = false
+verify_jwt = true
 
 [functions.temp-migration-func]
-verify_jwt = false
+verify_jwt = true
 
 [functions.binance-all-symbols]
-verify_jwt = false
+verify_jwt = true
 
 [functions.populate-price-history]
-verify_jwt = false
+verify_jwt = true
 
 [functions.populate-watchlist-signals]
-verify_jwt = false
+verify_jwt = true
 
 [functions.populate-multiple-price-history]
-verify_jwt = false
+verify_jwt = true
 
 [functions.cache-crypto-logo]
-verify_jwt = false
+verify_jwt = true
 
 [functions.sentiment-analysis]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ml-predictions]
-verify_jwt = false
+verify_jwt = true
+
+[functions.check-subscription]
+verify_jwt = true
+
+[functions.create-checkout]
+verify_jwt = true
+
+[functions.customer-portal]
+verify_jwt = true

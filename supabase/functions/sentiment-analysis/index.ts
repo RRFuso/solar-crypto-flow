@@ -13,7 +13,44 @@ serve(async (req) => {
   }
 
   try {
-    const { symbols } = await req.json();
+    const requestBody = await req.json();
+    
+    // Request size limit
+    const MAX_REQUEST_SIZE = 10000;
+    if (JSON.stringify(requestBody).length > MAX_REQUEST_SIZE) {
+      return new Response(
+        JSON.stringify({ error: 'Request too large' }),
+        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { symbols } = requestBody;
+    
+    // Validate symbols array
+    if (!symbols || !Array.isArray(symbols)) {
+      return new Response(
+        JSON.stringify({ error: 'Symbols must be provided as an array' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate each symbol
+    if (symbols.length > 50) {
+      return new Response(
+        JSON.stringify({ error: 'Maximum 50 symbols allowed per request' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    for (const symbol of symbols) {
+      if (!symbol || typeof symbol !== 'string' || !/^[A-Z0-9]{1,10}$/.test(symbol)) {
+        return new Response(
+          JSON.stringify({ error: `Invalid symbol format: ${symbol}. Must be 1-10 uppercase alphanumeric characters.` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    
     console.log('Analyzing sentiment for symbols:', symbols);
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');

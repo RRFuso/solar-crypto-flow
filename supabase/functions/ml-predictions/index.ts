@@ -13,7 +13,42 @@ serve(async (req) => {
   }
 
   try {
-    const { symbol, timeframe = '4h', predictionHorizon = '24h' } = await req.json();
+    const requestBody = await req.json();
+    const { symbol, timeframe = '4h', predictionHorizon = '24h' } = requestBody;
+    
+    // Input validation
+    if (!symbol || typeof symbol !== 'string' || !/^[A-Z0-9]{1,10}$/.test(symbol)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid symbol format. Must be 1-10 uppercase alphanumeric characters.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const validTimeframes = ['1h', '4h', '1d', '1w'];
+    if (!validTimeframes.includes(timeframe)) {
+      return new Response(
+        JSON.stringify({ error: `Invalid timeframe. Must be one of: ${validTimeframes.join(', ')}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const validHorizons = ['1h', '4h', '12h', '24h', '7d', '30d'];
+    if (!validHorizons.includes(predictionHorizon)) {
+      return new Response(
+        JSON.stringify({ error: `Invalid prediction horizon. Must be one of: ${validHorizons.join(', ')}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Request size limit
+    const MAX_REQUEST_SIZE = 10000;
+    if (JSON.stringify(requestBody).length > MAX_REQUEST_SIZE) {
+      return new Response(
+        JSON.stringify({ error: 'Request too large' }),
+        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     console.log(`Generating ML prediction for ${symbol}, timeframe: ${timeframe}, horizon: ${predictionHorizon}`);
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
