@@ -9,6 +9,7 @@ interface TooltipData {
   priceChange24h?: number;
   volume?: number;
   capitalFlows?: CapitalFlowLink[];
+  allCapitalFlows?: CapitalFlowLink[]; // All flows for global scale calculation
   aiModel?: Prediction;
   trendReasons?: string[];
   aiAnalysis?: {
