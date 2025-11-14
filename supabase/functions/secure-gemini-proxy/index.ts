@@ -317,7 +317,19 @@ serve(async (req) => {
 
   try {
     console.log('--- [secure-gemini-proxy] Parsing request body ---');
-    const { messages } = await req.json();
+    
+    const requestBody = await req.json();
+    
+    // Request size limit
+    const MAX_REQUEST_SIZE = 100000; // 100KB limit for AI requests
+    if (JSON.stringify(requestBody).length > MAX_REQUEST_SIZE) {
+      return new Response(
+        JSON.stringify({ error: 'Request too large. Please reduce message length.' }),
+        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { messages } = requestBody;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       console.error('--- [secure-gemini-proxy] Invalid messages in request body ---');
@@ -326,6 +338,24 @@ serve(async (req) => {
         status: 400,
       });
     }
+
+    // Validate each message
+    for (const msg of messages) {
+      if (!msg.role || !msg.content) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid message format. Each message must have role and content.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      if (typeof msg.content !== 'string' || msg.content.length > 50000) {
+        return new Response(
+          JSON.stringify({ error: 'Message content must be a string with max 50,000 characters.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     console.log('--- [secure-gemini-proxy] Request body parsed successfully ---');
 
     if (!LOVABLE_API_KEY) {

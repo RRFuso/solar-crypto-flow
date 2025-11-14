@@ -15,7 +15,35 @@ serve(async (req) => {
   }
 
   try {
-    const { endpoint, params } = await req.json();
+    const requestBody = await req.json();
+    
+    // Request size limit
+    const MAX_REQUEST_SIZE = 50000;
+    if (JSON.stringify(requestBody).length > MAX_REQUEST_SIZE) {
+      return new Response(
+        JSON.stringify({ error: 'Request too large' }),
+        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { endpoint, params } = requestBody;
+    
+    // Validate endpoint
+    const validEndpoints = ['etherscan', 'gemini'];
+    if (!endpoint || !validEndpoints.includes(endpoint)) {
+      return new Response(
+        JSON.stringify({ error: `Invalid endpoint. Must be one of: ${validEndpoints.join(', ')}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate params is an object
+    if (params && typeof params !== 'object') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid params format. Must be an object.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     // Rate limiting
     const clientIP = req.headers.get('x-forwarded-for') || 'unknown';

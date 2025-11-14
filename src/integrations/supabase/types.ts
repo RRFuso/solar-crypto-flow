@@ -94,7 +94,7 @@ export type Database = {
           action: string
           created_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           new_values: Json | null
           old_values: Json | null
           record_id: string | null
@@ -106,7 +106,7 @@ export type Database = {
           action: string
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           new_values?: Json | null
           old_values?: Json | null
           record_id?: string | null
@@ -118,7 +118,7 @@ export type Database = {
           action?: string
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           new_values?: Json | null
           old_values?: Json | null
           record_id?: string | null
@@ -659,7 +659,7 @@ export type Database = {
     }
     Functions: {
       get_current_user_role: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_price_history: {
@@ -673,6 +673,12 @@ export type Database = {
           timestamp: string
           volume: number
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "crypto_price_history"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       has_role: {
         Args: {
