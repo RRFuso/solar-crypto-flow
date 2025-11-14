@@ -145,7 +145,10 @@ const DataPopulationPanel: React.FC = () => {
           </CardHeader>
           <CardContent>
             <Button
-              onClick={() => invokeFunction('onchain-oracle')}
+              onClick={() => invokeFunction('onchain-oracle', {
+                action: 'batch_update',
+                symbols: ['BTC', 'ETH', 'USDT', 'BNB', 'ADA', 'SOL', 'XRP', 'DOT', 'AVAX', 'MATIC']
+              })}
               disabled={loading['onchain-oracle']}
               className="w-full"
             >
