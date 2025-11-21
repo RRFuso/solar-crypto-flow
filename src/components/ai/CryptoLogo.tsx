@@ -18,7 +18,7 @@ const CryptoLogo: React.FC<CryptoLogoProps> = ({ symbol, className }) => {
         .from('cached_crypto_logos')
         .select('storage_path')
         .eq('symbol', symbol.toUpperCase())
-        .single();
+        .maybeSingle();
 
       if (cached) {
         const { data: publicUrl } = supabase.storage
