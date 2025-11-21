@@ -218,7 +218,7 @@ function generateSimulatedData(period: string): IndexRotationResult {
     'NASDAQ': [14900, 15000, 15100, 15050, 15000, 15200, 15300],
     'DOW': [34800, 35000, 35100, 35050, 35000, 34900, 35100],
     'RUSSELL': [1990, 2000, 2010, 2020, 2000, 1980, 1970],
-    'GOLD': [1890, 1900, 1910, 1920, 1930, 1940, 1950]
+    'DXY': [103, 104, 103.5, 103.8, 104.2, 104.5, 104.7]
   };
 
   // Calcular variações percentuais
