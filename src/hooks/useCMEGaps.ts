@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { CMEGap, GapAnalysis, GapMonitorData } from '@/types/cmeGaps';
+import { detectCMEGaps } from '@/services/cmeGapDetector';
 
-// Historical CME Bitcoin Futures gaps (well-documented in crypto community)
+// Fallback historical gaps (well-documented in crypto community)
 const HISTORICAL_GAPS: CMEGap[] = [
   {
     id: 'gap-2024-12-01',
@@ -35,52 +36,6 @@ const HISTORICAL_GAPS: CMEGap[] = [
     sundayOpen: 81200,
     filled: false,
     fillPercentage: 0,
-  },
-  {
-    id: 'gap-2024-09-15',
-    type: 'bearish',
-    gapLow: 58100,
-    gapHigh: 59400,
-    createdAt: new Date('2024-09-15'),
-    fridayClose: 59400,
-    sundayOpen: 58100,
-    filled: false,
-    fillPercentage: 0,
-  },
-  {
-    id: 'gap-2024-08-04',
-    type: 'bearish',
-    gapLow: 61300,
-    gapHigh: 63500,
-    createdAt: new Date('2024-08-04'),
-    fridayClose: 63500,
-    sundayOpen: 61300,
-    filled: false,
-    fillPercentage: 0,
-  },
-  {
-    id: 'gap-2024-03-03',
-    type: 'bullish',
-    gapLow: 61800,
-    gapHigh: 63200,
-    createdAt: new Date('2024-03-03'),
-    fridayClose: 61800,
-    sundayOpen: 63200,
-    filled: true,
-    filledAt: new Date('2024-03-15'),
-    fillPercentage: 100,
-  },
-  {
-    id: 'gap-2023-10-22',
-    type: 'bullish',
-    gapLow: 29500,
-    gapHigh: 30200,
-    createdAt: new Date('2023-10-22'),
-    fridayClose: 29500,
-    sundayOpen: 30200,
-    filled: true,
-    filledAt: new Date('2023-11-01'),
-    fillPercentage: 100,
   },
 ];
 
@@ -118,12 +73,11 @@ function calculateFillProbability(gap: CMEGap, currentPrice: number): number {
 
   // Adjust for gap type relative to price direction
   if (gap.type === 'bearish' && currentPrice > gap.gapHigh) {
-    probability += 5; // Price above gap, likely to retrace
+    probability += 5;
   } else if (gap.type === 'bullish' && currentPrice < gap.gapLow) {
-    probability += 5; // Price below gap, likely to retrace
+    probability += 5;
   }
 
-  // Clamp probability between 5% and 95%
   return Math.min(95, Math.max(5, Math.round(probability)));
 }
 
@@ -133,14 +87,13 @@ function analyzeGap(gap: CMEGap, currentPrice: number): GapAnalysis {
   const gapMidpoint = (gap.gapHigh + gap.gapLow) / 2;
   const gapSize = Math.abs(gap.gapHigh - gap.gapLow);
   
-  // Calculate distance to nearest edge of gap
   let distanceToGap: number;
   if (currentPrice > gap.gapHigh) {
     distanceToGap = currentPrice - gap.gapHigh;
   } else if (currentPrice < gap.gapLow) {
     distanceToGap = gap.gapLow - currentPrice;
   } else {
-    distanceToGap = 0; // Price is within gap
+    distanceToGap = 0;
   }
   
   const distancePercent = (distanceToGap / currentPrice) * 100 * (currentPrice > gapMidpoint ? -1 : 1);
@@ -156,11 +109,85 @@ function analyzeGap(gap: CMEGap, currentPrice: number): GapAnalysis {
   };
 }
 
+// Merge detected gaps with historical fallback, removing duplicates
+function mergeGaps(detected: CMEGap[], historical: CMEGap[]): CMEGap[] {
+  const gapMap = new Map<string, CMEGap>();
+  
+  // Add historical gaps first
+  historical.forEach(gap => {
+    const key = `${gap.gapLow}-${gap.gapHigh}`;
+    gapMap.set(key, gap);
+  });
+  
+  // Override with detected gaps (more accurate)
+  detected.forEach(gap => {
+    const key = `${Math.round(gap.gapLow / 100) * 100}-${Math.round(gap.gapHigh / 100) * 100}`;
+    // Check for similar existing gap (within 2% range)
+    let found = false;
+    gapMap.forEach((existing, existingKey) => {
+      const existingMid = (existing.gapLow + existing.gapHigh) / 2;
+      const newMid = (gap.gapLow + gap.gapHigh) / 2;
+      if (Math.abs(existingMid - newMid) / existingMid < 0.02) {
+        // Replace with more recent data
+        gapMap.delete(existingKey);
+        gapMap.set(key, gap);
+        found = true;
+      }
+    });
+    if (!found) {
+      gapMap.set(key, gap);
+    }
+  });
+  
+  return Array.from(gapMap.values());
+}
+
 export function useCMEGaps(currentBTCPrice: number | null) {
   const [gaps, setGaps] = useState<CMEGap[]>(HISTORICAL_GAPS);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [isLoading, setIsLoading] = useState(true);
+  const [dataSource, setDataSource] = useState<'live' | 'historical'>('historical');
 
-  // Update gaps based on current price (check if any gaps got filled)
+  // Fetch real-time gap data
+  const fetchRealTimeGaps = useCallback(async (price: number) => {
+    setIsLoading(true);
+    try {
+      const detectedGaps = await detectCMEGaps(price);
+      
+      if (detectedGaps.length > 0) {
+        const mergedGaps = mergeGaps(detectedGaps, HISTORICAL_GAPS);
+        setGaps(mergedGaps);
+        setDataSource('live');
+      } else {
+        // Use historical data as fallback
+        setGaps(HISTORICAL_GAPS);
+        setDataSource('historical');
+      }
+    } catch (error) {
+      console.error('Error fetching real-time gaps:', error);
+      setGaps(HISTORICAL_GAPS);
+      setDataSource('historical');
+    } finally {
+      setIsLoading(false);
+      setLastUpdate(new Date());
+    }
+  }, []);
+
+  // Initial fetch and periodic updates
+  useEffect(() => {
+    if (!currentBTCPrice) return;
+
+    fetchRealTimeGaps(currentBTCPrice);
+    
+    // Update every 5 minutes
+    const interval = setInterval(() => {
+      fetchRealTimeGaps(currentBTCPrice);
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [currentBTCPrice, fetchRealTimeGaps]);
+
+  // Update gap fill status based on current price
   useEffect(() => {
     if (!currentBTCPrice) return;
 
@@ -168,10 +195,6 @@ export function useCMEGaps(currentBTCPrice: number | null) {
       prevGaps.map(gap => {
         if (gap.filled) return gap;
 
-        // Check if price has entered the gap region
-        const priceInGap = currentBTCPrice >= gap.gapLow && currentBTCPrice <= gap.gapHigh;
-        
-        // Calculate partial fill
         let fillPercentage = gap.fillPercentage;
         if (gap.type === 'bearish' && currentBTCPrice < gap.gapHigh) {
           const filled = gap.gapHigh - Math.max(currentBTCPrice, gap.gapLow);
@@ -191,7 +214,6 @@ export function useCMEGaps(currentBTCPrice: number | null) {
         };
       })
     );
-    setLastUpdate(new Date());
   }, [currentBTCPrice]);
 
   const gapMonitorData = useMemo<GapMonitorData | null>(() => {
@@ -204,7 +226,6 @@ export function useCMEGaps(currentBTCPrice: number | null) {
     const filledGaps = gaps.filter(g => g.filled);
     const openGaps = gaps.filter(g => !g.filled);
     
-    // Calculate average fill time for filled gaps
     const fillTimes = filledGaps
       .filter(g => g.filledAt)
       .map(g => Math.floor((g.filledAt!.getTime() - g.createdAt.getTime()) / (1000 * 60 * 60 * 24)));
@@ -223,7 +244,8 @@ export function useCMEGaps(currentBTCPrice: number | null) {
 
   return {
     data: gapMonitorData,
-    isLoading: !currentBTCPrice,
-    refetch: () => setLastUpdate(new Date()),
+    isLoading,
+    dataSource,
+    refetch: () => currentBTCPrice && fetchRealTimeGaps(currentBTCPrice),
   };
 }
