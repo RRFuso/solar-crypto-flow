@@ -203,8 +203,8 @@ function checkGapFillStatus(
 // Main function to detect and analyze CME gaps
 export async function detectCMEGaps(currentPrice: number): Promise<CMEGap[]> {
   try {
-    // Fetch last 3 months of hourly data
-    const klines = await fetchBinanceKlines('BTCUSDT', '1h', 2160);
+    // Fetch last 6 weeks of hourly data (reduced from 3 months to improve performance)
+    const klines = await fetchBinanceKlines('BTCUSDT', '1h', 1008);
     
     if (klines.length === 0) {
       console.warn('No kline data available, returning empty gaps');

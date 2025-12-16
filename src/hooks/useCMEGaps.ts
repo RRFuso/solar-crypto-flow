@@ -177,15 +177,49 @@ export function useCMEGaps(currentBTCPrice: number | null) {
   useEffect(() => {
     if (!currentBTCPrice) return;
 
-    fetchRealTimeGaps(currentBTCPrice);
+    // Only fetch once on mount or when price significantly changes
+    let isMounted = true;
+    
+    const doFetch = async () => {
+      if (!isMounted) return;
+      setIsLoading(true);
+      try {
+        const detectedGaps = await detectCMEGaps(currentBTCPrice);
+        
+        if (!isMounted) return;
+        
+        if (detectedGaps.length > 0) {
+          const mergedGaps = mergeGaps(detectedGaps, HISTORICAL_GAPS);
+          setGaps(mergedGaps);
+          setDataSource('live');
+        } else {
+          setGaps(HISTORICAL_GAPS);
+          setDataSource('historical');
+        }
+      } catch (error) {
+        console.error('Error fetching real-time gaps:', error);
+        if (isMounted) {
+          setGaps(HISTORICAL_GAPS);
+          setDataSource('historical');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+          setLastUpdate(new Date());
+        }
+      }
+    };
+
+    doFetch();
     
     // Update every 5 minutes
-    const interval = setInterval(() => {
-      fetchRealTimeGaps(currentBTCPrice);
-    }, 5 * 60 * 1000);
+    const interval = setInterval(doFetch, 5 * 60 * 1000);
 
-    return () => clearInterval(interval);
-  }, [currentBTCPrice, fetchRealTimeGaps]);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [currentBTCPrice]);
 
   // Update gap fill status based on current price
   useEffect(() => {
