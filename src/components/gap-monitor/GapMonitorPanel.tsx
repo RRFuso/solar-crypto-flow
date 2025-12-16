@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCcw, TrendingUp, TrendingDown, Info, BarChart3, Target } from 'lucide-react';
+import { RefreshCcw, TrendingUp, TrendingDown, Info, BarChart3, Target, Wifi, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCMEGaps } from '@/hooks/useCMEGaps';
 import { GapTable } from './GapTable';
 import { GapVisualization } from './GapVisualization';
+import { CMEChart } from './CMEChart';
 
 interface GapMonitorPanelProps {
   currentBTCPrice?: number;
@@ -14,7 +16,8 @@ interface GapMonitorPanelProps {
 
 export const GapMonitorPanel: React.FC<GapMonitorPanelProps> = ({ currentBTCPrice }) => {
   const [btcPrice, setBtcPrice] = useState<number | null>(currentBTCPrice || null);
-  const { data, isLoading, refetch } = useCMEGaps(btcPrice);
+  const [activeTab, setActiveTab] = useState('gaps');
+  const { data, isLoading, dataSource, refetch } = useCMEGaps(btcPrice);
 
   // Fetch BTC price if not provided
   useEffect(() => {
@@ -32,12 +35,12 @@ export const GapMonitorPanel: React.FC<GapMonitorPanelProps> = ({ currentBTCPric
         setBtcPrice(data.bitcoin.usd);
       } catch (error) {
         console.error('Error fetching BTC price:', error);
-        setBtcPrice(87000); // Fallback price
+        setBtcPrice(104000); // Fallback price
       }
     };
 
     fetchPrice();
-    const interval = setInterval(fetchPrice, 60000); // Update every minute
+    const interval = setInterval(fetchPrice, 60000);
     return () => clearInterval(interval);
   }, [currentBTCPrice]);
 
@@ -160,15 +163,38 @@ export const GapMonitorPanel: React.FC<GapMonitorPanelProps> = ({ currentBTCPric
           </div>
         )}
 
-        {/* Visualization */}
-        {data && btcPrice && (
-          <GapVisualization gaps={data.gaps} currentPrice={btcPrice} />
-        )}
+        {/* Tabs for Chart and Data */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full bg-white/5 border border-white/10">
+            <TabsTrigger value="gaps" className="flex-1 data-[state=active]:bg-orange-500/20">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Gaps
+            </TabsTrigger>
+            <TabsTrigger value="chart" className="flex-1 data-[state=active]:bg-orange-500/20">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              CME Chart
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="gaps" className="mt-4 space-y-4">
+            {/* Visualization */}
+            {data && btcPrice && (
+              <GapVisualization gaps={data.gaps} currentPrice={btcPrice} />
+            )}
 
-        {/* Table */}
-        {data && (
-          <GapTable gaps={data.gaps} isLoading={isLoading} />
-        )}
+            {/* Table */}
+            {data && (
+              <GapTable gaps={data.gaps} isLoading={isLoading} />
+            )}
+          </TabsContent>
+          
+          <TabsContent value="chart" className="mt-4">
+            <CMEChart height={450} />
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Use o gráfico para identificar visualmente os gaps nos fins de semana
+            </p>
+          </TabsContent>
+        </Tabs>
 
         {/* Footer */}
         <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-white/5">
@@ -176,8 +202,17 @@ export const GapMonitorPanel: React.FC<GapMonitorPanelProps> = ({ currentBTCPric
             Última atualização: {data?.lastUpdate.toLocaleTimeString('pt-BR')}
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            Dados históricos + Estimativas
+            {dataSource === 'live' ? (
+              <>
+                <Wifi className="h-3 w-3 text-green-400" />
+                <span className="text-green-400">Dados em tempo real (Binance)</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-3 w-3 text-yellow-400" />
+                <span className="text-yellow-400">Dados históricos</span>
+              </>
+            )}
           </span>
         </div>
       </CardContent>
