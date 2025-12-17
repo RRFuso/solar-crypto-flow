@@ -60,6 +60,19 @@ export const CMEChart: React.FC<CMEChartProps> = ({
     { gapLow: 76800, gapHigh: 81200, type: 'bullish' as const, filled: false, createdAt: new Date('2024-11-10') },
   ];
 
+  // Determine gap direction based on current price position
+  const getGapDirection = (gapLow: number, gapHigh: number): 'bullish' | 'bearish' => {
+    if (currentPrice < gapLow) {
+      // Price needs to rise to fill the gap
+      return 'bullish';
+    } else if (currentPrice > gapHigh) {
+      // Price needs to fall to fill the gap
+      return 'bearish';
+    }
+    // Price is within gap (partially filled)
+    return 'bullish';
+  };
+
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -88,11 +101,11 @@ export const CMEChart: React.FC<CMEChartProps> = ({
         <div className="flex items-center gap-4 text-xs">
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-sm bg-green-500/30 border border-green-500/50" />
-            <span className="text-muted-foreground">Gap Bullish</span>
+            <span className="text-muted-foreground">Preço precisa subir</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-sm bg-red-500/30 border border-red-500/50" />
-            <span className="text-muted-foreground">Gap Bearish</span>
+            <span className="text-muted-foreground">Preço precisa cair</span>
           </div>
         </div>
       </div>
@@ -129,18 +142,21 @@ export const CMEChart: React.FC<CMEChartProps> = ({
             <Tooltip content={<CustomTooltip />} />
             
             {/* Gap zones */}
-            {displayGaps.map((gap, index) => (
-              <ReferenceArea
-                key={`gap-${index}`}
-                y1={gap.gapLow}
-                y2={gap.gapHigh}
-                fill={gap.type === 'bullish' ? '#22c55e' : '#ef4444'}
-                fillOpacity={0.15}
-                stroke={gap.type === 'bullish' ? '#22c55e' : '#ef4444'}
-                strokeOpacity={0.5}
-                strokeDasharray="3 3"
-              />
-            ))}
+            {displayGaps.map((gap, index) => {
+              const direction = getGapDirection(gap.gapLow, gap.gapHigh);
+              return (
+                <ReferenceArea
+                  key={`gap-${index}`}
+                  y1={gap.gapLow}
+                  y2={gap.gapHigh}
+                  fill={direction === 'bullish' ? '#22c55e' : '#ef4444'}
+                  fillOpacity={0.15}
+                  stroke={direction === 'bullish' ? '#22c55e' : '#ef4444'}
+                  strokeOpacity={0.5}
+                  strokeDasharray="3 3"
+                />
+              );
+            })}
             
             {/* Current price line */}
             <ReferenceLine 
@@ -174,7 +190,7 @@ export const CMEChart: React.FC<CMEChartProps> = ({
         <div className="flex items-start gap-2">
           <Info className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
           <p className="text-xs text-muted-foreground">
-            As áreas coloridas representam os gaps CME. <span className="text-green-400">Verde</span> = gap bullish (preço subiu no fim de semana), <span className="text-red-400">Vermelho</span> = gap bearish (preço caiu). Linha tracejada laranja indica o preço atual do BTC.
+            As áreas coloridas representam os gaps CME. <span className="text-green-400">Verde</span> = preço precisa subir para preencher, <span className="text-red-400">Vermelho</span> = preço precisa cair para preencher. Linha tracejada laranja indica o preço atual do BTC.
           </p>
         </div>
       </div>
