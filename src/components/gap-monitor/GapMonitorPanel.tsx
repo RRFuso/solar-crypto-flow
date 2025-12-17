@@ -189,10 +189,17 @@ export const GapMonitorPanel: React.FC<GapMonitorPanelProps> = ({ currentBTCPric
           </TabsContent>
           
           <TabsContent value="chart" className="mt-4">
-            <CMEChart height={450} />
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              Use o gráfico para identificar visualmente os gaps nos fins de semana
-            </p>
+            <CMEChart 
+              height={450} 
+              gaps={data?.gaps.map(g => ({
+                gapLow: g.gap.gapLow,
+                gapHigh: g.gap.gapHigh,
+                type: g.gap.type,
+                filled: g.gap.filled,
+                createdAt: g.gap.createdAt,
+              }))}
+              currentPrice={btcPrice || undefined}
+            />
           </TabsContent>
         </Tabs>
 
