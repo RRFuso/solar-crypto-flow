@@ -72,12 +72,14 @@ Sentimento agregado de múltiplas fontes:
 - **key_topics**: Tópicos principais sendo discutidos
 - **volume**: Volume de menções
 
-### 6. DADOS DE MERCADO (cryptocurrencies)
-Dados fundamentais atualizados:
-- Preço, market cap, volume 24h
-- Mudanças percentuais (24h, 7d)
-- ATH/ATL e distâncias
-- Circulating/Total supply
+### 6. PREÇOS EM TEMPO REAL (realTimePrices) - PRIORIDADE MÁXIMA PARA PREÇOS!
+Dados de preço ao vivo da Binance API:
+- **price**: Preço atual em USDT (USE ESTE PARA QUALQUER CONSULTA DE PREÇO!)
+- **priceChangePercent24h**: Variação percentual nas últimas 24 horas
+- **volume24h**: Volume de trading em 24h
+- **high24h/low24h**: Máxima e mínima do dia
+- **timestamp**: Momento exato da coleta dos dados
+⚠️ IMPORTANTE: Sempre use os dados de realTimePrices para preços atuais. Ignore dados de outras fontes para preço!
 
 ### 7. HISTÓRICO DE PREÇOS (crypto_price_history)
 Dados OHLCV para análise técnica:
@@ -155,6 +157,32 @@ Para cada pergunta:
 ## SUA RESPOSTA (Baseada em Dados)
 `
 
+// Fetch real-time prices from Binance public API
+async function getRealTimePrices(): Promise<any[]> {
+  try {
+    const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'LINKUSDT', 'MATICUSDT'];
+    const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${JSON.stringify(symbols)}`);
+    if (!response.ok) {
+      console.error('Failed to fetch real-time prices from Binance');
+      return [];
+    }
+    const data = await response.json();
+    return data.map((item: any) => ({
+      symbol: item.symbol.replace('USDT', ''),
+      price: parseFloat(item.lastPrice),
+      priceChangePercent24h: parseFloat(item.priceChangePercent),
+      volume24h: parseFloat(item.volume),
+      quoteVolume24h: parseFloat(item.quoteVolume),
+      high24h: parseFloat(item.highPrice),
+      low24h: parseFloat(item.lowPrice),
+      timestamp: new Date().toISOString()
+    }));
+  } catch (error) {
+    console.error('Error fetching real-time prices:', error);
+    return [];
+  }
+}
+
 // Fetch all relevant data from Supabase tables
 async function getAllSupabaseData() {
   console.log('--- Fetching all Supabase tables ---');
@@ -165,8 +193,6 @@ async function getAllSupabaseData() {
     aiPredictions,
     predictiveSignals,
     sentimentData,
-    cryptocurrencies,
-    binanceSymbols,
     recentInteractions
   ] = await Promise.all([
     supabase.from('crypto_price_action_signals').select('*').limit(50),
@@ -174,8 +200,6 @@ async function getAllSupabaseData() {
     supabase.from('ai_predictions').select('*').gte('valid_until', new Date().toISOString()).limit(100),
     supabase.from('predictive_signals').select('*').order('created_at', { ascending: false }).limit(50),
     supabase.from('sentiment_data').select('*').order('analyzed_at', { ascending: false }).limit(100),
-    supabase.from('cryptocurrencies').select('symbol, name, current_price, market_cap, market_cap_rank, total_volume, price_change_percentage_24h, high_24h, low_24h').order('market_cap_rank', { ascending: true }).limit(100),
-    supabase.from('binance_symbols').select('binance_symbol, base_asset, last_price, price_change_percent_24h, quote_volume_24h').eq('is_trading_allowed', true).order('quote_volume_24h', { ascending: false }).limit(100),
     // Aggregate user interactions (no PII)
     supabase.from('user_interactions').select('symbol, interaction_type, category').order('created_at', { ascending: false }).limit(200)
   ]);
@@ -186,8 +210,6 @@ async function getAllSupabaseData() {
     aiPredictions: aiPredictions.data || [],
     predictiveSignals: predictiveSignals.data || [],
     sentimentData: sentimentData.data || [],
-    cryptocurrencies: cryptocurrencies.data || [],
-    binanceSymbols: binanceSymbols.data || [],
     recentInteractions: recentInteractions.data || []
   };
 }
@@ -365,20 +387,27 @@ serve(async (req) => {
     console.log('--- [secure-gemini-proxy] LOVABLE_API_KEY found ---');
 
     console.log('--- [secure-gemini-proxy] Fetching ALL data sources ---');
-    const [externalData, supabaseData] = await Promise.all([
+    const [externalData, supabaseData, realTimePrices] = await Promise.all([
       fetchAllExternalData(req),
       getAllSupabaseData(),
+      getRealTimePrices(),
     ]);
     console.log('--- [secure-gemini-proxy] All data sources fetched successfully ---');
+    console.log(`--- [secure-gemini-proxy] Real-time prices fetched: ${realTimePrices.length} symbols ---`);
 
     // Structure the comprehensive context data
     const marketContextData: any = {
+      // Real-time crypto prices (FRESH DATA - use this for price queries!)
+      realTimePrices: {
+        source: 'Binance API - Live',
+        fetchedAt: new Date().toISOString(),
+        prices: realTimePrices,
+      },
       // Crypto market overview with sentiment indicators
       cryptoMarket: {
         fearGreedIndex: externalData.fearGreedIndex?.[0],
         longShortRatio: externalData.longShortRatio,
-        topCryptocurrencies: supabaseData.cryptocurrencies.slice(0, 20),
-        topBinanceSymbols: supabaseData.binanceSymbols.slice(0, 20),
+        btcEtfFlow: externalData.btcEtfFlow,
       },
       // AI-generated signals and predictions
       aiInsights: {
