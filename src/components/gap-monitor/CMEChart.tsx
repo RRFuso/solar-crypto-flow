@@ -1,5 +1,4 @@
-import React, { useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, ReferenceLine, ReferenceArea, Tooltip } from 'recharts';
+import React from 'react';
 import { Info } from 'lucide-react';
 
 interface CMEChartProps {
@@ -14,45 +13,11 @@ interface CMEChartProps {
   currentPrice?: number;
 }
 
-// Generate mock price data for visualization
-const generatePriceData = (currentPrice: number) => {
-  const data = [];
-  const now = new Date();
-  
-  // Generate 90 days of simulated data
-  for (let i = 90; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-    
-    // Simulate price movement with some volatility
-    const basePrice = currentPrice * (0.7 + (90 - i) * 0.003);
-    const volatility = basePrice * 0.02;
-    const price = basePrice + (Math.random() - 0.5) * volatility;
-    
-    data.push({
-      date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-      fullDate: date,
-      price: Math.round(price),
-      isWeekend: date.getDay() === 0 || date.getDay() === 6,
-    });
-  }
-  
-  return data;
-};
-
 export const CMEChart: React.FC<CMEChartProps> = ({ 
   height = 400, 
   gaps = [],
-  currentPrice = 104000 
+  currentPrice = 87500 
 }) => {
-  const priceData = useMemo(() => generatePriceData(currentPrice), [currentPrice]);
-  
-  // Get price range for Y axis
-  const prices = priceData.map(d => d.price);
-  const allPrices = [...prices, ...gaps.flatMap(g => [g.gapLow, g.gapHigh])];
-  const minPrice = Math.min(...allPrices) * 0.98;
-  const maxPrice = Math.max(...allPrices) * 1.02;
-
   // Default gaps if none provided
   const displayGaps = gaps.length > 0 ? gaps : [
     { gapLow: 95200, gapHigh: 96800, type: 'bearish' as const, filled: false, createdAt: new Date('2024-12-01') },
@@ -63,134 +28,83 @@ export const CMEChart: React.FC<CMEChartProps> = ({
   // Determine gap direction based on current price position
   const getGapDirection = (gapLow: number, gapHigh: number): 'bullish' | 'bearish' => {
     if (currentPrice < gapLow) {
-      // Price needs to rise to fill the gap
       return 'bullish';
     } else if (currentPrice > gapHigh) {
-      // Price needs to fall to fill the gap
       return 'bearish';
     }
-    // Price is within gap (partially filled)
     return 'bullish';
-  };
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-background/95 backdrop-blur-sm border border-border/50 rounded-lg p-3 shadow-xl">
-          <p className="text-xs text-muted-foreground">{data.date}</p>
-          <p className="text-sm font-bold text-foreground">
-            ${data.price.toLocaleString()}
-          </p>
-          {data.isWeekend && (
-            <p className="text-xs text-orange-400 mt-1">Fim de semana (CME fechado)</p>
-          )}
-        </div>
-      );
-    }
-    return null;
   };
 
   return (
     <div className="rounded-lg overflow-hidden border border-border/20 bg-card/50">
       <div className="px-4 py-3 border-b border-border/20 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-foreground">BTC/USD com Gaps CME</span>
-          <span className="text-xs text-muted-foreground">(Visualização)</span>
+          <span className="text-sm font-medium text-foreground">BTC/USDT</span>
+          <span className="text-xs text-muted-foreground">(Binance - 4h)</span>
         </div>
-        <div className="flex items-center gap-4 text-xs">
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-green-500/30 border border-green-500/50" />
-            <span className="text-muted-foreground">Preço precisa subir</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-red-500/30 border border-red-500/50" />
-            <span className="text-muted-foreground">Preço precisa cair</span>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          <span className="text-xs text-muted-foreground">Live</span>
         </div>
       </div>
       
-      <div style={{ height: `${height}px` }} className="bg-background/20 relative p-4">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={priceData} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
-            <defs>
-              <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            
-            <XAxis 
-              dataKey="date" 
-              stroke="#64748b"
-              tick={{ fill: '#64748b', fontSize: 10 }}
-              tickLine={{ stroke: '#64748b' }}
-              axisLine={{ stroke: '#334155' }}
-              interval="preserveStartEnd"
-            />
-            
-            <YAxis 
-              domain={[minPrice, maxPrice]}
-              stroke="#64748b"
-              tick={{ fill: '#64748b', fontSize: 10 }}
-              tickLine={{ stroke: '#64748b' }}
-              axisLine={{ stroke: '#334155' }}
-              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-              width={55}
-            />
-            
-            <Tooltip content={<CustomTooltip />} />
-            
-            {/* Gap zones */}
+      <div className="flex">
+        {/* TradingView Chart */}
+        <div className="flex-1" style={{ height: `${height}px` }}>
+          <iframe
+            src="https://www.tradingview.com/widgetembed/?frameElementId=tradingview_btc&symbol=BINANCE%3ABTCUSDT&interval=240&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=1a1a2e&studies=%5B%5D&theme=dark&style=1&timezone=America%2FNew_York&withdateranges=1&showpopupbutton=0&locale=en&hide_top_toolbar=0&allow_symbol_change=1"
+            style={{ width: '100%', height: '100%', border: 'none' }}
+            title="BTC/USDT Chart"
+            allowFullScreen
+          />
+        </div>
+        
+        {/* Gap Zones Panel */}
+        <div className="w-48 border-l border-border/20 bg-background/30 p-3 overflow-y-auto" style={{ height: `${height}px` }}>
+          <h4 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">CME Gaps</h4>
+          <div className="space-y-2">
             {displayGaps.map((gap, index) => {
               const direction = getGapDirection(gap.gapLow, gap.gapHigh);
+              const distancePercent = ((gap.gapLow - currentPrice) / currentPrice * 100).toFixed(1);
+              
               return (
-                <ReferenceArea
-                  key={`gap-${index}`}
-                  y1={gap.gapLow}
-                  y2={gap.gapHigh}
-                  fill={direction === 'bullish' ? '#22c55e' : '#ef4444'}
-                  fillOpacity={0.15}
-                  stroke={direction === 'bullish' ? '#22c55e' : '#ef4444'}
-                  strokeOpacity={0.5}
-                  strokeDasharray="3 3"
-                />
+                <div 
+                  key={index} 
+                  className={`p-2 rounded-md border ${
+                    direction === 'bullish' 
+                      ? 'bg-green-500/10 border-green-500/30' 
+                      : 'bg-red-500/10 border-red-500/30'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-yellow-400">Gap</span>
+                    <span className={`text-xs ${direction === 'bullish' ? 'text-green-400' : 'text-red-400'}`}>
+                      {direction === 'bullish' ? '↑' : '↓'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-foreground font-mono">
+                    ${gap.gapLow.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-foreground font-mono">
+                    ${gap.gapHigh.toLocaleString()}
+                  </p>
+                  <p className={`text-xs mt-1 ${
+                    direction === 'bullish' ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {distancePercent}%
+                  </p>
+                </div>
               );
             })}
-            
-            {/* Current price line */}
-            <ReferenceLine 
-              y={currentPrice} 
-              stroke="#f59e0b" 
-              strokeDasharray="5 5"
-              strokeWidth={2}
-              label={{ 
-                value: `$${currentPrice.toLocaleString()}`, 
-                fill: '#f59e0b',
-                fontSize: 11,
-                position: 'right'
-              }}
-            />
-            
-            {/* Price area */}
-            <Area
-              type="monotone"
-              dataKey="price"
-              stroke="#f59e0b"
-              strokeWidth={2}
-              fill="url(#priceGradient)"
-              dot={false}
-              activeDot={{ r: 4, fill: '#f59e0b', stroke: '#fff', strokeWidth: 2 }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+          </div>
+        </div>
       </div>
       
-      <div className="px-4 py-3 border-t border-border/20 bg-muted/5">
+      <div className="px-4 py-2 border-t border-border/20 bg-muted/5">
         <div className="flex items-start gap-2">
-          <Info className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+          <Info className="w-3 h-3 text-muted-foreground mt-0.5 flex-shrink-0" />
           <p className="text-xs text-muted-foreground">
-            As áreas coloridas representam os gaps CME. <span className="text-green-400">Verde</span> = preço precisa subir para preencher, <span className="text-red-400">Vermelho</span> = preço precisa cair para preencher. Linha tracejada laranja indica o preço atual do BTC.
+            Gráfico real do TradingView (Binance). Os gaps CME são mostrados no painel lateral com direção baseada no preço atual.
           </p>
         </div>
       </div>
