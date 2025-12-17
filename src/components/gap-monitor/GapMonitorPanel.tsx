@@ -125,11 +125,12 @@ export const GapMonitorPanel: React.FC<GapMonitorPanelProps> = ({ currentBTCPric
         </div>
 
         {/* Highlight highest probability gap */}
-        {highestProbabilityGap && (
+        {highestProbabilityGap && btcPrice && (
           <div className="p-4 rounded-lg bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border border-orange-500/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                {highestProbabilityGap.gap.type === 'bullish' ? (
+                {/* Determine direction based on current price */}
+                {btcPrice < highestProbabilityGap.gap.gapLow ? (
                   <TrendingUp className="h-5 w-5 text-green-400" />
                 ) : (
                   <TrendingDown className="h-5 w-5 text-red-400" />
@@ -139,6 +140,15 @@ export const GapMonitorPanel: React.FC<GapMonitorPanelProps> = ({ currentBTCPric
                   <p className="font-semibold text-foreground">
                     ${highestProbabilityGap.gap.gapLow.toLocaleString()} - $
                     {highestProbabilityGap.gap.gapHigh.toLocaleString()}
+                  </p>
+                  <p className="text-xs mt-1">
+                    <span className="text-yellow-400">Gap</span>
+                    {' • '}
+                    {btcPrice < highestProbabilityGap.gap.gapLow ? (
+                      <span className="text-green-400">Preço precisa subir</span>
+                    ) : (
+                      <span className="text-red-400">Preço precisa cair</span>
+                    )}
                   </p>
                 </div>
               </div>
