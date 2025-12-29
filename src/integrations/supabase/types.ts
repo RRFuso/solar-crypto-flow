@@ -488,6 +488,143 @@ export type Database = {
         }
         Relationships: []
       }
+      smart_money_flow_cache: {
+        Row: {
+          dominant_direction: string
+          ema_flow: number | null
+          expires_at: string
+          flow_intensity: number
+          id: string
+          last_updated: string
+          net_flow_usd: number
+          timeframe: string
+          token_symbol: string
+          total_inflow_usd: number
+          total_outflow_usd: number
+          whale_tx_count: number
+        }
+        Insert: {
+          dominant_direction?: string
+          ema_flow?: number | null
+          expires_at?: string
+          flow_intensity?: number
+          id?: string
+          last_updated?: string
+          net_flow_usd?: number
+          timeframe?: string
+          token_symbol: string
+          total_inflow_usd?: number
+          total_outflow_usd?: number
+          whale_tx_count?: number
+        }
+        Update: {
+          dominant_direction?: string
+          ema_flow?: number | null
+          expires_at?: string
+          flow_intensity?: number
+          id?: string
+          last_updated?: string
+          net_flow_usd?: number
+          timeframe?: string
+          token_symbol?: string
+          total_inflow_usd?: number
+          total_outflow_usd?: number
+          whale_tx_count?: number
+        }
+        Relationships: []
+      }
+      smart_money_transactions: {
+        Row: {
+          block_number: number | null
+          chain: string
+          created_at: string
+          direction: string
+          from_address: string
+          id: string
+          timestamp: string
+          to_address: string
+          token_symbol: string
+          tx_hash: string
+          value_usd: number
+          wallet_id: string | null
+        }
+        Insert: {
+          block_number?: number | null
+          chain?: string
+          created_at?: string
+          direction: string
+          from_address: string
+          id?: string
+          timestamp: string
+          to_address: string
+          token_symbol: string
+          tx_hash: string
+          value_usd: number
+          wallet_id?: string | null
+        }
+        Update: {
+          block_number?: number | null
+          chain?: string
+          created_at?: string
+          direction?: string
+          from_address?: string
+          id?: string
+          timestamp?: string
+          to_address?: string
+          token_symbol?: string
+          tx_hash?: string
+          value_usd?: number
+          wallet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_money_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "smart_money_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_money_wallets: {
+        Row: {
+          chain: string
+          created_at: string
+          historical_impact_score: number | null
+          id: string
+          is_active: boolean
+          label: string
+          priority: number
+          updated_at: string
+          wallet_address: string
+          wallet_type: string
+        }
+        Insert: {
+          chain?: string
+          created_at?: string
+          historical_impact_score?: number | null
+          id?: string
+          is_active?: boolean
+          label: string
+          priority?: number
+          updated_at?: string
+          wallet_address: string
+          wallet_type?: string
+        }
+        Update: {
+          chain?: string
+          created_at?: string
+          historical_impact_score?: number | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          priority?: number
+          updated_at?: string
+          wallet_address?: string
+          wallet_type?: string
+        }
+        Relationships: []
+      }
       token_contracts: {
         Row: {
           chain: string

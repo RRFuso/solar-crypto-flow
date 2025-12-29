@@ -15,6 +15,7 @@ import { useCryptoData } from '@/hooks/useCryptoData';
 import { usePriceActionSignals } from '@/hooks/usePriceActionSignals';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 import { useOnChainData } from '@/contexts/OnChainDataContext';
+import { useSmartMoneyFlows } from '@/hooks/useSmartMoneyFlows';
 import { getCategoriesForSymbol } from '@/lib/marketData/categoryMapping';
 import { mapAIRecommendationToSignal, getCategoryColor as getSignalCategoryColor, determineCryptoSignalCategory } from './constants/signalCategories';
 
@@ -72,6 +73,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(symbolsInView);
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(symbolsInView);
   const { smartMoneyScores, requestOnChainData } = useOnChainData();
+  const { flows: smartMoneyFlows } = useSmartMoneyFlows(symbolsInView);
 
   // Memoize adjusted zoom level - only calculate when we have valid dimensions
   const adjustedZoomLevel = useMemo(() => {
@@ -210,6 +212,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
             getCategoryColor={getCategoryColor}
             showLines={showLines}
             activeCategory={activeCategory}
+            smartMoneyFlows={smartMoneyFlows}
           />
           <NodeRendererComponent 
             svg={d3.select(svgRef.current)}

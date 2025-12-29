@@ -6,6 +6,8 @@ import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
 import { LinkData } from '@/types/capitalFlow';
 import { NarrativeNode } from '@/types/narratives';
 import { getCategoryColor as getSignalCategoryColor } from './constants/signalCategories';
+import { SmartMoneyFlow } from '@/hooks/useSmartMoneyFlows';
+import { FlowParticleConfig } from '@/types/smartMoney';
 
 export interface LinkRendererExtendedProps {
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -17,6 +19,7 @@ export interface LinkRendererExtendedProps {
   getCategoryColor?: (category: string) => string;
   showLines: boolean;
   activeCategory?: string;
+  smartMoneyFlows?: SmartMoneyFlow[]; // Dados reais de fluxo on-chain
 }
 
 export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
@@ -28,7 +31,8 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
   animateWithOrbit = false,
   getCategoryColor,
   showLines,
-  activeCategory = 'all'
+  activeCategory = 'all',
+  smartMoneyFlows
 }) => {
   const getColorForFlow = (category: string) => {
     if (getCategoryColor) {
@@ -90,13 +94,71 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
     const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut, activeCategory);
     createArrowheads(svg, processedLinks);
 
-    // === OPTIMIZED PARTICLE SYSTEM ===
+    // === OPTIMIZED PARTICLE SYSTEM WITH SMART MONEY DATA ===
     let particleCleanup: (() => void) | null = null;
+    
+    // Função para obter configuração de fluxo baseada em dados reais
+    const getFlowConfig = (link: LinkData): FlowParticleConfig => {
+      if (!smartMoneyFlows || smartMoneyFlows.length === 0) {
+        // Fallback para comportamento original
+        return {
+          direction: link.percentage > 0 ? 1 : -1,
+          color: '#facc15', // yellow-400
+          speed: 0.002,
+          isRealData: false,
+        };
+      }
+
+      // Tentar encontrar fluxo para source ou target (usando id como symbol)
+      const sourceSymbol = link.source.id?.toUpperCase();
+      const targetSymbol = link.target.id?.toUpperCase();
+      
+      const sourceFlow = smartMoneyFlows.find(f => f.token_symbol === sourceSymbol);
+      const targetFlow = smartMoneyFlows.find(f => f.token_symbol === targetSymbol);
+      
+      // Priorizar o fluxo do símbolo com maior intensidade
+      const primaryFlow = 
+        (sourceFlow?.flow_intensity || 0) > (targetFlow?.flow_intensity || 0) 
+          ? sourceFlow 
+          : targetFlow;
+
+      if (!primaryFlow) {
+        return {
+          direction: link.percentage > 0 ? 1 : -1,
+          color: '#facc15',
+          speed: 0.002,
+          isRealData: false,
+        };
+      }
+
+      // Determinar direção real baseada no fluxo on-chain
+      let direction: 1 | -1 | 0 = 0;
+      let color = '#facc15'; // neutral
+
+      if (primaryFlow.dominant_direction === 'bullish') {
+        direction = 1;
+        color = '#22c55e'; // green-500
+      } else if (primaryFlow.dominant_direction === 'bearish') {
+        direction = -1;
+        color = '#ef4444'; // red-500
+      }
+
+      // Velocidade proporcional à intensidade
+      const speedMultiplier = 1 + (primaryFlow.flow_intensity / 100) * 2;
+
+      return {
+        direction: direction || (link.percentage > 0 ? 1 : -1),
+        color,
+        speed: 0.002 * speedMultiplier,
+        intensity: primaryFlow.flow_intensity,
+        isRealData: true,
+      };
+    };
     
     // Only create particles if showing lines
     if (showLines && processedLinks.length > 0) {
       import('./link-renderer/ParticleAnimation').then(({ addFlowParticles }) => {
-        particleCleanup = addFlowParticles(svg, linkGroup, processedLinks, selectedNodeId);
+        particleCleanup = addFlowParticles(svg, linkGroup, processedLinks, selectedNodeId, getFlowConfig);
       });
     }
 
@@ -150,7 +212,7 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
       svg.selectAll(".flow-links").remove();
       svg.selectAll(".particles-group").remove();
     };
-  }, [svg, links, nodes, selectedNodeId, animateWithOrbit, getCategoryColor, showLines, activeCategory]);
+  }, [svg, links, nodes, selectedNodeId, animateWithOrbit, getCategoryColor, showLines, activeCategory, smartMoneyFlows]);
 
   return null;
 };
