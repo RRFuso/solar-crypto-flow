@@ -28,9 +28,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       <main className="flex-1 flex flex-col w-full overflow-y-auto">
         {children}
       </main>
-      <footer className="flex-shrink-0 px-4 h-10 flex items-center justify-center border-t border-slate-700/50">
+      <footer className="flex-shrink-0 px-4 py-2 flex flex-col items-center justify-center gap-1 border-t border-slate-700/50">
         <p className="text-[10px] md:text-xs text-slate-400 text-center">
           A Solar Crypto fornece dados, visualizações e insights com fins informativos/educacionais. Não é aconselhamento financeiro ou recomendação de compra/venda. Faça sua própria pesquisa (DYOR).
+        </p>
+        <p className="text-[9px] md:text-[10px] text-slate-500">
+          Price data by{' '}
+          <a 
+            href="https://www.coingecko.com?utm_source=solarcrypto&utm_medium=referral" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-green-400/80 hover:text-green-400 transition-colors"
+          >
+            CoinGecko
+          </a>
         </p>
       </footer>
     </div>
