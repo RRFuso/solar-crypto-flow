@@ -7,7 +7,7 @@ import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query'; 
 import { supabase } from '@/integrations/supabase/client'; // Assume que o cliente supabase está aqui
 import { usePriceActionSignals, PriceActionSignal } from '@/hooks/usePriceActionSignals';
-import { useRealtimePrice } from '@/hooks/useRealtimePrice';
+import { useLegacyRealtimePrice } from '@/hooks/useRealtimePrice';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
@@ -81,7 +81,7 @@ const AIWatchlist: React.FC<AIWatchlistProps> = ({
 
   // Component to display realtime price and 24h change
   const PriceInfo: React.FC<{ symbol: string; prediction: Prediction }> = ({ symbol, prediction }) => {
-    const { price, loading, error } = useRealtimePrice(symbol);
+    const { price, loading, error } = useLegacyRealtimePrice(symbol);
     const [priceChange24h, setPriceChange24h] = useState<number | null>(null);
 
     useEffect(() => {
