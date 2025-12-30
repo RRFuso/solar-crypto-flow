@@ -62,3 +62,9 @@ verify_jwt = true
 
 [functions.batch-cache-logos]
 verify_jwt = false
+
+[functions.smart-money-tracker]
+verify_jwt = false
+
+[functions.smart-money-cron]
+verify_jwt = false

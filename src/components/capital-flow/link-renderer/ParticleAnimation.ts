@@ -3,6 +3,7 @@ import * as d3 from 'd3';
 import { LinkData } from '@/types/capitalFlow';
 import { globalAnimator, SmoothInterpolator, domBatcher } from '@/utils/animationOptimizer';
 import { FlowParticleConfig, SMART_MONEY_COLORS } from '@/types/smartMoney';
+import { lodManager, LODLevel } from '@/lib/visualization/LODManager';
 
 interface ParticleData {
   linkIndex: number;
@@ -20,15 +21,18 @@ type FlowConfigGetter = (link: LinkData) => FlowParticleConfig;
 
 /**
  * Sistema otimizado de partículas com animação fluida
- * Agora suporta dados reais de fluxo on-chain para direção e cor
+ * Suporta dados reais de fluxo on-chain para direção e cor
+ * Integrado com sistema LOD para performance adaptativa
  */
 export const addFlowParticles = (
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
   linkGroup: d3.Selection<SVGGElement, unknown, null, undefined>,
   links: LinkData[],
   selectedNodeId?: string | null,
-  getFlowConfig?: FlowConfigGetter // Nova prop para dados de smart money
+  getFlowConfig?: FlowConfigGetter
 ) => {
+  // Get current LOD settings
+  const lodSettings = lodManager.getAdjustedSettings();
   // Remove any existing particles first
   svg.selectAll(".particles-group").remove();
   
@@ -68,17 +72,18 @@ export const addFlowParticles = (
     // Velocidade baseada na intensidade do fluxo real
     const baseSpeed = flowConfig?.speed ?? 0.002;
     
-    // Calculate number of particles based on value and intensity
-    let particleCount = Math.min(3, 1 + Math.floor(Math.abs(link.value) / 20000000));
+    // Calculate number of particles based on value, intensity, and LOD
+    let baseParticleCount = Math.min(lodSettings.particleCount / 5, 1 + Math.floor(Math.abs(link.value) / 20000000));
     
-    // Aumentar partículas para fluxos de alta intensidade
+    // Aumentar partículas para fluxos de alta intensidade (respeitando LOD)
     if (flowConfig?.intensity && flowConfig.intensity > 50) {
-      particleCount = Math.min(5, particleCount + 1);
+      baseParticleCount = Math.min(lodSettings.particleCount / 3, baseParticleCount + 1);
     }
     
     // Increase particles for selected links
+    let particleCount = baseParticleCount;
     if (selectedNodeId && (link.source.id === selectedNodeId || link.target.id === selectedNodeId)) {
-      particleCount = Math.min(6, particleCount + 2);
+      particleCount = Math.min(lodSettings.particleCount / 2, particleCount + 2);
     }
     
     // Create particles for this link
@@ -91,20 +96,29 @@ export const addFlowParticles = (
       // Create smooth interpolator for position
       const progressInterpolator = new SmoothInterpolator(initialPosition, 0.08);
       
-      // Tamanho variável baseado na intensidade
+      // Tamanho variável baseado na intensidade e LOD
       const particleSize = flowConfig?.intensity 
-        ? 2 + (flowConfig.intensity / 100) * 1.5 
-        : 2.5;
+        ? lodSettings.particleSize * 0.7 + (flowConfig.intensity / 100) * lodSettings.particleSize * 0.5
+        : lodSettings.particleSize * 0.8;
       
-      // Create particle element with glow effect
+      // Glow effect baseado no LOD
+      const glowSize = lodSettings.enableGlow 
+        ? (flowConfig?.isRealData ? 5 * lodSettings.glowIntensity : 3 * lodSettings.glowIntensity)
+        : 0;
+      
+      // Create particle element with conditional glow effect
       const element = particleGroup.append("circle")
         .attr("class", `particle ${flowConfig?.isRealData ? 'real-flow' : ''}`)
         .attr("r", particleSize)
         .attr("fill", particleColor)
         .attr("cx", point.x)
         .attr("cy", point.y)
-        .attr("opacity", flowConfig?.isRealData ? 0.9 : 0.7)
-        .style("filter", `drop-shadow(0 0 ${flowConfig?.isRealData ? '5px' : '3px'} ${particleColor})`);
+        .attr("opacity", flowConfig?.isRealData ? 0.9 : 0.7);
+      
+      // Apply glow only if LOD allows
+      if (glowSize > 0) {
+        element.style("filter", `drop-shadow(0 0 ${glowSize}px ${particleColor})`);
+      }
       
       // Store particle data
       particles.push({
@@ -120,8 +134,19 @@ export const addFlowParticles = (
     }
   });
   
-  // Optimized animation loop using global animator
+  // Optimized animation loop using global animator with LOD-based update rate
+  let lastUpdate = 0;
   const animateParticles = (deltaTime: number) => {
+    // Record frame for LOD manager
+    lodManager.recordFrame();
+    
+    // Throttle updates based on LOD settings
+    const now = performance.now();
+    if (now - lastUpdate < lodManager.getLevel().updateInterval) {
+      return;
+    }
+    lastUpdate = now;
+    
     // Batch DOM operations for better performance
     const updates: (() => void)[] = [];
     
