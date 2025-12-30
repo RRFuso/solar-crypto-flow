@@ -6,7 +6,6 @@ import { PriceActionSignal } from '@/hooks/usePriceActionSignals';
 import { AIInsight } from '@/hooks/useAdvancedAI';
 import { CapitalFlowLink, LinkData } from '@/types/capitalFlow';
 import { ExtendedOrbitalNode } from '@/types/orbitalNodes';
-import { RealtimePriceData } from '@/hooks/useRealtimePrice';
 
 interface UseVisualizationDataProps {
   flowData: FlowData[];
@@ -33,7 +32,6 @@ interface UseVisualizationDataProps {
     height: number
   ) => { svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, nodes: OrbitalNode[], links: LinkData[], centralNode: OrbitalNode | null };
   activeCategory?: string;
-  realtimePrices?: Map<string, RealtimePriceData>;
 }
 
 const getVolumeAsNumber = (vol: number | string | undefined): number | undefined => {
@@ -65,8 +63,7 @@ export const useVisualizationData = ({
   setVisualizationData,
   animationRef,
   createOrbitalVisualization,
-  activeCategory = 'all',
-  realtimePrices
+  activeCategory = 'all'
 }: UseVisualizationDataProps) => {
   useEffect(() => {
     if (!flowData || flowData.length === 0 || !svgRef.current || !dimensions.width) return;
@@ -102,11 +99,7 @@ export const useVisualizationData = ({
       const aiModel = aiInsights.get(node.id.toUpperCase());
       const capitalFlows = links.filter(link => link.source.id === node.id || link.target.id === node.id);
       
-      // Prefer real-time price from WebSocket, fallback to static data
-      const realtimeData = realtimePrices?.get(node.id.toUpperCase());
-      const price = realtimeData?.price ?? cryptoInfo?.price;
-      const priceChange24h = realtimeData?.priceChange24h ?? cryptoInfo?.priceChange24h;
-      const volume = realtimeData?.volume ?? getVolumeAsNumber(node.volume) ?? getVolumeAsNumber(cryptoInfo?.volume);
+      const volume = getVolumeAsNumber(node.volume) || getVolumeAsNumber(cryptoInfo?.volume);
 
       return {
         ...node,
@@ -116,35 +109,29 @@ export const useVisualizationData = ({
         tokens: [],
         fx: null,
         fy: null,
-        price: price?.toString() || 'N/A',
+        price: cryptoInfo?.price?.toString() || 'N/A',
         volume: volume,
-        priceChange24h: priceChange24h,
+        priceChange24h: cryptoInfo?.priceChange24h,
         priceActionSignal: signalInfo,
         aiModel: aiModel,
         capitalFlows: capitalFlows,
-        isRealtime: !!realtimeData, // Flag indicating real-time data
       };
     });
     
-    // Enrich central node with real-time data as well
-    const centralRealtimeData = baseCentralNode ? realtimePrices?.get(baseCentralNode.id.toUpperCase()) : null;
-    const centralCryptoInfo = baseCentralNode ? cryptoDataMaps.byId.get(baseCentralNode.id) : null;
-    
     const enrichedCentralNode: ExtendedOrbitalNode | null = baseCentralNode ? {
         ...baseCentralNode,
-        name: centralCryptoInfo?.name || baseCentralNode.id,
+        name: cryptoDataMaps.byId.get(baseCentralNode.id)?.name || baseCentralNode.id,
         value: 0,
         color: '#3b82f6',
         tokens: [],
         fx: null,
         fy: null,
-        price: (centralRealtimeData?.price ?? centralCryptoInfo?.price)?.toString() || 'N/A',
-        volume: centralRealtimeData?.volume ?? getVolumeAsNumber(baseCentralNode.volume ?? centralCryptoInfo?.volume),
-        priceChange24h: centralRealtimeData?.priceChange24h ?? centralCryptoInfo?.priceChange24h,
+        price: cryptoDataMaps.byId.get(baseCentralNode.id)?.price?.toString() || 'N/A',
+        volume: getVolumeAsNumber(baseCentralNode.volume ?? cryptoDataMaps.byId.get(baseCentralNode.id)?.volume),
+        priceChange24h: cryptoDataMaps.byId.get(baseCentralNode.id)?.priceChange24h,
         priceActionSignal: priceActionSignals?.get(baseCentralNode.id.toUpperCase()),
         aiModel: aiInsights.get(baseCentralNode.id.toUpperCase()),
         capitalFlows: links.filter(link => link.source.id === baseCentralNode.id || link.target.id === baseCentralNode.id),
-        isRealtime: !!centralRealtimeData,
     } : null;
 
     enrichedNodes.forEach(node => {
@@ -168,5 +155,5 @@ export const useVisualizationData = ({
       selectedNodeId: null
     });
 
-  }, [flowData, cryptoDataMaps, priceActionSignals, aiInsights, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory, svgRef, realtimePrices]); 
+  }, [flowData, cryptoDataMaps, priceActionSignals, aiInsights, dimensions, zoomLevel, createOrbitalVisualization, setVisualizationData, animationRef, activeCategory, svgRef]); 
 };

@@ -17,5 +17,4 @@ export interface ExtendedOrbitalNode extends OrbitalNode {
   capitalFlows?: CapitalFlowLink[];
   aiModel?: AIInsight;
   categories?: string[];
-  isRealtime?: boolean; // Indicates if price data is from WebSocket
 }
