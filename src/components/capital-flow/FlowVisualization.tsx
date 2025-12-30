@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo, useCallback, Profiler } from 'react';
 import * as d3 from 'd3';
 import { FlowData, CryptoData } from '@/types/crypto';
@@ -16,6 +15,7 @@ import { usePriceActionSignals } from '@/hooks/usePriceActionSignals';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 import { useOnChainData } from '@/contexts/OnChainDataContext';
 import { useSmartMoneyFlows } from '@/hooks/useSmartMoneyFlows';
+import { useRealtimePrice } from '@/hooks/useRealtimePrice';
 import { getCategoriesForSymbol } from '@/lib/marketData/categoryMapping';
 import { mapAIRecommendationToSignal, getCategoryColor as getSignalCategoryColor, determineCryptoSignalCategory } from './constants/signalCategories';
 
@@ -74,6 +74,9 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(symbolsInView);
   const { smartMoneyScores, requestOnChainData } = useOnChainData();
   const { flows: smartMoneyFlows } = useSmartMoneyFlows(symbolsInView);
+  
+  // Real-time price streaming via WebSocket (replaces polling)
+  const { prices: realtimePrices, isConnected: wsConnected } = useRealtimePrice(symbolsInView);
 
   // Memoize adjusted zoom level - only calculate when we have valid dimensions
   const adjustedZoomLevel = useMemo(() => {
@@ -101,7 +104,8 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     setVisualizationData,
     animationRef,
     createOrbitalVisualization,
-    activeCategory
+    activeCategory,
+    realtimePrices, // Pass WebSocket prices for real-time updates
   });
 
   // Node click handler effect
