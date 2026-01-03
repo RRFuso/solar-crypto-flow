@@ -16,6 +16,7 @@ import { usePriceActionSignals } from '@/hooks/usePriceActionSignals';
 import { useAdvancedAI } from '@/hooks/useAdvancedAI';
 import { useOnChainData } from '@/contexts/OnChainDataContext';
 import { useSmartMoneyFlows } from '@/hooks/useSmartMoneyFlows';
+import { useBinanceWebSocket, BinanceTickerData } from '@/hooks/useBinanceWebSocket';
 import { getCategoriesForSymbol } from '@/lib/marketData/categoryMapping';
 import { mapAIRecommendationToSignal, getCategoryColor as getSignalCategoryColor, determineCryptoSignalCategory } from './constants/signalCategories';
 
@@ -74,6 +75,9 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(symbolsInView);
   const { smartMoneyScores, requestOnChainData } = useOnChainData();
   const { flows: smartMoneyFlows } = useSmartMoneyFlows(symbolsInView);
+  
+  // Real-time price streaming via Binance WebSocket
+  const { tickers: realtimeTickers, isConnected: wsConnected } = useBinanceWebSocket(symbolsInView);
 
   // Memoize adjusted zoom level - only calculate when we have valid dimensions
   const adjustedZoomLevel = useMemo(() => {
@@ -224,6 +228,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
             smartMoneyScores={smartMoneyScores}
             activeCategory={activeCategory}
             links={visualizationData.links}
+            realtimeTickers={realtimeTickers}
           />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
