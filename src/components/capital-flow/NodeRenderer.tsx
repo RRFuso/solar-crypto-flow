@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { OrbitalNode } from './NodePlacement';
 import { getLogoUrls } from '@/lib/cryptoLogos';
@@ -7,7 +7,7 @@ import { AIInsight } from '@/hooks/useAdvancedAI';
 import { useTooltip } from '@/contexts/TooltipContext';
 import { useOnChainData } from '@/contexts/OnChainDataContext';
 import { CapitalFlowLink } from '@/types/capitalFlow';
-
+import { BinanceTickerData } from '@/hooks/useBinanceWebSocket';
 import { ExtendedOrbitalNode } from '@/types/orbitalNodes';
 
 interface NodeRendererProps {
@@ -19,7 +19,8 @@ interface NodeRendererProps {
   aiInsights: Map<string, AIInsight>;
   smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish' }>;
   activeCategory?: string;
-  links?: CapitalFlowLink[]; // All capital flows for global scale calculation
+  links?: CapitalFlowLink[];
+  realtimeTickers?: Map<string, BinanceTickerData>;
 }
 
 const getAIRecommendationColor = (recommendation: string): string => {
@@ -82,7 +83,12 @@ const generatePriceActionAnalysis = (node: ExtendedOrbitalNode): string => {
   return `Preço estável nas últimas 24h (${change.toFixed(2)}%). Movimento lateral.`;
 };
 
-const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, AIInsight>, allCapitalFlows?: CapitalFlowLink[]) => {
+const createTooltipData = (
+  node: ExtendedOrbitalNode, 
+  aiInsights: Map<string, AIInsight>, 
+  allCapitalFlows?: CapitalFlowLink[],
+  realtimeTicker?: BinanceTickerData
+) => {
     const aiInsight = aiInsights.get(node.id);
     const trendReasons = [];
     if (aiInsight) {
@@ -96,9 +102,16 @@ const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, AI
     
     const priceActionAnalysisText = generatePriceActionAnalysis(node);
 
-    // Parse price properly - handle both string and number formats
+    // Use realtime price if available, otherwise fallback to node price
     let priceValue: number | undefined;
-    if (typeof node.price === 'string') {
+    let priceChange24h: number | undefined = node.priceChange24h;
+    let volume: number | undefined = node.volume;
+    
+    if (realtimeTicker) {
+      priceValue = realtimeTicker.price;
+      priceChange24h = realtimeTicker.priceChangePercent;
+      volume = realtimeTicker.quoteVolume;
+    } else if (typeof node.price === 'string') {
         const cleaned = node.price.replace(/[$,]/g, '');
         priceValue = parseFloat(cleaned);
     } else if (typeof node.price === 'number') {
@@ -109,10 +122,10 @@ const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, AI
         id: node.id,
         name: node.name || 'Unknown',
         price: priceValue,
-        priceChange24h: node.priceChange24h,
-        volume: node.volume,
+        priceChange24h: priceChange24h,
+        volume: volume,
         capitalFlows: node.capitalFlows,
-        allCapitalFlows: allCapitalFlows, // Pass all flows for global scale
+        allCapitalFlows: allCapitalFlows,
         aiModel: aiInsight,
         trendReasons: trendReasons,
         aiAnalysis: {
@@ -123,6 +136,8 @@ const createTooltipData = (node: ExtendedOrbitalNode, aiInsights: Map<string, AI
         },
         explosivePotential: node.priceActionSignal?.explosivePotential,
         keyFactors: aiInsight?.predictions[0]?.keyFactors,
+        isRealtime: !!realtimeTicker,
+        lastUpdate: realtimeTicker?.lastUpdate,
     };
 };
 
@@ -138,6 +153,7 @@ const renderOrUpdateVisualization = (
   hideTooltip: () => void,
   activeCategory: string = 'all',
   allCapitalFlows?: CapitalFlowLink[],
+  realtimeTickers?: Map<string, BinanceTickerData>,
 ) => {
   let defs = svg.select('defs');
   if (defs.empty()) {
@@ -227,7 +243,8 @@ const renderOrUpdateVisualization = (
     })
     .on('mouseover', (event: MouseEvent, d: ExtendedOrbitalNode) => {
         clearTimeout(tooltipHideTimer);
-        const tooltipData = createTooltipData(d, aiInsights, allCapitalFlows);
+        const realtimeTicker = realtimeTickers?.get(d.id);
+        const tooltipData = createTooltipData(d, aiInsights, allCapitalFlows, realtimeTicker);
         showTooltip(tooltipData, { x: event.clientX, y: event.clientY });
     })
     .on('mouseout', () => {
@@ -346,6 +363,7 @@ const renderOrUpdateVisualization = (
 export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
   const { showTooltip, hideTooltip } = useTooltip();
   const { requestOnChainData } = useOnChainData();
+  const prevTickersRef = useRef<Map<string, BinanceTickerData>>(new Map());
 
   // Request on-chain data for visible nodes
   useEffect(() => {
@@ -354,6 +372,41 @@ export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
       requestOnChainData(symbols);
     }
   }, [props.nodes, requestOnChainData]);
+
+  // Update node visuals with realtime price data
+  useEffect(() => {
+    if (!props.svg || !props.realtimeTickers) return;
+    
+    const nodesGroup = props.svg.select('.nodes-group');
+    if (nodesGroup.empty()) return;
+
+    props.realtimeTickers.forEach((ticker, symbol) => {
+      const prevTicker = prevTickersRef.current.get(symbol);
+      const priceChanged = !prevTicker || prevTicker.price !== ticker.price;
+      
+      if (priceChanged) {
+        // Flash effect on price change
+        const nodeGroup = nodesGroup.selectAll('g.node')
+          .filter((d: any) => d?.id === symbol);
+        
+        if (!nodeGroup.empty()) {
+          const isPositive = ticker.priceChangePercent > 0;
+          const flashColor = isPositive ? 'rgba(0, 255, 136, 0.8)' : 'rgba(255, 50, 50, 0.8)';
+          
+          nodeGroup.select('circle.node-glow')
+            .transition()
+            .duration(200)
+            .attr('fill', flashColor)
+            .attr('opacity', 1)
+            .transition()
+            .duration(500)
+            .attr('opacity', 0.5);
+        }
+      }
+    });
+    
+    prevTickersRef.current = new Map(props.realtimeTickers);
+  }, [props.svg, props.realtimeTickers]);
 
   useEffect(() => {
     if (props.svg && props.nodes) {
@@ -368,10 +421,11 @@ export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
         showTooltip,
         hideTooltip,
         props.activeCategory || 'all',
-        props.links
+        props.links,
+        props.realtimeTickers
       );
     }
-  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip, props.activeCategory, props.links]);
+  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip, props.activeCategory, props.links, props.realtimeTickers]);
 
   return null;
 });
