@@ -1,12 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
+import { getCache, setCache, getOrFetch, CacheKeys, CacheTTL } from '../_shared/redis.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -31,14 +31,22 @@ interface DuneWhaleData {
   exchange_outflow: number;
 }
 
-// Dune Analytics queries for whale tracking
 const DUNE_QUERIES = {
-  ETH_WHALE_FLOWS: '3445128', // Ethereum whale movements
-  ERC20_WHALE_FLOWS: '3445129', // ERC-20 whale movements 
-  EXCHANGE_FLOWS: '3445130', // Exchange flow analysis
+  ETH_WHALE_FLOWS: '3445128',
+  ERC20_WHALE_FLOWS: '3445129',
+  EXCHANGE_FLOWS: '3445130',
 };
 
 async function fetchDuneData(queryId: string, parameters: any[] = []): Promise<any> {
+  const cacheKey = `dune:${queryId}:${JSON.stringify(parameters)}`;
+  
+  // Try Redis cache first
+  const cached = await getCache<any>(cacheKey);
+  if (cached) {
+    console.log(`[Redis] Using cached Dune data for query ${queryId}`);
+    return cached;
+  }
+
   const duneKey = Deno.env.get('DUNE_API_KEY');
   if (!duneKey) {
     throw new Error('DUNE_API_KEY not configured');
@@ -54,6 +62,8 @@ async function fetchDuneData(queryId: string, parameters: any[] = []): Promise<a
       throw new Error(`Dune API error: ${error.message}`);
     }
 
+    // Cache Dune data for 15 minutes
+    await setCache(cacheKey, data, CacheTTL.ONCHAIN);
     return data;
   } catch (error) {
     console.error('Error fetching Dune data:', error);
@@ -62,6 +72,14 @@ async function fetchDuneData(queryId: string, parameters: any[] = []): Promise<a
 }
 
 async function fetchEtherscanData(contractAddress: string, chainId: number = 1): Promise<any> {
+  const cacheKey = `etherscan:${contractAddress}:${chainId}`;
+  
+  const cached = await getCache<any>(cacheKey);
+  if (cached) {
+    console.log(`[Redis] Using cached Etherscan data for ${contractAddress}`);
+    return cached;
+  }
+
   const etherscanKey = Deno.env.get('ETHERSCAN_API_KEY');
   if (!etherscanKey) {
     throw new Error('ETHERSCAN_API_KEY not configured');
@@ -88,6 +106,8 @@ async function fetchEtherscanData(contractAddress: string, chainId: number = 1):
       throw new Error(`Etherscan API error: ${error.message}`);
     }
 
+    // Cache for 5 minutes
+    await setCache(cacheKey, data, CacheTTL.WALLET_TX);
     return data;
   } catch (error) {
     console.error('Error fetching Etherscan data:', error);
@@ -96,6 +116,14 @@ async function fetchEtherscanData(contractAddress: string, chainId: number = 1):
 }
 
 async function fetchCoinGeckoData(symbols: string[]): Promise<any> {
+  const cacheKey = `coingecko:markets:${symbols.sort().join(',')}`;
+  
+  const cached = await getCache<any>(cacheKey);
+  if (cached) {
+    console.log(`[Redis] Using cached CoinGecko data`);
+    return cached;
+  }
+
   try {
     const { data, error } = await supabase.functions.invoke('secure-coingecko-proxy', {
       body: {
@@ -117,6 +145,8 @@ async function fetchCoinGeckoData(symbols: string[]): Promise<any> {
       throw new Error(`CoinGecko API error: ${error.message}`);
     }
 
+    // Cache for 5 minutes
+    await setCache(cacheKey, data, CacheTTL.MARKET_DATA);
     return data;
   } catch (error) {
     console.error('Error fetching CoinGecko data:', error);
@@ -125,18 +155,17 @@ async function fetchCoinGeckoData(symbols: string[]): Promise<any> {
 }
 
 async function calculateWhaleMetrics(transactions: any[], symbol: string): Promise<Partial<OnChainMetrics>> {
-  const WHALE_THRESHOLD = 1000000; // $1M+ transactions
+  const WHALE_THRESHOLD = 1000000;
   let whaleTransactionCount = 0;
   let whaleVolumeUSD = 0;
   let exchangeInflow = 0;
   let exchangeOutflow = 0;
 
-  // Known exchange addresses (simplified list)
   const exchangeAddresses = new Set([
-    '0x28c6c06298d514db089934071355e5743bf21d60', // Binance
-    '0x267a5240229152364691a751755323ac272a575f', // Kraken
-    '0x6cc5f688a315f3dc28a7781717a9a798a59fda7b', // OKEx
-    '0x46340b20830761efd32832a74d7169b29feb9758', // Huobi
+    '0x28c6c06298d514db089934071355e5743bf21d60',
+    '0x267a5240229152364691a751755323ac272a575f',
+    '0x6cc5f688a315f3dc28a7781717a9a798a59fda7b',
+    '0x46340b20830761efd32832a74d7169b29feb9758',
   ]);
 
   for (const tx of transactions) {
@@ -147,7 +176,6 @@ async function calculateWhaleMetrics(transactions: any[], symbol: string): Promi
       whaleVolumeUSD += valueUSD;
     }
 
-    // Calculate exchange flows
     if (exchangeAddresses.has(tx.to.toLowerCase())) {
       exchangeInflow += valueUSD;
     } else if (exchangeAddresses.has(tx.from.toLowerCase())) {
@@ -155,7 +183,7 @@ async function calculateWhaleMetrics(transactions: any[], symbol: string): Promi
     }
   }
 
-  const netFlow = exchangeOutflow - exchangeInflow; // Positive = net outflow (bullish)
+  const netFlow = exchangeOutflow - exchangeInflow;
   let sentiment: 'Bullish' | 'Bearish' | 'Neutral' = 'Neutral';
 
   if (netFlow > 1000000 && whaleVolumeUSD > 5000000) {
@@ -175,10 +203,17 @@ async function calculateWhaleMetrics(transactions: any[], symbol: string): Promi
 }
 
 async function processSymbolData(symbol: string): Promise<OnChainMetrics> {
+  // Check Redis cache first
+  const cacheKey = CacheKeys.onChainData(symbol);
+  const cached = await getCache<OnChainMetrics>(cacheKey);
+  if (cached) {
+    console.log(`[Redis] Using cached on-chain metrics for ${symbol}`);
+    return cached;
+  }
+
   console.log(`Processing on-chain data for ${symbol}`);
 
   try {
-    // Get contract address for the symbol
     const { data: contractData } = await supabase
       .from('token_contracts')
       .select('contract_address, chain')
@@ -196,7 +231,6 @@ async function processSymbolData(symbol: string): Promise<OnChainMetrics> {
       lastUpdated: new Date().toISOString()
     };
 
-    // If we have contract data, fetch Etherscan data
     if (contractData?.contract_address) {
       try {
         const etherscanData = await fetchEtherscanData(contractData.contract_address);
@@ -207,7 +241,6 @@ async function processSymbolData(symbol: string): Promise<OnChainMetrics> {
       }
     }
 
-    // Supplement with Dune Analytics data for major tokens
     if (['BTC', 'ETH', 'USDT', 'USDC', 'BNB'].includes(symbol.toUpperCase())) {
       try {
         const duneData = await fetchDuneData(DUNE_QUERIES.ERC20_WHALE_FLOWS, [
@@ -225,7 +258,7 @@ async function processSymbolData(symbol: string): Promise<OnChainMetrics> {
       }
     }
 
-    // Store metrics in database
+    // Store in DB
     const { error: upsertError } = await supabase
       .from('crypto_price_action_signals')
       .upsert({
@@ -238,6 +271,9 @@ async function processSymbolData(symbol: string): Promise<OnChainMetrics> {
     if (upsertError) {
       console.error('Error storing metrics:', upsertError);
     }
+
+    // Cache in Redis for 15 minutes
+    await setCache(cacheKey, metrics, CacheTTL.ONCHAIN);
 
     return metrics;
 
@@ -265,11 +301,9 @@ serve(async (req) => {
     const { symbols, action } = await req.json();
 
     if (action === 'batch_update') {
-      // Process multiple symbols for batch updates
       const symbolsList = symbols || ['BTC', 'ETH', 'USDT', 'BNB', 'ADA', 'SOL', 'XRP', 'DOT', 'AVAX', 'MATIC'];
       const results: OnChainMetrics[] = [];
 
-      // Process in chunks to avoid timeout
       const chunkSize = 5;
       for (let i = 0; i < symbolsList.length; i += chunkSize) {
         const chunk = symbolsList.slice(i, i + chunkSize);
@@ -294,7 +328,6 @@ serve(async (req) => {
       });
     }
 
-    // Single symbol processing
     if (symbols && symbols.length > 0) {
       const symbol = symbols[0];
       const metrics = await processSymbolData(symbol);
