@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
+import { getCache, setCache, getOrFetch, CacheKeys, CacheTTL, mgetCache } from '../_shared/redis.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,47 +10,6 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseKey);
-
-// ========== CACHE EM MEMÓRIA COM TTL ==========
-interface CacheEntry<T> {
-  data: T;
-  expiresAt: number;
-}
-
-class MemoryCache<T> {
-  private cache = new Map<string, CacheEntry<T>>();
-  private defaultTTL: number;
-
-  constructor(defaultTTLSeconds: number = 300) {
-    this.defaultTTL = defaultTTLSeconds * 1000;
-  }
-
-  get(key: string): T | null {
-    const entry = this.cache.get(key);
-    if (!entry) return null;
-    if (Date.now() > entry.expiresAt) {
-      this.cache.delete(key);
-      return null;
-    }
-    return entry.data;
-  }
-
-  set(key: string, data: T, ttlSeconds?: number): void {
-    const ttl = (ttlSeconds ?? this.defaultTTL / 1000) * 1000;
-    this.cache.set(key, {
-      data,
-      expiresAt: Date.now() + ttl,
-    });
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-}
-
-// Cache global para transações e preços
-const txCache = new MemoryCache<any[]>(600); // 10 min TTL
-const priceCache = new MemoryCache<Record<string, number>>(60); // 1 min TTL
 
 // ========== CONFIGURAÇÃO ==========
 interface SmartMoneyWallet {
@@ -71,46 +31,47 @@ interface FlowData {
   emaFlow: number;
 }
 
-// Threshold mínimo em USD para considerar uma transação significativa
-const SIGNIFICANT_TX_THRESHOLD = 50000; // $50k+
-
-// EMA smoothing factor (0.1 = suave, 0.5 = responsivo)
+const SIGNIFICANT_TX_THRESHOLD = 50000;
 const EMA_ALPHA = 0.2;
 
-// ========== FUNÇÕES AUXILIARES ==========
+// ========== FUNÇÕES COM REDIS CACHE ==========
 
-// Calcula EMA para suavizar ruído
 function calculateEMA(currentValue: number, previousEMA: number, alpha: number = EMA_ALPHA): number {
   return alpha * currentValue + (1 - alpha) * previousEMA;
 }
 
-// Busca carteiras prioritárias ordenadas por impacto
+// Busca carteiras prioritárias (cached in Redis)
 async function getPriorityWallets(limit: number = 20): Promise<SmartMoneyWallet[]> {
-  const { data, error } = await supabase
-    .from('smart_money_wallets')
-    .select('*')
-    .eq('is_active', true)
-    .order('priority', { ascending: false })
-    .order('historical_impact_score', { ascending: false })
-    .limit(limit);
+  const cacheKey = `smartmoney:wallets:${limit}`;
+  
+  return await getOrFetch(cacheKey, async () => {
+    const { data, error } = await supabase
+      .from('smart_money_wallets')
+      .select('*')
+      .eq('is_active', true)
+      .order('priority', { ascending: false })
+      .order('historical_impact_score', { ascending: false })
+      .limit(limit);
 
-  if (error) {
-    console.error('Error fetching wallets:', error);
-    return [];
-  }
+    if (error) {
+      console.error('Error fetching wallets:', error);
+      return [];
+    }
 
-  return data || [];
+    return data || [];
+  }, CacheTTL.SMART_MONEY);
 }
 
-// Busca transações de múltiplas carteiras em batch (otimizado)
+// Busca transações com cache Redis
 async function fetchWalletTransactionsBatch(
   walletAddresses: string[],
   chain: string = 'ethereum'
 ): Promise<any[]> {
-  const cacheKey = `txs_${chain}_${walletAddresses.slice(0, 5).join('_')}`;
-  const cached = txCache.get(cacheKey);
+  const cacheKey = CacheKeys.walletTransactions(walletAddresses.slice(0, 5).join('_'));
+  
+  const cached = await getCache<any[]>(cacheKey);
   if (cached) {
-    console.log('Using cached transactions');
+    console.log('[Redis] Using cached wallet transactions');
     return cached;
   }
 
@@ -120,7 +81,6 @@ async function fetchWalletTransactionsBatch(
     return [];
   }
 
-  // Buscar transações de até 5 carteiras em paralelo (rate limit friendly)
   const batchSize = 3;
   const allTransactions: any[] = [];
 
@@ -149,21 +109,23 @@ async function fetchWalletTransactionsBatch(
     const batchResults = await Promise.all(batchPromises);
     batchResults.forEach(txs => allTransactions.push(...txs));
 
-    // Rate limit: esperar 200ms entre batches
     if (i + batchSize < walletAddresses.length) {
       await new Promise(resolve => setTimeout(resolve, 200));
     }
   }
 
-  txCache.set(cacheKey, allTransactions, 600);
+  // Cache in Redis for 5 minutes
+  await setCache(cacheKey, allTransactions, CacheTTL.WALLET_TX);
   return allTransactions;
 }
 
-// Busca preços atuais da Binance (cacheado)
+// Busca preços com cache Redis
 async function getCurrentPrices(symbols: string[]): Promise<Record<string, number>> {
-  const cacheKey = 'binance_prices';
-  const cached = priceCache.get(cacheKey);
+  const cacheKey = CacheKeys.cryptoPrices();
+  
+  const cached = await getCache<Record<string, number>>(cacheKey);
   if (cached) {
+    console.log('[Redis] Using cached Binance prices');
     return cached;
   }
 
@@ -181,7 +143,8 @@ async function getCurrentPrices(symbols: string[]): Promise<Record<string, numbe
       });
     }
 
-    priceCache.set(cacheKey, prices, 60);
+    // Cache for 30 seconds (real-time prices)
+    await setCache(cacheKey, prices, CacheTTL.PRICE_REALTIME);
     return prices;
   } catch (error) {
     console.error('Error fetching Binance prices:', error);
@@ -189,7 +152,7 @@ async function getCurrentPrices(symbols: string[]): Promise<Record<string, numbe
   }
 }
 
-// Processa transações e calcula fluxos agregados por símbolo
+// Processa transações e calcula fluxos
 async function processTransactionsToFlows(
   transactions: any[],
   exchangeAddresses: Set<string>,
@@ -197,7 +160,6 @@ async function processTransactionsToFlows(
 ): Promise<Map<string, FlowData>> {
   const flowsBySymbol = new Map<string, FlowData>();
 
-  // Filtrar transações significativas (>threshold)
   const significantTxs = transactions.filter(tx => {
     const symbol = tx.tokenSymbol?.toUpperCase() || 'ETH';
     const price = prices[symbol] || 0;
@@ -228,30 +190,24 @@ async function processTransactionsToFlows(
 
     const flow = flowsBySymbol.get(symbol)!;
 
-    // Determinar direção: inflow para exchange = bearish, outflow = bullish
     const toExchange = exchangeAddresses.has(tx.to?.toLowerCase());
     const fromExchange = exchangeAddresses.has(tx.from?.toLowerCase());
 
     if (toExchange && !fromExchange) {
-      // Inflow para exchange = bearish (venda)
       flow.inflowUSD += valueUSD;
       flow.netFlowUSD -= valueUSD;
     } else if (fromExchange && !toExchange) {
-      // Outflow de exchange = bullish (compra/hodl)
       flow.outflowUSD += valueUSD;
       flow.netFlowUSD += valueUSD;
     }
   }
 
-  // Calcular direção dominante e intensidade
   for (const [symbol, flow] of flowsBySymbol) {
     const totalFlow = flow.inflowUSD + flow.outflowUSD;
     
     if (totalFlow > 0) {
-      // Intensidade de 0-100
-      flow.intensity = Math.min(100, (totalFlow / 1000000) * 10); // Escala: $100M = 100%
+      flow.intensity = Math.min(100, (totalFlow / 1000000) * 10);
       
-      // Direção dominante
       const ratio = flow.netFlowUSD / totalFlow;
       if (ratio > 0.2) {
         flow.dominantDirection = 'bullish';
@@ -266,7 +222,7 @@ async function processTransactionsToFlows(
   return flowsBySymbol;
 }
 
-// Atualiza o cache de fluxos no banco
+// Atualiza cache de fluxos (Redis + DB)
 async function updateFlowCache(
   flows: Map<string, FlowData>,
   timeframe: string = '1h'
@@ -274,41 +230,41 @@ async function updateFlowCache(
   const updates = [];
 
   for (const [symbol, flow] of flows) {
-    // Buscar EMA anterior para suavização
-    const { data: existing } = await supabase
-      .from('smart_money_flow_cache')
-      .select('ema_flow')
-      .eq('token_symbol', symbol)
-      .eq('timeframe', timeframe)
-      .maybeSingle();
-
-    const previousEMA = existing?.ema_flow || 0;
+    // Get previous EMA from Redis first
+    const cacheKey = CacheKeys.smartMoneyFlow(symbol, timeframe);
+    const cachedFlow = await getCache<{ ema_flow: number }>(cacheKey);
+    const previousEMA = cachedFlow?.ema_flow || 0;
     const newEMA = calculateEMA(flow.netFlowUSD, previousEMA);
 
-    updates.push({
+    const flowData = {
       token_symbol: symbol,
       timeframe,
       net_flow_usd: flow.netFlowUSD,
       total_inflow_usd: flow.inflowUSD,
       total_outflow_usd: flow.outflowUSD,
-      whale_tx_count: 0, // TODO: implementar contagem
+      whale_tx_count: 0,
       dominant_direction: flow.dominantDirection,
       flow_intensity: flow.intensity,
       ema_flow: newEMA,
       last_updated: new Date().toISOString(),
       expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-    });
+    };
+
+    // Cache in Redis
+    await setCache(cacheKey, flowData, CacheTTL.SMART_MONEY);
+    updates.push(flowData);
   }
 
+  // Also persist to DB
   if (updates.length > 0) {
     const { error } = await supabase
       .from('smart_money_flow_cache')
       .upsert(updates, { onConflict: 'token_symbol,timeframe' });
 
     if (error) {
-      console.error('Error updating flow cache:', error);
+      console.error('Error updating DB flow cache:', error);
     } else {
-      console.log(`Updated ${updates.length} flow cache entries`);
+      console.log(`Updated ${updates.length} flow cache entries (Redis + DB)`);
     }
   }
 }
@@ -322,35 +278,59 @@ serve(async (req) => {
   try {
     const { action, symbols, timeframe = '1h' } = await req.json();
 
-    // ===== AÇÃO: GET_FLOWS - Busca fluxos do cache =====
+    // ===== GET_FLOWS - Redis first, then DB =====
     if (action === 'get_flows') {
       const symbolList = symbols || ['BTC', 'ETH', 'SOL', 'BNB', 'XRP'];
       
-      const { data: flows, error } = await supabase
-        .from('smart_money_flow_cache')
-        .select('*')
-        .in('token_symbol', symbolList.map((s: string) => s.toUpperCase()))
-        .eq('timeframe', timeframe)
-        .gt('expires_at', new Date().toISOString());
+      // Try Redis first for all symbols
+      const cacheKeys = symbolList.map((s: string) => CacheKeys.smartMoneyFlow(s.toUpperCase(), timeframe));
+      const cachedFlows = await mgetCache<any>(cacheKeys);
+      
+      const results: any[] = [];
+      const missedSymbols: string[] = [];
+      
+      symbolList.forEach((symbol: string, index: number) => {
+        const cached = cachedFlows.get(cacheKeys[index]);
+        if (cached) {
+          results.push(cached);
+        } else {
+          missedSymbols.push(symbol.toUpperCase());
+        }
+      });
 
-      if (error) {
-        throw error;
+      // Fetch missed from DB
+      if (missedSymbols.length > 0) {
+        const { data: dbFlows } = await supabase
+          .from('smart_money_flow_cache')
+          .select('*')
+          .in('token_symbol', missedSymbols)
+          .eq('timeframe', timeframe)
+          .gt('expires_at', new Date().toISOString());
+
+        if (dbFlows) {
+          for (const flow of dbFlows) {
+            results.push(flow);
+            // Cache in Redis for next time
+            await setCache(CacheKeys.smartMoneyFlow(flow.token_symbol, timeframe), flow, CacheTTL.SMART_MONEY);
+          }
+        }
       }
+
+      console.log(`[Redis] ${cachedFlows.size} hits, ${missedSymbols.length} misses from DB`);
 
       return new Response(JSON.stringify({
         success: true,
-        data: flows || [],
-        cached: true,
+        data: results,
+        cached: cachedFlows.size > 0,
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // ===== AÇÃO: UPDATE_FLOWS - Atualiza fluxos do on-chain =====
+    // ===== UPDATE_FLOWS =====
     if (action === 'update_flows') {
       console.log('Starting smart money flow update...');
 
-      // 1. Buscar carteiras prioritárias
       const wallets = await getPriorityWallets(15);
       console.log(`Found ${wallets.length} priority wallets`);
 
@@ -364,19 +344,16 @@ serve(async (req) => {
         });
       }
 
-      // 2. Separar endereços de exchanges
       const exchangeAddresses = new Set(
         wallets
           .filter(w => w.wallet_type === 'exchange')
           .map(w => w.wallet_address.toLowerCase())
       );
 
-      // 3. Buscar transações em batch
       const allAddresses = wallets.map(w => w.wallet_address);
       const transactions = await fetchWalletTransactionsBatch(allAddresses);
       console.log(`Fetched ${transactions.length} transactions`);
 
-      // 4. Buscar preços atuais
       const uniqueSymbols = [...new Set(
         transactions
           .map(tx => tx.tokenSymbol?.toUpperCase())
@@ -385,11 +362,9 @@ serve(async (req) => {
       const prices = await getCurrentPrices(uniqueSymbols);
       console.log(`Got prices for ${Object.keys(prices).length} symbols`);
 
-      // 5. Processar fluxos
       const flows = await processTransactionsToFlows(transactions, exchangeAddresses, prices);
       console.log(`Calculated flows for ${flows.size} symbols`);
 
-      // 6. Atualizar cache
       await updateFlowCache(flows, timeframe);
 
       return new Response(JSON.stringify({
@@ -404,7 +379,7 @@ serve(async (req) => {
       });
     }
 
-    // ===== AÇÃO: GET_WALLETS - Lista carteiras monitoradas =====
+    // ===== GET_WALLETS =====
     if (action === 'get_wallets') {
       const wallets = await getPriorityWallets(50);
       
