@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 // ========== TYPES ==========
 export interface BinanceTickerData {
@@ -8,6 +8,10 @@ export interface BinanceTickerData {
   priceChangePercent: number;
   volume: number;
   quoteVolume: number;
+  high24h: number;
+  low24h: number;
+  bid: number;
+  ask: number;
   lastUpdate: number;
 }
 
@@ -17,14 +21,207 @@ export interface WebSocketState {
   lastError: string | null;
 }
 
+export interface SingleSymbolData {
+  price: number;
+  bid: number;
+  ask: number;
+  volume24h: number;
+  change24h: number;
+  changePercent24h: number;
+  high24h: number;
+  low24h: number;
+  isConnected: boolean;
+  lastUpdate: Date | null;
+  error: Error | null;
+}
+
 // ========== CONSTANTS ==========
 const BINANCE_WS_URL = 'wss://stream.binance.com:9443/ws';
 const RECONNECT_DELAY = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
 const HEARTBEAT_INTERVAL = 30000;
 
-// ========== HOOK ==========
-export function useBinanceWebSocket(symbols: string[]) {
+// ========== SINGLE SYMBOL HOOK ==========
+/**
+ * Hook for subscribing to a single symbol's real-time data
+ * Usage: const { price, isConnected } = useBinanceWebSocket('BTCUSDT');
+ */
+export function useBinanceWebSocket(symbol: string): SingleSymbolData;
+/**
+ * Hook for subscribing to multiple symbols' real-time data
+ * Usage: const { tickers, isConnected } = useBinanceWebSocket(['BTC', 'ETH']);
+ */
+export function useBinanceWebSocket(symbols: string[]): {
+  tickers: Map<string, BinanceTickerData>;
+  getTicker: (symbol: string) => BinanceTickerData | undefined;
+  isConnected: boolean;
+  reconnectAttempts: number;
+  lastError: string | null;
+  reconnect: () => void;
+};
+
+export function useBinanceWebSocket(symbolOrSymbols: string | string[]) {
+  // Handle single symbol case
+  if (typeof symbolOrSymbols === 'string') {
+    return useSingleSymbol(symbolOrSymbols);
+  }
+  
+  // Handle multiple symbols case
+  return useMultipleSymbols(symbolOrSymbols);
+}
+
+// ========== SINGLE SYMBOL IMPLEMENTATION ==========
+function useSingleSymbol(symbol: string): SingleSymbolData {
+  const [data, setData] = useState<SingleSymbolData>({
+    price: 0,
+    bid: 0,
+    ask: 0,
+    volume24h: 0,
+    change24h: 0,
+    changePercent24h: 0,
+    high24h: 0,
+    low24h: 0,
+    isConnected: false,
+    lastUpdate: null,
+    error: null,
+  });
+  
+  const wsRef = useRef<WebSocket | null>(null);
+  const mountedRef = useRef(true);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+
+  const cleanup = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+  }, []);
+
+  const connect = useCallback(() => {
+    if (!mountedRef.current || !symbol) return;
+    
+    cleanup();
+    
+    // Normalize symbol (remove USDT if already present, then add it)
+    const normalizedSymbol = symbol.toUpperCase().replace('USDT', '') + 'USDT';
+    const streamName = normalizedSymbol.toLowerCase();
+    
+    // Use ticker stream for full data including bid/ask
+    const wsUrl = `${BINANCE_WS_URL}/${streamName}@ticker`;
+    
+    console.log('[WS Single] Connecting to:', wsUrl);
+    
+    try {
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+      
+      ws.onopen = () => {
+        if (!mountedRef.current) return;
+        console.log('[WS Single] Connected for:', symbol);
+        reconnectAttemptsRef.current = 0;
+        setData(prev => ({ ...prev, isConnected: true, error: null }));
+      };
+      
+      ws.onmessage = (event) => {
+        if (!mountedRef.current) return;
+        
+        try {
+          const msg = JSON.parse(event.data);
+          
+          // 24hr ticker data
+          if (msg.e === '24hrTicker') {
+            setData({
+              price: parseFloat(msg.c),
+              bid: parseFloat(msg.b),
+              ask: parseFloat(msg.a),
+              volume24h: parseFloat(msg.q), // Quote volume
+              change24h: parseFloat(msg.p),
+              changePercent24h: parseFloat(msg.P),
+              high24h: parseFloat(msg.h),
+              low24h: parseFloat(msg.l),
+              isConnected: true,
+              lastUpdate: new Date(),
+              error: null,
+            });
+          }
+        } catch (error) {
+          console.error('[WS Single] Parse error:', error);
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error('[WS Single] Error:', error);
+        if (!mountedRef.current) return;
+        setData(prev => ({ 
+          ...prev, 
+          error: new Error('WebSocket connection error'),
+          isConnected: false 
+        }));
+      };
+      
+      ws.onclose = () => {
+        console.log('[WS Single] Disconnected');
+        if (!mountedRef.current) return;
+        
+        setData(prev => ({ ...prev, isConnected: false }));
+        
+        // Reconnect logic
+        if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+          const delay = RECONNECT_DELAY * Math.pow(2, reconnectAttemptsRef.current);
+          console.log(`[WS Single] Reconnecting in ${delay}ms`);
+          
+          reconnectTimeoutRef.current = setTimeout(() => {
+            reconnectAttemptsRef.current++;
+            connect();
+          }, delay);
+        }
+      };
+    } catch (error) {
+      console.error('[WS Single] Failed to create WebSocket:', error);
+      setData(prev => ({ 
+        ...prev, 
+        error: error instanceof Error ? error : new Error('Failed to connect'),
+        isConnected: false 
+      }));
+    }
+  }, [symbol, cleanup]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    
+    if (symbol) {
+      connect();
+    }
+    
+    return () => {
+      mountedRef.current = false;
+      cleanup();
+    };
+  }, [symbol, connect, cleanup]);
+
+  // Memoize the return value to prevent unnecessary re-renders
+  return useMemo(() => data, [
+    data.price,
+    data.bid,
+    data.ask,
+    data.volume24h,
+    data.change24h,
+    data.changePercent24h,
+    data.high24h,
+    data.low24h,
+    data.isConnected,
+    data.lastUpdate,
+    data.error,
+  ]);
+}
+
+// ========== MULTIPLE SYMBOLS IMPLEMENTATION ==========
+function useMultipleSymbols(symbols: string[]) {
   const [tickers, setTickers] = useState<Map<string, BinanceTickerData>>(new Map());
   const [state, setState] = useState<WebSocketState>({
     isConnected: false,
@@ -37,7 +234,6 @@ export function useBinanceWebSocket(symbols: string[]) {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
 
-  // Cleanup function
   const cleanup = useCallback(() => {
     if (heartbeatRef.current) {
       clearInterval(heartbeatRef.current);
@@ -53,17 +249,20 @@ export function useBinanceWebSocket(symbols: string[]) {
     }
   }, []);
 
-  // Connect to WebSocket
   const connect = useCallback(() => {
     if (!mountedRef.current || symbols.length === 0) return;
     
     cleanup();
     
-    // Build stream names for mini ticker
-    const streams = symbols.map(s => `${s.toLowerCase()}usdt@miniTicker`).join('/');
+    // Build stream names for ticker
+    const streams = symbols.map(s => {
+      const normalized = s.toUpperCase().replace('USDT', '') + 'USDT';
+      return `${normalized.toLowerCase()}@ticker`;
+    }).join('/');
+    
     const wsUrl = `${BINANCE_WS_URL}/${streams}`;
     
-    console.log('[WS] Connecting to Binance:', wsUrl);
+    console.log('[WS Multi] Connecting to:', symbols.length, 'symbols');
     
     try {
       const ws = new WebSocket(wsUrl);
@@ -71,7 +270,7 @@ export function useBinanceWebSocket(symbols: string[]) {
       
       ws.onopen = () => {
         if (!mountedRef.current) return;
-        console.log('[WS] Connected to Binance');
+        console.log('[WS Multi] Connected');
         setState(prev => ({
           ...prev,
           isConnected: true,
@@ -79,7 +278,6 @@ export function useBinanceWebSocket(symbols: string[]) {
           lastError: null,
         }));
         
-        // Start heartbeat
         heartbeatRef.current = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ method: 'ping' }));
@@ -93,15 +291,18 @@ export function useBinanceWebSocket(symbols: string[]) {
         try {
           const data = JSON.parse(event.data);
           
-          // Handle mini ticker data
-          if (data.e === '24hrMiniTicker') {
+          if (data.e === '24hrTicker') {
             const ticker: BinanceTickerData = {
               symbol: data.s.replace('USDT', ''),
               price: parseFloat(data.c),
-              priceChange: parseFloat(data.c) - parseFloat(data.o),
-              priceChangePercent: ((parseFloat(data.c) - parseFloat(data.o)) / parseFloat(data.o)) * 100,
+              priceChange: parseFloat(data.p),
+              priceChangePercent: parseFloat(data.P),
               volume: parseFloat(data.v),
               quoteVolume: parseFloat(data.q),
+              high24h: parseFloat(data.h),
+              low24h: parseFloat(data.l),
+              bid: parseFloat(data.b),
+              ask: parseFloat(data.a),
               lastUpdate: Date.now(),
             };
             
@@ -112,63 +313,46 @@ export function useBinanceWebSocket(symbols: string[]) {
             });
           }
         } catch (error) {
-          console.error('[WS] Error parsing message:', error);
+          console.error('[WS Multi] Parse error:', error);
         }
       };
       
       ws.onerror = (error) => {
-        console.error('[WS] WebSocket error:', error);
+        console.error('[WS Multi] Error:', error);
         if (!mountedRef.current) return;
-        setState(prev => ({
-          ...prev,
-          lastError: 'WebSocket connection error',
-        }));
+        setState(prev => ({ ...prev, lastError: 'Connection error' }));
       };
       
       ws.onclose = (event) => {
-        console.log('[WS] Connection closed:', event.code, event.reason);
+        console.log('[WS Multi] Closed:', event.code);
         if (!mountedRef.current) return;
         
-        setState(prev => ({
-          ...prev,
-          isConnected: false,
-        }));
+        setState(prev => ({ ...prev, isConnected: false }));
         
-        // Attempt reconnection
         if (state.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           const delay = RECONNECT_DELAY * Math.pow(2, state.reconnectAttempts);
-          console.log(`[WS] Reconnecting in ${delay}ms (attempt ${state.reconnectAttempts + 1})`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
-            setState(prev => ({
-              ...prev,
-              reconnectAttempts: prev.reconnectAttempts + 1,
-            }));
+            setState(prev => ({ ...prev, reconnectAttempts: prev.reconnectAttempts + 1 }));
             connect();
           }, delay);
         }
       };
     } catch (error) {
-      console.error('[WS] Failed to create WebSocket:', error);
-      setState(prev => ({
-        ...prev,
-        lastError: 'Failed to create WebSocket connection',
-      }));
+      console.error('[WS Multi] Failed to create WebSocket:', error);
+      setState(prev => ({ ...prev, lastError: 'Failed to connect' }));
     }
   }, [symbols, cleanup, state.reconnectAttempts]);
 
-  // Get ticker for a specific symbol
   const getTicker = useCallback((symbol: string): BinanceTickerData | undefined => {
-    return tickers.get(symbol.toUpperCase());
+    return tickers.get(symbol.toUpperCase().replace('USDT', ''));
   }, [tickers]);
 
-  // Manual reconnect
   const reconnect = useCallback(() => {
     setState(prev => ({ ...prev, reconnectAttempts: 0 }));
     connect();
   }, [connect]);
 
-  // Effect to connect on mount and when symbols change
   useEffect(() => {
     mountedRef.current = true;
     
@@ -180,16 +364,16 @@ export function useBinanceWebSocket(symbols: string[]) {
       mountedRef.current = false;
       cleanup();
     };
-  }, [symbols.join(',')]); // Only reconnect when symbols actually change
+  }, [symbols.join(',')]);
 
-  return {
+  return useMemo(() => ({
     tickers,
     getTicker,
     isConnected: state.isConnected,
     reconnectAttempts: state.reconnectAttempts,
     lastError: state.lastError,
     reconnect,
-  };
+  }), [tickers, getTicker, state.isConnected, state.reconnectAttempts, state.lastError, reconnect]);
 }
 
 // ========== SINGLETON MANAGER ==========
@@ -253,7 +437,8 @@ class BinanceStreamManager {
       this.ws.close();
     }
     
-    const streams = symbols.map(s => `${s.toLowerCase()}usdt@miniTicker`).join('/');
+    // Use full ticker stream for complete data
+    const streams = symbols.map(s => `${s.toLowerCase()}usdt@ticker`).join('/');
     const wsUrl = `${BINANCE_WS_URL}/${streams}`;
     
     console.log('[StreamManager] Connecting:', symbols.length, 'symbols');
@@ -275,15 +460,19 @@ class BinanceStreamManager {
       try {
         const data = JSON.parse(event.data);
         
-        if (data.e === '24hrMiniTicker') {
+        if (data.e === '24hrTicker') {
           const symbol = data.s.replace('USDT', '');
           const ticker: BinanceTickerData = {
             symbol,
             price: parseFloat(data.c),
-            priceChange: parseFloat(data.c) - parseFloat(data.o),
-            priceChangePercent: ((parseFloat(data.c) - parseFloat(data.o)) / parseFloat(data.o)) * 100,
+            priceChange: parseFloat(data.p),
+            priceChangePercent: parseFloat(data.P),
             volume: parseFloat(data.v),
             quoteVolume: parseFloat(data.q),
+            high24h: parseFloat(data.h),
+            low24h: parseFloat(data.l),
+            bid: parseFloat(data.b),
+            ask: parseFloat(data.a),
             lastUpdate: Date.now(),
           };
           
@@ -323,8 +512,11 @@ class BinanceStreamManager {
   }
 
   getTicker(symbol: string): BinanceTickerData | undefined {
-    return this.tickers.get(symbol.toUpperCase());
+    return this.tickers.get(symbol.toUpperCase().replace('USDT', ''));
   }
 }
 
 export const binanceStreamManager = BinanceStreamManager.getInstance();
+
+// ========== CONVENIENCE EXPORTS ==========
+export default useBinanceWebSocket;
