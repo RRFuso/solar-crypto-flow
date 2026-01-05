@@ -1,10 +1,12 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import CryptoLogo from '@/components/ai/CryptoLogo';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { CryptoData } from '@/types/crypto';
 import { useTooltip } from '@/contexts/TooltipContext';
 import { useOnChainData } from '@/contexts/OnChainDataContext';
+import { useRealtimePrice } from '@/contexts/BinanceWebSocketContext';
+import { WebSocketIndicator } from '@/components/ui/WebSocketIndicator';
 
 interface CryptoCardProps {
   crypto: CryptoData;
@@ -27,9 +29,17 @@ const CryptoCard: React.FC<CryptoCardProps> = ({
   const { showTooltip, hideTooltip } = useTooltip();
   const { requestOnChainData } = useOnChainData();
   
-  const displayPrice = price || 0;
-  const displayVolume = volume24h ? volume24h / 1_000_000 : 0; // Assuming volume is in USD
-  const performance = change24h || 0;
+  // WebSocket real-time price
+  const wsSymbol = (symbol || id).toUpperCase();
+  const realtimeTicker = useRealtimePrice(wsSymbol);
+  
+  // Use WebSocket price if available, fallback to prop
+  const displayPrice = realtimeTicker?.price ?? price ?? 0;
+  const displayVolume = realtimeTicker?.quoteVolume 
+    ? realtimeTicker.quoteVolume / 1_000_000 
+    : (volume24h ? volume24h / 1_000_000 : 0);
+  const performance = realtimeTicker?.priceChangePercent ?? change24h ?? 0;
+  const isWsConnected = !!realtimeTicker;
 
   // Request on-chain data for this crypto
   useEffect(() => {
@@ -59,7 +69,10 @@ const CryptoCard: React.FC<CryptoCardProps> = ({
       onMouseLeave={handleMouseLeave}
     >
       <div className="flex items-center space-x-4">
-        <CryptoLogo symbol={symbol || id} className="w-10 h-10 rounded-full" />
+        <div className="relative">
+          <CryptoLogo symbol={symbol || id} className="w-10 h-10 rounded-full" />
+          <WebSocketIndicator isConnected={isWsConnected} className="absolute -top-1 -right-1" />
+        </div>
         <div>
           <h3 className="text-lg font-semibold">{name}</h3>
           <p className="text-sm text-gray-400">{symbol || id}/USDT</p>

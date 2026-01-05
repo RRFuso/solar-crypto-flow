@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useCryptoData } from "@/hooks/useCryptoData";
 import CryptoChart from './CryptoChart';
 import { Bitcoin, Search } from 'lucide-react';
@@ -18,6 +18,8 @@ import DivergenciaBearTab from './crypto/tabs/DivergenciaBearTab';
 import ExplosiveTab from './crypto/tabs/ExplosiveTab';
 import CryptoSettings from './crypto/CryptoSettings';
 import { CryptoData } from '@/types/crypto';
+import { useBinanceWebSocket } from '@/hooks/useBinanceWebSocket';
+import { WebSocketIndicator } from '@/components/ui/WebSocketIndicator';
 
 const CryptoPanel = () => {
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoData>({ id: 'BTC', name: 'Bitcoin', performance: 0 });
@@ -40,9 +42,19 @@ const CryptoPanel = () => {
     dataSource: dataSource, // Pass the data source
   });
 
+  // Extract symbols for WebSocket subscription
+  const wsSymbols = useMemo(() => 
+    cryptos.slice(0, 50).map(c => (c.symbol || c.id).toUpperCase()),
+    [cryptos]
+  );
+  
+  // Subscribe to WebSocket for all visible cryptos
+  const { isConnected: wsConnected } = useBinanceWebSocket(wsSymbols);
+
   console.log("CryptoPanel - isLoading:", isLoading);
   console.log("CryptoPanel - error:", error);
   console.log("CryptoPanel - cryptos count:", cryptos.length);
+  console.log("CryptoPanel - WebSocket connected:", wsConnected);
 
   const handleSelectCrypto = useCallback((crypto: CryptoData) => {
     setSelectedCrypto(crypto);
@@ -104,7 +116,10 @@ const CryptoPanel = () => {
         {/* Header with filters */}
         <div className="p-4 border-b border-gray-800 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-white">Criptomoedas</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-white">Criptomoedas</h2>
+              <WebSocketIndicator isConnected={wsConnected} showLabel />
+            </div>
             <CryptoSettings 
               settings={settings}
               onSettingsChange={setSettings}
