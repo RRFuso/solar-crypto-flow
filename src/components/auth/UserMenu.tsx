@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { User, LogOut, Database, CreditCard, Settings } from 'lucide-react';
+import { User, LogOut, Database, CreditCard, Settings, Activity } from 'lucide-react';
 import { CreditDisplay } from '@/components/credits/CreditDisplay';
 import { useUserRole } from '@/hooks/useUserRole';
 import { UserProfileDialog } from '@/components/user-profile/UserProfileDialog';
@@ -17,12 +17,14 @@ interface UserMenuProps {
   openDataPopulationModal: () => void;
   openSubscriptionModal: () => void;
   openAuthModal: () => void;
+  openMetricsDashboard?: () => void;
 }
 
 const UserMenu: React.FC<UserMenuProps> = ({ 
   openDataPopulationModal, 
   openSubscriptionModal,
-  openAuthModal 
+  openAuthModal,
+  openMetricsDashboard
 }) => {
   const { user, signOut, subscriptionPlan } = useAuth();
   const { isAdmin } = useUserRole();
@@ -63,6 +65,13 @@ const UserMenu: React.FC<UserMenuProps> = ({
               <DropdownMenuSeparator className="bg-gray-700" />
               {isAdmin && (
                 <>
+                  <DropdownMenuItem
+                    onClick={openMetricsDashboard}
+                    className="hover:bg-gray-700 cursor-pointer"
+                  >
+                    <Activity className="h-4 w-4 mr-2" />
+                    API Metrics
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={openDataPopulationModal}
                     className="hover:bg-gray-700 cursor-pointer"

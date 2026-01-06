@@ -12,6 +12,7 @@ import { OnChainDataProvider } from '@/contexts/OnChainDataContext';
 import { FlowControlsProvider, useFlowControls } from '@/contexts/FlowControlsContext';
 import { useAuth } from "@/contexts/AuthContext";
 import DataPopulationPanel from "@/components/admin/DataPopulationPanel";
+import ApiMetricsDashboard from "@/components/admin/ApiMetricsDashboard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SubscriptionPlans } from "@/components/subscription/SubscriptionPlans";
 import FlowControls from "@/components/capital-flow/panel/FlowControls";
@@ -29,6 +30,7 @@ const IndexContent = () => {
   const [isDataPopulationModalOpen, setIsDataPopulationModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isMetricsDashboardOpen, setIsMetricsDashboardOpen] = useState(false);
   const { user } = useAuth();
   const { canAccessFlow, getMaxFlows } = useCredits();
 
@@ -182,12 +184,14 @@ const IndexContent = () => {
                     openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
                     openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
                     openAuthModal={() => setIsAuthModalOpen(true)}
+                    openMetricsDashboard={() => setIsMetricsDashboardOpen(true)}
                   />
                 ) : (
                   <UserMenu 
                     openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
                     openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
                     openAuthModal={() => setIsAuthModalOpen(true)}
+                    openMetricsDashboard={() => setIsMetricsDashboardOpen(true)}
                   />
                 )}
               </div>
@@ -222,12 +226,14 @@ const IndexContent = () => {
                   openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
                   openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
                   openAuthModal={() => setIsAuthModalOpen(true)}
+                  openMetricsDashboard={() => setIsMetricsDashboardOpen(true)}
                 />
               ) : (
                 <UserMenu 
                   openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
                   openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
                   openAuthModal={() => setIsAuthModalOpen(true)}
+                  openMetricsDashboard={() => setIsMetricsDashboardOpen(true)}
                 />
               )}
             </div>
@@ -317,6 +323,15 @@ const IndexContent = () => {
               <DialogTitle>Login / Cadastro</DialogTitle>
             </DialogHeader>
             <Auth />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isMetricsDashboardOpen} onOpenChange={setIsMetricsDashboardOpen}>
+          <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>API Metrics Dashboard</DialogTitle>
+            </DialogHeader>
+            <ApiMetricsDashboard />
           </DialogContent>
         </Dialog>
       </DashboardLayout>
