@@ -1,11 +1,18 @@
-
 import { supabase } from '@/integrations/supabase/client';
+import { ApiUsageTracker } from './api-usage-tracker';
 
 export const fetchCoinGeckoData = async (endpoint: string, params?: Record<string, any>) => {
+  const startTime = performance.now();
+  
   try {
     const { data, error } = await supabase.functions.invoke('secure-coingecko-proxy', {
       body: { endpoint, params }
     });
+
+    const responseTime = performance.now() - startTime;
+    
+    // Track request - proxy handles caching, assume live for tracking
+    ApiUsageTracker.trackRequest('coingecko', endpoint, false, responseTime);
 
     if (error) {
       console.error(`Error calling CoinGecko proxy for endpoint ${endpoint}:`, error);

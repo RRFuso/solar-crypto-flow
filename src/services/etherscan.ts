@@ -1,6 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
+import { ApiUsageTracker } from './api-usage-tracker';
 
 export const fetchEtherscanData = async (params: Record<string, any>, chainId: number) => {
+  const startTime = performance.now();
+  const endpoint = `${params.module}/${params.action}`;
+  
   try {
     const { data, error } = await supabase.functions.invoke('secure-api-proxy', {
       body: {
@@ -11,6 +15,11 @@ export const fetchEtherscanData = async (params: Record<string, any>, chainId: n
         }
       }
     });
+
+    const responseTime = performance.now() - startTime;
+    
+    // Track request (Etherscan costs ~$0.0005 per request)
+    ApiUsageTracker.trackRequest('etherscan', endpoint, false, responseTime);
 
     if (error) {
       console.error('Secure API proxy error:', error);
@@ -57,5 +66,5 @@ export const getERC20TokenTransfers = async (address: string, chainId: number, s
     startblock,
     endblock,
     sort,
-  }, chainId);
+  }, chainId)
 };
