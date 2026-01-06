@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { fetchCoinGeckoData } from '@/services/coingecko';
+import { ApiUsageTracker } from './api-usage-tracker';
 
 export type FlowSentiment = 'Bullish' | 'Bearish' | 'Neutral';
 

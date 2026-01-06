@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { ApiUsageTracker } from './api-usage-tracker';
 
 interface TokenMetrics {
   symbol: string;
@@ -13,8 +14,14 @@ export class AlternativeOnChainProvider {
   
   // Fetch data from CoinGlass (funding rates, liquidations)
   async fetchCoinGlassData(symbol: string): Promise<Partial<TokenMetrics>> {
+    const startTime = performance.now();
+    
     try {
       const response = await fetch(`https://api.coinglass.com/api/exchange/balance/list?symbol=${symbol.toUpperCase()}`);
+      
+      const responseTime = performance.now() - startTime;
+      ApiUsageTracker.trackRequest('coinglass', `/exchange/balance/${symbol}`, false, responseTime);
+      
       if (!response.ok) {
         throw new Error(`CoinGlass API error: ${response.status}`);
       }
@@ -46,9 +53,15 @@ export class AlternativeOnChainProvider {
 
   // Fetch data from DeFiLlama (TVL, protocol data)
   async fetchDefiLlamaData(symbol: string): Promise<Partial<TokenMetrics>> {
+    const startTime = performance.now();
+    
     try {
       // This would integrate with DeFiLlama API for TVL and protocol metrics
       const response = await fetch(`https://api.llama.fi/protocol/${symbol.toLowerCase()}`);
+      
+      const responseTime = performance.now() - startTime;
+      ApiUsageTracker.trackRequest('defillama', `/protocol/${symbol}`, false, responseTime);
+      
       if (response.ok) {
         const data = await response.json();
         return {

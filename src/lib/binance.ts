@@ -1,8 +1,8 @@
 import { BinanceTicker, BinanceKline } from '@/types/binance';
 import { filterValidTickers } from './tickerValidation';
+import { ApiUsageTracker } from '@/services/api-usage-tracker';
 
 const BINANCE_API_URL = 'https://api.binance.com/api/v3';
-
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -38,11 +38,16 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3): P
 };
 
 export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => {
+  const startTime = performance.now();
+  
   try {
     console.log('Fetching tickers from Binance...');
     const response = await fetchWithRetry(`${BINANCE_API_URL}/ticker/24hr`, {
       method: 'GET',
     });
+    
+    const responseTime = performance.now() - startTime;
+    ApiUsageTracker.trackRequest('binance', '/ticker/24hr', false, responseTime);
     
     const data = await response.json();
     console.log("Raw Binance API response:", data);
@@ -59,6 +64,8 @@ export const fetchTickers = async (): Promise<Record<string, BinanceTicker>> => 
 };
 
 export const fetchKlines = async (symbol: string, interval: string, options?: { startTime?: number; endTime?: number; limit?: number }): Promise<BinanceKline[]> => {
+  const startTime = performance.now();
+  
   try {
     console.log(`Fetching klines for ${symbol}...`);
     const url = `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}${options?.startTime ? `&startTime=${options.startTime}` : ''}${options?.endTime ? `&endTime=${options.endTime}` : ''}${options?.limit ? `&limit=${options.limit}` : ''}`;
@@ -69,6 +76,9 @@ export const fetchKlines = async (symbol: string, interval: string, options?: { 
         method: 'GET',
       }
     );
+
+    const responseTime = performance.now() - startTime;
+    ApiUsageTracker.trackRequest('binance', `/klines/${symbol}`, false, responseTime);
 
     const data = await response.json();
     console.log(`Successfully fetched klines for ${symbol}`);
