@@ -2,7 +2,6 @@
 import React, { memo } from 'react';
 import FlowControls from './panel/FlowControls';
 import SolarSystemSection from './panel/SolarSystemSection';
-import SolarAnalystSection from './panel/SolarAnalystSection';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
 
@@ -90,9 +89,6 @@ const CapitalFlowPanel: React.FC<CapitalFlowPanelProps> = ({
           />
         </div>
       </div>
-
-      {/* Floating Chat - Solar Analyst (Separate section) */}
-      <SolarAnalystSection isFloating={true} />
     </div>
   );
 };

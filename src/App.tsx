@@ -9,7 +9,6 @@ import { TooltipProvider, useTooltip } from "@/contexts/TooltipContext";
 import { OnChainDataProvider } from "@/contexts/OnChainDataContext";
 import { BinanceWebSocketProvider } from "@/contexts/BinanceWebSocketContext";
 import { UnifiedTooltip } from "@/components/ui/UnifiedTooltip";
-import ModernAIChatPanel from "@/components/ai/ModernAIChatPanel";
 import Index from "./pages/Index";
 import "./App.css";
 
@@ -34,9 +33,6 @@ function App() {
             <RouterProvider router={router} />
             <Toaster />
             <TooltipRenderer />
-            <div className="fixed bottom-4 right-4 z-50">
-              <ModernAIChatPanel />
-            </div>
           </TooltipProvider>
         </OnChainDataProvider>
       </BinanceWebSocketProvider>

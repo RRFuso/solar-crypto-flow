@@ -1,7 +1,4 @@
 
-// Stablecoins que sempre aparecem junto com BTC
-export const FIXED_COINS = ['BTC', 'USDT', 'USDC', 'DAI', 'BUSD'];
-
 // Listas predefinidas estratégicas
 export const PREDEFINED_LISTS = {
   // Paginação por ranking (0-99, 100-199, etc.)

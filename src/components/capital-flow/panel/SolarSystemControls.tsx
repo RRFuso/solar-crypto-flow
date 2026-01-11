@@ -56,6 +56,8 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
     infrastructure: '🔗 Infrastructure',
   };
 
+  const fixedCoins = ['BTC', ...CRYPTO_CATEGORIES.stablecoin];
+
   return (
     <div className="flex flex-col gap-2 p-2 bg-slate-900/50 backdrop-blur-sm border-b border-slate-700/50">
       {/* Search bar */}
@@ -78,15 +80,11 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
             <SelectValue placeholder="Selecionar lista" />
           </SelectTrigger>
           <SelectContent className="bg-slate-800 border-slate-600">
-            <SelectItem value="top-100" className="text-white hover:bg-slate-700">Top 1-100</SelectItem>
-            <SelectItem value="top-200" className="text-white hover:bg-slate-700">Top 100-200</SelectItem>
-            <SelectItem value="top-300" className="text-white hover:bg-slate-700">Top 200-300</SelectItem>
-            <SelectItem value="top-400" className="text-white hover:bg-slate-700">Top 300-400</SelectItem>
-            <SelectItem value="top-500" className="text-white hover:bg-slate-700">Top 400-500</SelectItem>
-            <SelectItem value="volume-spike" className="text-white hover:bg-slate-700">📊 Volume Spike</SelectItem>
-            <SelectItem value="gainers" className="text-white hover:bg-slate-700">🚀 Top Gainers</SelectItem>
-            <SelectItem value="losers" className="text-white hover:bg-slate-700">📉 Top Losers</SelectItem>
-            <SelectItem value="attention" className="text-white hover:bg-slate-700">👀 Alta Atenção</SelectItem>
+            {Object.entries(PREDEFINED_LISTS).map(([key, value]) => (
+              <SelectItem key={key} value={key} className="text-white hover:bg-slate-700">
+                {value.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
@@ -151,13 +149,13 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
       )}
 
       {/* Fixed coins indicator */}
-      <div className="flex items-center gap-1 text-xs text-slate-500">
+      <div className="flex items-center gap-1 text-xs text-slate-500 overflow-x-auto">
         <span>📌 Fixos:</span>
-        <Badge variant="outline" className="text-[10px] py-0 bg-yellow-500/10 text-yellow-400 border-yellow-500/30">BTC</Badge>
-        <Badge variant="outline" className="text-[10px] py-0 bg-green-500/10 text-green-400 border-green-500/30">USDT</Badge>
-        <Badge variant="outline" className="text-[10px] py-0 bg-blue-500/10 text-blue-400 border-blue-500/30">USDC</Badge>
-        <Badge variant="outline" className="text-[10px] py-0 bg-amber-500/10 text-amber-400 border-amber-500/30">DAI</Badge>
-        <Badge variant="outline" className="text-[10px] py-0 bg-yellow-600/10 text-yellow-500 border-yellow-600/30">BUSD</Badge>
+        {fixedCoins.map(coin => (
+          <Badge key={coin} variant="outline" className="text-[10px] py-0 bg-gray-500/10 text-gray-400 border-gray-500/30">
+            {coin}
+          </Badge>
+        ))}
       </div>
     </div>
   );

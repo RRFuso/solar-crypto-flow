@@ -1,7 +1,7 @@
 
 import { useMemo, useState, useCallback } from 'react';
 import { FlowData } from '@/types/crypto';
-import { FIXED_COINS, getCategoryForSymbol, belongsToCategory } from '@/components/capital-flow/constants/predefinedLists';
+import { CRYPTO_CATEGORIES, getCategoryForSymbol, belongsToCategory } from '@/components/capital-flow/constants/predefinedLists';
 
 interface UsePaginatedCryptosOptions {
   flowData: FlowData[];
@@ -41,6 +41,8 @@ export function usePaginatedCryptos({
   const [currentList, setCurrentList] = useState(initialList);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+
+  const fixedCoins = useMemo(() => ['BTC', ...CRYPTO_CATEGORIES.stablecoin], []);
 
   // Filter and sort data based on current list type
   const filteredData = useMemo(() => {
@@ -98,7 +100,7 @@ export function usePaginatedCryptos({
     const symbols = new Set<string>();
     
     // Always add fixed coins first
-    FIXED_COINS.forEach(coin => symbols.add(coin));
+    fixedCoins.forEach(coin => symbols.add(coin));
     
     // Add symbols from filtered data
     filteredData.forEach(item => {
@@ -107,20 +109,20 @@ export function usePaginatedCryptos({
     });
     
     return Array.from(symbols);
-  }, [filteredData]);
+  }, [filteredData, fixedCoins]);
 
   // Calculate pagination
   const totalCryptos = uniqueSymbols.length;
-  const totalPages = Math.max(1, Math.ceil((totalCryptos - FIXED_COINS.length) / pageSize));
+  const totalPages = Math.max(1, Math.ceil((totalCryptos - fixedCoins.length) / pageSize));
 
   // Get paginated data
   const paginatedData = useMemo(() => {
     // Get the symbols for current page (excluding fixed coins from pagination)
-    const nonFixedSymbols = uniqueSymbols.filter(s => !FIXED_COINS.includes(s));
+    const nonFixedSymbols = uniqueSymbols.filter(s => !fixedCoins.includes(s));
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     const pageSymbols = new Set([
-      ...FIXED_COINS,
+      ...fixedCoins,
       ...nonFixedSymbols.slice(startIndex, endIndex)
     ]);
 
@@ -128,7 +130,7 @@ export function usePaginatedCryptos({
     return filteredData.filter(item => 
       pageSymbols.has(item.from) || pageSymbols.has(item.to)
     );
-  }, [filteredData, uniqueSymbols, currentPage, pageSize]);
+  }, [filteredData, uniqueSymbols, currentPage, pageSize, fixedCoins]);
 
   // Navigation actions
   const goToPage = useCallback((page: number) => {

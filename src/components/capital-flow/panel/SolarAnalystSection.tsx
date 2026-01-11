@@ -34,15 +34,9 @@ const SolarAnalystSection: React.FC<SolarAnalystSectionProps> = ({
   if (!isFloating) {
     // Embedded version (full height)
     return (
-      <div className="h-full flex flex-col bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
-        <div className="p-3 border-b border-slate-700 bg-gradient-to-r from-purple-900/50 to-pink-900/50">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🤖</span>
-            <div>
-              <h3 className="font-semibold text-white text-sm">Analista Solar</h3>
-              <p className="text-[10px] text-slate-400">Assistente de análise educativa</p>
-            </div>
-          </div>
+      <div className="h-full flex flex-col bg-gray-900 border border-slate-700 rounded-lg overflow-hidden">
+        <div className="p-3 border-b border-slate-700 bg-gradient-to-r from-purple-900/50 to-pink-900/50 text-center">
+          <h3 className="font-semibold text-white text-lg">Analista Solar</h3>
         </div>
         <div className="flex-1 overflow-hidden">
           <Suspense fallback={<ChatSkeleton />}>

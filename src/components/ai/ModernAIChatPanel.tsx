@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Bot, ChevronsUp, MessageSquare } from 'lucide-react';
+import { Send, Loader2, Bot } from 'lucide-react';
 import { ChatMessage } from '@/types/ai_analyst';
 import { getAIChatResponse } from '@/lib/ai_analyst';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import astronautAvatar from '@/assets/astronaut-avatar.png';
 
@@ -18,7 +18,6 @@ const ModernAIChatPanel: React.FC = () => {
   ]);
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -26,10 +25,8 @@ const ModernAIChatPanel: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!isMinimized) {
-      scrollToBottom();
-    }
-  }, [messages, isMinimized]);
+    scrollToBottom();
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!userInput.trim() || isLoading) return;
@@ -60,91 +57,59 @@ const ModernAIChatPanel: React.FC = () => {
     }
   };
 
-  if (isMinimized) {
-    return (
-      <Button
-        onClick={() => setIsMinimized(false)}
-        className="rounded-full w-16 h-16 bg-primary hover:bg-primary/90 shadow-lg"
-      >
-        <MessageSquare className="h-8 w-8 text-primary-foreground" />
-      </Button>
-    );
-  }
-
   return (
-    <Card className="w-[400px] h-[600px] flex flex-col bg-card/50 backdrop-blur-sm border-border/50 shadow-2xl">
-      {/* Header */}
-      <div className="p-4 border-b border-border/50 bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-10 w-10 ring-2 ring-primary/20">
-            <AvatarImage src={astronautAvatar} alt="Analista Solar" />
-            <AvatarFallback className="bg-primary/20">
-              <Bot className="h-5 w-5" />
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h3 className="font-semibold text-foreground">Analista Solar</h3>
-            <p className="text-sm text-muted-foreground">
-              {isLoading ? 'Analisando dados...' : 'Online'}
-            </p>
-          </div>
-        </div>
-        <Button variant="ghost" size="icon" onClick={() => setIsMinimized(true)}>
-          <ChevronsUp className="h-5 w-5" />
-        </Button>
-      </div>
-
+    <Card className="w-full h-full flex flex-col bg-transparent shadow-none border-none">
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
+      <ScrollArea className="flex-1 p-6">
+        <div className="space-y-6">
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`flex gap-3 animate-fade-in ${
+              className={`flex gap-4 animate-fade-in ${
                 msg.sender === 'user' ? 'justify-end' : 'justify-start'
               }`}
             >
               {msg.sender === 'ai' && (
-                <Avatar className="h-8 w-8 ring-1 ring-primary/20 shrink-0">
+                <Avatar className="h-10 w-10 ring-2 ring-primary/20 shrink-0">
                   <AvatarImage src={astronautAvatar} alt="Analista Solar" />
                   <AvatarFallback className="bg-primary/20 text-xs">
-                    <Bot className="h-4 w-4" />
+                    <Bot className="h-5 w-5" />
                   </AvatarFallback>
                 </Avatar>
               )}
               
               <div
-                className={`max-w-[70%] p-3 rounded-2xl ${
+                className={`max-w-[80%] p-4 rounded-2xl ${
                   msg.sender === 'user'
-                    ? 'bg-primary text-primary-foreground ml-auto'
-                    : 'bg-secondary/50 text-secondary-foreground border border-border/30'
+                    ? 'bg-blue-600 text-white ml-auto'
+                    : 'bg-slate-800 text-slate-200 border border-slate-700'
                 }`}
               >
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                <p className="text-base leading-relaxed whitespace-pre-wrap">
                   {msg.text}
                 </p>
               </div>
               
               {msg.sender === 'user' && (
-                <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                  <span className="text-xs font-medium text-primary">Você</span>
+                <div className="h-10 w-10 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-medium text-slate-300">Você</span>
                 </div>
               )}
             </div>
           ))}
           
           {isLoading && (
-            <div className="flex gap-3 animate-fade-in">
-              <Avatar className="h-8 w-8 ring-1 ring-primary/20 shrink-0">
+            <div className="flex gap-4 animate-fade-in">
+              <Avatar className="h-10 w-10 ring-1 ring-primary/20 shrink-0">
                 <AvatarImage src={astronautAvatar} alt="Analista Solar" />
                 <AvatarFallback className="bg-primary/20 text-xs">
-                  <Bot className="h-4 w-4" />
+                  <Bot className="h-5 w-5" />
                 </AvatarFallback>
               </Avatar>
-              <div className="bg-secondary/50 text-secondary-foreground border border-border/30 p-3 rounded-2xl">
+              <div className="bg-slate-800 text-slate-200 border border-slate-700 p-4 rounded-2xl">
                 <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">Analisando...</span>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span className="text-base">Analisando...</span>
                 </div>
               </div>
             </div>
@@ -154,30 +119,31 @@ const ModernAIChatPanel: React.FC = () => {
       </ScrollArea>
 
       {/* Input */}
-      <div className="p-4 border-t border-border/50 bg-card/30">
-        <div className="flex gap-2">
-          <Input
+      <div className="p-4 border-t border-slate-700 bg-slate-900/50">
+        <div className="flex gap-4 items-start">
+          <Textarea
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Pergunte sobre o mercado..."
             disabled={isLoading}
-            className="flex-1 bg-background/50 border-border/50 focus:ring-primary/20"
+            className="flex-1 bg-slate-800 border-slate-700 focus:ring-blue-500 text-base resize-none"
+            rows={3}
           />
           <Button
             onClick={handleSendMessage}
             disabled={isLoading || !userInput.trim()}
-            size="sm"
-            className="bg-primary hover:bg-primary/80 text-primary-foreground"
+            size="lg"
+            className="bg-blue-600 hover:bg-blue-700 text-white h-full"
           >
             {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              <Send className="h-4 w-4" />
+              <Send className="h-5 w-5" />
             )}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
+        <p className="text-xs text-slate-500 mt-2 text-center">
           Powered by Lovable AI
         </p>
       </div>

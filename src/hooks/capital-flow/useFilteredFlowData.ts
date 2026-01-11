@@ -1,7 +1,7 @@
 
 import { useMemo } from 'react';
 import { FlowData } from '@/types/crypto';
-import { getCategoriesForSymbol } from '@/lib/marketData/categoryMapping';
+import { getCategoriesForSymbol, belongsToCategory } from '@/lib/marketData/categoryMapping';
 
 export const useFilteredFlowData = (
   flowData: FlowData[] | undefined, 
@@ -12,18 +12,32 @@ export const useFilteredFlowData = (
   const processedFlowData = useMemo(() => {
     if (!flowData) return [];
     
-    // Sort by value (volume) to get the most significant flows
-    let sortedFlows = [...flowData].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+    // Separate stablecoins and other tokens
+    const stablecoins = flowData.filter(flow => 
+      belongsToCategory(flow.from, 'stablecoin') || belongsToCategory(flow.to, 'stablecoin')
+    );
     
-    // Enrich flows with category data for both `from` and `to` symbols
-    const enrichedFlows = sortedFlows.map(flow => ({
+    const otherFlows = flowData.filter(flow => 
+      !belongsToCategory(flow.from, 'stablecoin') && !belongsToCategory(flow.to, 'stablecoin')
+    );
+    
+    // Sort other flows by value to get the most significant ones
+    let sortedOtherFlows = [...otherFlows].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+    
+    // Take the top N flows from the non-stablecoin list
+    const topOtherFlows = sortedOtherFlows.slice(0, flowLimit);
+    
+    // Combine stablecoin flows and the top other flows
+    const combinedFlows = [...stablecoins, ...topOtherFlows];
+    
+    // Enrich flows with category data
+    const enrichedFlows = combinedFlows.map(flow => ({
       ...flow,
       fromCategories: getCategoriesForSymbol(flow.from),
       toCategories: getCategoriesForSymbol(flow.to),
     }));
     
-    // Limit to the top N flows to reduce visual clutter
-    return enrichedFlows.slice(0, flowLimit);
+    return enrichedFlows;
   }, [flowData, flowLimit]);
 
   return processedFlowData;
