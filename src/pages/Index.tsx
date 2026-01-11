@@ -3,7 +3,6 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import CryptoPanel from "@/components/CryptoPanel";
 import CapitalFlowPanel from "@/components/capital-flow/CapitalFlowPanel";
 import { GapMonitorPanel } from "@/components/gap-monitor";
 import Auth from "@/components/auth/Auth";
@@ -198,24 +197,18 @@ const IndexContent = () => {
             </div>
 
             <div className="flex-grow w-full md:w-auto flex justify-center px-0 md:px-2 mt-2 md:mt-0">
-              <TabsList className="grid w-full max-w-3xl grid-cols-3 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 h-10 md:h-10">
+              <TabsList className="grid w-full max-w-2xl grid-cols-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 h-10 md:h-10">
                 <TabsTrigger 
                   value="capital-flow" 
                   className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs md:text-sm px-2 py-1"
                 >
-                  💰 Capital Flow
+                  ☀️ Sistema Solar
                 </TabsTrigger>
                 <TabsTrigger 
                   value="gap-monitor" 
                   className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs md:text-sm px-2 py-1"
                 >
                   📉 CME GAPs
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="crypto" 
-                  className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs md:text-sm px-2 py-1"
-                >
-                  📊 Market Data
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -290,9 +283,6 @@ const IndexContent = () => {
               <div className="p-4">
                 <GapMonitorPanel />
               </div>
-            </TabsContent>
-            <TabsContent value="crypto" className="h-full w-full">
-              <CryptoPanel />
             </TabsContent>
           </div>
         </Tabs>

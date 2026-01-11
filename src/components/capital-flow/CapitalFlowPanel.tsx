@@ -1,8 +1,9 @@
 
 import React, { memo } from 'react';
-import { FlowPanelHeader } from './panel/FlowPanelHeader';
 import FlowControls from './panel/FlowControls';
-import { FlowVisualizationContent } from './panel/FlowVisualizationContent';
+import SolarSystemSection from './panel/SolarSystemSection';
+import AIWatchlistSection from './panel/AIWatchlistSection';
+import SolarAnalystSection from './panel/SolarAnalystSection';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
 
@@ -50,64 +51,66 @@ const CapitalFlowPanel: React.FC<CapitalFlowPanelProps> = ({
   setShowLines,
 }) => {
   return (
-    <div className="h-full w-full flex flex-col md:flex-row overflow-hidden p-1 md:p-4 gap-1 md:gap-4 capital-flow-panel">
-      {/* Left Sidebar - AI Watchlist */}
-      <div className="w-full md:w-96 flex-shrink-0 border-r border-slate-700/50 bg-slate-900/40 backdrop-blur-sm rounded-lg overflow-hidden capital-flow-sidebar">
-        <FlowVisualizationContent 
-          isLoading={isLoading}
-          error={error}
-          processedFlowData={processedFlowData}
-          zoomLevel={zoomLevel}
-          filteredPredictions={filteredPredictions}
+    <div className="h-full w-full flex flex-col md:flex-row overflow-hidden p-1 md:p-2 gap-1 md:gap-2 capital-flow-panel">
+      {/* Left Sidebar - AI Watchlist (Separate section for performance) */}
+      <div className="hidden md:block w-80 flex-shrink-0 overflow-hidden">
+        <AIWatchlistSection 
+          predictions={filteredPredictions} 
           chartTimeframe={chartTimeframe}
-          activeCategory={activeCategory}
-          showSidebarOnly={true}
-          showLines={showLines}
+          maxItems={15}
         />
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden rounded-lg capital-flow-main">
+      {/* Main Content Area - Solar System */}
+      <div className="flex-1 flex flex-col overflow-hidden rounded-lg bg-slate-900/40 backdrop-blur-sm border border-slate-700/50">
         {/* Header Controls for Desktop */}
         <div className="hidden md:flex flex-shrink-0 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm z-10">
-          <div className="p-3 w-full">
+          <div className="p-2 w-full">
             <div className="flex flex-row items-center justify-center gap-4 flex-wrap">
-              <div>
-                <FlowControls
-                  chartTimeframe={chartTimeframe}
-                  onChartTimeframeChange={handleChartTimeframeChange}
-                  showOnlyStrongSignals={showOnlyStrongSignals}
-                  setShowOnlyStrongSignals={setShowOnlyStrongSignals}
-                  zoomLevel={zoomLevel}
-                  handleZoomIn={handleZoomIn}
-                  handleZoomOut={handleZoomOut}
-                  flowLimit={flowLimit}
-                  handleLimitChange={handleLimitChange}
-                  selectedCategory={selectedCategory}
-                  setSelectedCategory={setSelectedCategory}
-                  onRefresh={refetch}
-                  showLines={showLines}
-                  setShowLines={setShowLines}
-                />
-              </div>
+              <FlowControls
+                chartTimeframe={chartTimeframe}
+                onChartTimeframeChange={handleChartTimeframeChange}
+                showOnlyStrongSignals={showOnlyStrongSignals}
+                setShowOnlyStrongSignals={setShowOnlyStrongSignals}
+                zoomLevel={zoomLevel}
+                handleZoomIn={handleZoomIn}
+                handleZoomOut={handleZoomOut}
+                flowLimit={flowLimit}
+                handleLimitChange={handleLimitChange}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+                onRefresh={refetch}
+                showLines={showLines}
+                setShowLines={setShowLines}
+              />
             </div>
           </div>
         </div>
 
-        {/* Main Visualization */}
+        {/* Solar System Visualization */}
         <div className="flex-1 relative overflow-hidden">
-          <FlowVisualizationContent 
+          <SolarSystemSection
+            flowData={processedFlowData}
+            zoomLevel={zoomLevel}
+            predictions={filteredPredictions}
+            chartTimeframe={chartTimeframe}
+            showLines={showLines}
             isLoading={isLoading}
             error={error}
-            processedFlowData={processedFlowData}
-            zoomLevel={zoomLevel}
-            filteredPredictions={filteredPredictions}
-            chartTimeframe={chartTimeframe}
-            activeCategory={activeCategory}
-            showSidebarOnly={false}
-            showLines={showLines}
           />
         </div>
+      </div>
+
+      {/* Floating Chat - Solar Analyst (Separate section) */}
+      <SolarAnalystSection isFloating={true} />
+
+      {/* Mobile AI Watchlist - shows below on mobile */}
+      <div className="md:hidden w-full h-64 flex-shrink-0 overflow-hidden">
+        <AIWatchlistSection 
+          predictions={filteredPredictions} 
+          chartTimeframe={chartTimeframe}
+          maxItems={8}
+        />
       </div>
     </div>
   );
