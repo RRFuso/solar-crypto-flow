@@ -23,6 +23,7 @@ import { usePredictions } from '@/hooks/capital-flow/usePredictions';
 import { useCredits } from '@/hooks/useCredits';
 import { useRealtimeMarketData } from '@/hooks/useRealtimeMarketData';
 import { Badge } from '@/components/ui/badge';
+import AIWatchlistSection from "@/components/capital-flow/panel/AIWatchlistSection";
 
 const IndexContent = () => {
   const [activeTab, setActiveTab] = useState("capital-flow");
@@ -197,12 +198,18 @@ const IndexContent = () => {
             </div>
 
             <div className="flex-grow w-full md:w-auto flex justify-center px-0 md:px-2 mt-2 md:mt-0">
-              <TabsList className="grid w-full max-w-2xl grid-cols-2 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 h-10 md:h-10">
+              <TabsList className="grid w-full max-w-2xl grid-cols-3 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 h-10 md:h-10">
                 <TabsTrigger 
                   value="capital-flow" 
                   className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs md:text-sm px-2 py-1"
                 >
                   ☀️ Sistema Solar
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="ai-watchlist" 
+                  className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs md:text-sm px-2 py-1"
+                >
+                  🔮 AI Watchlist
                 </TabsTrigger>
                 <TabsTrigger 
                   value="gap-monitor" 
@@ -278,6 +285,15 @@ const IndexContent = () => {
                 refetch={refetch}
                 setShowLines={setShowLines}
               />
+            </TabsContent>
+            <TabsContent value="ai-watchlist" className="h-full w-full overflow-y-auto">
+              <div className="p-4">
+                <AIWatchlistSection 
+                  predictions={filteredPredictions} 
+                  chartTimeframe={chartTimeframe}
+                  maxItems={15}
+                />
+              </div>
             </TabsContent>
             <TabsContent value="gap-monitor" className="h-full w-full overflow-y-auto">
               <div className="p-4">

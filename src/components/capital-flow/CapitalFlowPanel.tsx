@@ -2,7 +2,6 @@
 import React, { memo } from 'react';
 import FlowControls from './panel/FlowControls';
 import SolarSystemSection from './panel/SolarSystemSection';
-import AIWatchlistSection from './panel/AIWatchlistSection';
 import SolarAnalystSection from './panel/SolarAnalystSection';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
@@ -52,15 +51,6 @@ const CapitalFlowPanel: React.FC<CapitalFlowPanelProps> = ({
 }) => {
   return (
     <div className="h-full w-full flex flex-col md:flex-row overflow-hidden p-1 md:p-2 gap-1 md:gap-2 capital-flow-panel">
-      {/* Left Sidebar - AI Watchlist (Separate section for performance) */}
-      <div className="hidden md:block w-80 flex-shrink-0 overflow-hidden">
-        <AIWatchlistSection 
-          predictions={filteredPredictions} 
-          chartTimeframe={chartTimeframe}
-          maxItems={15}
-        />
-      </div>
-
       {/* Main Content Area - Solar System */}
       <div className="flex-1 flex flex-col overflow-hidden rounded-lg bg-slate-900/40 backdrop-blur-sm border border-slate-700/50">
         {/* Header Controls for Desktop */}
@@ -103,15 +93,6 @@ const CapitalFlowPanel: React.FC<CapitalFlowPanelProps> = ({
 
       {/* Floating Chat - Solar Analyst (Separate section) */}
       <SolarAnalystSection isFloating={true} />
-
-      {/* Mobile AI Watchlist - shows below on mobile */}
-      <div className="md:hidden w-full h-64 flex-shrink-0 overflow-hidden">
-        <AIWatchlistSection 
-          predictions={filteredPredictions} 
-          chartTimeframe={chartTimeframe}
-          maxItems={8}
-        />
-      </div>
     </div>
   );
 };
