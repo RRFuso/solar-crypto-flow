@@ -58,8 +58,8 @@ Deno.serve(async (req) => {
       throw new Error(`Binance ticker API error: ${tickerResponse.status}`);
     }
 
-    const tickerData = await tickerResponse.json();
-    const tickerMap = new Map(tickerData.map((t: any) => [t.symbol, t]));
+    const tickerData: Array<{symbol: string; quoteVolume: string; priceChangePercent: string; lastPrice: string}> = await tickerResponse.json();
+    const tickerMap = new Map(tickerData.map((t) => [t.symbol, t]));
 
     // Enhance symbol data with ticker information
     const enhancedSymbols = usdtSymbols.map(symbol => {
@@ -141,11 +141,12 @@ Deno.serve(async (req) => {
       }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in Binance symbols fetcher:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: errorMessage,
         success: false 
       }),
       { 

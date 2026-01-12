@@ -8,6 +8,21 @@ const corsHeaders = {
   'X-XSS-Protection': '1; mode=block',
 };
 
+// Chain to Alchemy subdomain mapping
+const ALCHEMY_CHAIN_MAP: { [key: string]: string } = {
+  'ethereum': 'eth-mainnet',
+  'goerli': 'eth-goerli',
+  'sepolia': 'eth-sepolia',
+  'polygon': 'polygon-mainnet',
+  'polygon-mumbai': 'polygon-mumbai',
+  'arbitrum': 'arb-mainnet',
+  'arbitrum-goerli': 'arb-goerli',
+  'optimism': 'opt-mainnet',
+  'optimism-goerli': 'opt-goerli',
+  'base': 'base-mainnet',
+  'base-goerli': 'base-goerli',
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -26,21 +41,13 @@ serve(async (req) => {
       );
     }
 
-    const { endpoint, params } = requestBody;
+    const { endpoint, params, chain, rpcRequest } = requestBody;
     
     // Validate endpoint
-    const validEndpoints = ['etherscan', 'gemini'];
+    const validEndpoints = ['alchemy', 'gemini'];
     if (!endpoint || !validEndpoints.includes(endpoint)) {
       return new Response(
         JSON.stringify({ error: `Invalid endpoint. Must be one of: ${validEndpoints.join(', ')}` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Validate params is an object
-    if (params && typeof params !== 'object') {
-      return new Response(
-        JSON.stringify({ error: 'Invalid params format. Must be an object.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -55,23 +62,38 @@ serve(async (req) => {
     let response: Response;
     
     switch (endpoint) {
-      case 'etherscan': {
-        const etherscanKey = Deno.env.get('ETHERSCAN_API_KEY');
-        if (!etherscanKey) {
-          throw new Error('Etherscan API key not configured');
+      case 'alchemy': {
+        const alchemyKey = Deno.env.get('ALCHEMY_API_KEY');
+        if (!alchemyKey) {
+          throw new Error('Alchemy API key not configured');
         }
         
-        const baseUrl = params.chainid === 1 ? 'https://api.etherscan.io/api' : 'https://api.etherscan.io/v2/api';
-        const url = new URL(baseUrl);
-        Object.entries(params).forEach(([key, value]) => {
-          url.searchParams.set(key, String(value));
-        });
-        url.searchParams.set('apikey', etherscanKey);
+        // Validate rpcRequest
+        if (!rpcRequest || typeof rpcRequest !== 'object') {
+          return new Response(
+            JSON.stringify({ error: 'Invalid rpcRequest format. Must be an object with id, jsonrpc, method, and optional params.' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
         
-        response = await fetch(url.toString(), {
+        // Get the chain subdomain (default to ethereum mainnet)
+        const chainName = chain || 'ethereum';
+        const alchemySubdomain = ALCHEMY_CHAIN_MAP[chainName] || 'eth-mainnet';
+        
+        const url = `https://${alchemySubdomain}.g.alchemy.com/v2/${alchemyKey}`;
+        
+        response = await fetch(url, {
+          method: 'POST',
           headers: {
-            'User-Agent': 'Crypto-Dashboard/1.0'
-          }
+            'accept': 'application/json',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: rpcRequest.id || 1,
+            jsonrpc: rpcRequest.jsonrpc || '2.0',
+            method: rpcRequest.method,
+            params: rpcRequest.params || []
+          })
         });
         break;
       }
@@ -100,6 +122,23 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
     
+  } catch (error: unknown) {
+    console.error('Error in secure-api-proxy:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    return new Response(
+      JSON.stringify({ 
+        error: 'API request failed',
+        message: errorMessage 
+      }), 
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+});
   } catch (error) {
     console.error('Error in secure-api-proxy:', error);
     
