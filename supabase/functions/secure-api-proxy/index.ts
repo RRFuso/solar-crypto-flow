@@ -139,18 +139,3 @@ serve(async (req) => {
     );
   }
 });
-  } catch (error) {
-    console.error('Error in secure-api-proxy:', error);
-    
-    return new Response(
-      JSON.stringify({ 
-        error: 'API request failed',
-        message: error.message 
-      }), 
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-  }
-});
