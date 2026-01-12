@@ -71,46 +71,52 @@ async function fetchDuneData(queryId: string, parameters: any[] = []): Promise<a
   }
 }
 
-async function fetchEtherscanData(contractAddress: string, chainId: number = 1): Promise<any> {
-  const cacheKey = `etherscan:${contractAddress}:${chainId}`;
+async function fetchAlchemyData(contractAddress: string, chain: string = 'ethereum'): Promise<any> {
+  const cacheKey = `alchemy:${contractAddress}:${chain}`;
   
   const cached = await getCache<any>(cacheKey);
   if (cached) {
-    console.log(`[Redis] Using cached Etherscan data for ${contractAddress}`);
+    console.log(`[Redis] Using cached Alchemy data for ${contractAddress}`);
     return cached;
   }
 
-  const etherscanKey = Deno.env.get('ETHERSCAN_API_KEY');
-  if (!etherscanKey) {
-    throw new Error('ETHERSCAN_API_KEY not configured');
+  const alchemyKey = Deno.env.get('ALCHEMY_API_KEY');
+  if (!alchemyKey) {
+    throw new Error('ALCHEMY_API_KEY not configured');
   }
 
   try {
     const { data, error } = await supabase.functions.invoke('secure-api-proxy', {
       body: {
-        endpoint: 'etherscan',
-        params: {
-          module: 'account',
-          action: 'tokentx',
-          contractaddress: contractAddress,
-          page: 1,
-          offset: 100,
-          sort: 'desc',
-          chainid: chainId
+        endpoint: 'alchemy',
+        chain,
+        rpcRequest: {
+          id: 1,
+          jsonrpc: '2.0',
+          method: 'alchemy_getAssetTransfers',
+          params: [{
+            fromBlock: '0x0',
+            toBlock: 'latest',
+            category: ['erc20'],
+            withMetadata: true,
+            maxCount: '0x64', // 100
+            order: 'desc',
+            contractAddresses: [contractAddress]
+          }]
         }
       }
     });
 
     if (error) {
-      console.error('Etherscan fetch error:', error);
-      throw new Error(`Etherscan API error: ${error.message}`);
+      console.error('Alchemy fetch error:', error);
+      throw new Error(`Alchemy API error: ${error.message}`);
     }
 
     // Cache for 5 minutes
     await setCache(cacheKey, data, CacheTTL.WALLET_TX);
     return data;
   } catch (error) {
-    console.error('Error fetching Etherscan data:', error);
+    console.error('Error fetching Alchemy data:', error);
     throw error;
   }
 }
@@ -233,11 +239,11 @@ async function processSymbolData(symbol: string): Promise<OnChainMetrics> {
 
     if (contractData?.contract_address) {
       try {
-        const etherscanData = await fetchEtherscanData(contractData.contract_address);
-        const whaleMetrics = await calculateWhaleMetrics(etherscanData.result || [], symbol);
+        const alchemyData = await fetchAlchemyData(contractData.contract_address, contractData.chain || 'ethereum');
+        const whaleMetrics = await calculateWhaleMetrics(alchemyData?.result?.transfers || [], symbol);
         metrics = { ...metrics, ...whaleMetrics };
       } catch (error) {
-        console.error(`Error processing Etherscan data for ${symbol}:`, error);
+        console.error(`Error processing Alchemy data for ${symbol}:`, error);
       }
     }
 
@@ -347,12 +353,13 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in onchain-oracle:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
     return new Response(JSON.stringify({
       error: 'Internal server error',
-      message: error.message
+      message: errorMessage
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

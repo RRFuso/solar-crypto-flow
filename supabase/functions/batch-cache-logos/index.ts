@@ -86,8 +86,9 @@ Deno.serve(async (req) => {
       console.log(`[BATCH-CACHE-LOGOS] Batch caching complete. Cached: ${cached}, Failed: ${failed}`)
     }
 
-    // Start background task
-    EdgeRuntime.waitUntil(backgroundTask())
+    // Start background task - run synchronously since EdgeRuntime may not be available
+    // We'll run it in the background without waiting
+    backgroundTask().catch(err => console.error('[BATCH-CACHE-LOGOS] Background task error:', err));
 
     // Return immediate response
     return new Response(
@@ -103,10 +104,11 @@ Deno.serve(async (req) => {
         }
       }
     )
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[BATCH-CACHE-LOGOS] Error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       {
         headers: {
           ...corsHeaders,
@@ -116,9 +118,4 @@ Deno.serve(async (req) => {
       }
     )
   }
-})
-
-// Handle graceful shutdown
-addEventListener('beforeunload', (ev) => {
-  console.log('[BATCH-CACHE-LOGOS] Function shutdown due to:', ev.detail?.reason)
 })

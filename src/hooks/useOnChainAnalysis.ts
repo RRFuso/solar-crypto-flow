@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { getERC20TokenTransactions, identifyWhaleTransactions, calculateExchangeFlow } from '@/lib/onchain/etherscan';
+import { getERC20TokenTransactions, identifyWhaleTransactions, calculateExchangeFlow } from '@/lib/onchain/alchemy';
 import { WhaleTransaction, ExchangeFlow } from '@/types/onchain';
 
 // Mapa de exemplo de símbolos para endereços de contrato (mainnet Ethereum)
@@ -36,7 +36,7 @@ export const useOnChainAnalysis = (symbol: string): OnChainAnalysisResult => {
       setError(null);
 
       try {
-        // 1. Buscar transações
+        // 1. Buscar transações usando Alchemy
         const transactions = await getERC20TokenTransactions(contractAddress, 'ethereum', 1000);
         if (transactions.length === 0) {
           setLoading(false);
@@ -44,7 +44,7 @@ export const useOnChainAnalysis = (symbol: string): OnChainAnalysisResult => {
         }
 
         // 2. Identificar transações de baleias
-        const whaleTxs = identifyWhaleTransactions(transactions, 1000, 'ethereum'); // Limiar de 1000 ETH
+        const whaleTxs = identifyWhaleTransactions(transactions, 1000, 'ethereum'); // Limiar de 1000 tokens
         setWhaleTransactions(whaleTxs);
 
         // 3. Calcular fluxo de exchanges
@@ -65,3 +65,4 @@ export const useOnChainAnalysis = (symbol: string): OnChainAnalysisResult => {
 
   return { whaleTransactions, exchangeFlow, loading, error };
 };
+

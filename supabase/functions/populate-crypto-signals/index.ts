@@ -68,7 +68,9 @@ Deno.serve(async (req) => {
       throw new Error(`Binance Ticker API error: ${response.statusText}`);
     }
     const allTickers = await response.json();
-    const tickersData = new Map(allTickers.map((t: any) => [t.symbol, t]));
+    const tickersData = new Map<string, {symbol: string; quoteVolume: string; priceChangePercent: string}>(
+      allTickers.map((t: any) => [t.symbol, t])
+    );
     console.log(`Fetched ${tickersData.size} tickers.`);
 
     const signalsToUpsert: any[] = [];
@@ -83,8 +85,8 @@ Deno.serve(async (req) => {
       }
 
       try {
-        const volume24h = parseFloat(ticker.quoteVolume || '0');
-        const change24h = parseFloat(ticker.priceChangePercent || '0');
+        const volume24h = parseFloat((ticker as any).quoteVolume || '0');
+        const change24h = parseFloat((ticker as any).priceChangePercent || '0');
 
         let explosivePotential = "None";
         // Ajuste os thresholds conforme sua necessidade
