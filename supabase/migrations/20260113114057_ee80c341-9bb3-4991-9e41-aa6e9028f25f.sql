@@ -1,0 +1,30 @@
+-- Add more token contracts with real Ethereum contract addresses
+INSERT INTO token_contracts (symbol, contract_address, chain) VALUES
+  ('AAVE', '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9', 'ethereum'),
+  ('MKR', '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2', 'ethereum'),
+  ('COMP', '0xc00e94cb662c3520282e6f5717214004a7f26888', 'ethereum'),
+  ('SNX', '0xc011a73ee8576fb46f5e1c5751ca3b9fe0af2a6f', 'ethereum'),
+  ('CRV', '0xd533a949740bb3306d119cc777fa900ba034cd52', 'ethereum'),
+  ('LDO', '0x5a98fcbea516cf06857215779fd812ca3bef1b32', 'ethereum'),
+  ('APE', '0x4d224452801aced8b2f0aebe155379bb5d594381', 'ethereum'),
+  ('GRT', '0xc944e90c64b2c07662a292be6244bdf05cda44a7', 'ethereum'),
+  ('FXS', '0x3432b6a60d23ca0dfca7761b7ab56459d9c964d0', 'ethereum'),
+  ('BAL', '0xba100000625a3754423978a60c9317c58a424e3d', 'ethereum'),
+  ('1INCH', '0x111111111117dc0aa78b770fa6a738034120c302', 'ethereum'),
+  ('ENS', '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', 'ethereum'),
+  ('RPL', '0xd33526068d116ce69f19a9ee46f0bd304f21a51f', 'ethereum'),
+  ('SUSHI', '0x6b3595068778dd592e39a122f4f5a5cf09c90fe2', 'ethereum'),
+  ('YFI', '0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e', 'ethereum'),
+  ('BLUR', '0x5283d291dbcf85356a21ba090e6db59121208b44', 'ethereum'),
+  ('PENDLE', '0x808507121b80c02388fad14726482e061b8da827', 'ethereum'),
+  ('ARB', '0xb50721bcf8d664c30412cfbc6cf7a15145234ad1', 'ethereum'),
+  ('OP', '0x4200000000000000000000000000000000000042', 'optimism'),
+  ('DYDX', '0x92d6c1e31e14520e676a687f0a93788b716beff5', 'ethereum'),
+  ('RNDR', '0x6de037ef9ad2725eb40118bb1702ebb27e4aeb24', 'ethereum'),
+  ('FET', '0xaea46a60368a7bd060eec7df8cba43b7ef41ad85', 'ethereum'),
+  ('IMX', '0xf57e7e7c23978c3caec3c3548e3d615c346e79ff', 'ethereum'),
+  ('WLD', '0x163f8c2467924be0ae7b5347228cabf260318753', 'ethereum'),
+  ('MANA', '0x0f5d2fb29fb7d3cfee444a200298f468908cc942', 'ethereum')
+ON CONFLICT (symbol) DO UPDATE SET 
+  contract_address = EXCLUDED.contract_address,
+  chain = EXCLUDED.chain;
