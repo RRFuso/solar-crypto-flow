@@ -9,6 +9,7 @@ import { LinkRendererExtended } from './LinkRendererExtended';
 import { NodeRendererComponent } from './NodeRenderer';
 import { OrbitalAnimationComponent } from './OrbitalAnimation';
 import { StarfieldBackground } from './visualization/StarfieldBackground';
+import { OnChainSentimentLegend } from './panel/OnChainSentimentLegend';
 import { useVisualizationSetup } from './visualization/useVisualizationSetup';
 import { useVisualizationData } from './visualization/useVisualizationData';
 import { useCryptoData } from '@/hooks/useCryptoData';
@@ -235,6 +236,11 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
           />
         </>
       )}
+      </div>
+      
+      {/* On-Chain Sentiment Legend */}
+      <div className="absolute bottom-4 left-4 z-10">
+        <OnChainSentimentLegend />
       </div>
     </div>
     </Profiler>
