@@ -71,6 +71,15 @@ async function fetchDuneData(queryId: string, parameters: any[] = []): Promise<a
   }
 }
 
+// Chain-specific Alchemy endpoints
+const ALCHEMY_CHAINS: Record<string, string> = {
+  'ethereum': 'eth-mainnet',
+  'polygon': 'polygon-mainnet',
+  'arbitrum': 'arb-mainnet',
+  'optimism': 'opt-mainnet',
+  'base': 'base-mainnet',
+};
+
 async function fetchAlchemyData(contractAddress: string, chain: string = 'ethereum'): Promise<any> {
   const cacheKey = `alchemy:${contractAddress}:${chain}`;
   
@@ -85,32 +94,45 @@ async function fetchAlchemyData(contractAddress: string, chain: string = 'ethere
     throw new Error('ALCHEMY_API_KEY not configured');
   }
 
+  const chainEndpoint = ALCHEMY_CHAINS[chain] || 'eth-mainnet';
+  const alchemyUrl = `https://${chainEndpoint}.g.alchemy.com/v2/${alchemyKey}`;
+
   try {
-    const { data, error } = await supabase.functions.invoke('secure-api-proxy', {
-      body: {
-        endpoint: 'alchemy',
-        chain,
-        rpcRequest: {
-          id: 1,
-          jsonrpc: '2.0',
-          method: 'alchemy_getAssetTransfers',
-          params: [{
-            fromBlock: '0x0',
-            toBlock: 'latest',
-            category: ['erc20'],
-            withMetadata: true,
-            maxCount: '0x64', // 100
-            order: 'desc',
-            contractAddresses: [contractAddress]
-          }]
-        }
-      }
+    console.log(`[Alchemy] Fetching asset transfers for ${contractAddress} on ${chain}`);
+    
+    const response = await fetch(alchemyUrl, {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: 1,
+        jsonrpc: '2.0',
+        method: 'alchemy_getAssetTransfers',
+        params: [{
+          fromBlock: '0x0',
+          toBlock: 'latest',
+          category: ['erc20'],
+          withMetadata: true,
+          maxCount: '0x64', // 100
+          order: 'desc',
+          contractAddresses: [contractAddress]
+        }]
+      })
     });
 
-    if (error) {
-      console.error('Alchemy fetch error:', error);
-      throw new Error(`Alchemy API error: ${error.message}`);
+    if (!response.ok) {
+      throw new Error(`Alchemy API error: ${response.status} ${response.statusText}`);
     }
+
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(`Alchemy RPC error: ${data.error.message}`);
+    }
+
+    console.log(`[Alchemy] Got ${data.result?.transfers?.length || 0} transfers for ${contractAddress}`);
 
     // Cache for 5 minutes
     await setCache(cacheKey, data, CacheTTL.WALLET_TX);
