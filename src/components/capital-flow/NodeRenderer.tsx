@@ -144,18 +144,81 @@ const renderOrUpdateVisualization = (
     defs = svg.append('defs');
   }
 
-  // Add glow filters
-  const bullishGlow = defs.append('filter')
-    .attr('id', 'bullish-glow')
-    .append('feGaussianBlur')
-    .attr('stdDeviation', '3.5')
-    .attr('result', 'coloredBlur');
+  // Add glow filters with enhanced visual effects
+  if (defs.select('#bullish-glow').empty()) {
+    const bullishFilter = defs.append('filter')
+      .attr('id', 'bullish-glow')
+      .attr('x', '-50%')
+      .attr('y', '-50%')
+      .attr('width', '200%')
+      .attr('height', '200%');
+    
+    bullishFilter.append('feGaussianBlur')
+      .attr('stdDeviation', '4')
+      .attr('result', 'coloredBlur');
+    
+    bullishFilter.append('feFlood')
+      .attr('flood-color', '#22c55e')
+      .attr('flood-opacity', '0.6')
+      .attr('result', 'glowColor');
+    
+    bullishFilter.append('feComposite')
+      .attr('in', 'glowColor')
+      .attr('in2', 'coloredBlur')
+      .attr('operator', 'in')
+      .attr('result', 'coloredGlow');
+    
+    const bullishMerge = bullishFilter.append('feMerge');
+    bullishMerge.append('feMergeNode').attr('in', 'coloredGlow');
+    bullishMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+  }
   
-  const bearishGlow = defs.append('filter')
-    .attr('id', 'bearish-glow')
-    .append('feGaussianBlur')
-    .attr('stdDeviation', '3.5')
-    .attr('result', 'coloredBlur');
+  if (defs.select('#bearish-glow').empty()) {
+    const bearishFilter = defs.append('filter')
+      .attr('id', 'bearish-glow')
+      .attr('x', '-50%')
+      .attr('y', '-50%')
+      .attr('width', '200%')
+      .attr('height', '200%');
+    
+    bearishFilter.append('feGaussianBlur')
+      .attr('stdDeviation', '4')
+      .attr('result', 'coloredBlur');
+    
+    bearishFilter.append('feFlood')
+      .attr('flood-color', '#ef4444')
+      .attr('flood-opacity', '0.6')
+      .attr('result', 'glowColor');
+    
+    bearishFilter.append('feComposite')
+      .attr('in', 'glowColor')
+      .attr('in2', 'coloredBlur')
+      .attr('operator', 'in')
+      .attr('result', 'coloredGlow');
+    
+    const bearishMerge = bearishFilter.append('feMerge');
+    bearishMerge.append('feMergeNode').attr('in', 'coloredGlow');
+    bearishMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+  }
+  
+  // Add pulsing ring animation filter
+  if (defs.select('#pulse-animation').empty()) {
+    defs.append('style').text(`
+      @keyframes pulse-ring {
+        0% { transform: scale(1); opacity: 0.8; }
+        50% { transform: scale(1.15); opacity: 0.4; }
+        100% { transform: scale(1); opacity: 0.8; }
+      }
+      .sentiment-ring-bullish {
+        animation: pulse-ring 2s ease-in-out infinite;
+        transform-origin: center;
+      }
+      .sentiment-ring-bearish {
+        animation: pulse-ring 1.5s ease-in-out infinite;
+        transform-origin: center;
+      }
+    `);
+  }
 
   const patterns = defs.selectAll('pattern')
     .data(nodes, (d: ExtendedOrbitalNode) => d.id);
@@ -236,6 +299,14 @@ const renderOrUpdateVisualization = (
         }, 300);
     });
 
+  // Sentiment indicator ring (outermost)
+  nodeEnter.append('circle')
+    .attr('class', 'sentiment-ring')
+    .attr('r', 0)
+    .attr('fill', 'none')
+    .attr('stroke-width', 2)
+    .attr('stroke-dasharray', '4,2');
+
   nodeEnter.append('circle')
     .attr('class', 'node-glow')
     .attr('r', 0);
@@ -243,6 +314,31 @@ const renderOrUpdateVisualization = (
   nodeEnter.append('circle')
     .attr('class', 'node-circle')
     .attr('r', 0);
+
+  // Sentiment badge background
+  nodeEnter.append('rect')
+    .attr('class', 'sentiment-badge-bg')
+    .attr('rx', 4)
+    .attr('ry', 4)
+    .attr('opacity', 0);
+
+  // Sentiment badge text
+  nodeEnter.append('text')
+    .attr('class', 'sentiment-badge-text')
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '8px')
+    .attr('font-weight', 'bold')
+    .attr('fill', 'white')
+    .style('pointer-events', 'none')
+    .attr('opacity', 0);
+
+  // Sentiment arrow indicator
+  nodeEnter.append('text')
+    .attr('class', 'sentiment-arrow')
+    .attr('text-anchor', 'middle')
+    .attr('font-size', '14px')
+    .style('pointer-events', 'none')
+    .attr('opacity', 0);
 
   nodeEnter.append('text')
     .attr('text-anchor', 'middle')
@@ -266,13 +362,36 @@ const renderOrUpdateVisualization = (
       return 1;
     });
 
+  // Update sentiment ring (pulsing outer ring for on-chain sentiment)
+  nodeUpdate.select('circle.sentiment-ring')
+    .transition().duration(750)
+    .attr('r', (d: ExtendedOrbitalNode) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      if (onChainSentiment === 'Bullish' || onChainSentiment === 'Bearish') {
+        return calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 1.8;
+      }
+      return 0;
+    })
+    .attr('stroke', (d: ExtendedOrbitalNode) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      if (onChainSentiment === 'Bullish') return '#22c55e';
+      if (onChainSentiment === 'Bearish') return '#ef4444';
+      return 'transparent';
+    })
+    .attr('class', (d: ExtendedOrbitalNode) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      if (onChainSentiment === 'Bullish') return 'sentiment-ring sentiment-ring-bullish';
+      if (onChainSentiment === 'Bearish') return 'sentiment-ring sentiment-ring-bearish';
+      return 'sentiment-ring';
+    });
+
   nodeUpdate.select('circle.node-glow')
     .transition().duration(750)
     .attr('r', (d: ExtendedOrbitalNode) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 1.5)
     .attr('fill', (d: ExtendedOrbitalNode) => {
       const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
-      if (onChainSentiment === 'Bullish') return 'rgba(0, 255, 0, 0.7)';
-      if (onChainSentiment === 'Bearish') return 'rgba(255, 0, 0, 0.7)';
+      if (onChainSentiment === 'Bullish') return 'rgba(34, 197, 94, 0.6)';
+      if (onChainSentiment === 'Bearish') return 'rgba(239, 68, 68, 0.6)';
       return getAIGlowColor(d, aiInsights);
     })
     .attr('filter', (d: ExtendedOrbitalNode) => {
@@ -285,6 +404,65 @@ const renderOrUpdateVisualization = (
       const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
       if (onChainSentiment === 'Bullish' || onChainSentiment === 'Bearish') return 0.9;
       return aiInsights.get(d.id)?.opportunityScore > 75 ? 0.8 : 0.5;
+    });
+
+  // Update sentiment badge
+  nodeUpdate.select('rect.sentiment-badge-bg')
+    .transition().duration(750)
+    .attr('x', (d: ExtendedOrbitalNode) => -16)
+    .attr('y', (d: ExtendedOrbitalNode) => -calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) - 20)
+    .attr('width', 32)
+    .attr('height', 14)
+    .attr('fill', (d: ExtendedOrbitalNode) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      if (onChainSentiment === 'Bullish') return '#22c55e';
+      if (onChainSentiment === 'Bearish') return '#ef4444';
+      return 'transparent';
+    })
+    .attr('opacity', (d: ExtendedOrbitalNode) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      return (onChainSentiment === 'Bullish' || onChainSentiment === 'Bearish') ? 0.9 : 0;
+    });
+
+  nodeUpdate.select('text.sentiment-badge-text')
+    .transition().duration(750)
+    .attr('y', (d: ExtendedOrbitalNode) => -calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) - 10)
+    .text((d: ExtendedOrbitalNode) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      if (onChainSentiment === 'Bullish') return '▲ BULL';
+      if (onChainSentiment === 'Bearish') return '▼ BEAR';
+      return '';
+    })
+    .attr('opacity', (d: ExtendedOrbitalNode) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      return (onChainSentiment === 'Bullish' || onChainSentiment === 'Bearish') ? 1 : 0;
+    });
+
+  // Update sentiment arrow indicator (below node)
+  nodeUpdate.select('text.sentiment-arrow')
+    .transition().duration(750)
+    .attr('y', (d: ExtendedOrbitalNode) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) + 30)
+    .text((d: ExtendedOrbitalNode) => {
+      const score = smartMoneyScores.get(d.id);
+      if (!score) return '';
+      const intensity = score.score || 0;
+      if (score.sentiment === 'Bullish') {
+        return intensity > 70 ? '⬆️⬆️' : '⬆️';
+      }
+      if (score.sentiment === 'Bearish') {
+        return intensity > 70 ? '⬇️⬇️' : '⬇️';
+      }
+      return '';
+    })
+    .attr('fill', (d: ExtendedOrbitalNode) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      if (onChainSentiment === 'Bullish') return '#22c55e';
+      if (onChainSentiment === 'Bearish') return '#ef4444';
+      return 'transparent';
+    })
+    .attr('opacity', (d: ExtendedOrbitalNode) => {
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      return (onChainSentiment === 'Bullish' || onChainSentiment === 'Bearish') ? 1 : 0;
     });
 
   nodeUpdate.each(function(d: ExtendedOrbitalNode) {
@@ -332,14 +510,22 @@ const renderOrUpdateVisualization = (
     })
     .attr('stroke-width', (d: ExtendedOrbitalNode) => selectedNodeId === d.id ? 4 : 2);
 
-  nodeUpdate.select('text')
+  nodeUpdate.selectAll('text:not(.sentiment-badge-text):not(.sentiment-arrow)')
+    .filter(function() { return !d3.select(this).classed('sentiment-badge-text') && !d3.select(this).classed('sentiment-arrow'); })
     .transition().duration(750)
     .attr('dy', (d: ExtendedOrbitalNode) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) + 16)
     .text((d: ExtendedOrbitalNode) => {
       const aiInsight = aiInsights.get(d.id);
-      if (aiInsight?.recommendation === 'strong_buy') return `${d.id} 🚀`;
-      if (aiInsight?.recommendation === 'strong_sell') return `${d.id} ⚠️`;
-      return d.id;
+      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      
+      // Add on-chain indicator to the symbol name
+      let suffix = '';
+      if (onChainSentiment === 'Bullish') suffix = ' 🟢';
+      else if (onChainSentiment === 'Bearish') suffix = ' 🔴';
+      else if (aiInsight?.recommendation === 'strong_buy') suffix = ' 🚀';
+      else if (aiInsight?.recommendation === 'strong_sell') suffix = ' ⚠️';
+      
+      return `${d.id}${suffix}`;
     });
 };
 
