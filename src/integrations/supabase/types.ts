@@ -490,6 +490,9 @@ export type Database = {
       }
       smart_money_flow_cache: {
         Row: {
+          avg_gas_price_gwei: number | null
+          confidence_factors: Json | null
+          confidence_score: number | null
           dominant_direction: string
           ema_flow: number | null
           expires_at: string
@@ -497,13 +500,18 @@ export type Database = {
           id: string
           last_updated: string
           net_flow_usd: number
+          successful_tx_count: number | null
           timeframe: string
           token_symbol: string
           total_inflow_usd: number
           total_outflow_usd: number
+          whale_transactions_value: number | null
           whale_tx_count: number
         }
         Insert: {
+          avg_gas_price_gwei?: number | null
+          confidence_factors?: Json | null
+          confidence_score?: number | null
           dominant_direction?: string
           ema_flow?: number | null
           expires_at?: string
@@ -511,13 +519,18 @@ export type Database = {
           id?: string
           last_updated?: string
           net_flow_usd?: number
+          successful_tx_count?: number | null
           timeframe?: string
           token_symbol: string
           total_inflow_usd?: number
           total_outflow_usd?: number
+          whale_transactions_value?: number | null
           whale_tx_count?: number
         }
         Update: {
+          avg_gas_price_gwei?: number | null
+          confidence_factors?: Json | null
+          confidence_score?: number | null
           dominant_direction?: string
           ema_flow?: number | null
           expires_at?: string
@@ -525,10 +538,12 @@ export type Database = {
           id?: string
           last_updated?: string
           net_flow_usd?: number
+          successful_tx_count?: number | null
           timeframe?: string
           token_symbol?: string
           total_inflow_usd?: number
           total_outflow_usd?: number
+          whale_transactions_value?: number | null
           whale_tx_count?: number
         }
         Relationships: []
@@ -585,6 +600,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      smart_money_wallet_performance: {
+        Row: {
+          average_roi: number
+          created_at: string
+          id: string
+          impact_score: number
+          last_calculated_at: string
+          profit_ratio: number
+          profitable_transactions: number
+          total_transactions: number
+          total_volume_usd: number
+          updated_at: string
+          wallet_address: string
+        }
+        Insert: {
+          average_roi?: number
+          created_at?: string
+          id?: string
+          impact_score?: number
+          last_calculated_at?: string
+          profit_ratio?: number
+          profitable_transactions?: number
+          total_transactions?: number
+          total_volume_usd?: number
+          updated_at?: string
+          wallet_address: string
+        }
+        Update: {
+          average_roi?: number
+          created_at?: string
+          id?: string
+          impact_score?: number
+          last_calculated_at?: string
+          profit_ratio?: number
+          profitable_transactions?: number
+          total_transactions?: number
+          total_volume_usd?: number
+          updated_at?: string
+          wallet_address?: string
+        }
+        Relationships: []
       }
       smart_money_wallets: {
         Row: {

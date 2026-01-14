@@ -3,6 +3,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 // ========== TYPES ==========
+export interface ConfidenceFactors {
+  transactionSize: number;
+  gasPrice: number;
+  toExchange: number;
+  fromExchange: number;
+  successfulTx: number;
+  historicalPattern: number;
+}
+
 export interface SmartMoneyFlow {
   token_symbol: string;
   timeframe: string;
@@ -14,24 +23,39 @@ export interface SmartMoneyFlow {
   flow_intensity: number;
   ema_flow: number;
   last_updated: string;
+  // New confidence fields
+  confidence_score?: number;
+  confidence_factors?: ConfidenceFactors;
+  whale_transactions_value?: number;
+  avg_gas_price_gwei?: number;
+  successful_tx_count?: number;
 }
 
 export interface FlowDirection {
   symbol: string;
-  direction: 1 | -1 | 0; // 1 = bullish (saindo de exchanges), -1 = bearish (entrando), 0 = neutral
-  intensity: number; // 0-100
-  color: string; // Cor da partícula baseada na direção
-  speed: number; // Velocidade da partícula baseada na intensidade
+  direction: 1 | -1 | 0;
+  intensity: number;
+  color: string;
+  speed: number;
+  // Enhanced with confidence data
+  confidenceScore?: number;
+  confidenceLevel: 'high' | 'medium' | 'low';
+  isSmartMoney: boolean;
+  whaleTxCount?: number;
+  factors?: ConfidenceFactors;
 }
 
-// ========== CONSTANTES ==========
+// ========== CONSTANTS ==========
 const FLOW_COLORS = {
-  bullish: '#22c55e', // green-500
-  bearish: '#ef4444', // red-500
-  neutral: '#facc15', // yellow-400
+  bullish: '#22c55e',
+  bearish: '#ef4444',
+  neutral: '#facc15',
+  highConfidence: '#8b5cf6', // Purple for high confidence
 };
 
 const BASE_PARTICLE_SPEED = 0.002;
+const HIGH_CONFIDENCE_THRESHOLD = 60;
+const MEDIUM_CONFIDENCE_THRESHOLD = 40;
 
 // ========== HOOK PRINCIPAL ==========
 export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP']) {
@@ -39,7 +63,6 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
   const [flowDirections, setFlowDirections] = useState<Map<string, FlowDirection>>(new Map());
   const lastUpdateRef = useRef<number>(0);
 
-  // Query para buscar fluxos do cache
   const { data: flows, isLoading, error, refetch } = useQuery({
     queryKey: ['smart-money-flows', symbols.join(',')],
     queryFn: async () => {
@@ -54,34 +77,65 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
       if (error) throw error;
       return (data?.data || []) as SmartMoneyFlow[];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    refetchInterval: 5 * 60 * 1000, // Atualizar a cada 5 minutos
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
-  // Processar fluxos em direções para partículas
+  // Fetch confidence breakdown for detailed analysis
+  const { data: confidenceData } = useQuery({
+    queryKey: ['confidence-breakdown', symbols.join(',')],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('smart-money-tracker', {
+        body: {
+          action: 'get_confidence_breakdown',
+          symbols,
+          timeframe: '1h',
+        },
+      });
+
+      if (error) throw error;
+      return data?.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  // Process flows into directions with confidence weighting
   useEffect(() => {
     if (!flows || flows.length === 0) return;
 
     const newDirections = new Map<string, FlowDirection>();
 
     flows.forEach((flow) => {
-      // Determinar direção baseado no net flow
       let direction: 1 | -1 | 0 = 0;
       let color = FLOW_COLORS.neutral;
+      const confidenceScore = flow.confidence_score || 0;
+
+      // Determine confidence level
+      let confidenceLevel: 'high' | 'medium' | 'low' = 'low';
+      if (confidenceScore >= HIGH_CONFIDENCE_THRESHOLD) {
+        confidenceLevel = 'high';
+      } else if (confidenceScore >= MEDIUM_CONFIDENCE_THRESHOLD) {
+        confidenceLevel = 'medium';
+      }
+
+      // High confidence signals get special treatment
+      const isSmartMoney = confidenceScore >= MEDIUM_CONFIDENCE_THRESHOLD;
 
       if (flow.dominant_direction === 'bullish') {
         direction = 1;
-        color = FLOW_COLORS.bullish;
+        color = confidenceLevel === 'high' ? FLOW_COLORS.highConfidence : FLOW_COLORS.bullish;
       } else if (flow.dominant_direction === 'bearish') {
         direction = -1;
         color = FLOW_COLORS.bearish;
       }
 
-      // Calcular velocidade baseada na intensidade
-      // Intensidade de 0-100 mapeia para velocidade de 0.001 a 0.005
-      const speedMultiplier = 1 + (flow.flow_intensity / 100) * 2;
-      const speed = BASE_PARTICLE_SPEED * speedMultiplier;
+      // Speed weighted by both intensity AND confidence
+      const confidenceMultiplier = 1 + (confidenceScore / 100);
+      const intensityMultiplier = 1 + (flow.flow_intensity / 100) * 2;
+      const speed = BASE_PARTICLE_SPEED * intensityMultiplier * confidenceMultiplier;
 
       newDirections.set(flow.token_symbol, {
         symbol: flow.token_symbol,
@@ -89,6 +143,11 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
         intensity: flow.flow_intensity,
         color,
         speed,
+        confidenceScore,
+        confidenceLevel,
+        isSmartMoney,
+        whaleTxCount: flow.whale_tx_count,
+        factors: flow.confidence_factors,
       });
     });
 
@@ -96,7 +155,7 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
     lastUpdateRef.current = Date.now();
   }, [flows]);
 
-  // Função para obter direção de fluxo para um símbolo específico
+  // Get flow direction with confidence info
   const getFlowDirection = useCallback((symbol: string): FlowDirection => {
     const upperSymbol = symbol.toUpperCase();
     return flowDirections.get(upperSymbol) || {
@@ -105,10 +164,20 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
       intensity: 0,
       color: FLOW_COLORS.neutral,
       speed: BASE_PARTICLE_SPEED,
+      confidenceLevel: 'low',
+      isSmartMoney: false,
     };
   }, [flowDirections]);
 
-  // Função para forçar atualização dos fluxos
+  // Get top smart money signals
+  const getTopSmartMoneySignals = useCallback((limit: number = 5): FlowDirection[] => {
+    return Array.from(flowDirections.values())
+      .filter(f => f.isSmartMoney)
+      .sort((a, b) => (b.confidenceScore || 0) - (a.confidenceScore || 0))
+      .slice(0, limit);
+  }, [flowDirections]);
+
+  // Trigger flow update
   const updateFlows = useCallback(async () => {
     try {
       await supabase.functions.invoke('smart-money-tracker', {
@@ -118,14 +187,13 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
         },
       });
       
-      // Refetch após atualização
       await refetch();
     } catch (error) {
       console.error('Error updating smart money flows:', error);
     }
   }, [refetch]);
 
-  // Verificar se os dados estão frescos
+  // Check data freshness
   const isDataFresh = useCallback(() => {
     if (!flows || flows.length === 0) return false;
     const oldestUpdate = flows.reduce((oldest, flow) => {
@@ -133,76 +201,138 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
       return updateTime < oldest ? updateTime : oldest;
     }, Date.now());
     
-    // Considerar fresco se atualizado nos últimos 15 minutos
     return Date.now() - oldestUpdate < 15 * 60 * 1000;
+  }, [flows]);
+
+  // Get average confidence across all flows
+  const getAverageConfidence = useCallback(() => {
+    if (!flows || flows.length === 0) return 0;
+    const total = flows.reduce((sum, f) => sum + (f.confidence_score || 0), 0);
+    return total / flows.length;
   }, [flows]);
 
   return {
     flows,
     flowDirections,
     getFlowDirection,
+    getTopSmartMoneySignals,
     isLoading,
     error,
     updateFlows,
     isDataFresh,
     refetch,
+    confidenceData,
+    getAverageConfidence,
   };
 }
 
-// ========== HOOK PARA VISUALIZAÇÃO DE PARTÍCULAS ==========
+// ========== PARTICLE FLOW CONFIG HOOK ==========
 export function useParticleFlowConfig(flows: SmartMoneyFlow[] | undefined) {
   return useCallback((linkData: { source: { symbol?: string }; target: { symbol?: string }; percentage: number }) => {
     if (!flows || flows.length === 0) {
-      // Fallback para comportamento original
       return {
         direction: linkData.percentage > 0 ? 1 : -1,
         color: FLOW_COLORS.neutral,
         speed: BASE_PARTICLE_SPEED,
+        isSmartMoney: false,
+        confidenceLevel: 'low' as const,
       };
     }
 
-    // Tentar encontrar fluxo para source ou target
     const sourceSymbol = linkData.source.symbol?.toUpperCase();
     const targetSymbol = linkData.target.symbol?.toUpperCase();
     
     const sourceFlow = flows.find(f => f.token_symbol === sourceSymbol);
     const targetFlow = flows.find(f => f.token_symbol === targetSymbol);
     
-    // Priorizar o fluxo do símbolo com maior intensidade
+    // Prioritize flow with higher confidence
     const primaryFlow = 
-      (sourceFlow?.flow_intensity || 0) > (targetFlow?.flow_intensity || 0) 
+      ((sourceFlow?.confidence_score || 0) > (targetFlow?.confidence_score || 0)) 
         ? sourceFlow 
-        : targetFlow;
+        : targetFlow || sourceFlow;
 
     if (!primaryFlow) {
       return {
         direction: linkData.percentage > 0 ? 1 : -1,
         color: FLOW_COLORS.neutral,
         speed: BASE_PARTICLE_SPEED,
+        isSmartMoney: false,
+        confidenceLevel: 'low' as const,
       };
     }
 
-    // Determinar direção real baseada no fluxo on-chain
+    const confidenceScore = primaryFlow.confidence_score || 0;
+    const isSmartMoney = confidenceScore >= MEDIUM_CONFIDENCE_THRESHOLD;
+    let confidenceLevel: 'high' | 'medium' | 'low' = 'low';
+    
+    if (confidenceScore >= HIGH_CONFIDENCE_THRESHOLD) {
+      confidenceLevel = 'high';
+    } else if (confidenceScore >= MEDIUM_CONFIDENCE_THRESHOLD) {
+      confidenceLevel = 'medium';
+    }
+
     let direction = 0;
     let color = FLOW_COLORS.neutral;
 
     if (primaryFlow.dominant_direction === 'bullish') {
       direction = 1;
-      color = FLOW_COLORS.bullish;
+      color = confidenceLevel === 'high' ? FLOW_COLORS.highConfidence : FLOW_COLORS.bullish;
     } else if (primaryFlow.dominant_direction === 'bearish') {
       direction = -1;
       color = FLOW_COLORS.bearish;
     }
 
-    // Velocidade proporcional à intensidade
-    const speedMultiplier = 1 + (primaryFlow.flow_intensity / 100) * 2;
+    // Speed weighted by confidence
+    const confidenceMultiplier = 1 + (confidenceScore / 100);
+    const intensityMultiplier = 1 + (primaryFlow.flow_intensity / 100) * 2;
 
     return {
       direction: direction || (linkData.percentage > 0 ? 1 : -1),
       color,
-      speed: BASE_PARTICLE_SPEED * speedMultiplier,
+      speed: BASE_PARTICLE_SPEED * intensityMultiplier * confidenceMultiplier,
       intensity: primaryFlow.flow_intensity,
       isRealData: true,
+      isSmartMoney,
+      confidenceLevel,
+      confidenceScore,
+      whaleTxCount: primaryFlow.whale_tx_count,
     };
   }, [flows]);
+}
+
+// ========== CONFIDENCE DISPLAY HOOK ==========
+export function useConfidenceDisplay(confidenceScore?: number) {
+  if (!confidenceScore) {
+    return {
+      label: 'No Data',
+      color: 'text-muted-foreground',
+      badge: 'bg-muted',
+      icon: '○',
+    };
+  }
+
+  if (confidenceScore >= HIGH_CONFIDENCE_THRESHOLD) {
+    return {
+      label: 'High Confidence',
+      color: 'text-violet-400',
+      badge: 'bg-violet-500/20',
+      icon: '◉',
+    };
+  }
+
+  if (confidenceScore >= MEDIUM_CONFIDENCE_THRESHOLD) {
+    return {
+      label: 'Smart Money Signal',
+      color: 'text-green-400',
+      badge: 'bg-green-500/20',
+      icon: '◐',
+    };
+  }
+
+  return {
+    label: 'Low Confidence',
+    color: 'text-yellow-400',
+    badge: 'bg-yellow-500/20',
+    icon: '◔',
+  };
 }
