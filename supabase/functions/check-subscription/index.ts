@@ -7,9 +7,45 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
+};
+
+// Product ID to plan mapping - update these with your actual Stripe product IDs
+const PRODUCT_TO_PLAN: Record<string, 'pro' | 'premium'> = {
+  'prod_TAWbWItNwiXKDF': 'pro',
+  'prod_TAWbSzcetW1egF': 'premium',
+  'prod_pro': 'pro',           // Fallback
+  'prod_premium': 'premium',   // Fallback
+};
+
+// Tier limits for API response
+const TIER_LIMITS = {
+  free: {
+    maxFlows: 30,
+    smartMoneyDelayMs: 30 * 60 * 1000, // 30 minutes
+    maxWatchlistItems: 5,
+    hasAIAnalyst: false,
+    hasAlerts: false,
+    hasHistoricalData: false,
+  },
+  pro: {
+    maxFlows: 500,
+    smartMoneyDelayMs: 5 * 60 * 1000, // 5 minutes
+    maxWatchlistItems: 50,
+    hasAIAnalyst: true,
+    hasAlerts: true,
+    hasHistoricalData: true,
+  },
+  premium: {
+    maxFlows: 2000,
+    smartMoneyDelayMs: 0, // Real-time
+    maxWatchlistItems: 200,
+    hasAIAnalyst: true,
+    hasAlerts: true,
+    hasHistoricalData: true,
+  },
 };
 
 serve(async (req) => {
@@ -42,12 +78,43 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Check if user is admin
+    const { data: roleData } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+    
+    const isAdmin = !!roleData;
+    logStep("Admin check", { isAdmin });
+
+    // If admin, return premium access
+    if (isAdmin) {
+      return new Response(JSON.stringify({
+        subscribed: true,
+        product_id: 'admin',
+        subscription_end: null,
+        plan: 'premium',
+        limits: TIER_LIMITS.premium,
+        isAdmin: true,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found, updating unsubscribed state");
-      return new Response(JSON.stringify({ subscribed: false, plan: 'free' }), {
+      logStep("No customer found, returning free tier");
+      return new Response(JSON.stringify({ 
+        subscribed: false, 
+        plan: 'free',
+        limits: TIER_LIMITS.free,
+        isAdmin: false,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -62,9 +129,9 @@ serve(async (req) => {
       limit: 1,
     });
     const hasActiveSub = subscriptions.data.length > 0;
-    let productId = null;
-    let subscriptionEnd = null;
-    let plan = 'free';
+    let productId: string | null = null;
+    let subscriptionEnd: string | null = null;
+    let plan: 'free' | 'pro' | 'premium' = 'free';
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
@@ -74,22 +141,22 @@ serve(async (req) => {
       productId = String(subscription.items.data[0].price.product);
       
       // Determine plan based on product ID
-      if (productId === 'prod_TAWbWItNwiXKDF') {
-        plan = 'pro';
-      } else if (productId === 'prod_TAWbSzcetW1egF') {
-        plan = 'premium';
-      }
+      plan = PRODUCT_TO_PLAN[productId] || 'free';
       
       logStep("Determined subscription plan", { productId, plan });
     } else {
       logStep("No active subscription found");
     }
 
+    const limits = TIER_LIMITS[plan];
+
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
       product_id: productId,
       subscription_end: subscriptionEnd,
-      plan: plan
+      plan,
+      limits,
+      isAdmin: false,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
@@ -97,7 +164,13 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR in check-subscription", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage, subscribed: false, plan: 'free' }), {
+    return new Response(JSON.stringify({ 
+      error: errorMessage, 
+      subscribed: false, 
+      plan: 'free',
+      limits: TIER_LIMITS.free,
+      isAdmin: false,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
