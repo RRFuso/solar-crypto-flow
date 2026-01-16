@@ -68,3 +68,12 @@ verify_jwt = false
 
 [functions.smart-money-cron]
 verify_jwt = false
+
+[functions.smart-money-alerts]
+verify_jwt = false
+
+[functions.get-crypto-prices-cached]
+verify_jwt = false
+
+[functions.populate-cryptocurrencies]
+verify_jwt = false

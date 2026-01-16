@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 export interface TierAccessResult {
   // Current tier info
   tier: SubscriptionTier;
+  currentTier: SubscriptionTier; // Alias for tier
   tierName: string;
   isAdmin: boolean;
   
@@ -27,6 +28,7 @@ export interface TierAccessResult {
   canAccessSmartMoney: () => boolean;
   canAccessAIAnalyst: () => boolean;
   canAccessAlerts: () => boolean;
+  hasAlertAccess: boolean; // Direct boolean access
   canAccessHistoricalData: () => boolean;
   canExportData: () => boolean;
   canAccessConfidenceScore: () => boolean;
@@ -148,8 +150,14 @@ export function useTierAccess(): TierAccessResult {
     });
   }, [tier]);
 
+  const hasAlertAccess = useMemo(() => {
+    if (isAdmin) return true;
+    return tierConfig.limits.hasAlerts;
+  }, [isAdmin, tierConfig.limits.hasAlerts]);
+
   return {
     tier,
+    currentTier: tier,
     tierName: tierConfig.displayName,
     isAdmin,
     limits: tierConfig.limits,
@@ -157,6 +165,7 @@ export function useTierAccess(): TierAccessResult {
     canAccessSmartMoney,
     canAccessAIAnalyst,
     canAccessAlerts,
+    hasAlertAccess,
     canAccessHistoricalData,
     canExportData,
     canAccessConfidenceScore,
