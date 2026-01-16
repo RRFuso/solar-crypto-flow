@@ -488,6 +488,45 @@ export type Database = {
         }
         Relationships: []
       }
+      smart_money_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          metadata: Json | null
+          severity: string
+          symbol: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          metadata?: Json | null
+          severity: string
+          symbol: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          metadata?: Json | null
+          severity?: string
+          symbol?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       smart_money_flow_cache: {
         Row: {
           avg_gas_price_gwei: number | null
@@ -715,6 +754,45 @@ export type Database = {
         Update: {
           coingecko_id?: string
           tradingview_symbol?: string
+        }
+        Relationships: []
+      }
+      user_alert_preferences: {
+        Row: {
+          alert_types: string[] | null
+          created_at: string
+          email_notifications: boolean | null
+          enabled: boolean | null
+          id: string
+          min_severity: string
+          push_notifications: boolean | null
+          updated_at: string
+          user_id: string
+          watchlist_only: boolean | null
+        }
+        Insert: {
+          alert_types?: string[] | null
+          created_at?: string
+          email_notifications?: boolean | null
+          enabled?: boolean | null
+          id?: string
+          min_severity?: string
+          push_notifications?: boolean | null
+          updated_at?: string
+          user_id: string
+          watchlist_only?: boolean | null
+        }
+        Update: {
+          alert_types?: string[] | null
+          created_at?: string
+          email_notifications?: boolean | null
+          enabled?: boolean | null
+          id?: string
+          min_severity?: string
+          push_notifications?: boolean | null
+          updated_at?: string
+          user_id?: string
+          watchlist_only?: boolean | null
         }
         Relationships: []
       }
