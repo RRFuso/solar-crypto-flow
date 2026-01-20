@@ -39,9 +39,9 @@ const config: Config = {
         },
         landing: {
           dark: "hsl(222 47% 6%)",
-          blue: "hsl(217 100% 50%)",
-          green: "hsl(156 100% 41%)",
-          orange: "hsl(17 100% 60%)",
+          blue: "#0066FF",
+          green: "#00D084",
+          orange: "#FF6B35",
         },
         primary: {
           DEFAULT: "hsl(var(--primary))",

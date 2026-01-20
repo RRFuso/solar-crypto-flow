@@ -21,11 +21,11 @@ function TooltipRenderer() {
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Index />,
+    element: <Landing />,
   },
   {
-    path: "/landing",
-    element: <Landing />,
+    path: "/app",
+    element: <Index />,
   },
 ]);
 

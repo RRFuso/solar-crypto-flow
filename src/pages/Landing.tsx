@@ -26,15 +26,17 @@ const Landing = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-landing-dark via-landing-dark to-landing-blue/10" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-landing-blue/20 via-transparent to-transparent" />
         
+        {/* Astronaut image */}
+        <div className="absolute inset-0 opacity-20 md:opacity-30 lg:opacity-40 pointer-events-none z-0">
+          <img 
+            src="/ChatGPT-Image-20_01_2026_-11_56_40.webp" 
+            alt="Astronauta explorando o sistema solar" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+        
         <div className="relative z-10 max-w-6xl mx-auto text-center">
-          {/* Logo */}
-          <div className="mb-8 flex justify-center">
-            <img 
-              src="/SOLCRY.webp" 
-              alt="Sistema Solar Crypto" 
-              className="h-32 md:h-40 w-auto animate-pulse-slow"
-            />
-          </div>
+
           
           {/* Headline */}
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-landing-blue to-landing-green bg-clip-text text-transparent">
@@ -53,9 +55,9 @@ const Landing = () => {
               className="bg-landing-blue hover:bg-landing-blue/90 text-white text-lg px-8 py-6 rounded-xl shadow-lg shadow-landing-blue/25"
               asChild
             >
-              <Link to="/">
+              <Link to="/app">
                 <Rocket className="mr-2 h-5 w-5" />
-                Começar Beta Grátis
+                Começar Beta
               </Link>
             </Button>
             <Button 
@@ -365,7 +367,7 @@ const Landing = () => {
                   </li>
                 </ul>
                 <Button variant="outline" className="w-full" asChild>
-                  <Link to="/">Começar Grátis</Link>
+                  <Link to="/app">Começar Grátis</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -400,7 +402,7 @@ const Landing = () => {
                   </li>
                 </ul>
                 <Button className="w-full bg-landing-blue hover:bg-landing-blue/90" asChild>
-                  <Link to="/">Assinar Pro</Link>
+                  <Link to="/app">Assinar Pro</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -432,7 +434,7 @@ const Landing = () => {
                   </li>
                 </ul>
                 <Button variant="outline" className="w-full border-landing-orange text-landing-orange hover:bg-landing-orange/10" asChild>
-                  <Link to="/">Assinar Premium</Link>
+                  <Link to="/app">Assinar Premium</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -454,9 +456,9 @@ const Landing = () => {
             className="bg-landing-blue hover:bg-landing-blue/90 text-white text-lg px-12 py-6 rounded-xl shadow-lg shadow-landing-blue/25"
             asChild
           >
-            <Link to="/">
+            <Link to="/app">
               <Rocket className="mr-2 h-5 w-5" />
-              Começar Beta Grátis
+              Começar Beta
             </Link>
           </Button>
         </div>
@@ -466,20 +468,19 @@ const Landing = () => {
       <footer className="py-12 px-4 border-t border-border/50">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-2">
-              <img src="/SOLCRY.webp" alt="Logo" className="h-8 w-auto" />
-              <span className="text-muted-foreground">© 2025 Sistema Solar Crypto</span>
+            <div className="text-muted-foreground">
+              © 2025 Sistema Solar Crypto
             </div>
             
-            <div className="flex items-center gap-6">
-              <a href="#" className="text-muted-foreground hover:text-landing-blue transition-colors">
-                <Twitter className="h-5 w-5" />
+            <div className="flex items-center gap-6 text-sm">
+              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+                Twitter
               </a>
-              <a href="#" className="text-muted-foreground hover:text-landing-blue transition-colors">
-                <MessageCircle className="h-5 w-5" />
+              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+                Discord
               </a>
-              <a href="#" className="text-muted-foreground hover:text-landing-blue transition-colors">
-                <Mail className="h-5 w-5" />
+              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+                Email
               </a>
             </div>
             
