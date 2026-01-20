@@ -16,8 +16,11 @@ import {
   MessageCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
 
 const Landing = () => {
+  const { signInWithGoogle } = useAuth(); // Use useAuth hook
+
   return (
     <div className="min-h-screen bg-landing-dark text-foreground">
       {/* Hero Section */}
@@ -36,7 +39,6 @@ const Landing = () => {
         </div>
         
         <div className="relative z-10 max-w-6xl mx-auto text-center">
-
           
           {/* Headline */}
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-landing-blue to-landing-green bg-clip-text text-transparent">
@@ -67,6 +69,16 @@ const Landing = () => {
             >
               <Eye className="mr-2 h-5 w-5" />
               Ver Demo
+            </Button>
+            {/* Google Sign-In Button */}
+            <Button 
+              size="lg" 
+              variant="secondary" 
+              className="bg-white hover:bg-gray-100 text-gray-800 text-lg px-8 py-6 rounded-xl shadow-lg"
+              onClick={signInWithGoogle}
+            >
+              <svg className="mr-2 h-5 w-5" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg"><path d="M533.5 272.3c0-18.7-1.5-36.8-4.7-54.3H272.1v102.7h149.9c-6.4 34.6-26.6 65.6-59.5 87.2l-.7 4.8 80.1 61.9 4.8.7c46.7-43.1 73.9-106.9 73.9-182.9z" fill="#4285f4"/><path d="M272.1 544.3c73.6 0 135.3-24.3 180.4-65.9l-85.8-66.2c-23.7 15.9-54.5 25.4-94.6 25.4-72.2 0-133.5-49.3-155.1-115.1l-1.4-.7-82.6 64-1.3 2.1c42.4 84.4 125 141 229.8 141z" fill="#34a853"/><path d="M117 325.4c-5.2-15.9-8.2-32.9-8.2-53.1s3-37.2 8.2-53.1l-.8-4.8-87.3-67.7-1.4.7C7.5 170.8 0 219.7 0 272.3s7.5 101.5 20.3 146.9l88.2-68.5-.7-4.7z" fill="#fbbc04"/><path d="M272.1 106.4c39.6 0 74.6 14.7 101.8 40l76.7-74.8c-45.7-42.5-106.1-69.6-178.5-69.6-104.9 0-187.5 56.6-229.8 141l87.2 67.7c21.6-65.8 82.9-115.1 155.1-115.1z" fill="#ea4335"/></svg>
+              Login com Google
             </Button>
           </div>
           
