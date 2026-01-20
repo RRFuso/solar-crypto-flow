@@ -10,6 +10,7 @@ import { OnChainDataProvider } from "@/contexts/OnChainDataContext";
 import { BinanceWebSocketProvider } from "@/contexts/BinanceWebSocketContext";
 import { UnifiedTooltip } from "@/components/ui/UnifiedTooltip";
 import Index from "./pages/Index";
+import Landing from "./pages/Landing";
 import "./App.css";
 
 function TooltipRenderer() {
@@ -21,6 +22,10 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <Index />,
+  },
+  {
+    path: "/landing",
+    element: <Landing />,
   },
 ]);
 
