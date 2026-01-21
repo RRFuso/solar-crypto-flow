@@ -65,8 +65,9 @@ serve(async (req) => {
   ): Promise<T | null> => {
     try {
       return await promise
-    } catch (error) {
-      console.error(`Error fetching ${identifier}:`, error.message)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Error fetching ${identifier}:`, errorMessage)
       return null // Return null on failure
     }
   }
@@ -92,11 +93,12 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
-  } catch (err) {
+  } catch (err: unknown) {
     // This outer catch is now for more general errors, 
     // as individual fetch errors are handled.
     console.error('General error in market data fetcher:', err)
-    return new Response(JSON.stringify({ error: err.message }), {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })

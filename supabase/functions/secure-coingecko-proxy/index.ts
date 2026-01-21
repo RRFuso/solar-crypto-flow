@@ -21,7 +21,7 @@ async function findCoingeckoId(ticker: string): Promise<string | null> {
   try {
     const searchUrl = `${COINGECKO_API_URL}/search?query=${ticker}`
     const response = await fetch(searchUrl, {
-      headers: { 'x-cg-demo-api-key': COINGECKO_API_KEY },
+      headers: { 'x-cg-demo-api-key': COINGECKO_API_KEY || '' },
     })
     if (!response.ok) return null
 
@@ -176,9 +176,10 @@ serve(async (req) => {
       })
     }
 
-  } catch (err) {
+  } catch (err: unknown) {
     console.error('Error in secure-coingecko-proxy:', err)
-    return new Response(JSON.stringify({ error: err.message }), {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })

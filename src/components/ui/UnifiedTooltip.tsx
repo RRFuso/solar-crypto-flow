@@ -219,10 +219,10 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
 
           {aiInsight && (
             <div className="border-t border-slate-700 pt-2 mt-2">
-              <h4 className="font-bold text-slate-300 mb-2">🤖 AI Analysis</h4>
+              <h4 className="font-bold text-slate-300 mb-2">🤖 Análise de Tendência</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Recommendation:</span>
+                  <span className="text-slate-400">Sinal:</span>
                   <Badge 
                     variant={
                       aiInsight.recommendation === 'strong_buy' || aiInsight.recommendation === 'buy' 
@@ -233,25 +233,29 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
                     }
                     className="font-semibold"
                   >
-                    {aiInsight.recommendation.replace('_', ' ').toUpperCase()}
+                    {aiInsight.recommendation === 'strong_buy' ? 'FORTE TENDÊNCIA DE ALTA' :
+                     aiInsight.recommendation === 'buy' ? 'BULLISH' :
+                     aiInsight.recommendation === 'strong_sell' ? 'FORTE TENDÊNCIA DE BAIXA' :
+                     aiInsight.recommendation === 'sell' ? 'BEARISH' :
+                     'CONSOLIDAÇÃO'}
                   </Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex flex-col">
-                    <span className="text-slate-400 text-xs">Confidence</span>
+                    <span className="text-slate-400 text-xs">Confiança</span>
                     <span className="font-mono font-bold">{aiInsight.confidence.toFixed(0)}%</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-slate-400 text-xs">Opportunity</span>
+                    <span className="text-slate-400 text-xs">Oportunidade</span>
                     <span className="font-mono font-bold text-green-400">{aiInsight.opportunityScore.toFixed(0)}</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-slate-400 text-xs">Risk Score</span>
+                    <span className="text-slate-400 text-xs">Risco</span>
                     <span className="font-mono font-bold text-red-400">{aiInsight.riskScore.toFixed(0)}</span>
                   </div>
                   {aiInsight.patterns && aiInsight.patterns.length > 0 && (
                     <div className="flex flex-col">
-                      <span className="text-slate-400 text-xs">Patterns</span>
+                      <span className="text-slate-400 text-xs">Padrões</span>
                       <span className="font-mono font-bold">{aiInsight.patterns.length}</span>
                     </div>
                   )}
