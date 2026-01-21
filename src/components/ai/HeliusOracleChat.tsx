@@ -67,17 +67,8 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
   };
 
   return (
-    <div 
-      className={`border border-gray-800 rounded-xl flex flex-col h-full ${className}`}
-      style={{
-        backgroundImage: 'url(/helius-oracle-bg.webp)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
-      {/* Header */}
-      <div className="p-4 border-b border-gray-800 bg-black/60 backdrop-blur-sm rounded-t-xl">
+    <div className={`bg-black border border-gray-800 rounded-xl flex flex-col h-full ${className}`}>
+      <div className="p-4 border-b border-gray-800 bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-t-xl">
         <div className="flex flex-col items-center justify-center text-center">
           <h2 className="text-white font-bold text-lg">Helius Oracle</h2>
           <p className="text-xs text-gray-400">Análise de mercado em tempo real</p>
@@ -88,7 +79,7 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
       {/* Chat Messages */}
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-black/40 backdrop-blur-sm rounded-lg">
+          <div className="h-full flex flex-col items-center justify-center text-center p-6">
             <img src="/SOLCRY.webp" alt="Helius Oracle" className="w-32 h-32 mb-6 animate-pulse-slow" />
             <h3 className="text-white font-semibold text-xl mb-2">Bem-vindo ao Helius Oracle</h3>
             <p className="text-gray-300 text-sm mb-6 max-w-sm">
