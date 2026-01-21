@@ -204,19 +204,19 @@ const IndexContent = () => {
                   value="capital-flow" 
                   className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs md:text-sm px-2 py-1"
                 >
-                  ☀️ Sistema Solar
+                  ☀️ Solar Core
                 </TabsTrigger>
                 <TabsTrigger 
                   value="ai-watchlist" 
                   className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs md:text-sm px-2 py-1"
                 >
-                  🔮 AI Watchlist
+                  🐋 Whale Galaxy
                 </TabsTrigger>
                 <TabsTrigger 
                   value="ai-analyst" 
                   className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs md:text-sm px-2 py-1"
                 >
-                  🤖 Analista AI
+                  🔮 Helius Oracle
                 </TabsTrigger>
                 <TabsTrigger 
                   value="gap-monitor" 

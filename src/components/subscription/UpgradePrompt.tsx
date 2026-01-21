@@ -36,11 +36,11 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
             </li>
             <li className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
-              Acesso ao AI Watchlist
+              Acesso ao Whale Galaxy
             </li>
             <li className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
-              Market Context e Market Data
+              Solar Core e Helius Oracle
             </li>
           </ul>
           <Button onClick={onLoginClick} className="w-full" size="lg">
@@ -59,7 +59,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
         </div>
         <CardTitle className="text-xl">Upgrade para Acessar {feature}</CardTitle>
         <CardDescription>
-          Desbloqueie recursos ilimitados e acesso ao Analista AI com um plano pago.
+          Desbloqueie recursos ilimitados e acesso ao Helius Oracle com um plano pago.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 text-center">
@@ -70,11 +70,11 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
           </li>
           <li className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            AI Watchlist completo
+            Whale Galaxy completo
           </li>
           <li className="flex items-center gap-2">
             <Crown className="h-4 w-4 text-primary" />
-            Analista AI exclusivo
+            Helius Oracle exclusivo
           </li>
         </ul>
         <Button onClick={onUpgradeClick} className="w-full" size="lg">
