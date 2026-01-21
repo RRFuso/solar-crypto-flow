@@ -67,28 +67,31 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
   };
 
   return (
-    <div className={`bg-black border border-gray-800 rounded-xl flex flex-col h-full ${className}`}>
+    <div 
+      className={`border border-gray-800 rounded-xl flex flex-col h-full ${className}`}
+      style={{
+        backgroundImage: 'url(/helius-oracle-bg.webp)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
       {/* Header */}
-      <div className="p-4 border-b border-gray-800 bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-t-xl">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <img src="/SOLCRY.webp" alt="Helius Oracle" className="w-10 h-10" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-black" />
-          </div>
-          <div>
-            <h2 className="text-white font-bold text-lg">Helius Oracle</h2>
-            <p className="text-xs text-gray-400">Análise de mercado em tempo real</p>
-          </div>
+      <div className="p-4 border-b border-gray-800 bg-black/60 backdrop-blur-sm rounded-t-xl">
+        <div className="flex flex-col items-center justify-center text-center">
+          <h2 className="text-white font-bold text-lg">Helius Oracle</h2>
+          <p className="text-xs text-gray-400">Análise de mercado em tempo real</p>
+          <span className="absolute top-4 right-4 w-3 h-3 bg-green-500 rounded-full border-2 border-black" />
         </div>
       </div>
 
       {/* Chat Messages */}
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-6">
-            <img src="/SOLCRY.webp" alt="Helius Oracle" className="w-20 h-20 mb-4 animate-pulse-slow" />
-            <h3 className="text-white font-semibold mb-2">Bem-vindo ao Helius Oracle</h3>
-            <p className="text-gray-400 text-sm mb-6 max-w-sm">
+          <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-black/40 backdrop-blur-sm rounded-lg">
+            <img src="/SOLCRY.webp" alt="Helius Oracle" className="w-32 h-32 mb-6 animate-pulse-slow" />
+            <h3 className="text-white font-semibold text-xl mb-2">Bem-vindo ao Helius Oracle</h3>
+            <p className="text-gray-300 text-sm mb-6 max-w-sm">
               Sua IA especializada em análise de mercado cripto, fluxo de smart money e tendências on-chain.
             </p>
             
