@@ -5,8 +5,8 @@ import { MessageCircle, X, Minimize2, Maximize2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LegalDisclaimer } from './LegalDisclaimer';
 
-// Lazy load chat panel for performance
-const AIChatPanel = lazy(() => import('../../ai/AIChatPanel'));
+// Lazy load HeliusOracleChat for performance
+const HeliusOracleChat = lazy(() => import('../../ai/HeliusOracleChat'));
 
 const ChatSkeleton = () => (
   <div className="p-4 space-y-4">
@@ -32,20 +32,12 @@ const SolarAnalystSection: React.FC<SolarAnalystSectionProps> = ({
   const [isMinimized, setIsMinimized] = useState(false);
 
   if (!isFloating) {
-    // Embedded version (full height)
+    // Embedded version (full height) - Using HeliusOracleChat
     return (
-      <div className="h-full flex flex-col bg-gray-900 border border-slate-700 rounded-lg overflow-hidden">
-        <div className="p-3 border-b border-slate-700 bg-gradient-to-r from-purple-900/50 to-pink-900/50 text-center">
-          <h3 className="font-semibold text-white text-lg">Analista Solar</h3>
-        </div>
-        <div className="flex-1 overflow-hidden">
-          <Suspense fallback={<ChatSkeleton />}>
-            <AIChatPanel />
-          </Suspense>
-        </div>
-        <div className="p-2 border-t border-slate-700">
-          <LegalDisclaimer variant="minimal" />
-        </div>
+      <div className="h-full flex flex-col overflow-hidden">
+        <Suspense fallback={<ChatSkeleton />}>
+          <HeliusOracleChat className="h-full" />
+        </Suspense>
       </div>
     );
   }
@@ -57,7 +49,7 @@ const SolarAnalystSection: React.FC<SolarAnalystSectionProps> = ({
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/30"
+          className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg shadow-purple-500/30"
           size="icon"
         >
           <MessageCircle className="h-6 w-6" />
@@ -67,20 +59,20 @@ const SolarAnalystSection: React.FC<SolarAnalystSectionProps> = ({
       {/* Floating chat panel */}
       {isOpen && (
         <div 
-          className={`fixed z-50 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl shadow-black/50 transition-all duration-300 ${
+          className={`fixed z-50 bg-black border border-gray-800 rounded-xl shadow-2xl shadow-black/50 transition-all duration-300 ${
             isMinimized 
               ? 'bottom-4 right-4 w-72 h-14' 
-              : 'bottom-4 right-4 w-96 h-[500px] max-h-[70vh]'
+              : 'bottom-4 right-4 w-[400px] h-[550px] max-h-[75vh]'
           }`}
         >
           {/* Header */}
-          <div className="p-3 border-b border-slate-700 bg-gradient-to-r from-purple-900/50 to-pink-900/50 rounded-t-lg flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🤖</span>
+          <div className="p-3 border-b border-gray-800 bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-t-xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src="/SOLCRY.webp" alt="Helius Oracle" className="w-8 h-8" />
               <div>
-                <h3 className="font-semibold text-white text-sm">Analista Solar</h3>
+                <h3 className="font-bold text-white text-sm">Helius Oracle</h3>
                 {!isMinimized && (
-                  <p className="text-[10px] text-slate-400">Assistente educativo</p>
+                  <p className="text-[10px] text-gray-400">Análise de mercado em tempo real</p>
                 )}
               </div>
             </div>
@@ -88,7 +80,7 @@ const SolarAnalystSection: React.FC<SolarAnalystSectionProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-slate-400 hover:text-white"
+                className="h-7 w-7 text-gray-400 hover:text-white"
                 onClick={() => setIsMinimized(!isMinimized)}
               >
                 {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
@@ -96,7 +88,7 @@ const SolarAnalystSection: React.FC<SolarAnalystSectionProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-slate-400 hover:text-white"
+                className="h-7 w-7 text-gray-400 hover:text-white"
                 onClick={() => setIsOpen(false)}
               >
                 <X className="h-4 w-4" />
@@ -107,14 +99,9 @@ const SolarAnalystSection: React.FC<SolarAnalystSectionProps> = ({
           {/* Content */}
           {!isMinimized && (
             <div className="flex flex-col h-[calc(100%-56px)]">
-              <div className="flex-1 overflow-hidden">
-                <Suspense fallback={<ChatSkeleton />}>
-                  <AIChatPanel />
-                </Suspense>
-              </div>
-              <div className="p-2 border-t border-slate-700">
-                <LegalDisclaimer variant="minimal" />
-              </div>
+              <Suspense fallback={<ChatSkeleton />}>
+                <HeliusOracleChat className="h-full border-0 rounded-none" />
+              </Suspense>
             </div>
           )}
         </div>
