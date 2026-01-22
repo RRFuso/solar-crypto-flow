@@ -33,20 +33,27 @@ interface UnifiedTooltipProps {
 
 const OnChainTooltipContent: React.FC<{ symbol: string }> = ({ symbol }) => {
   const { smartMoneyScores, isLoading } = useOnChainData();
-  const onChainInfo = smartMoneyScores.get(symbol);
+  const onChainInfo = smartMoneyScores.get(symbol.toUpperCase());
 
   if (isLoading(symbol)) {
     return (
       <div className="border-t border-slate-700 pt-2 mt-2">
-        <h4 className="font-bold text-slate-300 mb-1">On-Chain Analysis</h4>
-        <p className="text-xs text-gray-400">Analisando...</p>
+        <h4 className="font-bold text-slate-300 mb-1">Análise On-Chain</h4>
+        <p className="text-xs text-gray-400">Analisando dados...</p>
       </div>
     );
   }
 
   if (!onChainInfo) {
-    return null; // Não mostra nada se não houver dados
+    return null;
   }
+
+  // Mapear sentiment para terminologia neutra em português
+  const getSentimentLabel = () => {
+    if (onChainInfo.sentiment === 'Bullish') return 'Tendência de Alta';
+    if (onChainInfo.sentiment === 'Bearish') return 'Tendência de Baixa';
+    return 'Consolidação';
+  };
 
   const getSentimentColor = () => {
     if (onChainInfo.sentiment === 'Bullish') return 'text-green-400';
@@ -56,14 +63,32 @@ const OnChainTooltipContent: React.FC<{ symbol: string }> = ({ symbol }) => {
 
   return (
     <div className="border-t border-slate-700 pt-2 mt-2">
-      <h4 className="font-bold text-slate-300 mb-1">On-Chain Analysis</h4>
-      <div className="flex justify-between">
-        <span className="text-slate-400">Smart Money Score:</span>
-        <span className={`font-mono font-bold ${getSentimentColor()}`}>{onChainInfo.score}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-slate-400">Sentiment:</span>
-        <span className={`font-mono font-bold ${getSentimentColor()}`}>{onChainInfo.sentiment}</span>
+      <h4 className="font-bold text-slate-300 mb-2">📊 Análise On-Chain</h4>
+      <div className="space-y-1">
+        <div className="flex justify-between">
+          <span className="text-slate-400">Smart Money Score:</span>
+          <span className={`font-mono font-bold ${getSentimentColor()}`}>{onChainInfo.score}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-slate-400">Sentimento:</span>
+          <span className={`font-mono font-bold ${getSentimentColor()}`}>{getSentimentLabel()}</span>
+        </div>
+        {onChainInfo.confidence !== undefined && (
+          <div className="flex justify-between">
+            <span className="text-slate-400">Confiança:</span>
+            <span className="font-mono font-bold">{(onChainInfo.confidence * 100).toFixed(0)}%</span>
+          </div>
+        )}
+        {onChainInfo.factors && onChainInfo.factors.length > 0 && (
+          <div className="mt-2">
+            <span className="text-slate-400 text-xs">Fatores de Análise:</span>
+            <ul className="list-disc list-inside text-xs pl-1 mt-1 space-y-0.5">
+              {onChainInfo.factors.slice(0, 3).map((factor, i) => (
+                <li key={i} className="text-slate-300">{factor}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -219,10 +244,10 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
 
           {aiInsight && (
             <div className="border-t border-slate-700 pt-2 mt-2">
-              <h4 className="font-bold text-slate-300 mb-2">🤖 Análise de Tendência</h4>
+              <h4 className="font-bold text-slate-300 mb-2">🤖 Sinal de Tendência</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Sinal:</span>
+                  <span className="text-slate-400">Análise:</span>
                   <Badge 
                     variant={
                       aiInsight.recommendation === 'strong_buy' || aiInsight.recommendation === 'buy' 
@@ -234,9 +259,9 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
                     className="font-semibold"
                   >
                     {aiInsight.recommendation === 'strong_buy' ? 'FORTE TENDÊNCIA DE ALTA' :
-                     aiInsight.recommendation === 'buy' ? 'BULLISH' :
+                     aiInsight.recommendation === 'buy' ? 'TENDÊNCIA DE ALTA' :
                      aiInsight.recommendation === 'strong_sell' ? 'FORTE TENDÊNCIA DE BAIXA' :
-                     aiInsight.recommendation === 'sell' ? 'BEARISH' :
+                     aiInsight.recommendation === 'sell' ? 'TENDÊNCIA DE BAIXA' :
                      'CONSOLIDAÇÃO'}
                   </Badge>
                 </div>
