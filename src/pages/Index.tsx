@@ -14,7 +14,6 @@ import DataPopulationPanel from "@/components/admin/DataPopulationPanel";
 import ApiMetricsDashboard from "@/components/admin/ApiMetricsDashboard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SubscriptionPlans } from "@/components/subscription/SubscriptionPlans";
-import FlowControls from "@/components/capital-flow/panel/FlowControls";
 import { FlowPanelHeader } from "@/components/capital-flow/panel/FlowPanelHeader";
 import { fetchMarketDataCoinGecko, fetchMarketDataBinance } from '@/lib/marketData';
 import { toast } from 'sonner';
@@ -246,28 +245,7 @@ const IndexContent = () => {
             </div>
           </header>
 
-          {activeTab === 'capital-flow' && (
-            <div className="md:hidden py-2 px-1 border-b border-slate-700/50">
-              <div className="flex flex-row flex-wrap items-center justify-center gap-2">
-                  <FlowControls
-                    chartTimeframe={chartTimeframe}
-                    onChartTimeframeChange={handleChartTimeframeChange}
-                    showOnlyStrongSignals={showOnlyStrongSignals}
-                    setShowOnlyStrongSignals={setShowOnlyStrongSignals}
-                    zoomLevel={zoomLevel}
-                    handleZoomIn={handleZoomIn}
-                    handleZoomOut={handleZoomOut}
-                    flowLimit={effectiveFlowLimit}
-                    handleLimitChange={handleLimitChange}
-                    selectedCategory={selectedCategory}
-                    setSelectedCategory={setSelectedCategory}
-                    onRefresh={() => refetch()}
-                    showLines={showLines}
-                    setShowLines={setShowLines}
-                  />
-              </div>
-            </div>
-          )}
+          {/* Mobile controls removed - now integrated in SolarSystemControls */}
 
           <div className="flex-1 w-full md:overflow-hidden">
             <TabsContent value="capital-flow" className="h-full w-full">

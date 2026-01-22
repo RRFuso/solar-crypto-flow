@@ -41,7 +41,7 @@ interface FlowControlsProviderProps {
 export const FlowControlsProvider: React.FC<FlowControlsProviderProps> = ({ children }) => {
   const [timeframe, setTimeframe] = useState('24h');
   const [chartTimeframe, setChartTimeframe] = useState('4h');
-  const [zoomLevel, setZoomLevel] = useState(15);
+  const [zoomLevel, setZoomLevel] = useState(100); // 100% = default scale for solar system
   const [flowLimit, setFlowLimit] = useState(30);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
@@ -49,11 +49,11 @@ export const FlowControlsProvider: React.FC<FlowControlsProviderProps> = ({ chil
   const [dataSource, setDataSource] = useState<'coingecko' | 'binance'>('coingecko');
 
   const handleZoomIn = useCallback(() => {
-    setZoomLevel(prev => Math.min(prev + 10, 150));
+    setZoomLevel(prev => Math.min(prev + 10, 200)); // Max 200% zoom in
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    setZoomLevel(prev => Math.max(prev - 10, 20));
+    setZoomLevel(prev => Math.max(prev - 10, 50)); // Min 50% zoom out
   }, []);
 
   const handleLimitChange = useCallback((value: number[]) => {

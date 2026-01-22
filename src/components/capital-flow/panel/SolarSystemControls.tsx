@@ -4,7 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Search, ChevronLeft, ChevronRight, Filter, ZoomIn, ZoomOut, RefreshCcw, Clock } from 'lucide-react';
 import { PREDEFINED_LISTS, CRYPTO_CATEGORIES } from '../constants/predefinedLists';
 
 interface SolarSystemControlsProps {
@@ -18,7 +20,29 @@ interface SolarSystemControlsProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   totalCryptos: number;
+  // Zoom controls
+  zoomLevel: number;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  // Timeframe
+  chartTimeframe: string;
+  onTimeframeChange: (value: string) => void;
+  // Refresh
+  onRefresh: () => void;
+  // Lines toggle
+  showLines: boolean;
+  onShowLinesChange: (value: boolean) => void;
 }
+
+const TIMEFRAMES = [
+  { value: '5m', label: '5 min' },
+  { value: '15m', label: '15 min' },
+  { value: '30m', label: '30 min' },
+  { value: '1h', label: '1 hora' },
+  { value: '4h', label: '4 horas' },
+  { value: '24h', label: '24 horas' },
+  { value: '7d', label: '7 dias' },
+];
 
 export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
   currentList,
@@ -31,6 +55,14 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
   totalPages,
   onPageChange,
   totalCryptos,
+  zoomLevel,
+  onZoomIn,
+  onZoomOut,
+  chartTimeframe,
+  onTimeframeChange,
+  onRefresh,
+  showLines,
+  onShowLinesChange,
 }) => {
   const [showCategories, setShowCategories] = useState(false);
   
@@ -72,16 +104,16 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
         />
       </div>
 
-      {/* List selector and pagination */}
+      {/* Filters row - List, Category, Zoom, Timeframe, Lines, Refresh, Pagination */}
       <div className="flex flex-wrap items-center gap-2">
         {/* List Selector */}
         <Select value={currentList} onValueChange={onListChange}>
-          <SelectTrigger className="w-[160px] bg-slate-800/50 border-slate-600/50 text-white">
+          <SelectTrigger className="w-[140px] h-8 bg-slate-800/50 border-slate-600/50 text-white text-xs">
             <SelectValue placeholder="Selecionar lista" />
           </SelectTrigger>
-          <SelectContent className="bg-slate-800 border-slate-600">
+          <SelectContent className="bg-slate-800 border-slate-600 z-50">
             {Object.entries(PREDEFINED_LISTS).map(([key, value]) => (
-              <SelectItem key={key} value={key} className="text-white hover:bg-slate-700">
+              <SelectItem key={key} value={key} className="text-white hover:bg-slate-700 text-xs">
                 {value.label}
               </SelectItem>
             ))}
@@ -93,10 +125,71 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
           variant="outline"
           size="sm"
           onClick={() => setShowCategories(!showCategories)}
-          className="bg-slate-800/50 border-slate-600/50 text-white hover:bg-slate-700"
+          className="h-8 bg-slate-800/50 border-slate-600/50 text-white hover:bg-slate-700 text-xs"
         >
-          <Filter className="h-4 w-4 mr-1" />
+          <Filter className="h-3 w-3 mr-1" />
           {categoryLabels[selectedCategory] || 'Categoria'}
+        </Button>
+
+        {/* Zoom Controls */}
+        <div className="flex items-center gap-1 px-2 py-1 bg-slate-800/50 border border-slate-600/50 rounded-md">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="h-6 w-6 text-white hover:bg-slate-700"
+            onClick={onZoomOut}
+          >
+            <ZoomOut className="h-3 w-3" />
+          </Button>
+          <span className="text-white/80 text-xs w-10 text-center">{zoomLevel}%</span>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="h-6 w-6 text-white hover:bg-slate-700"
+            onClick={onZoomIn}
+          >
+            <ZoomIn className="h-3 w-3" />
+          </Button>
+        </div>
+
+        {/* Timeframe Selector */}
+        <div className="flex items-center gap-1 px-2 py-1 bg-slate-800/50 border border-slate-600/50 rounded-md">
+          <Clock className="h-3 w-3 text-slate-400" />
+          <Select value={chartTimeframe} onValueChange={onTimeframeChange}>
+            <SelectTrigger className="w-[80px] h-6 border-none bg-transparent text-white/80 px-1 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-800 border-slate-600 z-50">
+              {TIMEFRAMES.map(tf => (
+                <SelectItem key={tf.value} value={tf.value} className="text-white hover:bg-slate-700 text-xs">
+                  {tf.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Lines Toggle */}
+        <div className="flex items-center gap-1 px-2 py-1 bg-slate-800/50 border border-slate-600/50 rounded-md">
+          <Switch
+            id="show-lines-control"
+            checked={showLines}
+            onCheckedChange={onShowLinesChange}
+            className="h-4 w-7"
+          />
+          <Label htmlFor="show-lines-control" className="text-white/80 text-xs cursor-pointer">
+            Linhas
+          </Label>
+        </div>
+
+        {/* Refresh Button */}
+        <Button 
+          variant="outline" 
+          size="icon"
+          className="h-8 w-8 bg-slate-800/50 border-slate-600/50 text-white hover:bg-slate-700"
+          onClick={onRefresh}
+        >
+          <RefreshCcw className="h-3 w-3" />
         </Button>
 
         {/* Pagination */}
@@ -110,7 +203,7 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm text-slate-400 min-w-[80px] text-center">
+          <span className="text-xs text-slate-400 min-w-[70px] text-center">
             {currentPage}/{totalPages} ({totalCryptos})
           </span>
           <Button
