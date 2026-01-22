@@ -1,6 +1,5 @@
 
 import React, { memo } from 'react';
-import FlowControls from './panel/FlowControls';
 import SolarSystemSection from './panel/SolarSystemSection';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
@@ -34,17 +33,10 @@ const CapitalFlowPanel: React.FC<CapitalFlowPanelProps> = ({
   zoomLevel,
   filteredPredictions,
   chartTimeframe,
-  activeCategory,
   showLines,
   handleZoomIn,
   handleZoomOut,
-  flowLimit,
-  handleLimitChange,
   handleChartTimeframeChange,
-  showOnlyStrongSignals,
-  setShowOnlyStrongSignals,
-  selectedCategory,
-  setSelectedCategory,
   refetch,
   setShowLines,
 }) => {
@@ -52,31 +44,7 @@ const CapitalFlowPanel: React.FC<CapitalFlowPanelProps> = ({
     <div className="h-full w-full flex flex-col md:flex-row overflow-hidden p-1 md:p-2 gap-1 md:gap-2 capital-flow-panel">
       {/* Main Content Area - Solar System */}
       <div className="flex-1 flex flex-col overflow-hidden rounded-lg bg-slate-900/40 backdrop-blur-sm border border-slate-700/50">
-        {/* Header Controls for Desktop */}
-        <div className="hidden md:flex flex-shrink-0 border-b border-slate-700/50 bg-slate-900/30 backdrop-blur-sm z-10">
-          <div className="p-2 w-full">
-            <div className="flex flex-row items-center justify-center gap-4 flex-wrap">
-              <FlowControls
-                chartTimeframe={chartTimeframe}
-                onChartTimeframeChange={handleChartTimeframeChange}
-                showOnlyStrongSignals={showOnlyStrongSignals}
-                setShowOnlyStrongSignals={setShowOnlyStrongSignals}
-                zoomLevel={zoomLevel}
-                handleZoomIn={handleZoomIn}
-                handleZoomOut={handleZoomOut}
-                flowLimit={flowLimit}
-                handleLimitChange={handleLimitChange}
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-                onRefresh={refetch}
-                showLines={showLines}
-                setShowLines={setShowLines}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Solar System Visualization */}
+        {/* Solar System Visualization - controls are now inside SolarSystemSection */}
         <div className="flex-1 relative overflow-hidden">
           <SolarSystemSection
             flowData={processedFlowData}
@@ -86,6 +54,11 @@ const CapitalFlowPanel: React.FC<CapitalFlowPanelProps> = ({
             showLines={showLines}
             isLoading={isLoading}
             error={error}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onTimeframeChange={handleChartTimeframeChange}
+            onRefresh={refetch}
+            onShowLinesChange={setShowLines}
           />
         </div>
       </div>

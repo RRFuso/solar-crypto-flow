@@ -10,7 +10,7 @@ const HomePanel = () => {
   // State for CapitalFlowPanel
   const [timeframe, setTimeframe] = useState('24h');
   const [chartTimeframe, setChartTimeframe] = useState('4h');
-  const [zoomLevel, setZoomLevel] = useState(15);
+  const [zoomLevel, setZoomLevel] = useState(100); // 100% = default scale
   const [flowLimit, setFlowLimit] = useState(30);
   const [selectedCategory, setSelectedCategory] = useState('all');
   
@@ -48,8 +48,8 @@ const HomePanel = () => {
     return predictions;
   }, [predictions, showOnlyStrongSignals]);
 
-  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 150));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 20));
+  const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 10, 200)); // Max 200% zoom in
+  const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 10, 50)); // Min 50% zoom out
   const handleLimitChange = (value: number[]) => setFlowLimit(value[0]);
   const handleChartTimeframeChange = (value: string) => {
     setChartTimeframe(value);
