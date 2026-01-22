@@ -304,13 +304,13 @@ export const BTCTooltip: React.FC<BTCTooltipProps> = ({ data, position }) => {
             </div>
           )}
 
-          {/* AI Analysis */}
+          {/* Sinal de Tendência - AI */}
           {data.aiInsight && (
             <div className="border-t border-orange-500/30 pt-3">
-              <h4 className="font-bold text-orange-300 mb-2">🤖 AI Analysis</h4>
+              <h4 className="font-bold text-orange-300 mb-2">🤖 Sinal de Tendência</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center bg-slate-800/50 rounded p-2">
-                  <span className="text-slate-300">Recommendation</span>
+                  <span className="text-slate-300">Análise</span>
                   <Badge className={`${
                     data.aiInsight.recommendation === 'strong_buy' || data.aiInsight.recommendation === 'buy'
                       ? 'bg-green-500/20 text-green-300 border-green-500/30'
@@ -318,28 +318,32 @@ export const BTCTooltip: React.FC<BTCTooltipProps> = ({ data, position }) => {
                       ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
                       : 'bg-red-500/20 text-red-300 border-red-500/30'
                   }`}>
-                    {data.aiInsight.recommendation.replace('_', ' ').toUpperCase()}
+                    {data.aiInsight.recommendation === 'strong_buy' ? 'FORTE TENDÊNCIA DE ALTA' :
+                     data.aiInsight.recommendation === 'buy' ? 'TENDÊNCIA DE ALTA' :
+                     data.aiInsight.recommendation === 'strong_sell' ? 'FORTE TENDÊNCIA DE BAIXA' :
+                     data.aiInsight.recommendation === 'sell' ? 'TENDÊNCIA DE BAIXA' :
+                     'CONSOLIDAÇÃO'}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center bg-slate-800/50 rounded p-2">
-                  <span className="text-slate-300">Confidence</span>
+                  <span className="text-slate-300">Confiança</span>
                   <span className="font-mono font-bold text-orange-300">
                     {(data.aiInsight.confidence * 100).toFixed(0)}%
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-slate-800/50 rounded p-2">
-                    <div className="text-xs text-slate-400">Opportunity</div>
+                    <div className="text-xs text-slate-400">Oportunidade</div>
                     <div className="font-bold text-green-400">{data.aiInsight.opportunityScore.toFixed(0)}</div>
                   </div>
                   <div className="bg-slate-800/50 rounded p-2">
-                    <div className="text-xs text-slate-400">Risk</div>
+                    <div className="text-xs text-slate-400">Risco</div>
                     <div className="font-bold text-red-400">{data.aiInsight.riskScore.toFixed(0)}</div>
                   </div>
                 </div>
                 {data.aiInsight.patterns.length > 0 && (
                   <div className="text-xs text-slate-300 bg-slate-800/30 rounded p-2">
-                    <span className="font-semibold">Patterns: </span>
+                    <span className="font-semibold">Padrões: </span>
                     {data.aiInsight.patterns.map(p => p.pattern).join(', ')}
                   </div>
                 )}
