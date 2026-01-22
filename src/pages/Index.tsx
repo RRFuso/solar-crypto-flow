@@ -273,11 +273,7 @@ const IndexContent = () => {
             </TabsContent>
             <TabsContent value="ai-watchlist" className="h-full w-full overflow-y-auto">
               <div className="p-4">
-                <AIWatchlistSection 
-                  predictions={filteredPredictions} 
-                  chartTimeframe={chartTimeframe}
-                  maxItems={15}
-                />
+                <AIWatchlistSection maxItems={15} />
               </div>
             </TabsContent>
             <TabsContent value="ai-analyst" className="h-full w-full">
