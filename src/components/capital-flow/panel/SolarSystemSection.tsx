@@ -52,11 +52,6 @@ const SolarSystemSection: React.FC<SolarSystemSectionProps> = ({
     goToPage,
   } = usePaginatedCryptos({ flowData, pageSize: 99 });
 
-  // Calculate SVG transform scale based on zoom level
-  // Zoom 100% = scale 1.0, zoom 50% = scale 0.5, zoom 150% = scale 1.5
-  const systemScale = useMemo(() => {
-    return zoomLevel / 100;
-  }, [zoomLevel]);
 
   if (isLoading) {
     return (
@@ -104,23 +99,16 @@ const SolarSystemSection: React.FC<SolarSystemSectionProps> = ({
         onShowLinesChange={onShowLinesChange}
       />
 
-      {/* Visualization with zoom transform */}
+      {/* Visualization */}
       <div className="flex-1 relative overflow-hidden">
-        <div 
-          className="w-full h-full transition-transform duration-300 ease-out origin-center"
-          style={{ 
-            transform: `scale(${systemScale})`,
-          }}
-        >
-          <FlowVisualization 
-            flowData={paginatedData} 
-            zoomLevel={100} // Fixed at 100 since we're scaling the container
-            predictions={predictions} 
-            chartTimeframe={chartTimeframe}
-            activeCategory={selectedCategory}
-            showLines={showLines}
-          />
-        </div>
+        <FlowVisualization 
+          flowData={paginatedData} 
+          zoomLevel={zoomLevel}
+          predictions={predictions} 
+          chartTimeframe={chartTimeframe}
+          activeCategory={selectedCategory}
+          showLines={showLines}
+        />
         
         {/* Legend */}
         <div className="absolute bottom-8 left-0 w-full md:w-auto md:left-1/2 md:transform md:-translate-x-1/2 z-10 pointer-events-none">
