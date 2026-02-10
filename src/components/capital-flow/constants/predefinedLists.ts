@@ -43,24 +43,28 @@ export const PREDEFINED_LISTS = {
 
 // Categorias de criptos para filtro
 export const CRYPTO_CATEGORIES: Record<string, string[]> = {
-  layer1: ['BTC', 'ETH', 'SOL', 'ADA', 'AVAX', 'DOT', 'ATOM', 'NEAR', 'FTM', 'ALGO', 'XTZ', 'ICP', 'HBAR', 'EOS', 'XLM', 'VET', 'ONE', 'EGLD', 'KAVA', 'ROSE', 'MINA', 'KDA', 'CFX', 'CELO', 'ZIL'],
-  layer2: ['MATIC', 'ARB', 'OP', 'IMX', 'METIS', 'LRC', 'BOBA', 'ZKS', 'STRK', 'MANTA', 'BLAST', 'SCROLL', 'LINEA', 'BASE', 'MODE'],
-  defi: ['UNI', 'AAVE', 'MKR', 'CRV', 'SNX', 'COMP', 'YFI', 'SUSHI', '1INCH', 'BAL', 'DYDX', 'GMX', 'PERP', 'LQTY', 'PENDLE', 'MORPHO', 'EIGEN'],
-  memecoin: ['DOGE', 'SHIB', 'PEPE', 'WIF', 'BONK', 'FLOKI', 'MEME', 'TURBO', 'BOME', 'COQ', 'MYRO', 'BRETT', 'POPCAT', 'NEIRO', 'PNUT', 'MOG', 'SPX'],
+  layer1: ['BTC', 'ETH', 'SOL', 'ADA', 'AVAX', 'DOT', 'ATOM', 'NEAR', 'FTM', 'ALGO', 'XTZ', 'ICP', 'HBAR', 'EOS', 'XLM', 'VET', 'ONE', 'EGLD', 'KAVA', 'ROSE', 'MINA', 'KDA', 'CFX', 'CELO', 'ZIL', 'SUI', 'SEI', 'TON', 'APT'],
+  layer2: ['MATIC', 'ARB', 'OP', 'IMX', 'METIS', 'LRC', 'BOBA', 'ZKS', 'STRK', 'MANTA', 'BLAST', 'SCROLL', 'LINEA', 'BASE', 'MODE', 'MANTLE', 'ZRO'],
+  defi: ['UNI', 'AAVE', 'MKR', 'CRV', 'SNX', 'COMP', 'YFI', 'SUSHI', '1INCH', 'BAL', 'DYDX', 'GMX', 'PERP', 'LQTY', 'PENDLE', 'MORPHO', 'EIGEN', 'ENA'],
+  memecoin: ['DOGE', 'SHIB', 'PEPE', 'WIF', 'BONK', 'FLOKI', 'MEME', 'TURBO', 'BOME', 'COQ', 'MYRO', 'BRETT', 'POPCAT', 'NEIRO', 'PNUT', 'MOG', 'SPX', 'TRUMP'],
   stablecoin: ['USDT', 'USDC', 'DAI', 'BUSD', 'TUSD', 'FRAX', 'USDP', 'PYUSD', 'GHO', 'LUSD', 'MIM', 'CRVUSD', 'EURC'],
   gaming: ['AXS', 'SAND', 'MANA', 'ENJ', 'GALA', 'ILV', 'MAGIC', 'RONIN', 'BEAM', 'PIXEL', 'PRIME', 'PORTAL', 'XAI', 'SAGA'],
-  ai: ['FET', 'AGIX', 'OCEAN', 'RNDR', 'ARKM', 'WLD', 'TAO', 'VIRTUAL', 'AI16Z', 'ZEREBRO', 'GRIFFAIN', 'ARC', 'GOAT', 'FARTCOIN'],
+  ai: ['FET', 'AGIX', 'OCEAN', 'RNDR', 'ARKM', 'WLD', 'TAO', 'VIRTUAL', 'AI16Z', 'ZEREBRO', 'GRIFFAIN', 'ARC', 'GOAT', 'FARTCOIN', 'AKT', 'AIOZ'],
   privacy: ['XMR', 'ZEC', 'DASH', 'DCR', 'SCRT', 'ROSE', 'NYM', 'BEAM', 'PIVX'],
   solana: ['SOL', 'RAY', 'SRM', 'ORCA', 'MNGO', 'STEP', 'JTO', 'JUP', 'PYTH', 'W', 'JITO', 'MARINADE', 'BONK', 'WIF', 'BOME'],
   ethereum: ['ETH', 'stETH', 'rETH', 'cbETH', 'UNI', 'AAVE', 'MKR', 'LDO', 'ENS', 'RPL', 'SSV', 'EIGEN', 'ETHFI'],
   bitcoin: ['BTC', 'WBTC', 'tBTC', 'cbBTC', 'ORDI', 'SATS', 'RUNES', 'STX', 'ALEX', 'PIPE'],
   bnb: ['BNB', 'CAKE', 'XVS', 'ALPACA', 'BAKE', 'BURGER', 'BISWAP', 'RACA', 'BSW'],
-  rwa: ['ONDO', 'MPL', 'CFG', 'RIO', 'PROPS', 'CPOOL', 'GFI', 'MAPLE'],
+  rwa: ['ONDO', 'MPL', 'CFG', 'RIO', 'PROPS', 'CPOOL', 'GFI', 'MAPLE', 'TRU'],
+  depin: ['HNT', 'FIL', 'AR', 'RNDR', 'THETA', 'AKT', 'IOTX', 'LPT', 'STORJ', 'SC', 'BTT', 'ANKR', 'POKT', 'NKN', 'DIMO'],
+  oracles: ['LINK', 'BAND', 'TRB', 'API3', 'UMA', 'DIA', 'PYTH', 'FLUX'],
   payments: ['XRP', 'XLM', 'HBAR', 'ALGO', 'CELO', 'ACH', 'AMP', 'PYUSD'],
   metaverse: ['SAND', 'MANA', 'AXS', 'ENJ', 'APE', 'HIGH', 'RARI', 'AUDIO'],
   nft: ['BLUR', 'X2Y2', 'LOOKS', 'RARE', 'SUPER', 'ENJ', 'AUDIO'],
   storage: ['FIL', 'AR', 'STORJ', 'SIA', 'BTT', 'HOT'],
   infrastructure: ['LINK', 'GRT', 'API3', 'BAND', 'TRB', 'PYTH', 'UMA', 'DIA', 'FLUX', 'POKT', 'NKN', 'ANKR'],
+  'cex-token': ['BNB', 'OKB', 'CRO', 'WBT', 'GT', 'KCS', 'LEO', 'BGB', 'MNT', 'HT'],
+  lst: ['STETH', 'WSTETH', 'WBETH', 'RETH', 'JITOSOL', 'OSETH', 'MSOL', 'CBETH', 'WEETH', 'BNSOL'],
 };
 
 // Helper para obter categoria de um símbolo

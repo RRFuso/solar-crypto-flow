@@ -6,8 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Search, ChevronLeft, ChevronRight, Filter, ZoomIn, ZoomOut, RefreshCcw, Clock } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Filter, ZoomIn, ZoomOut, RefreshCcw, Clock, Lock } from 'lucide-react';
 import { PREDEFINED_LISTS, CRYPTO_CATEGORIES } from '../constants/predefinedLists';
+import { useTierAccess } from '@/hooks/useTierAccess';
 
 interface SolarSystemControlsProps {
   currentList: string;
@@ -65,6 +66,10 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
   onShowLinesChange,
 }) => {
   const [showCategories, setShowCategories] = useState(false);
+  const { tier, showUpgradePrompt } = useTierAccess();
+  
+  // Categories that require premium access
+  const PREMIUM_CATEGORIES = ['rwa', 'depin', 'ai', 'lst', 'oracles', 'cex-token'];
   
   const categoryLabels: Record<string, string> = {
     all: '🌐 Todas',
@@ -81,11 +86,15 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
     bitcoin: '₿ Bitcoin',
     bnb: '🔸 BNB',
     rwa: '🏠 RWA',
+    depin: '📡 DePIN',
+    oracles: '🔮 Oracles',
     payments: '💳 Payments',
     metaverse: '🌌 Metaverse',
     nft: '🖼️ NFT',
     storage: '💾 Storage',
     infrastructure: '🔗 Infrastructure',
+    'cex-token': '🏛️ CEX Token',
+    lst: '💧 LST',
   };
 
   const fixedCoins = ['BTC', ...CRYPTO_CATEGORIES.stablecoin];
@@ -221,23 +230,38 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
       {/* Category badges (collapsible) */}
       {showCategories && (
         <div className="flex flex-wrap gap-1 py-1 animate-fade-in">
-          {Object.entries(categoryLabels).map(([key, label]) => (
-            <Badge
-              key={key}
-              variant={selectedCategory === key ? "default" : "outline"}
-              className={`cursor-pointer text-xs transition-all ${
-                selectedCategory === key 
-                  ? 'bg-orange-500 text-white border-orange-500' 
-                  : 'bg-slate-800/50 text-slate-300 border-slate-600 hover:bg-slate-700'
-              }`}
-              onClick={() => {
-                onCategoryChange(key);
-                setShowCategories(false);
-              }}
-            >
-              {label}
-            </Badge>
-          ))}
+          {Object.entries(categoryLabels).map(([key, label]) => {
+            const isPremium = PREMIUM_CATEGORIES.includes(key);
+            const isLocked = isPremium && tier === 'free';
+            
+            return (
+              <Badge
+                key={key}
+                variant={selectedCategory === key ? "default" : "outline"}
+                className={`cursor-pointer text-xs transition-all ${
+                  selectedCategory === key 
+                    ? 'bg-orange-500 text-white border-orange-500' 
+                    : isLocked
+                    ? 'bg-slate-800/30 text-slate-500 border-slate-700 hover:bg-slate-700/50'
+                    : 'bg-slate-800/50 text-slate-300 border-slate-600 hover:bg-slate-700'
+                }`}
+                onClick={() => {
+                  if (isLocked) {
+                    showUpgradePrompt(label);
+                    return;
+                  }
+                  onCategoryChange(key);
+                  setShowCategories(false);
+                }}
+              >
+                {label}
+                {isLocked && <Lock className="h-3 w-3 ml-1 text-yellow-500" />}
+                {isPremium && !isLocked && (
+                  <span className="ml-1 text-yellow-400 text-[9px]">★</span>
+                )}
+              </Badge>
+            );
+          })}
         </div>
       )}
 

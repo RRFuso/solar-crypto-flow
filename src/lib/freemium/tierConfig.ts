@@ -42,15 +42,15 @@ export interface TierConfig {
   features: string[];
 }
 
-// Stripe product/price IDs (update these with your actual Stripe IDs)
+// Stripe product/price IDs
 export const STRIPE_PRODUCTS = {
   pro: {
-    priceId: 'price_pro_monthly', // Replace with actual Stripe price ID
-    productId: 'prod_pro',        // Replace with actual Stripe product ID
+    priceId: 'price_1SEBY0L98a1SkSX47ugTNfWb',
+    productId: 'prod_TAWbWItNwiXKDF',
   },
   premium: {
-    priceId: 'price_premium_monthly', // Replace with actual Stripe price ID
-    productId: 'prod_premium',        // Replace with actual Stripe product ID
+    priceId: 'price_1SEBYML98a1SkSX4zavuwiUj',
+    productId: 'prod_TAWbSzcetW1egF',
   },
 };
 
