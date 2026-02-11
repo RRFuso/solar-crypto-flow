@@ -223,7 +223,7 @@ async function getPriorityWallets(limit: number = 20): Promise<SmartMoneyWallet[
   }, CacheTTL.SMART_MONEY);
 }
 
-// Fetch transactions with enhanced details from Etherscan
+// Fetch transactions with enhanced details from Alchemy
 async function fetchWalletTransactionsBatch(
   walletAddresses: string[],
   chain: string = 'ethereum'
@@ -231,72 +231,103 @@ async function fetchWalletTransactionsBatch(
   const cacheKey = CacheKeys.walletTransactions(walletAddresses.slice(0, 5).join('_'));
   
   const cached = await getCache<TransactionWithDetails[]>(cacheKey);
-  if (cached) {
+  if (cached && cached.length > 0) {
     console.log('[Redis] Using cached wallet transactions with details');
     return cached;
   }
 
-  const etherscanKey = Deno.env.get('ETHERSCAN_API_KEY');
-  if (!etherscanKey) {
-    console.error('ETHERSCAN_API_KEY not configured');
+  const alchemyKey = Deno.env.get('ALCHEMY_API_KEY');
+  if (!alchemyKey) {
+    console.error('ALCHEMY_API_KEY not configured');
     return [];
   }
 
-  const batchSize = 3;
+  const alchemyUrl = `https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`;
   const allTransactions: TransactionWithDetails[] = [];
+  const batchSize = 3;
 
   for (let i = 0; i < walletAddresses.length; i += batchSize) {
     const batch = walletAddresses.slice(i, i + batchSize);
     
     const batchPromises = batch.map(async (address) => {
       try {
-        // Fetch token transactions
-        const tokenUrl = `https://api.etherscan.io/api?module=account&action=tokentx&address=${address}&page=1&offset=50&sort=desc&apikey=${etherscanKey}`;
-        const tokenResponse = await fetch(tokenUrl);
-        const tokenData = await tokenResponse.json();
+        // Fetch outgoing transfers (FROM this wallet)
+        const outgoingBody = {
+          id: 1,
+          jsonrpc: "2.0",
+          method: "alchemy_getAssetTransfers",
+          params: [{
+            fromAddress: address,
+            category: ["erc20", "external"],
+            maxCount: "0x32", // 50
+            order: "desc",
+            withMetadata: true,
+          }]
+        };
 
-        // Also fetch normal ETH transactions for gas price info
-        const txUrl = `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&page=1&offset=50&sort=desc&apikey=${etherscanKey}`;
-        const txResponse = await fetch(txUrl);
-        const txData = await txResponse.json();
+        // Fetch incoming transfers (TO this wallet)
+        const incomingBody = {
+          id: 2,
+          jsonrpc: "2.0",
+          method: "alchemy_getAssetTransfers",
+          params: [{
+            toAddress: address,
+            category: ["erc20", "external"],
+            maxCount: "0x32", // 50
+            order: "desc",
+            withMetadata: true,
+          }]
+        };
 
-        // Create a map of tx hash to gas price
-        const gasPriceMap = new Map<string, { gasPrice: number; gasUsed: number; isError: boolean }>();
-        if (txData.status === '1' && txData.result) {
-          txData.result.forEach((tx: any) => {
-            gasPriceMap.set(tx.hash.toLowerCase(), {
-              gasPrice: parseFloat(tx.gasPrice) / 1e9, // Convert to Gwei
-              gasUsed: parseInt(tx.gasUsed),
-              isError: tx.isError === '1',
-            });
-          });
-        }
+        const [outRes, inRes] = await Promise.all([
+          fetch(alchemyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(outgoingBody),
+          }),
+          fetch(alchemyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(incomingBody),
+          }),
+        ]);
 
-        if (tokenData.status === '1' && tokenData.result) {
-          return tokenData.result.map((tx: any) => {
-            const toAddress = tx.to?.toLowerCase() || '';
-            const fromAddress = tx.from?.toLowerCase() || '';
-            const gasInfo = gasPriceMap.get(tx.hash?.toLowerCase());
+        const outData = await outRes.json();
+        const inData = await inRes.json();
 
-            return {
-              hash: tx.hash,
-              from: fromAddress,
-              to: toAddress,
-              value: parseFloat(tx.value) / Math.pow(10, parseInt(tx.tokenDecimal || '18')),
-              valueUSD: 0, // Will be calculated later
-              tokenSymbol: tx.tokenSymbol?.toUpperCase() || 'ETH',
-              gasPrice: gasInfo?.gasPrice,
-              gasUsed: gasInfo?.gasUsed,
-              isError: gasInfo?.isError || false,
+        const transfers: TransactionWithDetails[] = [];
+
+        const processTransfers = (result: any) => {
+          if (!result?.result?.transfers) return;
+          for (const tx of result.result.transfers) {
+            const fromAddr = (tx.from || '').toLowerCase();
+            const toAddr = (tx.to || '').toLowerCase();
+            const value = tx.value || 0;
+            const symbol = (tx.asset || 'ETH').toUpperCase();
+
+            transfers.push({
+              hash: tx.hash || '',
+              from: fromAddr,
+              to: toAddr,
+              value: value,
+              valueUSD: 0, // Will be calculated later with prices
+              tokenSymbol: symbol,
+              gasPrice: undefined, // Alchemy doesn't include gas in transfers
+              gasUsed: undefined,
+              isError: false, // Alchemy only returns successful transfers
               walletAddress: address.toLowerCase(),
-              toExchange: KNOWN_EXCHANGE_ADDRESSES.has(toAddress),
-              fromExchange: KNOWN_EXCHANGE_ADDRESSES.has(fromAddress),
-            } as TransactionWithDetails;
-          });
-        }
-        return [];
+              toExchange: KNOWN_EXCHANGE_ADDRESSES.has(toAddr),
+              fromExchange: KNOWN_EXCHANGE_ADDRESSES.has(fromAddr),
+            });
+          }
+        };
+
+        processTransfers(outData);
+        processTransfers(inData);
+
+        return transfers;
       } catch (error) {
-        console.error(`Error fetching txs for ${address}:`, error);
+        console.error(`Error fetching Alchemy txs for ${address}:`, error);
         return [];
       }
     });
@@ -305,13 +336,30 @@ async function fetchWalletTransactionsBatch(
     batchResults.forEach(txs => allTransactions.push(...txs));
 
     if (i + batchSize < walletAddresses.length) {
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
 
+  console.log(`Alchemy fetched ${allTransactions.length} total transfers from ${walletAddresses.length} wallets`);
+
   // Cache for 5 minutes
-  await setCache(cacheKey, allTransactions, CacheTTL.WALLET_TX);
+  if (allTransactions.length > 0) {
+    await setCache(cacheKey, allTransactions, CacheTTL.WALLET_TX);
+  }
   return allTransactions;
+}
+
+// Normalize token symbols for price lookup
+const SYMBOL_MAP: Record<string, string> = {
+  'WETH': 'ETH', 'WBTC': 'BTC', 'STETH': 'ETH', 'CBETH': 'ETH',
+  'RETH': 'ETH', 'WSTETH': 'ETH', 'LIDO': 'LDO',
+};
+
+const STABLECOIN_SYMBOLS = new Set(['USDT', 'USDC', 'DAI', 'BUSD', 'TUSD', 'USDP', 'FRAX', 'PYUSD', 'FDUSD']);
+
+function normalizeSymbol(symbol: string): string {
+  const upper = symbol.toUpperCase();
+  return SYMBOL_MAP[upper] || upper;
 }
 
 // Fetch current prices from Binance
@@ -319,25 +367,48 @@ async function getCurrentPrices(symbols: string[]): Promise<Record<string, numbe
   const cacheKey = CacheKeys.cryptoPrices();
   
   const cached = await getCache<Record<string, number>>(cacheKey);
-  if (cached) {
+  if (cached && Object.keys(cached).length > 0) {
     console.log('[Redis] Using cached Binance prices');
     return cached;
   }
 
   try {
-    const binanceSymbols = [...new Set([...symbols, 'ETH'])].map(s => `${s.toUpperCase()}USDT`);
-    const url = `https://api.binance.com/api/v3/ticker/price?symbols=${JSON.stringify(binanceSymbols)}`;
-    const response = await fetch(url);
-    const data = await response.json();
+    // Normalize and deduplicate, exclude stablecoins
+    const normalizedSymbols = [...new Set(
+      symbols.map(normalizeSymbol).filter(s => !STABLECOIN_SYMBOLS.has(s) && s.length <= 10)
+    )];
+    
+    if (!normalizedSymbols.includes('ETH')) normalizedSymbols.push('ETH');
 
     const prices: Record<string, number> = {};
-    if (Array.isArray(data)) {
-      data.forEach((item: { symbol: string; price: string }) => {
-        const symbol = item.symbol.replace('USDT', '');
-        prices[symbol] = parseFloat(item.price);
-      });
+    
+    // Add stablecoin prices
+    STABLECOIN_SYMBOLS.forEach(s => { prices[s] = 1; });
+
+    // Fetch individual prices to avoid batch failure
+    const pricePromises = normalizedSymbols.map(async (symbol) => {
+      try {
+        const url = `https://api.binance.com/api/v3/ticker/price?symbol=${symbol}USDT`;
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          prices[symbol] = parseFloat(data.price);
+        }
+      } catch {
+        // Skip symbols without Binance pairs
+      }
+    });
+
+    await Promise.all(pricePromises);
+
+    // Map back wrapped tokens to their prices
+    for (const [wrapped, base] of Object.entries(SYMBOL_MAP)) {
+      if (prices[base] && !prices[wrapped]) {
+        prices[wrapped] = prices[base];
+      }
     }
 
+    console.log(`Fetched prices for ${Object.keys(prices).length} symbols including mapped tokens`);
     await setCache(cacheKey, prices, CacheTTL.PRICE_REALTIME);
     return prices;
   } catch (error) {
