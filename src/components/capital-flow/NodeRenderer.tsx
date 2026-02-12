@@ -7,6 +7,7 @@ import { AIInsight } from '@/hooks/useAdvancedAI';
 import { useTooltip } from '@/contexts/TooltipContext';
 import { useOnChainData } from '@/contexts/OnChainDataContext';
 import { CapitalFlowLink } from '@/types/capitalFlow';
+import { FlowDirection } from '@/hooks/useSmartMoneyFlows';
 
 import { ExtendedOrbitalNode } from '@/types/orbitalNodes';
 
@@ -19,7 +20,8 @@ interface NodeRendererProps {
   aiInsights: Map<string, AIInsight>;
   smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish' }>;
   activeCategory?: string;
-  links?: CapitalFlowLink[]; // All capital flows for global scale calculation
+  links?: CapitalFlowLink[];
+  flowDirections?: Map<string, FlowDirection>;
 }
 
 const getAIRecommendationColor = (recommendation: string): string => {
@@ -138,6 +140,7 @@ const renderOrUpdateVisualization = (
   hideTooltip: () => void,
   activeCategory: string = 'all',
   allCapitalFlows?: CapitalFlowLink[],
+  flowDirections?: Map<string, FlowDirection>,
 ) => {
   let defs = svg.select('defs');
   if (defs.empty()) {
@@ -209,6 +212,16 @@ const renderOrUpdateVisualization = (
         50% { transform: scale(1.15); opacity: 0.4; }
         100% { transform: scale(1); opacity: 0.8; }
       }
+      @keyframes golden-pulse {
+        0% { transform: scale(1); opacity: 0.9; }
+        33% { transform: scale(1.2); opacity: 0.5; }
+        66% { transform: scale(1.35); opacity: 0.3; }
+        100% { transform: scale(1); opacity: 0.9; }
+      }
+      @keyframes golden-shimmer {
+        0% { stroke-dashoffset: 0; }
+        100% { stroke-dashoffset: -20; }
+      }
       .sentiment-ring-bullish {
         animation: pulse-ring 2s ease-in-out infinite;
         transform-origin: center;
@@ -217,7 +230,44 @@ const renderOrUpdateVisualization = (
         animation: pulse-ring 1.5s ease-in-out infinite;
         transform-origin: center;
       }
+      .premium-smart-money-ring {
+        animation: golden-pulse 2.5s ease-in-out infinite;
+        transform-origin: center;
+      }
+      .premium-smart-money-shimmer {
+        animation: golden-shimmer 1.5s linear infinite;
+        transform-origin: center;
+      }
     `);
+  }
+
+  // Add golden glow filter for premium smart money
+  if (defs.select('#golden-glow').empty()) {
+    const goldenFilter = defs.append('filter')
+      .attr('id', 'golden-glow')
+      .attr('x', '-80%')
+      .attr('y', '-80%')
+      .attr('width', '260%')
+      .attr('height', '260%');
+    
+    goldenFilter.append('feGaussianBlur')
+      .attr('stdDeviation', '6')
+      .attr('result', 'coloredBlur');
+    
+    goldenFilter.append('feFlood')
+      .attr('flood-color', '#facc15')
+      .attr('flood-opacity', '0.7')
+      .attr('result', 'glowColor');
+    
+    goldenFilter.append('feComposite')
+      .attr('in', 'glowColor')
+      .attr('in2', 'coloredBlur')
+      .attr('operator', 'in')
+      .attr('result', 'coloredGlow');
+    
+    const goldenMerge = goldenFilter.append('feMerge');
+    goldenMerge.append('feMergeNode').attr('in', 'coloredGlow');
+    goldenMerge.append('feMergeNode').attr('in', 'SourceGraphic');
   }
 
   const patterns = defs.selectAll('pattern')
@@ -307,6 +357,25 @@ const renderOrUpdateVisualization = (
     .attr('stroke-width', 2)
     .attr('stroke-dasharray', '4,2');
 
+  // Premium Smart Money golden ring (outer glow)
+  nodeEnter.append('circle')
+    .attr('class', 'premium-ring-glow')
+    .attr('r', 0)
+    .attr('fill', 'none')
+    .attr('stroke', '#facc15')
+    .attr('stroke-width', 3)
+    .attr('opacity', 0);
+
+  // Premium Smart Money golden ring (inner shimmer)
+  nodeEnter.append('circle')
+    .attr('class', 'premium-ring-shimmer')
+    .attr('r', 0)
+    .attr('fill', 'none')
+    .attr('stroke', '#fde68a')
+    .attr('stroke-width', 1.5)
+    .attr('stroke-dasharray', '6,4')
+    .attr('opacity', 0);
+
   nodeEnter.append('circle')
     .attr('class', 'node-glow')
     .attr('r', 0);
@@ -360,6 +429,60 @@ const renderOrUpdateVisualization = (
         return belongsTo ? 1 : 0.2;
       }
       return 1;
+    });
+
+  // Update premium Smart Money golden rings (confidence_score > 70)
+  nodeUpdate.select('circle.premium-ring-glow')
+    .transition().duration(750)
+    .attr('r', (d: ExtendedOrbitalNode) => {
+      const flow = flowDirections?.get(d.id.toUpperCase());
+      if (flow && (flow.confidenceScore || 0) > 70) {
+        return calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 2.1;
+      }
+      return 0;
+    })
+    .attr('stroke', (d: ExtendedOrbitalNode) => {
+      const flow = flowDirections?.get(d.id.toUpperCase());
+      if (flow?.confidenceScore && flow.confidenceScore > 85) return '#f59e0b'; // amber-500 for very high
+      return '#facc15'; // yellow-400 standard
+    })
+    .attr('stroke-width', (d: ExtendedOrbitalNode) => {
+      const flow = flowDirections?.get(d.id.toUpperCase());
+      if (flow?.confidenceScore && flow.confidenceScore > 85) return 4;
+      return 3;
+    })
+    .attr('filter', 'url(#golden-glow)')
+    .attr('opacity', (d: ExtendedOrbitalNode) => {
+      const flow = flowDirections?.get(d.id.toUpperCase());
+      return (flow && (flow.confidenceScore || 0) > 70) ? 0.9 : 0;
+    })
+    .attr('class', (d: ExtendedOrbitalNode) => {
+      const flow = flowDirections?.get(d.id.toUpperCase());
+      if (flow && (flow.confidenceScore || 0) > 70) {
+        return 'premium-ring-glow premium-smart-money-ring';
+      }
+      return 'premium-ring-glow';
+    });
+
+  nodeUpdate.select('circle.premium-ring-shimmer')
+    .transition().duration(750)
+    .attr('r', (d: ExtendedOrbitalNode) => {
+      const flow = flowDirections?.get(d.id.toUpperCase());
+      if (flow && (flow.confidenceScore || 0) > 70) {
+        return calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 1.95;
+      }
+      return 0;
+    })
+    .attr('opacity', (d: ExtendedOrbitalNode) => {
+      const flow = flowDirections?.get(d.id.toUpperCase());
+      return (flow && (flow.confidenceScore || 0) > 70) ? 0.7 : 0;
+    })
+    .attr('class', (d: ExtendedOrbitalNode) => {
+      const flow = flowDirections?.get(d.id.toUpperCase());
+      if (flow && (flow.confidenceScore || 0) > 70) {
+        return 'premium-ring-shimmer premium-smart-money-shimmer';
+      }
+      return 'premium-ring-shimmer';
     });
 
   // Update sentiment ring (pulsing outer ring for on-chain sentiment)
@@ -554,10 +677,11 @@ export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
         showTooltip,
         hideTooltip,
         props.activeCategory || 'all',
-        props.links
+        props.links,
+        props.flowDirections
       );
     }
-  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip, props.activeCategory, props.links]);
+  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip, props.activeCategory, props.links, props.flowDirections]);
 
   return null;
 });

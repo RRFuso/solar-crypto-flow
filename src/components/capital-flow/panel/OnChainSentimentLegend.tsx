@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, Activity, Circle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Circle, Crown } from 'lucide-react';
 
 interface OnChainSentimentLegendProps {
   compact?: boolean;
@@ -67,6 +67,19 @@ export const OnChainSentimentLegend: React.FC<OnChainSentimentLegendProps> = ({ 
             <span className="text-xs text-yellow-400/70 font-medium">Neutral</span>
           </div>
           <span className="text-[10px] text-muted-foreground ml-auto">Fluxo equilibrado</span>
+        </div>
+
+        {/* Premium Smart Money indicator */}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <div className="w-4 h-4 rounded-full border-2 border-yellow-400 animate-pulse" style={{ boxShadow: '0 0 8px rgba(250, 204, 21, 0.6)' }} />
+            <div className="absolute inset-0.5 rounded-full border border-amber-300/50" />
+          </div>
+          <div className="flex items-center gap-1">
+            <Crown className="w-3 h-3 text-yellow-400" />
+            <span className="text-xs text-yellow-400 font-medium">Smart Money</span>
+          </div>
+          <span className="text-[10px] text-muted-foreground ml-auto">Confiança &gt;70%</span>
         </div>
       </div>
       

@@ -74,7 +74,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(symbolsInView);
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(symbolsInView);
   const { smartMoneyScores, requestOnChainData } = useOnChainData();
-  const { flows: smartMoneyFlows } = useSmartMoneyFlows(symbolsInView);
+  const { flows: smartMoneyFlows, flowDirections } = useSmartMoneyFlows(symbolsInView);
 
   // Memoize adjusted zoom level - only calculate when we have valid dimensions
   const adjustedZoomLevel = useMemo(() => {
@@ -225,6 +225,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
             smartMoneyScores={smartMoneyScores}
             activeCategory={activeCategory}
             links={visualizationData.links}
+            flowDirections={flowDirections}
           />
           <OrbitalAnimationComponent 
             svg={d3.select(svgRef.current)}
