@@ -259,7 +259,7 @@ async function fetchWalletTransactionsBatch(
           params: [{
             fromAddress: address,
             category: ["erc20", "external"],
-            maxCount: "0x32", // 50
+            maxCount: "0x64", // 100
             order: "desc",
             withMetadata: true,
           }]
@@ -273,7 +273,7 @@ async function fetchWalletTransactionsBatch(
           params: [{
             toAddress: address,
             category: ["erc20", "external"],
-            maxCount: "0x32", // 50
+            maxCount: "0x64", // 100
             order: "desc",
             withMetadata: true,
           }]
@@ -353,9 +353,17 @@ async function fetchWalletTransactionsBatch(
 const SYMBOL_MAP: Record<string, string> = {
   'WETH': 'ETH', 'WBTC': 'BTC', 'STETH': 'ETH', 'CBETH': 'ETH',
   'RETH': 'ETH', 'WSTETH': 'ETH', 'LIDO': 'LDO',
+  'WMATIC': 'MATIC', 'WBNB': 'BNB', 'WAVAX': 'AVAX',
+  'RENBTC': 'BTC', 'HBTC': 'BTC', 'SBTC': 'BTC',
+  'AETHUSDC': 'USDC', 'AETHUSDT': 'USDT', 'ADAI': 'DAI',
+  'AUSDC': 'USDC', 'AUSDT': 'USDT',
+  'CUSDC': 'USDC', 'CDAI': 'DAI', 'CETH': 'ETH',
 };
 
-const STABLECOIN_SYMBOLS = new Set(['USDT', 'USDC', 'DAI', 'BUSD', 'TUSD', 'USDP', 'FRAX', 'PYUSD', 'FDUSD']);
+const STABLECOIN_SYMBOLS = new Set([
+  'USDT', 'USDC', 'DAI', 'BUSD', 'TUSD', 'USDP', 'FRAX', 'PYUSD', 'FDUSD',
+  'GUSD', 'LUSD', 'SUSD', 'MIM', 'CUSD', 'UST', 'EUSD',
+]);
 
 function normalizeSymbol(symbol: string): string {
   const upper = symbol.toUpperCase();
@@ -701,7 +709,7 @@ serve(async (req) => {
     if (action === 'update_flows') {
       console.log('Starting smart money flow update with 6 heuristics...');
 
-      const wallets = await getPriorityWallets(15);
+      const wallets = await getPriorityWallets(30);
       console.log(`Found ${wallets.length} priority wallets`);
 
       if (wallets.length === 0) {
@@ -739,7 +747,7 @@ serve(async (req) => {
         transactions
           .map(tx => tx.tokenSymbol?.toUpperCase())
           .filter(Boolean)
-      )].slice(0, 20);
+      )].slice(0, 50);
       const prices = await getCurrentPrices(uniqueSymbols);
       console.log(`Got prices for ${Object.keys(prices).length} symbols`);
 
@@ -801,8 +809,50 @@ serve(async (req) => {
       });
     }
 
+    // ===== SEED_WALLETS =====
+    if (action === 'seed_wallets') {
+      const newWallets = [
+        { wallet_address: '0x56eddb7aa87536c09ccc2793473599fd21a8b17f', label: 'Alameda Research', wallet_type: 'fund', priority: 8, historical_impact_score: 75 },
+        { wallet_address: '0x1b3cb81e51011b549d78bf720b0d924ac763a7c2', label: 'Paradigm', wallet_type: 'fund', priority: 9, historical_impact_score: 80 },
+        { wallet_address: '0x3d9819210a31b4961b30ef54be2aed79b9c9cd3b', label: 'Compound Treasury', wallet_type: 'institution', priority: 7, historical_impact_score: 65 },
+        { wallet_address: '0xbeefbabeea323f07c59926295205d3b7a17e8638', label: 'Wintermute', wallet_type: 'institution', priority: 8, historical_impact_score: 70 },
+        { wallet_address: '0x0716a17fbaee714f1e6ab0f9d59edbc5f09815c0', label: 'Jump Trading', wallet_type: 'institution', priority: 9, historical_impact_score: 82 },
+        { wallet_address: '0x0548f59fee79f8832c299e01dca5c76f034f558e', label: 'Galaxy Digital', wallet_type: 'fund', priority: 8, historical_impact_score: 72 },
+        { wallet_address: '0xf584f8728b874a6a5c7a8d4d387c9aae9172d621', label: 'DWF Labs', wallet_type: 'institution', priority: 8, historical_impact_score: 70 },
+        { wallet_address: '0x4862733b5fddfd35f35ea8ccf08f5045e57388b3', label: 'Grayscale', wallet_type: 'institution', priority: 9, historical_impact_score: 85 },
+        { wallet_address: '0x176f3dab24a159341c0509bb36b833e7fdd0a132', label: 'Whale 0x176f', wallet_type: 'whale', priority: 7, historical_impact_score: 60 },
+        { wallet_address: '0xb29380ffc20696729b7ab8d093fa1e2ec14dfe2b', label: 'Whale 0xb293', wallet_type: 'whale', priority: 7, historical_impact_score: 58 },
+        { wallet_address: '0x8103683202aa8da10536036edef04cdd865c225e', label: 'Whale 0x8103', wallet_type: 'whale', priority: 7, historical_impact_score: 62 },
+        { wallet_address: '0xe8e8f41ed29e46f34e206d7d2a7d6f735a3ff2cb', label: 'Celsius Wallet', wallet_type: 'institution', priority: 6, historical_impact_score: 55 },
+        { wallet_address: '0xa7efae728d2936e78bda97dc267687568dd593f3', label: 'Three Arrows Capital', wallet_type: 'fund', priority: 7, historical_impact_score: 60 },
+      ];
+
+      const { data, error: insertError } = await supabase
+        .from('smart_money_wallets')
+        .upsert(
+          newWallets.map(w => ({ ...w, chain: 'ethereum', is_active: true })),
+          { onConflict: 'wallet_address' }
+        )
+        .select('label');
+
+      if (insertError) {
+        return new Response(JSON.stringify({ success: false, error: insertError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        inserted: data?.length || 0,
+        wallets: data,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     return new Response(JSON.stringify({
-      error: 'Invalid action. Use: get_flows, update_flows, get_wallets, get_confidence_breakdown',
+      error: 'Invalid action. Use: get_flows, update_flows, get_wallets, get_confidence_breakdown, seed_wallets',
     }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
