@@ -106,11 +106,57 @@ Contexto macro e sentimento do mercado cripto:
   - Ratio < 1: Mais traders em short (pessimistas)
   - Dados históricos de 30 períodos para análise de tendência
 
-### 10. INTERAÇÕES DE USUÁRIOS (Agregado)
+### 10. FLUXO DE SMART MONEY (smartMoneyFlows) - DADOS ON-CHAIN REAIS
+Dados de rastreamento de carteiras institucionais (baleias, fundos, market makers):
+- **token_symbol**: Token rastreado
+- **net_flow_usd**: Fluxo líquido em USD (positivo = entrada, negativo = saída)
+- **total_inflow_usd**: Total de entradas de capital institucional
+- **total_outflow_usd**: Total de saídas de capital institucional
+- **dominant_direction**: Direção dominante (bullish/bearish/neutral)
+- **confidence_score**: Score de confiança do sinal (0-100)
+- **whale_tx_count**: Número de transações de baleias
+- **flow_intensity**: Intensidade do fluxo (0-1)
+- **timeframe**: Período de análise (1h, 4h, 12h, 24h)
+- **confidence_factors**: Fatores que contribuem para a confiança (JSON detalhado)
+⚠️ Estes dados vêm de rastreamento REAL de carteiras Ethereum via Alchemy API!
+
+### 11. DADOS DE MERCADO COMPLETOS (cryptocurrencies)
+Dados completos de mercado para 100+ criptomoedas:
+- **current_price, market_cap, market_cap_rank**: Preço e capitalização
+- **price_change_percentage_24h**: Variação 24h
+- **total_volume**: Volume de negociação
+- **ath, ath_change_percentage**: All-time high e distância
+- **circulating_supply, total_supply**: Oferta circulante
+
+### 12. INTERAÇÕES DE USUÁRIOS (Agregado)
 Padrões de comportamento da comunidade:
 - Ativos mais visualizados
 - Categorias de interesse
 - Tendências de interação
+
+## VISUALIZAÇÃO DE FLUXO (IMPORTANTE!)
+Quando o usuário pedir análise de smart money, fluxo de capital, ou atividade de baleias:
+1. Inclua no final da resposta um bloco JSON especial delimitado por \`\`\`flow-data ... \`\`\`
+2. O JSON deve conter os tokens relevantes com seus dados de fluxo para visualização
+3. Formato do bloco:
+\`\`\`flow-data
+{
+  "title": "Título da visualização",
+  "tokens": [
+    {
+      "symbol": "ETH",
+      "inflow": 1500000,
+      "outflow": 800000,
+      "netFlow": 700000,
+      "direction": "bullish",
+      "confidence": 82,
+      "size": 0.8
+    }
+  ]
+}
+\`\`\`
+4. Use apenas tokens que realmente aparecem nos dados de smartMoneyFlows
+5. O campo "size" deve ser entre 0.1 e 1.0, proporcional ao volume relativo
 
 ## COMO APRENDER E MELHORAR
 
@@ -193,15 +239,20 @@ async function getAllSupabaseData() {
     aiPredictions,
     predictiveSignals,
     sentimentData,
-    recentInteractions
+    recentInteractions,
+    smartMoneyFlows,
+    cryptocurrencies
   ] = await Promise.all([
     supabase.from('crypto_price_action_signals').select('*').limit(50),
     supabase.from('ai_watchlist').select('*'),
     supabase.from('ai_predictions').select('*').gte('valid_until', new Date().toISOString()).limit(100),
     supabase.from('predictive_signals').select('*').order('created_at', { ascending: false }).limit(50),
     supabase.from('sentiment_data').select('*').order('analyzed_at', { ascending: false }).limit(100),
-    // Aggregate user interactions (no PII)
-    supabase.from('user_interactions').select('symbol, interaction_type, category').order('created_at', { ascending: false }).limit(200)
+    supabase.from('user_interactions').select('symbol, interaction_type, category').order('created_at', { ascending: false }).limit(200),
+    // Smart Money flow data from whale tracking
+    supabase.from('smart_money_flow_cache').select('*').order('last_updated', { ascending: false }).limit(100),
+    // Full crypto market data
+    supabase.from('cryptocurrencies').select('*').order('market_cap_rank', { ascending: true }).limit(100),
   ]);
 
   return {
@@ -210,7 +261,9 @@ async function getAllSupabaseData() {
     aiPredictions: aiPredictions.data || [],
     predictiveSignals: predictiveSignals.data || [],
     sentimentData: sentimentData.data || [],
-    recentInteractions: recentInteractions.data || []
+    recentInteractions: recentInteractions.data || [],
+    smartMoneyFlows: smartMoneyFlows.data || [],
+    cryptocurrencies: cryptocurrencies.data || [],
   };
 }
 
@@ -420,6 +473,10 @@ serve(async (req) => {
       sentiment: {
         recentSentiment: supabaseData.sentimentData.slice(0, 20),
       },
+      // Smart Money on-chain flows (from Alchemy whale tracking)
+      smartMoneyFlows: supabaseData.smartMoneyFlows.slice(0, 50),
+      // Full crypto market data
+      cryptoMarketData: supabaseData.cryptocurrencies.slice(0, 50),
       // User behavior patterns (aggregated, no PII)
       marketActivity: {
         trendingAssets: aggregateTrendingAssets(supabaseData.recentInteractions),
