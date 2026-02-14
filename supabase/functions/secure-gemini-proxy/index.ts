@@ -206,23 +206,66 @@ Para cada pergunta:
 // Fetch real-time prices from Binance public API
 async function getRealTimePrices(): Promise<any[]> {
   try {
-    const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'LINKUSDT', 'MATICUSDT'];
-    const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${JSON.stringify(symbols)}`);
-    if (!response.ok) {
-      console.error('Failed to fetch real-time prices from Binance');
-      return [];
+    // All symbols from Solar Core categories + key assets
+    const allSymbols = [
+      // Layer 1
+      'BTC','ETH','SOL','ADA','AVAX','DOT','ATOM','NEAR','FTM','ALGO','XTZ','ICP','HBAR','EOS','XLM','VET','ONE','EGLD','KAVA','ROSE','MINA','KDA','CFX','CELO','ZIL','SUI','SEI','TON','APT',
+      // Layer 2
+      'MATIC','ARB','OP','IMX','METIS','LRC','STRK','MANTA','MANTLE','ZRO',
+      // DeFi
+      'UNI','AAVE','MKR','CRV','SNX','COMP','YFI','SUSHI','1INCH','BAL','DYDX','GMX','LQTY','PENDLE','ENA',
+      // Memecoins
+      'DOGE','SHIB','PEPE','WIF','BONK','FLOKI','MEME','TURBO','BOME','POPCAT','NEIRO','PNUT','MOG','TRUMP',
+      // AI
+      'FET','AGIX','OCEAN','RNDR','ARKM','WLD','TAO','AKT','AIOZ',
+      // Gaming
+      'AXS','SAND','MANA','ENJ','GALA','ILV','MAGIC','BEAM','PIXEL','PRIME','PORTAL','XAI','SAGA',
+      // Privacy
+      'XMR','ZEC','DASH','DCR','SCRT',
+      // Infrastructure & Oracles
+      'LINK','GRT','BAND','TRB','API3','PYTH','UMA','DIA','FLUX','ANKR',
+      // Payments
+      'XRP','ACH','AMP',
+      // Storage & DePIN
+      'FIL','AR','STORJ','SC','BTT','THETA','IOTX','LPT','HNT',
+      // CEX Tokens
+      'BNB','OKB','CRO','GT','KCS','LEO',
+      // Solana Ecosystem
+      'RAY','JTO','JUP',
+      // Bitcoin Ecosystem
+      'ORDI','SATS','STX',
+      // RWA
+      'ONDO','CFG',
+      // Stablecoins (for reference)
+      'USDT','USDC',
+      // Others
+      'APE','BLUR','ENS','LDO','RPL','SSV','CAKE','HIGH','RARI','AUDIO',
+    ];
+    // Deduplicate and format
+    const uniqueSymbols = [...new Set(allSymbols)].map(s => `${s}USDT`);
+    
+    // Binance allows up to ~100 symbols per request, split if needed
+    const batchSize = 80;
+    const results: any[] = [];
+    
+    for (let i = 0; i < uniqueSymbols.length; i += batchSize) {
+      const batch = uniqueSymbols.slice(i, i + batchSize);
+      const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${JSON.stringify(batch)}`);
+      if (response.ok) {
+        const data = await response.json();
+        results.push(...data.map((item: any) => ({
+          symbol: item.symbol.replace('USDT', ''),
+          price: parseFloat(item.lastPrice),
+          priceChangePercent24h: parseFloat(item.priceChangePercent),
+          volume24h: parseFloat(item.volume),
+          quoteVolume24h: parseFloat(item.quoteVolume),
+          high24h: parseFloat(item.highPrice),
+          low24h: parseFloat(item.lowPrice),
+          timestamp: new Date().toISOString()
+        })));
+      }
     }
-    const data = await response.json();
-    return data.map((item: any) => ({
-      symbol: item.symbol.replace('USDT', ''),
-      price: parseFloat(item.lastPrice),
-      priceChangePercent24h: parseFloat(item.priceChangePercent),
-      volume24h: parseFloat(item.volume),
-      quoteVolume24h: parseFloat(item.quoteVolume),
-      high24h: parseFloat(item.highPrice),
-      low24h: parseFloat(item.lowPrice),
-      timestamp: new Date().toISOString()
-    }));
+    return results;
   } catch (error) {
     console.error('Error fetching real-time prices:', error);
     return [];
