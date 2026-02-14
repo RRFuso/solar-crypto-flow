@@ -19,6 +19,7 @@ import { useOnChainData } from '@/contexts/OnChainDataContext';
 import { useSmartMoneyFlows } from '@/hooks/useSmartMoneyFlows';
 import { getCategoriesForSymbol } from '@/lib/marketData/categoryMapping';
 import { mapAIRecommendationToSignal, getCategoryColor as getSignalCategoryColor, determineCryptoSignalCategory } from './constants/signalCategories';
+import { useSolarCoreCommand } from '@/contexts/SolarCoreCommandContext';
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
@@ -105,17 +106,22 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     activeCategory
   });
 
-  // Node click handler effect
+  // Bridge to SolarCoreCommandContext for bidirectional communication
+  const { setSelectedNodeId: setCommandNodeId } = useSolarCoreCommand();
+
+  // Node click handler effect - dispatch to command context
   useEffect(() => {
     const handleNodeClick = (event: CustomEvent) => {
       const nodeId = event.detail.nodeId;
       setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
+      // Notify Oracle about the click
+      setCommandNodeId(nodeId);
     };
     document.addEventListener('node-click', handleNodeClick as EventListener);
     return () => {
       document.removeEventListener('node-click', handleNodeClick as EventListener);
     };
-  }, []);
+  }, [setCommandNodeId]);
 
   // Memoize category color function
   const getCategoryColor = useCallback((symbol: string) => {

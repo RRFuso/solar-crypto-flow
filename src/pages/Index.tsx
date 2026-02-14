@@ -1,20 +1,18 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import CapitalFlowPanel from "@/components/capital-flow/CapitalFlowPanel";
-import { GapMonitorPanel } from "@/components/gap-monitor";
 import Auth from "@/components/auth/Auth";
 import UserMenu from "@/components/auth/UserMenu";
 import { OnChainDataProvider } from '@/contexts/OnChainDataContext';
 import { FlowControlsProvider, useFlowControls } from '@/contexts/FlowControlsContext';
+import { SolarCoreCommandProvider, useSolarCoreCommand } from '@/contexts/SolarCoreCommandContext';
 import { useAuth } from "@/contexts/AuthContext";
 import DataPopulationPanel from "@/components/admin/DataPopulationPanel";
 import ApiMetricsDashboard from "@/components/admin/ApiMetricsDashboard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SubscriptionPlans } from "@/components/subscription/SubscriptionPlans";
-import { FlowPanelHeader } from "@/components/capital-flow/panel/FlowPanelHeader";
 import { fetchMarketDataCoinGecko, fetchMarketDataBinance } from '@/lib/marketData';
 import { toast } from 'sonner';
 import { useFilteredFlowData } from '@/hooks/capital-flow/useFilteredFlowData';
@@ -22,19 +20,18 @@ import { usePredictions } from '@/hooks/capital-flow/usePredictions';
 import { useCredits } from '@/hooks/useCredits';
 import { useRealtimeMarketData } from '@/hooks/useRealtimeMarketData';
 import { Badge } from '@/components/ui/badge';
-import AIWatchlistSection from "@/components/capital-flow/panel/AIWatchlistSection";
-import AIAnalystPage from "./AIAnalystPage";
+import HeliusOracleChat from "@/components/ai/HeliusOracleChat";
+import { Suspense } from "react";
 
 const IndexContent = () => {
-  const [activeTab, setActiveTab] = useState("capital-flow");
   const [isDataPopulationModalOpen, setIsDataPopulationModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isMetricsDashboardOpen, setIsMetricsDashboardOpen] = useState(false);
   const { user } = useAuth();
   const { canAccessFlow, getMaxFlows } = useCredits();
+  const { command } = useSolarCoreCommand();
 
-  // Use FlowControls context
   const {
     timeframe,
     chartTimeframe,
@@ -53,7 +50,10 @@ const IndexContent = () => {
     handleLimitChange,
   } = useFlowControls();
 
-  // Use Realtime hook for crypto_prices table
+  // Apply Oracle commands to Solar Core
+  const effectiveCategory = command?.activeCategory || selectedCategory;
+  const effectiveZoom = command?.zoomLevel || zoomLevel;
+
   const { 
     data: realtimeFlowData, 
     isLoading: isRealtimeLoading, 
@@ -62,7 +62,6 @@ const IndexContent = () => {
     refetch: realtimeRefetch 
   } = useRealtimeMarketData();
 
-  // Fallback to polling if Realtime is not connected or has errors
   const { data: pollingFlowData, isLoading: isPollingLoading, error: pollingError, refetch: pollingRefetch } = useQuery({
     queryKey: ['capital-flow-fallback', timeframe, dataSource],
     queryFn: () => {
@@ -72,11 +71,11 @@ const IndexContent = () => {
         return fetchMarketDataCoinGecko(timeframe);
       }
     },
-    enabled: !isConnected || !!realtimeError, // Only enable if Realtime is disconnected or has error
+    enabled: !isConnected || !!realtimeError,
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 2,
     gcTime: 1000 * 60 * 30,
-    refetchInterval: 1000 * 60 * 1, // Polling every 1 minute as fallback
+    refetchInterval: 1000 * 60 * 1,
     meta: {
       onError: () => {
         toast("Failed to fetch market data. Please try again later.", {
@@ -86,22 +85,19 @@ const IndexContent = () => {
     }
   });
 
-  // Use Realtime data if connected, otherwise use polling data
   const flowData = isConnected ? realtimeFlowData : pollingFlowData;
   const isLoading = isConnected ? isRealtimeLoading : isPollingLoading;
   const error = isConnected ? realtimeError : pollingError;
   const refetch = isConnected ? realtimeRefetch : pollingRefetch;
 
-  const processedFlowData = useFilteredFlowData(flowData, flowLimit, selectedCategory);
-  const { predictions } = usePredictions(flowData, selectedCategory, chartTimeframe);
+  const processedFlowData = useFilteredFlowData(flowData, flowLimit, effectiveCategory);
+  const { predictions } = usePredictions(flowData, effectiveCategory, chartTimeframe);
 
-  // Apply flow limit based on user credits
   const maxFlows = getMaxFlows();
   const effectiveFlowLimit = useMemo(() => {
     return Math.min(flowLimit, maxFlows);
   }, [flowLimit, maxFlows]);
 
-  // Handle flow limit toast notifications separately
   const hasShownToastRef = useRef(false);
   useEffect(() => {
     if (flowLimit > maxFlows) {
@@ -126,23 +122,15 @@ const IndexContent = () => {
     return predictions;
   }, [predictions, showOnlyStrongSignals]);
 
-  // Debounced chart timeframe change to avoid excessive re-renders
   const refetchTimeoutRef = useRef<NodeJS.Timeout>();
   const handleChartTimeframeChange = useCallback((value: string) => {
     setChartTimeframe(value);
-    
-    // Clear existing timeout
     if (refetchTimeoutRef.current) {
       clearTimeout(refetchTimeoutRef.current);
     }
-    
-    // Debounce by 300ms - no need to refetch since refetchInterval handles it
-    refetchTimeoutRef.current = setTimeout(() => {
-      // Just update state, refetchInterval will handle data updates
-    }, 300);
+    refetchTimeoutRef.current = setTimeout(() => {}, 300);
   }, [setChartTimeframe]);
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (refetchTimeoutRef.current) {
@@ -154,139 +142,78 @@ const IndexContent = () => {
   return (
     <OnChainDataProvider>
       <DashboardLayout>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
-          {/* Unified Header */}
-          <header className="flex-shrink-0 px-2 md:px-4 h-auto md:h-16 flex flex-col md:flex-row items-center justify-between border-b border-slate-700/50 py-2 md:py-0">
-            <div className="w-full md:w-auto flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <img src="/SOLCRY.webp" alt="SOLCRY Logo" className="w-10 h-10" />
-                <h1 className="text-lg font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
-                  SOLCRY
-                </h1>
-                <div className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full">
-                  Oracle
-                </div>
-                {/* Realtime Connection Indicator */}
-                <Badge 
-                  variant={isConnected ? "default" : "secondary"}
-                  className={`text-[10px] px-2 py-0.5 ${
-                    isConnected 
-                      ? 'bg-green-500/20 text-green-400 border-green-500/50' 
-                      : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50'
-                  }`}
-                >
-                  {isConnected ? '🟢 RT' : '🟡 Poll'}
-                </Badge>
-              </div>
-              <div className="md:hidden">
-                {user ? (
-                  <UserMenu 
-                    openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
-                    openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-                    openAuthModal={() => setIsAuthModalOpen(true)}
-                    openMetricsDashboard={() => setIsMetricsDashboardOpen(true)}
-                  />
-                ) : (
-                  <UserMenu 
-                    openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
-                    openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-                    openAuthModal={() => setIsAuthModalOpen(true)}
-                    openMetricsDashboard={() => setIsMetricsDashboardOpen(true)}
-                  />
-                )}
-              </div>
+        {/* Unified Header */}
+        <header className="flex-shrink-0 px-2 md:px-4 h-auto md:h-14 flex flex-col md:flex-row items-center justify-between border-b border-slate-700/50 py-2 md:py-0">
+          <div className="flex items-center space-x-2">
+            <img src="/SOLCRY.webp" alt="SOLCRY Logo" className="w-10 h-10" />
+            <h1 className="text-lg font-bold bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+              SOLCRY
+            </h1>
+            <div className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full">
+              Command Center
             </div>
-
-            <div className="flex-grow w-full md:w-auto flex justify-center px-0 md:px-2 mt-2 md:mt-0">
-              <TabsList className="grid w-full max-w-2xl grid-cols-4 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 h-10 md:h-10">
-                <TabsTrigger 
-                  value="capital-flow" 
-                  className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs md:text-sm px-2 py-1"
-                >
-                  ☀️ Solar Core
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="ai-watchlist" 
-                  className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs md:text-sm px-2 py-1"
-                >
-                  🐋 Whale Galaxy
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="ai-analyst" 
-                  className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs md:text-sm px-2 py-1"
-                >
-                  🔮 Helius Oracle
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="gap-monitor" 
-                  className="text-white font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-yellow-500 data-[state=active]:text-black text-xs md:text-sm px-2 py-1"
-                >
-                  📉 CME GAPs
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            <div className="hidden md:block">
-              {user ? (
-                <UserMenu 
-                  openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
-                  openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-                  openAuthModal={() => setIsAuthModalOpen(true)}
-                  openMetricsDashboard={() => setIsMetricsDashboardOpen(true)}
-                />
-              ) : (
-                <UserMenu 
-                  openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
-                  openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
-                  openAuthModal={() => setIsAuthModalOpen(true)}
-                  openMetricsDashboard={() => setIsMetricsDashboardOpen(true)}
-                />
-              )}
-            </div>
-          </header>
-
-          {/* Mobile controls removed - now integrated in SolarSystemControls */}
-
-          <div className="flex-1 w-full md:overflow-hidden">
-            <TabsContent value="capital-flow" className="h-full w-full">
-              <CapitalFlowPanel 
-                isLoading={isLoading}
-                error={error}
-                processedFlowData={processedFlowData}
-                zoomLevel={zoomLevel}
-                filteredPredictions={filteredPredictions}
-                chartTimeframe={chartTimeframe}
-                activeCategory={selectedCategory}
-                showLines={showLines}
-                handleZoomIn={handleZoomIn}
-                handleZoomOut={handleZoomOut}
-                flowLimit={effectiveFlowLimit}
-                handleLimitChange={handleLimitChange}
-                handleChartTimeframeChange={handleChartTimeframeChange}
-                showOnlyStrongSignals={showOnlyStrongSignals}
-                setShowOnlyStrongSignals={setShowOnlyStrongSignals}
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-                refetch={refetch}
-                setShowLines={setShowLines}
-              />
-            </TabsContent>
-            <TabsContent value="ai-watchlist" className="h-full w-full overflow-y-auto">
-              <div className="p-4">
-                <AIWatchlistSection maxItems={15} />
-              </div>
-            </TabsContent>
-            <TabsContent value="ai-analyst" className="h-full w-full">
-              <AIAnalystPage />
-            </TabsContent>
-            <TabsContent value="gap-monitor" className="h-full w-full overflow-y-auto">
-              <div className="p-4">
-                <GapMonitorPanel />
-              </div>
-            </TabsContent>
+            <Badge 
+              variant={isConnected ? "default" : "secondary"}
+              className={`text-[10px] px-2 py-0.5 ${
+                isConnected 
+                  ? 'bg-green-500/20 text-green-400 border-green-500/50' 
+                  : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50'
+              }`}
+            >
+              {isConnected ? '🟢 RT' : '🟡 Poll'}
+            </Badge>
           </div>
-        </Tabs>
-        
+
+          <div className="flex items-center">
+            <UserMenu 
+              openDataPopulationModal={() => setIsDataPopulationModalOpen(true)}
+              openSubscriptionModal={() => setIsSubscriptionModalOpen(true)}
+              openAuthModal={() => setIsAuthModalOpen(true)}
+              openMetricsDashboard={() => setIsMetricsDashboardOpen(true)}
+            />
+          </div>
+        </header>
+
+        {/* Command Center: Split Panel */}
+        <main className="flex-1 flex w-full overflow-hidden">
+          {/* Solar Core - Main Area */}
+          <div className="flex-1 h-full overflow-hidden">
+            <CapitalFlowPanel 
+              isLoading={isLoading}
+              error={error}
+              processedFlowData={processedFlowData}
+              zoomLevel={effectiveZoom}
+              filteredPredictions={filteredPredictions}
+              chartTimeframe={chartTimeframe}
+              activeCategory={effectiveCategory}
+              showLines={showLines}
+              handleZoomIn={handleZoomIn}
+              handleZoomOut={handleZoomOut}
+              flowLimit={effectiveFlowLimit}
+              handleLimitChange={handleLimitChange}
+              handleChartTimeframeChange={handleChartTimeframeChange}
+              showOnlyStrongSignals={showOnlyStrongSignals}
+              setShowOnlyStrongSignals={setShowOnlyStrongSignals}
+              selectedCategory={effectiveCategory}
+              setSelectedCategory={setSelectedCategory}
+              refetch={refetch}
+              setShowLines={setShowLines}
+            />
+          </div>
+
+          {/* Helius Oracle - Sidebar */}
+          <aside className="w-[380px] min-w-[320px] h-full border-l border-slate-700/50 hidden md:flex flex-col bg-slate-900/60">
+            <Suspense fallback={
+              <div className="flex-1 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
+              </div>
+            }>
+              <HeliusOracleChat className="h-full border-0 rounded-none" />
+            </Suspense>
+          </aside>
+        </main>
+
+        {/* Modals */}
         {user && user.email === 'prof.rafaelfuso@gmail.com' && (
           <Dialog open={isDataPopulationModalOpen} onOpenChange={setIsDataPopulationModalOpen}>
             <DialogContent className="bg-gray-800 border-gray-700 text-white">
@@ -332,7 +259,9 @@ const IndexContent = () => {
 const Index = () => {
   return (
     <FlowControlsProvider>
-      <IndexContent />
+      <SolarCoreCommandProvider>
+        <IndexContent />
+      </SolarCoreCommandProvider>
     </FlowControlsProvider>
   );
 };
