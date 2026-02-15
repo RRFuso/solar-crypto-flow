@@ -205,7 +205,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
             width={dimensions.width}
             height={dimensions.height}
             orbitLayers={4}
-            baseRadius={Math.min(dimensions.width, dimensions.height) * 0.12}
+            baseRadius={Math.min(dimensions.width, dimensions.height) * 0.08}
             extendFullScreen={true}
             showLines={showLines}
           />
