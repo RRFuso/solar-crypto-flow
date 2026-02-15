@@ -76,7 +76,10 @@ export const calculateNodePositions = ({
   Object.entries(marketCapTiers).forEach(([tierStr, tierNodes]) => {
     const tier = parseInt(tierStr);
     // **CRITICAL FIX: Further compressed outer orbits with non-linear scaling**
-    const orbitRadius = baseRadius * Math.pow(tier + 1, 0.75) * 1.1;
+    // Compress orbits to fit viewport - use smaller multiplier
+    const maxAllowedRadius = Math.min(width, height) / 2 - 60;
+    const rawRadius = baseRadius * Math.pow(tier + 1, 0.75) * 0.9;
+    const orbitRadius = Math.min(rawRadius, maxAllowedRadius);
     
     tierNodes.forEach((node, nodeIndex) => {
       const nodesInTier = tierNodes.length;
@@ -125,8 +128,13 @@ export const calculateNodePositions = ({
         const fallbackRadius = orbitRadius + (attempts * 5);
         const fallbackAngle = baseAngle + (hashSymbol(node.symbol) * Math.PI / 3);
         
-        node.x = width / 2 + Math.cos(fallbackAngle) * fallbackRadius;
-        node.y = height / 2 + Math.sin(fallbackAngle) * fallbackRadius;
+        const clampedFallback = Math.min(fallbackRadius, maxAllowedRadius);
+        const rawX = width / 2 + Math.cos(fallbackAngle) * clampedFallback;
+        const rawY = height / 2 + Math.sin(fallbackAngle) * clampedFallback;
+        // Clamp to viewport bounds
+        const margin = node.radius + 30;
+        node.x = Math.max(margin, Math.min(width - margin, rawX));
+        node.y = Math.max(margin, Math.min(height - margin, rawY));
         placedNodes.push({ 
           x: node.x, 
           y: node.y, 
