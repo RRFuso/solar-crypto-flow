@@ -30,7 +30,7 @@ export const CreditDisplay: React.FC<CreditDisplayProps> = ({ onUpgradeClick }) 
   if (isAdmin || hasUnlimitedAccess()) {
     return (
       <Card className="border-primary/40 bg-gradient-to-br from-primary/10 to-accent/10 backdrop-blur-sm">
-        <CardContent className="p-4">
+        <CardContent className="p-2 px-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Infinity className="h-5 w-5 text-primary" />
