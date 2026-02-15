@@ -36,42 +36,42 @@ export const OrbitLayersComponent: React.FC<OrbitLayersProps> = ({
     const centerX = width / 2;
     const centerY = height / 2;
 
-    // **CRITICAL: Much more compact and visible orbit spacing**
-    const maxRadius = Math.min(width, height) * 0.35; // Conservative max radius
-    const minRadius = maxRadius * 0.25; // Start much closer to center
+    // Elliptical orbits: use full width, constrained height
+    const maxRx = width / 2 - 60; // horizontal radius uses full width
+    const maxRy = height / 2 - 60; // vertical radius uses full height
+    const minRx = maxRx * 0.2;
+    const minRy = maxRy * 0.2;
     
     for (let i = 1; i <= orbitLayers; i++) {
-      // **Linear spacing for uniform distribution**
-      const radiusStep = (maxRadius - minRadius) / (orbitLayers - 1);
-      const radius = minRadius + ((i - 1) * radiusStep);
+      const t = (i - 1) / (orbitLayers - 1);
+      const rx = minRx + t * (maxRx - minRx);
+      const ry = minRy + t * (maxRy - minRy);
       
-      // Skip if radius would exceed viewport
-      if (radius > maxRadius) continue;
-      
-      // Create orbit circle with enhanced visibility
-      orbitGroup.append('circle')
+      // Create orbit ellipse
+      orbitGroup.append('ellipse')
         .attr('class', 'orbit-layer')
         .attr('cx', centerX)
         .attr('cy', centerY)
-        .attr('r', radius)
+        .attr('rx', rx)
+        .attr('ry', ry)
         .attr('fill', 'none')
-        .attr('stroke', `rgba(255, 255, 255, ${Math.max(0.1, 0.25 - i * 0.03)})`) // More visible
-        .attr('stroke-width', Math.max(1, 2 - i * 0.1)) // Thicker lines
-        .attr('stroke-dasharray', `${Math.max(3, 6 - i)},${Math.max(3, 6 - i)}`) // Cleaner dash pattern
+        .attr('stroke', `rgba(255, 255, 255, ${Math.max(0.1, 0.25 - i * 0.03)})`)
+        .attr('stroke-width', Math.max(1, 2 - i * 0.1))
+        .attr('stroke-dasharray', `${Math.max(3, 6 - i)},${Math.max(3, 6 - i)}`)
         .style('pointer-events', 'none');
 
-      // **Orbital markers for reference points**
-      const markerCount = Math.max(4, i * 2); // More markers for outer orbits
+      // Orbital markers on ellipse
+      const markerCount = Math.max(4, i * 2);
       for (let j = 0; j < markerCount; j++) {
         const angle = (j / markerCount) * 2 * Math.PI;
-        const x = centerX + Math.cos(angle) * radius;
-        const y = centerY + Math.sin(angle) * radius;
+        const x = centerX + Math.cos(angle) * rx;
+        const y = centerY + Math.sin(angle) * ry;
         
         orbitGroup.append('circle')
           .attr('class', 'orbit-marker')
           .attr('cx', x)
           .attr('cy', y)
-          .attr('r', Math.max(0.5, 1.5 - i * 0.1)) // Visible markers
+          .attr('r', Math.max(0.5, 1.5 - i * 0.1))
           .attr('fill', `rgba(255, 255, 255, ${Math.max(0.08, 0.15 - i * 0.02)})`)
           .style('pointer-events', 'none');
       }
