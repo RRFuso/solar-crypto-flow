@@ -75,17 +75,18 @@ export const calculateNodePositions = ({
 
   Object.entries(marketCapTiers).forEach(([tierStr, tierNodes]) => {
     const tier = parseInt(tierStr);
-    // **CRITICAL FIX: Further compressed outer orbits with non-linear scaling**
-    // Compress orbits to fit viewport - use smaller multiplier
-    const maxAllowedRadius = Math.min(width, height) / 2 - 60;
-    const rawRadius = baseRadius * Math.pow(tier + 1, 0.75) * 0.9;
-    const orbitRadius = Math.min(rawRadius, maxAllowedRadius);
+    // Elliptical orbits: full width, constrained height
+    const maxRx = width / 2 - 60;
+    const maxRy = height / 2 - 60;
+    const rawRx = baseRadius * Math.pow(tier + 1, 0.75) * 0.9 * (width / Math.min(width, height));
+    const rawRy = baseRadius * Math.pow(tier + 1, 0.75) * 0.9;
+    const orbitRx = Math.min(rawRx, maxRx);
+    const orbitRy = Math.min(rawRy, maxRy);
     
     tierNodes.forEach((node, nodeIndex) => {
       const nodesInTier = tierNodes.length;
       const baseAngle = (nodeIndex / nodesInTier) * 2 * Math.PI;
       
-      // Usar hash do símbolo para posicionamento consistente ao invés de random
       const symbolHash = hashSymbol(node.symbol);
       const angleOffset = (symbolHash - 0.5) * (Math.PI / Math.max(8, nodesInTier));
       let angle = baseAngle + angleOffset;
@@ -95,8 +96,8 @@ export const calculateNodePositions = ({
       const maxAttempts = 40;
       
       while (!found && attempts < maxAttempts) {
-        const testX = width / 2 + Math.cos(angle) * orbitRadius;
-        const testY = height / 2 + Math.sin(angle) * orbitRadius;
+        const testX = width / 2 + Math.cos(angle) * orbitRx;
+        const testY = height / 2 + Math.sin(angle) * orbitRy;
         
         let collision = false;
         for (const placed of placedNodes) {
@@ -123,15 +124,10 @@ export const calculateNodePositions = ({
         }
       }
       
-      if (!found) {
-        // **Reduced fallback radius to keep nodes from flying off**
-        const fallbackRadius = orbitRadius + (attempts * 5);
+       if (!found) {
         const fallbackAngle = baseAngle + (hashSymbol(node.symbol) * Math.PI / 3);
-        
-        const clampedFallback = Math.min(fallbackRadius, maxAllowedRadius);
-        const rawX = width / 2 + Math.cos(fallbackAngle) * clampedFallback;
-        const rawY = height / 2 + Math.sin(fallbackAngle) * clampedFallback;
-        // Clamp to viewport bounds
+        const rawX = width / 2 + Math.cos(fallbackAngle) * orbitRx;
+        const rawY = height / 2 + Math.sin(fallbackAngle) * orbitRy;
         const margin = node.radius + 30;
         node.x = Math.max(margin, Math.min(width - margin, rawX));
         node.y = Math.max(margin, Math.min(height - margin, rawY));
