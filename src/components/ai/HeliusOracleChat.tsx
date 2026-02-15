@@ -208,7 +208,7 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
           <Button
             onClick={handleSendMessage}
             disabled={isLoading || !userInput.trim()}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-3"
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-3 self-center"
             size="sm"
           >
             {isLoading ? (
