@@ -6,7 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Search, ChevronLeft, ChevronRight, Filter, ZoomIn, ZoomOut, RefreshCcw, Clock, Lock } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Filter, ZoomIn, ZoomOut, RefreshCcw, Clock, Lock, SlidersHorizontal } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Slider } from '@/components/ui/slider';
 import { PREDEFINED_LISTS, CRYPTO_CATEGORIES } from '../constants/predefinedLists';
 import { useTierAccess } from '@/hooks/useTierAccess';
 
@@ -33,6 +35,9 @@ interface SolarSystemControlsProps {
   // Lines toggle
   showLines: boolean;
   onShowLinesChange: (value: boolean) => void;
+  // Flow limit
+  flowLimit: number;
+  onFlowLimitChange: (value: number[]) => void;
 }
 
 const TIMEFRAMES = [
@@ -64,6 +69,8 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
   onRefresh,
   showLines,
   onShowLinesChange,
+  flowLimit,
+  onFlowLimitChange,
 }) => {
   const [showCategories, setShowCategories] = useState(false);
   const { tier, showUpgradePrompt } = useTierAccess();
@@ -190,6 +197,37 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
             Linhas
           </Label>
         </div>
+
+        {/* Flow Limit */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 bg-slate-800/50 border-slate-600/50 text-white hover:bg-slate-700 text-xs"
+            >
+              <SlidersHorizontal className="h-3 w-3 mr-1" />
+              {flowLimit} Flows
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 bg-slate-800 border-slate-600 z-50">
+            <div className="space-y-2">
+              <h4 className="font-medium text-xs text-slate-300">Flows visíveis</h4>
+              <Slider
+                value={[flowLimit]}
+                max={2000}
+                min={5}
+                step={5}
+                onValueChange={onFlowLimitChange}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] text-slate-400">
+                <span>Menos</span>
+                <span>Mais</span>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
 
         {/* Refresh Button */}
         <Button 
