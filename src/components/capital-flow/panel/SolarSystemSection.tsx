@@ -22,6 +22,8 @@ interface SolarSystemSectionProps {
   onTimeframeChange: (value: string) => void;
   onRefresh: () => void;
   onShowLinesChange: (value: boolean) => void;
+  flowLimit: number;
+  onFlowLimitChange: (value: number[]) => void;
 }
 
 const SolarSystemSection: React.FC<SolarSystemSectionProps> = ({
@@ -37,6 +39,8 @@ const SolarSystemSection: React.FC<SolarSystemSectionProps> = ({
   onTimeframeChange,
   onRefresh,
   onShowLinesChange,
+  flowLimit,
+  onFlowLimitChange,
 }) => {
   const {
     paginatedData,
@@ -97,6 +101,8 @@ const SolarSystemSection: React.FC<SolarSystemSectionProps> = ({
         onRefresh={onRefresh}
         showLines={showLines}
         onShowLinesChange={onShowLinesChange}
+        flowLimit={flowLimit}
+        onFlowLimitChange={onFlowLimitChange}
       />
 
       {/* Visualization */}

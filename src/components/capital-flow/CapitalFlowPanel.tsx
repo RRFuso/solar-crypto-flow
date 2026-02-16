@@ -36,6 +36,8 @@ const CapitalFlowPanel: React.FC<CapitalFlowPanelProps> = ({
   showLines,
   handleZoomIn,
   handleZoomOut,
+  flowLimit,
+  handleLimitChange,
   handleChartTimeframeChange,
   refetch,
   setShowLines,
@@ -59,6 +61,8 @@ const CapitalFlowPanel: React.FC<CapitalFlowPanelProps> = ({
             onTimeframeChange={handleChartTimeframeChange}
             onRefresh={refetch}
             onShowLinesChange={setShowLines}
+            flowLimit={flowLimit}
+            onFlowLimitChange={handleLimitChange}
           />
         </div>
       </div>
