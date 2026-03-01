@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Search, ChevronLeft, ChevronRight, Filter, ZoomIn, ZoomOut, RefreshCcw, Clock, Lock, SlidersHorizontal } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Slider } from '@/components/ui/slider';
-import { PREDEFINED_LISTS, CRYPTO_CATEGORIES } from '../constants/predefinedLists';
+import { PREDEFINED_LISTS, CRYPTO_CATEGORIES, isDynamicList } from '../constants/predefinedLists';
 import { useTierAccess } from '@/hooks/useTierAccess';
 
 interface SolarSystemControlsProps {
@@ -74,6 +74,7 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
 }) => {
   const [showCategories, setShowCategories] = useState(false);
   const { tier, showUpgradePrompt } = useTierAccess();
+  const isActiveDynamic = isDynamicList(currentList);
   
   // Categories that require premium access
   const PREMIUM_CATEGORIES = ['rwa', 'depin', 'ai', 'lst', 'oracles', 'cex-token'];
@@ -124,12 +125,17 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
       <div className="flex flex-wrap items-center gap-2">
         {/* List Selector */}
         <Select value={currentList} onValueChange={onListChange}>
-          <SelectTrigger className="w-[140px] h-8 bg-slate-800/50 border-slate-600/50 text-white text-xs">
+          <SelectTrigger className={`w-[160px] h-8 border-slate-600/50 text-white text-xs ${
+            isActiveDynamic 
+              ? 'bg-orange-500/20 border-orange-500/50 ring-1 ring-orange-500/30' 
+              : 'bg-slate-800/50'
+          }`}>
             <SelectValue placeholder="Selecionar lista" />
           </SelectTrigger>
           <SelectContent className="bg-slate-800 border-slate-600 z-50">
             {Object.entries(PREDEFINED_LISTS).map(([key, value]) => (
               <SelectItem key={key} value={key} className="text-white hover:bg-slate-700 text-xs">
+                {value.dynamic && <span className="mr-1">⚡</span>}
                 {value.label}
               </SelectItem>
             ))}

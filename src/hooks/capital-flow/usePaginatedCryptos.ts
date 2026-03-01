@@ -1,7 +1,7 @@
 
 import { useMemo, useState, useCallback } from 'react';
 import { FlowData } from '@/types/crypto';
-import { CRYPTO_CATEGORIES, getCategoryForSymbol, belongsToCategory } from '@/components/capital-flow/constants/predefinedLists';
+import { CRYPTO_CATEGORIES, getCategoryForSymbol, belongsToCategory, isDynamicList } from '@/components/capital-flow/constants/predefinedLists';
 
 interface UsePaginatedCryptosOptions {
   flowData: FlowData[];
@@ -68,27 +68,55 @@ export function usePaginatedCryptos({
       );
     }
 
-    // Apply list-specific sorting
+    // Apply list-specific filtering and sorting
     switch (currentList) {
-      case 'volume-spike':
-        result = result.sort((a, b) => (b.volume || 0) - (a.volume || 0));
+      case 'volume-spike': {
+        // Volume / MarketCap ratio → higher = more disproportionate capital turnover
+        result = result
+          .filter(item => (item.volume || 0) > 0 && (item.marketCap || 0) > 0)
+          .sort((a, b) => {
+            const ratioA = (a.volume || 0) / Math.max(a.marketCap || 1, 1);
+            const ratioB = (b.volume || 0) / Math.max(b.marketCap || 1, 1);
+            return ratioB - ratioA;
+          });
         break;
-      case 'gainers':
-        result = result.sort((a, b) => (b.change || 0) - (a.change || 0));
+      }
+      case 'gainers': {
+        // Strict sort by price change descending, only positive
+        result = result
+          .filter(item => (item.change || 0) > 0)
+          .sort((a, b) => (b.change || 0) - (a.change || 0));
         break;
-      case 'losers':
-        result = result.sort((a, b) => (a.change || 0) - (b.change || 0));
+      }
+      case 'losers': {
+        // Strict sort by price change ascending, only negative
+        result = result
+          .filter(item => (item.change || 0) < 0)
+          .sort((a, b) => (a.change || 0) - (b.change || 0));
         break;
-      case 'attention':
-        // Sort by combination of volume and price change
-        result = result.sort((a, b) => {
-          const scoreA = Math.abs(a.change || 0) * (a.volume || 1);
-          const scoreB = Math.abs(b.change || 0) * (b.volume || 1);
-          return scoreB - scoreA;
-        });
+      }
+      case 'attention': {
+        // Hot Score: (abs(change) * 0.6) + (log10(volume) * 0.4)
+        result = result
+          .filter(item => (item.volume || 0) > 0)
+          .map(item => ({
+            ...item,
+            _hotScore: (Math.abs(item.change || 0) * 0.6) + (Math.log10(Math.max(item.volume || 1, 1)) * 0.4),
+          }))
+          .sort((a, b) => ((b as any)._hotScore || 0) - ((a as any)._hotScore || 0));
         break;
+      }
+      case 'new-listings': {
+        // Sort by value ascending (smaller market caps = newer/smaller projects)
+        // If items have an id that looks like a recent entry, prioritize those
+        result = result
+          .filter(item => (item.marketCap || 0) > 0)
+          .sort((a, b) => (a.marketCap || 0) - (b.marketCap || 0))
+          .slice(0, 100);
+        break;
+      }
       default:
-        // Default: sort by market cap (value/flow amount)
+        // Default: sort by market cap (value/flow amount) descending
         result = result.sort((a, b) => (b.value || 0) - (a.value || 0));
     }
 
