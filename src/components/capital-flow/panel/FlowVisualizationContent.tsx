@@ -3,7 +3,6 @@ import React from 'react';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
 import { FlowVisualization } from '../FlowVisualization';
-import { FlowLegend } from '../FlowLegend';
 import AIWatchlist from '../../ai/AIWatchlist';
 
 interface FlowVisualizationContentProps {
@@ -74,11 +73,6 @@ export const FlowVisualizationContent: React.FC<FlowVisualizationContentProps> =
         activeCategory={activeCategory}
         showLines={showLines}
       />
-      
-      {/* Legend positioned at bottom */}
-      <div className="absolute bottom-0 left-0 w-full md:w-auto md:left-1/2 md:transform md:-translate-x-1/2 z-10 pointer-events-none">
-        <FlowLegend />
-      </div>
     </div>
   );
 };
