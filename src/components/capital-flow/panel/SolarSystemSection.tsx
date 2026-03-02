@@ -3,6 +3,7 @@ import React, { memo, useMemo } from 'react';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
 import { FlowVisualization } from '../FlowVisualization';
+import { FlowLegend } from '../FlowLegend';
 import { SolarSystemControls } from './SolarSystemControls';
 import { LegalDisclaimer } from './LegalDisclaimer';
 import { usePaginatedCryptos } from '@/hooks/capital-flow/usePaginatedCryptos';
@@ -114,6 +115,11 @@ const SolarSystemSection: React.FC<SolarSystemSectionProps> = ({
           activeCategory={selectedCategory}
           showLines={showLines}
         />
+        
+        {/* Legend */}
+        <div className="absolute bottom-8 left-0 w-full md:w-auto md:left-1/2 md:transform md:-translate-x-1/2 z-10 pointer-events-none">
+          <FlowLegend />
+        </div>
         
         {/* Legal Disclaimer */}
         <div className="absolute bottom-1 left-2 right-2 z-10">
