@@ -54,6 +54,10 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
       throw new Error('BTC data not found');
     }
 
+    // Build a lookup map for market data by symbol (uppercase)
+    const marketDataMap = new Map<string, MarketData>();
+    data.forEach(coin => marketDataMap.set(coin.symbol.toUpperCase(), coin));
+
     // Calculate flows between different categories
     let flows: FlowData[] = [];
     
@@ -67,24 +71,19 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
     // Ensure we have at least some BTC flows
     const existingBtcFlows = flows.filter(flow => flow.from === 'BTC' || flow.to === 'BTC');
     if (existingBtcFlows.length < MIN_BTC_FLOWS && data.length > 5) {
-      // Add more synthetic BTC flows if needed
       const topCoins = data.slice(1, 8);
       topCoins.forEach((coin, index) => {
-        // Skip if we already have a flow with this coin
         if (flows.some(f => 
           (f.from === 'BTC' && f.to === coin.symbol.toUpperCase()) || 
           (f.to === 'BTC' && f.from === coin.symbol.toUpperCase())
         )) {
           return;
         }
-        
-        // Alternate between inflow and outflow
         const isInflow = index % 2 === 0;
         const value = (coin.market_cap / btcData.market_cap) * 20 * (0.5 + Math.random() * 0.5);
         const percentage = isInflow ? -(2 + Math.random() * 4) : (2 + Math.random() * 4);
-        
         flows.push({
-          id: `btc-${coin.symbol}-synthetic-${Date.now()}-${index}`, // Add unique ID
+          id: `btc-${coin.symbol}-synthetic-${Date.now()}-${index}`,
           from: isInflow ? coin.symbol.toUpperCase() : 'BTC',
           to: isInflow ? 'BTC' : coin.symbol.toUpperCase(),
           value,
@@ -100,6 +99,25 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
     
     // Combine all flows
     flows = [...flows, ...ethDefiFlows, ...platformFlows, ...marketCapFlows];
+
+    // Enrich every flow with market data (volume, marketCap, change) from primary symbol
+    flows = flows.map(flow => {
+      // Primary symbol = the non-BTC / non-stablecoin side; fallback to 'from'
+      const stablecoins = new Set(['USDT','USDC','DAI','BUSD','TUSD','FRAX','USDP','PYUSD']);
+      const primarySymbol = (flow.from === 'BTC' || stablecoins.has(flow.from)) ? flow.to : flow.from;
+      const md = marketDataMap.get(primarySymbol);
+      if (md) {
+        return {
+          ...flow,
+          volume: md.total_volume ?? 0,
+          marketCap: md.market_cap ?? 0,
+          change: md.price_change_percentage_24h ?? 0,
+          price: md.current_price ?? 0,
+          name: md.name,
+        };
+      }
+      return flow;
+    });
     
     // Prioritize and sort flows
     const sortedFlows = prioritizeAndSortFlows(flows);

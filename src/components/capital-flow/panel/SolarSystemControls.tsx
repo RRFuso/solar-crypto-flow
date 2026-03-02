@@ -10,6 +10,7 @@ import { Search, ChevronLeft, ChevronRight, Filter, ZoomIn, ZoomOut, RefreshCcw,
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Slider } from '@/components/ui/slider';
 import { PREDEFINED_LISTS, CRYPTO_CATEGORIES, isDynamicList } from '../constants/predefinedLists';
+import { DYNAMIC_LIST_DESCRIPTIONS } from '@/hooks/capital-flow/usePaginatedCryptos';
 import { useTierAccess } from '@/hooks/useTierAccess';
 
 interface SolarSystemControlsProps {
@@ -268,7 +269,16 @@ export const SolarSystemControls: React.FC<SolarSystemControlsProps> = ({
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
+      </div>
+
+      {/* Dynamic list description badge */}
+      {isActiveDynamic && DYNAMIC_LIST_DESCRIPTIONS[currentList] && (
+        <div className="flex items-center gap-2 animate-fade-in">
+          <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/40 text-[10px] px-2 py-0.5">
+            ⚡ {DYNAMIC_LIST_DESCRIPTIONS[currentList]}
+          </Badge>
         </div>
+      )}
       </div>
 
       {/* Category badges (collapsible) */}
