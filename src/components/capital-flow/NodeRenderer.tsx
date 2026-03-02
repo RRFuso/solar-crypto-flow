@@ -142,6 +142,11 @@ const renderOrUpdateVisualization = (
   allCapitalFlows?: CapitalFlowLink[],
   flowDirections?: Map<string, FlowDirection>,
 ) => {
+  // Helper: lookup smart money score with case-insensitive matching
+  const getSmartMoneyScore = (nodeId: string) => {
+    return smartMoneyScores.get(nodeId) || smartMoneyScores.get(nodeId.toUpperCase()) || smartMoneyScores.get(nodeId.toLowerCase());
+  };
+
   let defs = svg.select('defs');
   if (defs.empty()) {
     defs = svg.append('defs');
@@ -489,20 +494,20 @@ const renderOrUpdateVisualization = (
   nodeUpdate.select('circle.sentiment-ring')
     .transition().duration(750)
     .attr('r', (d: ExtendedOrbitalNode) => {
-      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
       if (onChainSentiment === 'Bullish' || onChainSentiment === 'Bearish') {
         return calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 1.8;
       }
       return 0;
     })
     .attr('stroke', (d: ExtendedOrbitalNode) => {
-      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
       if (onChainSentiment === 'Bullish') return '#22c55e';
       if (onChainSentiment === 'Bearish') return '#ef4444';
       return 'transparent';
     })
     .attr('class', (d: ExtendedOrbitalNode) => {
-      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
       if (onChainSentiment === 'Bullish') return 'sentiment-ring sentiment-ring-bullish';
       if (onChainSentiment === 'Bearish') return 'sentiment-ring sentiment-ring-bearish';
       return 'sentiment-ring';
@@ -512,19 +517,19 @@ const renderOrUpdateVisualization = (
     .transition().duration(750)
     .attr('r', (d: ExtendedOrbitalNode) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 1.5)
     .attr('fill', (d: ExtendedOrbitalNode) => {
-      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
       if (onChainSentiment === 'Bullish') return 'rgba(34, 197, 94, 0.6)';
       if (onChainSentiment === 'Bearish') return 'rgba(239, 68, 68, 0.6)';
       return getAIGlowColor(d, aiInsights);
     })
     .attr('filter', (d: ExtendedOrbitalNode) => {
-      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
       if (onChainSentiment === 'Bullish') return 'url(#bullish-glow)';
       if (onChainSentiment === 'Bearish') return 'url(#bearish-glow)';
       return 'blur(8px)';
     })
     .attr('opacity', (d: ExtendedOrbitalNode) => {
-      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
       if (onChainSentiment === 'Bullish' || onChainSentiment === 'Bearish') return 0.9;
       return aiInsights.get(d.id)?.opportunityScore > 75 ? 0.8 : 0.5;
     });
@@ -537,13 +542,13 @@ const renderOrUpdateVisualization = (
     .attr('width', 32)
     .attr('height', 14)
     .attr('fill', (d: ExtendedOrbitalNode) => {
-      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
       if (onChainSentiment === 'Bullish') return '#22c55e';
       if (onChainSentiment === 'Bearish') return '#ef4444';
       return 'transparent';
     })
     .attr('opacity', (d: ExtendedOrbitalNode) => {
-      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
       return (onChainSentiment === 'Bullish' || onChainSentiment === 'Bearish') ? 0.9 : 0;
     });
 
@@ -551,13 +556,13 @@ const renderOrUpdateVisualization = (
     .transition().duration(750)
     .attr('y', (d: ExtendedOrbitalNode) => -calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) - 10)
     .text((d: ExtendedOrbitalNode) => {
-      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
       if (onChainSentiment === 'Bullish') return '▲ BULL';
       if (onChainSentiment === 'Bearish') return '▼ BEAR';
       return '';
     })
     .attr('opacity', (d: ExtendedOrbitalNode) => {
-      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
       return (onChainSentiment === 'Bullish' || onChainSentiment === 'Bearish') ? 1 : 0;
     });
 
@@ -566,7 +571,7 @@ const renderOrUpdateVisualization = (
     .transition().duration(750)
     .attr('y', (d: ExtendedOrbitalNode) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) + 30)
     .text((d: ExtendedOrbitalNode) => {
-      const score = smartMoneyScores.get(d.id);
+      const score = getSmartMoneyScore(d.id);
       if (!score) return '';
       const intensity = score.score || 0;
       if (score.sentiment === 'Bullish') {
@@ -578,13 +583,13 @@ const renderOrUpdateVisualization = (
       return '';
     })
     .attr('fill', (d: ExtendedOrbitalNode) => {
-      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
       if (onChainSentiment === 'Bullish') return '#22c55e';
       if (onChainSentiment === 'Bearish') return '#ef4444';
       return 'transparent';
     })
     .attr('opacity', (d: ExtendedOrbitalNode) => {
-      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
       return (onChainSentiment === 'Bullish' || onChainSentiment === 'Bearish') ? 1 : 0;
     });
 
@@ -639,7 +644,7 @@ const renderOrUpdateVisualization = (
     .attr('dy', (d: ExtendedOrbitalNode) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) + 16)
     .text((d: ExtendedOrbitalNode) => {
       const aiInsight = aiInsights.get(d.id);
-      const onChainSentiment = smartMoneyScores.get(d.id)?.sentiment;
+      const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
       
       // Add on-chain indicator to the symbol name
       let suffix = '';

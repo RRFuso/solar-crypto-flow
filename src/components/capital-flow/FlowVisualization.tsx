@@ -9,7 +9,8 @@ import { LinkRendererExtended } from './LinkRendererExtended';
 import { NodeRendererComponent } from './NodeRenderer';
 import { OrbitalAnimationComponent } from './OrbitalAnimation';
 import { StarfieldBackground } from './visualization/StarfieldBackground';
-import { OnChainSentimentLegend } from './panel/OnChainSentimentLegend';
+import { ParticleLegend } from './panel/ParticleLegend';
+import { BorderLegend } from './panel/BorderLegend';
 import { useVisualizationSetup } from './visualization/useVisualizationSetup';
 import { useVisualizationData } from './visualization/useVisualizationData';
 import { useCryptoData } from '@/hooks/useCryptoData';
@@ -245,9 +246,13 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
       )}
       </div>
       
-      {/* On-Chain Sentiment Legend */}
+      {/* Particle Legend - Left side */}
       <div className="absolute bottom-4 left-4 z-10">
-        <OnChainSentimentLegend />
+        <ParticleLegend />
+      </div>
+      {/* Border Legend - Right side */}
+      <div className="absolute bottom-4 right-4 z-10">
+        <BorderLegend />
       </div>
     </div>
     </Profiler>
