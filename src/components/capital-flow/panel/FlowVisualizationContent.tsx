@@ -3,7 +3,6 @@ import React from 'react';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
 import { FlowVisualization } from '../FlowVisualization';
-import { FlowLegend } from '../FlowLegend';
 import AIWatchlist from '../../ai/AIWatchlist';
 
 interface FlowVisualizationContentProps {
