@@ -18,7 +18,7 @@ interface NodeRendererProps {
   selectedNodeId: string | null;
   zoomLevel: number;
   aiInsights: Map<string, AIInsight>;
-  smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish' }>;
+  smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish'; confidence?: number; factors?: string[] }>;
   activeCategory?: string;
   links?: CapitalFlowLink[];
   flowDirections?: Map<string, FlowDirection>;
@@ -135,7 +135,7 @@ const renderOrUpdateVisualization = (
   selectedNodeId: string | null,
   zoomLevel: number,
   aiInsights: Map<string, AIInsight>,
-  smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish' }>,
+  smartMoneyScores: Map<string, { score: number; sentiment: 'Bearish' | 'Neutral' | 'Bullish'; confidence?: number; factors?: string[] }>,
   showTooltip: (data: any, position: { x: number, y: number }) => void,
   hideTooltip: () => void,
   activeCategory: string = 'all',
@@ -145,6 +145,28 @@ const renderOrUpdateVisualization = (
   // Helper: lookup smart money score with case-insensitive matching
   const getSmartMoneyScore = (nodeId: string) => {
     return smartMoneyScores.get(nodeId) || smartMoneyScores.get(nodeId.toUpperCase()) || smartMoneyScores.get(nodeId.toLowerCase());
+  };
+
+  // Helper: get effective smart money confidence (0-100) from both data sources
+  const getEffectiveSmartMoneyConfidence = (nodeId: string): number => {
+    const upperId = nodeId.toUpperCase();
+    
+    // Source 1: flowDirections from smart-money-tracker (confidence already 0-100)
+    const flow = flowDirections?.get(upperId);
+    const flowConfidence = flow?.confidenceScore || 0;
+    
+    // Source 2: smartMoneyScores from onchain-oracle (confidence 0-1, score -10 to 10)
+    const oracleScore = getSmartMoneyScore(nodeId);
+    // Convert oracle confidence (0-1) to percentage, also factor in absolute score strength
+    const oracleConfidence = oracleScore 
+      ? Math.max(
+          (oracleScore.confidence || 0) * 100,
+          Math.abs(oracleScore.score) >= 5 ? 75 : Math.abs(oracleScore.score) >= 3 ? 60 : 0
+        )
+      : 0;
+    
+    // Return the highest confidence from either source
+    return Math.max(flowConfidence, oracleConfidence);
   };
 
   let defs = svg.select('defs');
@@ -436,34 +458,34 @@ const renderOrUpdateVisualization = (
       return 1;
     });
 
-  // Update premium Smart Money golden rings (confidence_score > 70)
+  // Update premium Smart Money golden rings (confidence > 70% from ANY source)
   nodeUpdate.select('circle.premium-ring-glow')
     .transition().duration(750)
     .attr('r', (d: ExtendedOrbitalNode) => {
-      const flow = flowDirections?.get(d.id.toUpperCase());
-      if (flow && (flow.confidenceScore || 0) > 70) {
+      const confidence = getEffectiveSmartMoneyConfidence(d.id);
+      if (confidence > 70) {
         return calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 2.1;
       }
       return 0;
     })
     .attr('stroke', (d: ExtendedOrbitalNode) => {
-      const flow = flowDirections?.get(d.id.toUpperCase());
-      if (flow?.confidenceScore && flow.confidenceScore > 85) return '#f59e0b'; // amber-500 for very high
+      const confidence = getEffectiveSmartMoneyConfidence(d.id);
+      if (confidence > 85) return '#f59e0b'; // amber-500 for very high
       return '#facc15'; // yellow-400 standard
     })
     .attr('stroke-width', (d: ExtendedOrbitalNode) => {
-      const flow = flowDirections?.get(d.id.toUpperCase());
-      if (flow?.confidenceScore && flow.confidenceScore > 85) return 4;
+      const confidence = getEffectiveSmartMoneyConfidence(d.id);
+      if (confidence > 85) return 4;
       return 3;
     })
     .attr('filter', 'url(#golden-glow)')
     .attr('opacity', (d: ExtendedOrbitalNode) => {
-      const flow = flowDirections?.get(d.id.toUpperCase());
-      return (flow && (flow.confidenceScore || 0) > 70) ? 0.9 : 0;
+      const confidence = getEffectiveSmartMoneyConfidence(d.id);
+      return confidence > 70 ? 0.9 : 0;
     })
     .attr('class', (d: ExtendedOrbitalNode) => {
-      const flow = flowDirections?.get(d.id.toUpperCase());
-      if (flow && (flow.confidenceScore || 0) > 70) {
+      const confidence = getEffectiveSmartMoneyConfidence(d.id);
+      if (confidence > 70) {
         return 'premium-ring-glow premium-smart-money-ring';
       }
       return 'premium-ring-glow';
@@ -472,19 +494,19 @@ const renderOrUpdateVisualization = (
   nodeUpdate.select('circle.premium-ring-shimmer')
     .transition().duration(750)
     .attr('r', (d: ExtendedOrbitalNode) => {
-      const flow = flowDirections?.get(d.id.toUpperCase());
-      if (flow && (flow.confidenceScore || 0) > 70) {
+      const confidence = getEffectiveSmartMoneyConfidence(d.id);
+      if (confidence > 70) {
         return calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 1.95;
       }
       return 0;
     })
     .attr('opacity', (d: ExtendedOrbitalNode) => {
-      const flow = flowDirections?.get(d.id.toUpperCase());
-      return (flow && (flow.confidenceScore || 0) > 70) ? 0.7 : 0;
+      const confidence = getEffectiveSmartMoneyConfidence(d.id);
+      return confidence > 70 ? 0.7 : 0;
     })
     .attr('class', (d: ExtendedOrbitalNode) => {
-      const flow = flowDirections?.get(d.id.toUpperCase());
-      if (flow && (flow.confidenceScore || 0) > 70) {
+      const confidence = getEffectiveSmartMoneyConfidence(d.id);
+      if (confidence > 70) {
         return 'premium-ring-shimmer premium-smart-money-shimmer';
       }
       return 'premium-ring-shimmer';
