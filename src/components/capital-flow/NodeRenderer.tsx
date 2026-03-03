@@ -458,6 +458,13 @@ const renderOrUpdateVisualization = (
       return 1;
     });
 
+  // Debug: log flowDirections availability
+  if (flowDirections && flowDirections.size > 0) {
+    console.log('[SmartMoney Ring] flowDirections available:', flowDirections.size, 'entries. Keys:', Array.from(flowDirections.keys()).slice(0, 5));
+  } else {
+    console.log('[SmartMoney Ring] flowDirections is EMPTY. smartMoneyScores size:', smartMoneyScores.size);
+  }
+
   // Update premium Smart Money golden rings (confidence > 70% from ANY source)
   nodeUpdate.select('circle.premium-ring-glow')
     .transition().duration(750)
