@@ -239,12 +239,6 @@ const renderOrUpdateVisualization = (
         50% { transform: scale(1.15); opacity: 0.4; }
         100% { transform: scale(1); opacity: 0.8; }
       }
-      @keyframes golden-pulse {
-        0% { transform: scale(1); opacity: 0.9; }
-        33% { transform: scale(1.2); opacity: 0.5; }
-        66% { transform: scale(1.35); opacity: 0.3; }
-        100% { transform: scale(1); opacity: 0.9; }
-      }
       @keyframes golden-shimmer {
         0% { stroke-dashoffset: 0; }
         100% { stroke-dashoffset: -20; }
@@ -255,10 +249,6 @@ const renderOrUpdateVisualization = (
       }
       .sentiment-ring-bearish {
         animation: pulse-ring 1.5s ease-in-out infinite;
-        transform-origin: center;
-      }
-      .premium-smart-money-ring {
-        animation: golden-pulse 2.5s ease-in-out infinite;
         transform-origin: center;
       }
       .premium-smart-money-shimmer {
@@ -384,23 +374,14 @@ const renderOrUpdateVisualization = (
     .attr('stroke-width', 2)
     .attr('stroke-dasharray', '4,2');
 
-  // Premium Smart Money golden ring (outer glow)
+   // Smart Money dashed ring
   nodeEnter.append('circle')
-    .attr('class', 'premium-ring-glow')
+    .attr('class', 'smart-money-dashed-ring')
     .attr('r', 0)
     .attr('fill', 'none')
     .attr('stroke', '#facc15')
-    .attr('stroke-width', 3)
-    .attr('opacity', 0);
-
-  // Premium Smart Money golden ring (inner shimmer)
-  nodeEnter.append('circle')
-    .attr('class', 'premium-ring-shimmer')
-    .attr('r', 0)
-    .attr('fill', 'none')
-    .attr('stroke', '#fde68a')
-    .attr('stroke-width', 1.5)
-    .attr('stroke-dasharray', '6,4')
+    .attr('stroke-width', 2)
+    .attr('stroke-dasharray', '5,3')
     .attr('opacity', 0);
 
   nodeEnter.append('circle')
@@ -458,34 +439,25 @@ const renderOrUpdateVisualization = (
       return 1;
     });
 
-  // Debug: log flowDirections availability
-  if (flowDirections && flowDirections.size > 0) {
-    console.log('[SmartMoney Ring] flowDirections available:', flowDirections.size, 'entries. Keys:', Array.from(flowDirections.keys()).slice(0, 5));
-  } else {
-    console.log('[SmartMoney Ring] flowDirections is EMPTY. smartMoneyScores size:', smartMoneyScores.size);
-  }
-
-  // Update premium Smart Money golden rings (confidence > 70% from ANY source)
-  nodeUpdate.select('circle.premium-ring-glow')
+  // Update Smart Money dashed ring (confidence > 70% from ANY source)
+  nodeUpdate.select('circle.smart-money-dashed-ring')
     .transition().duration(750)
     .attr('r', (d: ExtendedOrbitalNode) => {
       const confidence = getEffectiveSmartMoneyConfidence(d.id);
       if (confidence > 70) {
-        return calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 2.1;
+        return calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 1.8;
       }
       return 0;
     })
     .attr('stroke', (d: ExtendedOrbitalNode) => {
       const confidence = getEffectiveSmartMoneyConfidence(d.id);
-      if (confidence > 85) return '#f59e0b'; // amber-500 for very high
-      return '#facc15'; // yellow-400 standard
+      if (confidence > 85) return '#f59e0b';
+      return '#facc15';
     })
     .attr('stroke-width', (d: ExtendedOrbitalNode) => {
       const confidence = getEffectiveSmartMoneyConfidence(d.id);
-      if (confidence > 85) return 4;
-      return 3;
+      return confidence > 85 ? 2.5 : 2;
     })
-    .attr('filter', 'url(#golden-glow)')
     .attr('opacity', (d: ExtendedOrbitalNode) => {
       const confidence = getEffectiveSmartMoneyConfidence(d.id);
       return confidence > 70 ? 0.9 : 0;
@@ -493,30 +465,9 @@ const renderOrUpdateVisualization = (
     .attr('class', (d: ExtendedOrbitalNode) => {
       const confidence = getEffectiveSmartMoneyConfidence(d.id);
       if (confidence > 70) {
-        return 'premium-ring-glow premium-smart-money-ring';
+        return 'smart-money-dashed-ring premium-smart-money-shimmer';
       }
-      return 'premium-ring-glow';
-    });
-
-  nodeUpdate.select('circle.premium-ring-shimmer')
-    .transition().duration(750)
-    .attr('r', (d: ExtendedOrbitalNode) => {
-      const confidence = getEffectiveSmartMoneyConfidence(d.id);
-      if (confidence > 70) {
-        return calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) * 1.95;
-      }
-      return 0;
-    })
-    .attr('opacity', (d: ExtendedOrbitalNode) => {
-      const confidence = getEffectiveSmartMoneyConfidence(d.id);
-      return confidence > 70 ? 0.7 : 0;
-    })
-    .attr('class', (d: ExtendedOrbitalNode) => {
-      const confidence = getEffectiveSmartMoneyConfidence(d.id);
-      if (confidence > 70) {
-        return 'premium-ring-shimmer premium-smart-money-shimmer';
-      }
-      return 'premium-ring-shimmer';
+      return 'smart-money-dashed-ring';
     });
 
   // Update sentiment ring (pulsing outer ring for on-chain sentiment)

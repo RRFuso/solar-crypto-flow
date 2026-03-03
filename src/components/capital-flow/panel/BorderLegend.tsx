@@ -28,9 +28,9 @@ export const BorderLegend: React.FC = () => {
       </div>
 
       <div className="space-y-1">
-        {/* Smart Money golden ring */}
+        {/* Smart Money dashed ring */}
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full border-2 border-yellow-400" style={{ boxShadow: '0 0 8px rgba(250, 204, 21, 0.7)' }} />
+          <div className="w-4 h-4 rounded-full border-2 border-dashed border-yellow-400" />
           <span className="text-[10px] text-foreground/70">Smart Money (&gt;70%)</span>
         </div>
 
