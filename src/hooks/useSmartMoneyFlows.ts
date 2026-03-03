@@ -66,16 +66,62 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
   const { data: flows, isLoading, error, refetch } = useQuery({
     queryKey: ['smart-money-flows', symbols.join(',')],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('smart-money-tracker', {
-        body: {
-          action: 'get_flows',
-          symbols,
-          timeframe: '1h',
-        },
+      // Try edge function first
+      try {
+        const { data, error } = await supabase.functions.invoke('smart-money-tracker', {
+          body: {
+            action: 'get_flows',
+            symbols,
+            timeframe: '1h',
+          },
+        });
+
+        if (!error && data?.data?.length > 0) {
+          return data.data as SmartMoneyFlow[];
+        }
+      } catch (e) {
+        console.warn('smart-money-tracker edge function failed, falling back to DB:', e);
+      }
+
+      // Fallback: read directly from smart_money_flow_cache table
+      console.log('[SmartMoneyFlows] Using DB fallback for symbols:', symbols);
+      const upperSymbols = symbols.map(s => s.toUpperCase());
+      const { data: cacheData, error: dbError } = await supabase
+        .from('smart_money_flow_cache')
+        .select('*')
+        .in('token_symbol', upperSymbols)
+        .order('last_updated', { ascending: false });
+
+      if (dbError || !cacheData) {
+        console.warn('DB fallback also failed:', dbError);
+        return [] as SmartMoneyFlow[];
+      }
+
+      // Deduplicate by token_symbol (take most recent)
+      const seen = new Set<string>();
+      const deduped = cacheData.filter(row => {
+        if (seen.has(row.token_symbol)) return false;
+        seen.add(row.token_symbol);
+        return true;
       });
 
-      if (error) throw error;
-      return (data?.data || []) as SmartMoneyFlow[];
+      return deduped.map(row => ({
+        token_symbol: row.token_symbol,
+        timeframe: row.timeframe,
+        net_flow_usd: Number(row.net_flow_usd),
+        total_inflow_usd: Number(row.total_inflow_usd),
+        total_outflow_usd: Number(row.total_outflow_usd),
+        whale_tx_count: row.whale_tx_count,
+        dominant_direction: row.dominant_direction as 'bullish' | 'bearish' | 'neutral',
+        flow_intensity: Number(row.flow_intensity),
+        ema_flow: Number(row.ema_flow),
+        last_updated: row.last_updated,
+        confidence_score: Number(row.confidence_score),
+        confidence_factors: row.confidence_factors as any,
+        whale_transactions_value: Number(row.whale_transactions_value),
+        avg_gas_price_gwei: Number(row.avg_gas_price_gwei),
+        successful_tx_count: row.successful_tx_count,
+      })) as SmartMoneyFlow[];
     },
     staleTime: 5 * 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
