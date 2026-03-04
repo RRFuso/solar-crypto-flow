@@ -50,7 +50,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   } = useVisualizationSetup(flowData, zoomLevel);
   
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const zoomGroupRef = useRef<SVGGElement | null>(null);
+  
   
   const { cryptoDataMaps, isLoading: loadingCryptoData } = useCryptoData();
   
@@ -64,41 +64,21 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   const { smartMoneyScores, requestOnChainData } = useOnChainData();
   const { flows: smartMoneyFlows, flowDirections } = useSmartMoneyFlows(symbolsInView);
 
-  // ZOOM: Apply via SVG transform instead of rebuilding layout
+  // ZOOM: Apply via viewBox scaling — no DOM wrapping needed
   const adjustedZoomLevel = useMemo(() => {
     if (dimensions.width === 0 || dimensions.height === 0) return zoomLevel;
     return dimensions.width < 768 ? zoomLevel * 0.6 : zoomLevel * 1.2;
   }, [dimensions.width, dimensions.height, zoomLevel]);
 
-  // Apply zoom as a CSS/SVG transform on the root group
-  useEffect(() => {
-    if (!svgRef.current) return;
-    const svg = d3.select(svgRef.current);
-    
-    // Ensure a root zoom group exists
-    let zoomGroup = svg.select<SVGGElement>('g.zoom-root');
-    if (zoomGroup.empty()) {
-      // Wrap all existing children in a zoom group
-      const zg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      zg.setAttribute('class', 'zoom-root');
-      const svgEl = svgRef.current;
-      // Move existing children into the group
-      while (svgEl.firstChild) {
-        zg.appendChild(svgEl.firstChild);
-      }
-      svgEl.appendChild(zg);
-      zoomGroup = d3.select(zg);
-    }
-    
-    zoomGroupRef.current = zoomGroup.node();
-    
-    // Apply scale transform from center
-    const scale = adjustedZoomLevel / 100;
-    const cx = dimensions.width / 2;
-    const cy = dimensions.height / 2;
-    zoomGroup
-      .attr('transform', `translate(${cx}, ${cy}) scale(${scale}) translate(${-cx}, ${-cy})`);
-  }, [adjustedZoomLevel, dimensions, svgRef]);
+  // Compute viewBox based on zoom: zooming in = smaller viewBox = magnified content
+  const viewBox = useMemo(() => {
+    const scale = 100 / Math.max(adjustedZoomLevel, 10);
+    const vw = dimensions.width * scale;
+    const vh = dimensions.height * scale;
+    const vx = (dimensions.width - vw) / 2;
+    const vy = (dimensions.height - vh) / 2;
+    return `${vx} ${vy} ${vw} ${vh}`;
+  }, [adjustedZoomLevel, dimensions]);
 
   useEffect(() => {
     if (symbolsInView.length > 0) {
@@ -191,7 +171,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
           style={{ display: 'block' }}
           width={dimensions.width}
           height={dimensions.height}
-          viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+          viewBox={viewBox}
           preserveAspectRatio="xMidYMid meet"
         />
       {hasVisualizationData && svgRef.current && (
