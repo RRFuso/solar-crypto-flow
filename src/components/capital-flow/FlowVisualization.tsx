@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useMemo, useCallback, Profiler } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef, Profiler } from 'react';
 import * as d3 from 'd3';
 import { FlowData, CryptoData } from '@/types/crypto';
 import { ExtendedOrbitalNode } from '@/types/orbitalNodes';
@@ -31,18 +31,6 @@ interface FlowVisualizationProps {
   showLines: boolean;
 }
 
-// Performance profiler callback (disabled in production)
-const onRenderCallback = (
-  id: string,
-  phase: "mount" | "update",
-  actualDuration: number,
-  baseDuration: number,
-  startTime: number,
-  commitTime: number
-) => {
-  // Profiling disabled - enable only when debugging performance
-};
-
 const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({ 
   flowData, 
   zoomLevel = 60,
@@ -62,31 +50,56 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   } = useVisualizationSetup(flowData, zoomLevel);
   
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const zoomGroupRef = useRef<SVGGElement | null>(null);
   
-  // All hooks must be called in the same order every render
   const { cryptoDataMaps, isLoading: loadingCryptoData } = useCryptoData();
   
-  // Memoize symbols to prevent unnecessary re-calculations
   const symbolsInView = useMemo(() => {
     if (!visualizationData?.nodes) return [];
     return visualizationData.nodes.map(node => node.id);
   }, [visualizationData?.nodes]);
 
-  // These hooks must always be called, regardless of symbolsInView
   const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(symbolsInView);
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(symbolsInView);
   const { smartMoneyScores, requestOnChainData } = useOnChainData();
   const { flows: smartMoneyFlows, flowDirections } = useSmartMoneyFlows(symbolsInView);
 
-  // Memoize adjusted zoom level - only calculate when we have valid dimensions
+  // ZOOM: Apply via SVG transform instead of rebuilding layout
   const adjustedZoomLevel = useMemo(() => {
-    if (dimensions.width === 0 || dimensions.height === 0) {
-      return zoomLevel; // Return base zoom as fallback
-    }
+    if (dimensions.width === 0 || dimensions.height === 0) return zoomLevel;
     return dimensions.width < 768 ? zoomLevel * 0.6 : zoomLevel * 1.2;
   }, [dimensions.width, dimensions.height, zoomLevel]);
 
-  // Effect for on-chain data request
+  // Apply zoom as a CSS/SVG transform on the root group
+  useEffect(() => {
+    if (!svgRef.current) return;
+    const svg = d3.select(svgRef.current);
+    
+    // Ensure a root zoom group exists
+    let zoomGroup = svg.select<SVGGElement>('g.zoom-root');
+    if (zoomGroup.empty()) {
+      // Wrap all existing children in a zoom group
+      const zg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      zg.setAttribute('class', 'zoom-root');
+      const svgEl = svgRef.current;
+      // Move existing children into the group
+      while (svgEl.firstChild) {
+        zg.appendChild(svgEl.firstChild);
+      }
+      svgEl.appendChild(zg);
+      zoomGroup = d3.select(zg);
+    }
+    
+    zoomGroupRef.current = zoomGroup.node();
+    
+    // Apply scale transform from center
+    const scale = adjustedZoomLevel / 100;
+    const cx = dimensions.width / 2;
+    const cy = dimensions.height / 2;
+    zoomGroup
+      .attr('transform', `translate(${cx}, ${cy}) scale(${scale}) translate(${-cx}, ${-cy})`);
+  }, [adjustedZoomLevel, dimensions, svgRef]);
+
   useEffect(() => {
     if (symbolsInView.length > 0) {
       requestOnChainData(symbolsInView);
@@ -107,15 +120,12 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     activeCategory
   });
 
-  // Bridge to SolarCoreCommandContext for bidirectional communication
   const { setSelectedNodeId: setCommandNodeId } = useSolarCoreCommand();
 
-  // Node click handler effect - dispatch to command context
   useEffect(() => {
     const handleNodeClick = (event: CustomEvent) => {
       const nodeId = event.detail.nodeId;
       setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
-      // Notify Oracle about the click
       setCommandNodeId(nodeId);
     };
     document.addEventListener('node-click', handleNodeClick as EventListener);
@@ -124,40 +134,32 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     };
   }, [setCommandNodeId]);
 
-  // Memoize category color function
   const getCategoryColor = useCallback((symbol: string) => {
     const aiInsight = aiInsights.get(symbol);
     if (aiInsight) {
       const signalCategory = mapAIRecommendationToSignal(aiInsight.recommendation);
       return getSignalCategoryColor(signalCategory);
     }
-
     const crypto = cryptoDataMaps.bySymbol.get(symbol);
     if (crypto) {
       const signalCategory = determineCryptoSignalCategory(crypto);
       return getSignalCategoryColor(signalCategory);
     }
-
     return getSignalCategoryColor('neutral');
   }, [aiInsights, cryptoDataMaps.bySymbol]);
 
-  // Memoize enriched nodes calculation
   const enrichedNodes = useMemo(() => {
     if (!visualizationData?.nodes) return [];
-    
     return visualizationData.nodes.map(node => ({
       ...node,
       categories: getCategoriesForSymbol(node.id),
     }));
-  }, [visualizationData?.nodes, activeCategory]);
+  }, [visualizationData?.nodes]);
 
-  // All hooks MUST be called before any conditional returns
-  // Wait for proper dimensions AND data before rendering
   const hasValidDimensions = dimensions.width > 100 && dimensions.height > 100;
   const hasVisualizationData = visualizationData?.nodes?.length > 0;
   const isDataReady = !loadingCryptoData && !loadingSignals && !loadingAI;
   
-  // Show loading until everything is ready
   if (!hasValidDimensions || !isDataReady) {
     return (
       <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
@@ -181,7 +183,6 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   }
 
   return (
-    <Profiler id="FlowVisualization" onRender={onRenderCallback}>
     <div ref={containerRef} className="w-full h-full relative overflow-hidden">
       <div className="w-full h-full flex items-center justify-center">
         <svg 
@@ -246,22 +247,18 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
       )}
       </div>
       
-      {/* Particle Legend - Left side */}
       <div className="absolute bottom-4 left-4 z-10">
         <ParticleLegend />
       </div>
-      {/* Border Legend - Right side */}
       <div className="absolute bottom-4 right-4 z-10">
         <BorderLegend />
       </div>
     </div>
-    </Profiler>
   );
 };
 
-// Export memoized component with custom comparison
+// Strict memoization - only re-render on meaningful prop changes
 export const FlowVisualization = React.memo(FlowVisualizationComponent, (prevProps, nextProps) => {
-  // Custom comparison for better performance
   return (
     prevProps.zoomLevel === nextProps.zoomLevel &&
     prevProps.chartTimeframe === nextProps.chartTimeframe &&
