@@ -41,7 +41,7 @@ interface FlowControlsProviderProps {
 export const FlowControlsProvider: React.FC<FlowControlsProviderProps> = ({ children }) => {
   const [timeframe, setTimeframe] = useState('24h');
   const [chartTimeframe, setChartTimeframe] = useState('4h');
-  const [zoomLevel, setZoomLevel] = useState(80); // 80% = melhor ajuste inicial do sistema solar
+  const [zoomLevel, setZoomLevel] = useState(100); // 100% = default scale for solar system
   const [flowLimit, setFlowLimit] = useState(30);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showOnlyStrongSignals, setShowOnlyStrongSignals] = useState(false);
