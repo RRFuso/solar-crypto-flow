@@ -73,7 +73,7 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
   smartMoneyFlows
 }) => {
   const previousLinksKeyRef = useRef<string>('');
-  const linkElementsRef = useRef<d3.Selection<SVGPathElement, LinkData, SVGGElement, unknown> | null>(null);
+  const linkElementsRef = useRef<d3.Selection<SVGPathElement, LinkData, d3.BaseType, unknown> | null>(null);
 
   const getColorForFlow = (category: string) => {
     if (getCategoryColor) return getCategoryColor(category);

@@ -55,43 +55,68 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
     orbitGroups.get(orbitRadius)!.push(node);
   });
   
-  // **ENHANCED: Position nodes within each orbit with perfect angular spacing**
-  const placedNodes: Array<{x: number, y: number, radius: number}> = [
-    { x: centralNode.x, y: centralNode.y, radius: centralNode.radius * 2 }
-  ];
-  
+  // Posicionamento inicial por órbita
   orbitGroups.forEach((nodesInOrbit, orbitRadius) => {
     const angleStep = (2 * Math.PI) / nodesInOrbit.length;
-    const startAngle = (orbitRadius * 0.1) % (Math.PI * 2); // Deterministic start based on orbit
-    
+    const startAngle = (orbitRadius * 0.1) % (Math.PI * 2);
+
     nodesInOrbit.forEach((node, index) => {
       const angle = startAngle + (index * angleStep);
-      
-      // Direct placement with minimal collision checking for speed
       const testX = width / 2 + Math.cos(angle) * orbitRadius;
       const testY = height / 2 + Math.sin(angle) * orbitRadius;
-      
-      // Enhanced bounds checking with proper margins
-      const safeMargin = node.radius + 20; // Ensure full node visibility with padding
-      if (testX >= safeMargin && testX <= width - safeMargin && 
-          testY >= safeMargin && testY <= height - safeMargin) {
+
+      const safeMargin = node.radius + 20;
+      if (testX >= safeMargin && testX <= width - safeMargin && testY >= safeMargin && testY <= height - safeMargin) {
         node.x = testX;
         node.y = testY;
       } else {
-        // Fallback: adjust radius significantly inward to ensure visibility
         const adjustedRadius = orbitRadius * 0.8;
         const fallbackX = width / 2 + Math.cos(angle) * adjustedRadius;
         const fallbackY = height / 2 + Math.sin(angle) * adjustedRadius;
-        
-        // Clamp to safe bounds
         node.x = Math.max(safeMargin, Math.min(width - safeMargin, fallbackX));
         node.y = Math.max(safeMargin, Math.min(height - safeMargin, fallbackY));
       }
-      
-      placedNodes.push({ x: node.x, y: node.y, radius: node.radius * 2 });
     });
   });
-  
+
+  // Passagem extra de anti-colisão (determinística) para reduzir sobreposição após resize
+  const allNodes = [centralNode, ...nonCentralNodes];
+  const iterations = 24;
+
+  for (let iteration = 0; iteration < iterations; iteration++) {
+    for (let i = 0; i < allNodes.length; i++) {
+      for (let j = i + 1; j < allNodes.length; j++) {
+        const nodeA = allNodes[i];
+        const nodeB = allNodes[j];
+
+        const dx = nodeB.x - nodeA.x;
+        const dy = nodeB.y - nodeA.y;
+        const distance = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+        const minDistance = nodeA.radius + nodeB.radius + 14;
+
+        if (distance < minDistance) {
+          const overlap = (minDistance - distance) * 0.5;
+          const nx = dx / distance;
+          const ny = dy / distance;
+
+          const moveA = nodeA.id === centralNode.id ? 0 : overlap;
+          const moveB = nodeB.id === centralNode.id ? 0 : overlap;
+
+          nodeA.x -= nx * moveA;
+          nodeA.y -= ny * moveA;
+          nodeB.x += nx * moveB;
+          nodeB.y += ny * moveB;
+        }
+      }
+    }
+
+    nonCentralNodes.forEach((node) => {
+      const safeMargin = node.radius + 16;
+      node.x = Math.max(safeMargin, Math.min(width - safeMargin, node.x));
+      node.y = Math.max(safeMargin, Math.min(height - safeMargin, node.y));
+    });
+  }
+
   return nodes;
 };
 

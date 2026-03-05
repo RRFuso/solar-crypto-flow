@@ -64,11 +64,8 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   const { smartMoneyScores, requestOnChainData } = useOnChainData();
   const { flows: smartMoneyFlows, flowDirections } = useSmartMoneyFlows(symbolsInView);
 
-  // ZOOM: Apply via viewBox scaling — no DOM wrapping needed
-  const adjustedZoomLevel = useMemo(() => {
-    if (dimensions.width === 0 || dimensions.height === 0) return zoomLevel;
-    return dimensions.width < 768 ? zoomLevel * 0.6 : zoomLevel * 1.2;
-  }, [dimensions.width, dimensions.height, zoomLevel]);
+  // Zoom direto para evitar variações por breakpoint no resize
+  const adjustedZoomLevel = useMemo(() => zoomLevel, [zoomLevel]);
 
   // Compute viewBox based on zoom: zooming in = smaller viewBox = magnified content
   const viewBox = useMemo(() => {
