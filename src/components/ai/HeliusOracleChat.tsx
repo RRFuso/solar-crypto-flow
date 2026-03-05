@@ -7,15 +7,6 @@ import { ChatMessage } from '@/types/ai_analyst';
 import { getAIChatResponse } from '@/lib/ai_analyst';
 import ReactMarkdown from 'react-markdown';
 import { useSolarCoreCommand } from '@/contexts/SolarCoreCommandContext';
-import { useFlowControls } from '@/contexts/FlowControlsContext';
-import {
-  getWebLLMEngine,
-  chatWithLocalAI,
-  unloadWebLLM,
-  getWebLLMStatus,
-  type WebLLMProgress,
-} from '@/lib/ai/webLlmEngine';
-import WebLLMStatusIndicator from './WebLLMStatusIndicator';
 
 interface HeliusOracleChatProps {
   className?: string;
@@ -42,22 +33,6 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { applyHeliusCommand, selectedNodeId, setSelectedNodeId } = useSolarCoreCommand();
-  const { selectedCategory } = useFlowControls();
-
-  // WebLLM state
-  const [llmProgress, setLlmProgress] = useState<WebLLMProgress>({
-    status: 'idle',
-    progress: 0,
-    text: '',
-  });
-
-  // Initialize WebLLM engine on mount
-  useEffect(() => {
-    getWebLLMEngine(setLlmProgress);
-    return () => {
-      unloadWebLLM();
-    };
-  }, []);
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
@@ -87,56 +62,33 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
     setUserInput('');
     setIsLoading(true);
 
-    const marketContext = JSON.stringify({
-      activeCategory: selectedCategory,
-      timestamp: new Date().toISOString(),
-    });
-
-    let aiResponse: string | null = null;
-
-    // Try local AI first
-    if (getWebLLMStatus() === 'ready') {
-      try {
-        const llmMessages = updatedMessages.map(m => ({
-          role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
-          content: m.text,
-        }));
-        aiResponse = await chatWithLocalAI(llmMessages, marketContext);
-      } catch (err) {
-        console.warn('[HeliusOracle] Local AI failed, falling back to edge function:', err);
+    try {
+      const aiResponse = await getAIChatResponse(updatedMessages);
+      
+      // Parse solar commands from AI response
+      const { cleanText, command } = parseSolarCommand(aiResponse);
+      
+      // Apply command to Solar Core if present
+      if (command) {
+        applyHeliusCommand({
+          selectedSymbols: command.symbols,
+          activeCategory: command.category,
+          zoomLevel: command.zoom,
+          smartMoneyThreshold: command.threshold,
+          focusNodeId: command.focus,
+        });
       }
+
+      setMessages([...updatedMessages, { sender: 'ai', text: cleanText || aiResponse }]);
+    } catch (error) {
+      setMessages([
+        ...updatedMessages,
+        { sender: 'ai', text: 'Desculpe, ocorreu um erro ao processar sua solicitação. Tente novamente.' }
+      ]);
+    } finally {
+      setIsLoading(false);
     }
-
-    // Fallback to edge function
-    if (!aiResponse) {
-      try {
-        aiResponse = await getAIChatResponse(updatedMessages);
-      } catch (error) {
-        setMessages([
-          ...updatedMessages,
-          { sender: 'ai', text: 'Desculpe, ocorreu um erro ao processar sua solicitação. Tente novamente.' },
-        ]);
-        setIsLoading(false);
-        return;
-      }
-    }
-
-    // Parse solar commands from AI response
-    const { cleanText, command } = parseSolarCommand(aiResponse);
-
-    if (command) {
-      applyHeliusCommand({
-        selectedSymbols: command.symbols,
-        activeCategory: command.category,
-        zoomLevel: command.zoom,
-        smartMoneyThreshold: command.threshold,
-        focusNodeId: command.focus,
-      });
-    }
-
-    setMessages([...updatedMessages, { sender: 'ai', text: cleanText || aiResponse }]);
-    setIsLoading(false);
-  }, [userInput, isLoading, messages, applyHeliusCommand, selectedCategory]);
+  }, [userInput, isLoading, messages, applyHeliusCommand]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -149,7 +101,7 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
     "Analise o fluxo de smart money atual",
     "Quais tokens têm maior entrada de baleias?",
     "Qual é o sentimento geral do mercado?",
-    "Destaque os ativos com maior potencial explosivo",
+    "Destaque os ativos com maior potencial explosivo"
   ], []);
 
   const handleSuggestedQuestion = (question: string) => {
@@ -170,9 +122,6 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
         </div>
       </div>
 
-      {/* WebLLM Status */}
-      <WebLLMStatusIndicator progress={llmProgress} />
-
       {/* Chat Messages */}
       <ScrollArea className="flex-1 p-3" ref={scrollRef}>
         {messages.length === 0 ? (
@@ -182,6 +131,7 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
             <p className="text-muted-foreground text-xs mb-4 max-w-[280px]">
               Pergunte e o Oracle reconfigura o Solar Core com dados reais on-chain.
             </p>
+            
             <div className="grid grid-cols-1 gap-1.5 w-full">
               {suggestedQuestions.map((question, index) => (
                 <button
@@ -199,8 +149,8 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
             {messages.map((msg, index) => (
               <div key={index} className={`flex gap-2 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}>
                 <div className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center ${
-                  msg.sender === 'user'
-                    ? 'bg-primary'
+                  msg.sender === 'user' 
+                    ? 'bg-primary' 
                     : 'bg-gradient-to-br from-purple-500 to-blue-500'
                 }`}>
                   {msg.sender === 'user' ? (
@@ -226,7 +176,7 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
                 </div>
               </div>
             ))}
-
+            
             {isLoading && (
               <div className="flex gap-2">
                 <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-purple-500 to-blue-500">
@@ -235,9 +185,7 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
                 <div className="bg-muted rounded-2xl rounded-tl-none p-2.5">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span className="text-xs">
-                      {getWebLLMStatus() === 'ready' ? 'IA Local processando...' : 'Analisando dados on-chain...'}
-                    </span>
+                    <span className="text-xs">Analisando dados on-chain...</span>
                   </div>
                 </div>
               </div>
