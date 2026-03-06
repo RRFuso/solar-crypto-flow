@@ -175,9 +175,9 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
     };
     
     // Only create particles if showing lines
-    if (showLines && processedLinks.length > 0) {
+    if (showLines && categoryFilteredLinks.length > 0) {
       import('./link-renderer/ParticleAnimation').then(({ addFlowParticles }) => {
-        particleCleanup = addFlowParticles(svg, linkGroup, processedLinks, selectedNodeId, getFlowConfig);
+        particleCleanup = addFlowParticles(svg, linkGroup, categoryFilteredLinks, selectedNodeId, getFlowConfig);
       });
     }
 
