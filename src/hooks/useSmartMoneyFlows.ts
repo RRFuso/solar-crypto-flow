@@ -56,6 +56,8 @@ const FLOW_COLORS = {
 const BASE_PARTICLE_SPEED = 0.002;
 const HIGH_CONFIDENCE_THRESHOLD = 60;
 const MEDIUM_CONFIDENCE_THRESHOLD = 40;
+const MAX_FLOW_STALENESS_MS = 20 * 60 * 1000; // 20 minutos
+const AUTO_REFRESH_COOLDOWN_MS = 2 * 60 * 1000; // evita spam de update
 
 // ========== HOOK PRINCIPAL ==========
 export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP']) {
