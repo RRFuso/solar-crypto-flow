@@ -68,34 +68,74 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
   const { data: flows, isLoading, error, refetch } = useQuery({
     queryKey: ['smart-money-flows', symbols.join(',')],
     queryFn: async () => {
-      // Try edge function first
-      try {
+      const normalizedSymbols = [...new Set(symbols.map(s => s.toUpperCase()).filter(Boolean))];
+      const staleCutoffIso = new Date(Date.now() - MAX_FLOW_STALENESS_MS).toISOString();
+
+      const isFreshFlow = (flow: SmartMoneyFlow) => {
+        const updatedAt = new Date(flow.last_updated).getTime();
+        return Number.isFinite(updatedAt) && updatedAt >= Date.now() - MAX_FLOW_STALENESS_MS;
+      };
+
+      const fetchFromEdge = async (): Promise<SmartMoneyFlow[]> => {
         const { data, error } = await supabase.functions.invoke('smart-money-tracker', {
           body: {
             action: 'get_flows',
-            symbols,
+            symbols: normalizedSymbols,
             timeframe: '1h',
           },
         });
 
-        if (!error && data?.data?.length > 0) {
-          return data.data as SmartMoneyFlow[];
-        }
+        if (error) throw error;
+        return (data?.data || []) as SmartMoneyFlow[];
+      };
+
+      // 1) Fonte primária: edge function
+      let edgeFlows: SmartMoneyFlow[] = [];
+      try {
+        edgeFlows = await fetchFromEdge();
       } catch (e) {
         console.warn('smart-money-tracker edge function failed, falling back to DB:', e);
       }
 
-      // Fallback: read directly from smart_money_flow_cache table
-      console.log('[SmartMoneyFlows] Using DB fallback for symbols:', symbols);
-      const upperSymbols = symbols.map(s => s.toUpperCase());
+      const hasCoverage = normalizedSymbols.every(symbol =>
+        edgeFlows.some(flow => flow.token_symbol === symbol)
+      );
+      const allFresh = edgeFlows.length > 0 && edgeFlows.every(isFreshFlow);
+      const canTriggerRefresh = Date.now() - lastUpdateRef.current > AUTO_REFRESH_COOLDOWN_MS;
+
+      // 2) Se faltar cobertura ou estiver stale, força atualização real
+      if (canTriggerRefresh && (edgeFlows.length === 0 || !hasCoverage || !allFresh)) {
+        try {
+          await supabase.functions.invoke('smart-money-tracker', {
+            body: {
+              action: 'update_flows',
+              timeframe: '1h',
+            },
+          });
+
+          edgeFlows = await fetchFromEdge();
+        } catch (refreshError) {
+          console.warn('Could not refresh smart money flows from edge function:', refreshError);
+        }
+      }
+
+      const freshEdgeFlows = edgeFlows.filter(isFreshFlow);
+      if (freshEdgeFlows.length > 0) {
+        return freshEdgeFlows;
+      }
+
+      // 3) Fallback: DB apenas com dados recentes e timeframe correto
+      console.log('[SmartMoneyFlows] Using DB fallback for symbols:', normalizedSymbols);
       const { data: cacheData, error: dbError } = await supabase
         .from('smart_money_flow_cache')
         .select('*')
-        .in('token_symbol', upperSymbols)
+        .in('token_symbol', normalizedSymbols)
+        .eq('timeframe', '1h')
+        .gte('last_updated', staleCutoffIso)
         .order('last_updated', { ascending: false });
 
       if (dbError || !cacheData) {
-        console.warn('DB fallback also failed:', dbError);
+        console.warn('DB fallback failed:', dbError);
         return [] as SmartMoneyFlow[];
       }
 
