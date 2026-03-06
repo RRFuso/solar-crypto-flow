@@ -36,7 +36,8 @@ export const CRYPTO_CATEGORIES: Record<string, string[]> = {
   'ai': [
     'FET', 'AGIX', 'RNDR', 'GRT', 'OCEAN', 'NMR', 'TAO', 'ARKM', 'WLD', 
     'AKT', 'PAAL', 'AIOZ', 'ORAI', 'RENDER', 'IQID', 'PHB', 'CTXC', 
-    'MATRIX', 'AGI', 'DEEP', 'ALI'
+    'MATRIX', 'AGI', 'DEEP', 'ALI', 'VIRTUAL', 'AI16Z', 'ZEREBRO', 
+    'GRIFFAIN', 'ARC', 'GOAT', 'FARTCOIN'
   ],
   'privacy': [
     'XMR', 'ZEC', 'DASH', 'ZEN', 'SCRT', 'DERO', 'ROSE', 'NYM', 'BEAM', 
@@ -63,11 +64,11 @@ export const CRYPTO_CATEGORIES: Record<string, string[]> = {
   ],
   'rwa': [
     'ONDO', 'MKR', 'CFG', 'RIO', 'PROPS', 'POLY', 'TRADE', 'TOKEN', 
-    'BUIDL', 'RWA', 'TRU', 'MPL', 'SWRV'
+    'BUIDL', 'RWA', 'TRU', 'MPL', 'SWRV', 'CPOOL', 'GFI', 'MAPLE'
   ],
   'depin': [
     'HNT', 'FIL', 'AR', 'RNDR', 'THETA', 'AKT', 'IOTX', 'LPT', 'STORJ', 
-    'SC', 'BTT', 'ANKR', 'POKT', 'NKN', 'DIMO', 'HONEY'
+    'SC', 'BTT', 'ANKR', 'POKT', 'NKN', 'DIMO', 'HONEY', 'MOBILE'
   ],
   'oracles': [
     'LINK', 'BAND', 'TRB', 'API3', 'UMA', 'DIA', 'PYTH', 'NEST', 'FLUX', 
