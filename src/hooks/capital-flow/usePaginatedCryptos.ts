@@ -127,9 +127,13 @@ export function usePaginatedCryptos({
 
       // ─── Dynamic strategic lists ───
       case 'volume-spike': {
-        // Volume Turnover Ratio: volume_24h / market_cap
+        // Volume Turnover Ratio: volume_24h / market_cap — threshold > 0.15
         result = result
-          .filter(item => (item.volume || 0) > 0 && (item.marketCap || 0) > 0)
+          .filter(item => {
+            const vol = item.volume || 0;
+            const mcap = item.marketCap || 0;
+            return vol > 0 && mcap > 0 && (vol / mcap) > 0.15;
+          })
           .sort((a, b) => {
             const ratioA = (a.volume || 0) / (a.marketCap || 1);
             const ratioB = (b.volume || 0) / (b.marketCap || 1);
@@ -138,36 +142,38 @@ export function usePaginatedCryptos({
         break;
       }
       case 'gainers': {
+        // Strict: only positive change, sorted desc
         result = result
           .filter(item => (item.change || 0) > 0)
           .sort((a, b) => (b.change || 0) - (a.change || 0));
         break;
       }
       case 'losers': {
+        // Strict: only negative change, sorted asc (biggest drops first)
         result = result
           .filter(item => (item.change || 0) < 0)
           .sort((a, b) => (a.change || 0) - (b.change || 0));
         break;
       }
       case 'attention': {
-        // Hot Score = (abs(change) * 0.5) + (log10(volume) * 0.3) + (1/rank * 0.2)
+        // Hot Score = (abs(change) * 0.5) + (log10(volume) * 0.3) + (1/rank * 0.2 * 100)
         result = result
-          .filter(item => (item.volume || 0) > 0)
+          .filter(item => (item.volume || 0) > 0 && Math.abs(item.change || 0) > 1)
           .map((item, index) => {
             const rankInverse = 1 / Math.max(index + 1, 1);
             const hotScore =
               (Math.abs(item.change || 0) * 0.5) +
               (Math.log10(Math.max(item.volume || 1, 1)) * 0.3) +
-              (rankInverse * 0.2 * 100); // scale rank component
+              (rankInverse * 0.2 * 100);
             return { ...item, _hotScore: hotScore };
           })
           .sort((a, b) => ((b as any)._hotScore || 0) - ((a as any)._hotScore || 0));
         break;
       }
       case 'new-listings': {
-        // Smallest market cap first (proxy for newer projects)
+        // Smallest market cap first (proxy for newer/smaller projects)
         result = result
-          .filter(item => (item.marketCap || 0) > 0)
+          .filter(item => (item.marketCap || 0) > 0 && (item.marketCap || 0) < 500_000_000)
           .sort((a, b) => (a.marketCap || 0) - (b.marketCap || 0))
           .slice(0, 100);
         break;

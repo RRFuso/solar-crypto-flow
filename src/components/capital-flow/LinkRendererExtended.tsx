@@ -64,13 +64,15 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
     // Set visibility based on showLines prop
     linkGroup.style("visibility", showLines ? "visible" : "hidden");
 
+    // Build a set of hub symbols (BTC + stablecoins) for category filtering
+    const hubSymbols = new Set(['BTC', 'USDT', 'USDC', 'DAI', 'BUSD', 'TUSD', 'FRAX', 'USDP', 'PYUSD']);
+
     // Ensure links have valid source and target nodes with current positions
     const processedLinks = links.map(link => {
       const sourceNode = nodes.find(n => n.id === link.source.id);
       const targetNode = nodes.find(n => n.id === link.target.id);
       
       if (!sourceNode || !targetNode) {
-        console.warn('Link missing valid source or target node:', link);
         return null;
       }
 
@@ -82,6 +84,23 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
         categoryColor: link.fromCategory ? getColorForFlow(link.fromCategory) : null
       };
     }).filter(Boolean) as LinkData[];
+
+    // When a category is active, filter links to only show connections
+    // between tokens of that category and hub tokens (BTC/stablecoins)
+    const categoryFilteredLinks = activeCategory === 'all'
+      ? processedLinks
+      : processedLinks.filter(link => {
+          const sourceId = link.source.id?.toUpperCase();
+          const targetId = link.target.id?.toUpperCase();
+          const sourceInCat = link.source.categories?.includes(activeCategory);
+          const targetInCat = link.target.categories?.includes(activeCategory);
+          const sourceIsHub = hubSymbols.has(sourceId);
+          const targetIsHub = hubSymbols.has(targetId);
+          
+          // Keep link if at least one end is in category AND connected to a hub or another category token
+          return (sourceInCat && (targetIsHub || targetInCat)) ||
+                 (targetInCat && (sourceIsHub || sourceInCat));
+        });
 
     const handleMouseOver = (event: MouseEvent, linkData: LinkData) => {
       // Placeholder for future implementation
