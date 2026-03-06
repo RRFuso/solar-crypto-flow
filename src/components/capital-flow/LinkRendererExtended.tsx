@@ -110,8 +110,8 @@ export const LinkRendererExtended: React.FC<LinkRendererExtendedProps> = ({
       // Placeholder for future implementation
     };
 
-    const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut, activeCategory);
-    createArrowheads(svg, processedLinks);
+    const link = stylizeLinks(svg, linkGroup, categoryFilteredLinks, selectedNodeId, handleMouseOver, handleMouseOut, activeCategory);
+    createArrowheads(svg, categoryFilteredLinks);
 
     // === OPTIMIZED PARTICLE SYSTEM WITH SMART MONEY DATA ===
     let particleCleanup: (() => void) | null = null;
