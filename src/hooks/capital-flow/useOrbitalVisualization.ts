@@ -26,8 +26,7 @@ export const useOrbitalVisualization = () => {
       .attr("height", height)
       .attr("viewBox", `0 0 ${width} ${height}`);
     
-    // Clear previous SVG content
-    svg.selectAll("*").remove();
+    // Don't clear SVG here — useVisualizationData handles clearing only when symbol set changes
     
     // Extract unique assets for nodes
     const assets = Array.from(new Set([
@@ -95,12 +94,9 @@ export const useOrbitalVisualization = () => {
         orbitRadius = 120 + (orbitLayer * 80); // Multiple orbital layers
         angle = (nodeInOrbit / nodesPerOrbit) * 2 * Math.PI;
         
-        // Add some randomness for more natural positioning
-        const radiusVariation = (Math.random() - 0.5) * 20;
-        const angleVariation = (Math.random() - 0.5) * 0.3;
-        
-        const finalRadius = Math.min(orbitRadius + radiusVariation, maxRadius);
-        const finalAngle = angle + angleVariation;
+        // Deterministic positioning based on symbol hash (no random)
+        const finalRadius = Math.min(orbitRadius, maxRadius);
+        const finalAngle = angle;
         
         return {
           id,

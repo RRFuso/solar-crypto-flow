@@ -28,49 +28,59 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
   
   const animationRef = useRef<AnimationInstance | null>(null);
   
-  // Handle window resize and initial sizing
+  // Handle window resize and initial sizing with robust detection
   useEffect(() => {
+    let mounted = true;
+    let resizeObserver: ResizeObserver | null = null;
+    let rafId: number | null = null;
+
     const updateDimensions = () => {
+      if (!mounted || !containerRef.current) return;
+      const { width, height } = containerRef.current.getBoundingClientRect();
+      if (width > 0 && height > 0) {
+        setDimensions(prev => {
+          if (prev.width === Math.round(width) && prev.height === Math.round(height)) return prev;
+          return { width: Math.round(width), height: Math.round(height) };
+        });
+      }
+    };
+
+    // Aggressive initial sizing: poll via rAF until we get valid dimensions
+    const pollForDimensions = () => {
+      if (!mounted) return;
+      updateDimensions();
       if (containerRef.current) {
         const { width, height } = containerRef.current.getBoundingClientRect();
-        // Only update if we get real dimensions (not 0)
-        if (width > 0 && height > 0) {
-          setDimensions({ width, height });
+        if (width <= 0 || height <= 0) {
+          rafId = requestAnimationFrame(pollForDimensions);
+          return;
         }
       }
     };
-    
-    // Use ResizeObserver for more accurate container size tracking
-    let resizeObserver: ResizeObserver | null = null;
-    
+    pollForDimensions();
+
     if (containerRef.current) {
-      // Immediate dimension capture
-      updateDimensions();
-      
       resizeObserver = new ResizeObserver((entries) => {
         for (const entry of entries) {
           const { width, height } = entry.contentRect;
-          if (width > 0 && height > 0) {
-            setDimensions({ width, height });
+          if (width > 0 && height > 0 && mounted) {
+            setDimensions(prev => {
+              if (prev.width === Math.round(width) && prev.height === Math.round(height)) return prev;
+              return { width: Math.round(width), height: Math.round(height) };
+            });
           }
         }
       });
-      
       resizeObserver.observe(containerRef.current);
     }
-    
-    // Double-check with a small delay to ensure layout is complete
-    const timeoutId = setTimeout(updateDimensions, 50);
-    
-    // Fallback to window resize listener
+
     window.addEventListener('resize', updateDimensions);
-    
+
     return () => {
-      clearTimeout(timeoutId);
+      mounted = false;
+      if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener('resize', updateDimensions);
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
+      resizeObserver?.disconnect();
     };
   }, []);
   

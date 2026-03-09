@@ -23,15 +23,11 @@ const CATEGORIES = [
   { value: 'bitcoin', label: 'BTC Chain' },
   { value: 'bnb', label: 'BNB Chain' },
   { value: 'rwa', label: 'RWA' },
-  { value: 'depin', label: 'DePIN' },
-  { value: 'oracles', label: 'Oracles' },
   { value: 'payments', label: 'Payments' },
   { value: 'metaverse', label: 'Metaverse' },
   { value: 'nft', label: 'NFT' },
   { value: 'storage', label: 'Storage' },
   { value: 'infrastructure', label: 'Infrastructure' },
-  { value: 'cex-token', label: 'CEX Token' },
-  { value: 'lst', label: 'LST' },
 ];
 
 export const CategoryFilters: React.FC<CategoryFiltersProps> = ({
