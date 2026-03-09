@@ -1,12 +1,20 @@
 import { CreateWebWorkerMLCEngine, type MLCEngineInterface, type ChatCompletionMessageParam } from '@mlc-ai/web-llm';
 
-const MODEL_ID = 'Llama-3.1-8B-Instruct-q4f16_1-MLC';
+// Adaptive model selection based on device memory
+function selectModel(): string {
+  const mem = (navigator as any).deviceMemory;
+  if (mem && mem <= 8) {
+    console.log('[WebLLM] Low memory detected, using lightweight model');
+    return 'gemma-2b-it-q4f16_1-MLC';
+  }
+  return 'Llama-3.1-8B-Instruct-q4f16_1-MLC';
+}
 
 export type WebLLMStatus = 'idle' | 'loading' | 'ready' | 'error' | 'offline';
 
 export interface WebLLMProgress {
   status: WebLLMStatus;
-  progress: number; // 0-100
+  progress: number;
   text: string;
 }
 
@@ -15,6 +23,7 @@ type ProgressCallback = (progress: WebLLMProgress) => void;
 let engineInstance: MLCEngineInterface | null = null;
 let engineStatus: WebLLMStatus = 'idle';
 let initPromise: Promise<MLCEngineInterface | null> | null = null;
+let activeModelId: string | null = null;
 
 function checkWebGPUSupport(): boolean {
   return 'gpu' in navigator;
@@ -31,7 +40,10 @@ export async function getWebLLMEngine(onProgress?: ProgressCallback): Promise<ML
   }
 
   engineStatus = 'loading';
-  onProgress?.({ status: 'loading', progress: 0, text: 'Inicializando IA Local...' });
+  onProgress?.({ status: 'loading', progress: 0, text: 'Inicializando IA Local no Worker...' });
+
+  const modelId = selectModel();
+  activeModelId = modelId;
 
   initPromise = (async () => {
     try {
@@ -40,20 +52,20 @@ export async function getWebLLMEngine(onProgress?: ProgressCallback): Promise<ML
         { type: 'module' }
       );
 
-      const engine = await CreateWebWorkerMLCEngine(worker, MODEL_ID, {
+      const engine = await CreateWebWorkerMLCEngine(worker, modelId, {
         initProgressCallback: (report) => {
           const pct = Math.round(report.progress * 100);
           onProgress?.({
             status: 'loading',
             progress: pct,
-            text: report.text || `Carregando modelo... ${pct}%`,
+            text: report.text || `Carregando ${modelId}... ${pct}%`,
           });
         },
       });
 
       engineInstance = engine;
       engineStatus = 'ready';
-      onProgress?.({ status: 'ready', progress: 100, text: 'IA Local pronta' });
+      onProgress?.({ status: 'ready', progress: 100, text: `IA Local pronta (${modelId})` });
       return engine;
     } catch (err) {
       console.error('[WebLLM] Init failed:', err);
@@ -71,6 +83,10 @@ export function getWebLLMStatus(): WebLLMStatus {
   return engineStatus;
 }
 
+export function getActiveModelId(): string | null {
+  return activeModelId;
+}
+
 export async function unloadWebLLM(): Promise<void> {
   if (engineInstance) {
     try {
@@ -79,6 +95,7 @@ export async function unloadWebLLM(): Promise<void> {
     engineInstance = null;
     engineStatus = 'idle';
     initPromise = null;
+    activeModelId = null;
   }
 }
 

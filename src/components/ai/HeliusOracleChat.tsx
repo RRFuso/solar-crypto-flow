@@ -51,12 +51,17 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
     text: '',
   });
 
-  // Initialize WebLLM engine on mount
+  // Initialize WebLLM engine on mount (runs in Web Worker — won't block UI)
   useEffect(() => {
     getWebLLMEngine(setLlmProgress);
     return () => {
       unloadWebLLM();
     };
+  }, []);
+
+  // Handle unload from status indicator
+  const handleUnload = useCallback(() => {
+    setLlmProgress({ status: 'idle', progress: 0, text: '' });
   }, []);
 
   const scrollToBottom = () => {
@@ -94,7 +99,7 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
 
     let aiResponse: string | null = null;
 
-    // Try local AI first
+    // Try local AI first (runs entirely in Web Worker)
     if (getWebLLMStatus() === 'ready') {
       try {
         const llmMessages = updatedMessages.map(m => ({
@@ -170,8 +175,8 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
         </div>
       </div>
 
-      {/* WebLLM Status */}
-      <WebLLMStatusIndicator progress={llmProgress} />
+      {/* WebLLM Status with Unload button */}
+      <WebLLMStatusIndicator progress={llmProgress} onUnload={handleUnload} />
 
       {/* Chat Messages */}
       <ScrollArea className="flex-1 p-3" ref={scrollRef}>
@@ -236,7 +241,7 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     <span className="text-xs">
-                      {getWebLLMStatus() === 'ready' ? 'IA Local processando...' : 'Analisando dados on-chain...'}
+                      {getWebLLMStatus() === 'ready' ? 'IA Local processando no Worker...' : 'Analisando dados on-chain...'}
                     </span>
                   </div>
                 </div>
