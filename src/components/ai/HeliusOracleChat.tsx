@@ -99,14 +99,21 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
 
     let aiResponse: string | null = null;
 
-    // Try local AI first (runs entirely in Web Worker)
+    // Try local AI first (runs entirely in Web Worker) with 30s timeout
     if (getWebLLMStatus() === 'ready') {
       try {
         const llmMessages = updatedMessages.map(m => ({
           role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
           content: m.text,
         }));
-        aiResponse = await chatWithLocalAI(llmMessages, marketContext);
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 30000));
+        aiResponse = await Promise.race([
+          chatWithLocalAI(llmMessages, marketContext),
+          timeoutPromise,
+        ]);
+        if (!aiResponse) {
+          console.warn('[HeliusOracle] Local AI timed out after 30s, falling back');
+        }
       } catch (err) {
         console.warn('[HeliusOracle] Local AI failed, falling back to edge function:', err);
       }
