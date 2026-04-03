@@ -146,13 +146,27 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     return getSignalCategoryColor('neutral');
   }, [aiInsights, cryptoDataMaps.bySymbol]);
 
-  const enrichedNodes = useMemo(() => {
+  // Filter nodes by command symbols when Helius Oracle sends a reconstruct/filter command
+  const commandFilteredNodes = useMemo(() => {
     if (!visualizationData?.nodes) return [];
-    return visualizationData.nodes.map(node => ({
+    const base = visualizationData.nodes.map(node => ({
       ...node,
       categories: getCategoriesForSymbol(node.id),
     }));
-  }, [visualizationData?.nodes]);
+
+    // If the Oracle sent specific symbols, highlight/filter them
+    if (command?.selectedSymbols && command.selectedSymbols.length > 0) {
+      const symbolSet = new Set(command.selectedSymbols.map(s => s.toUpperCase()));
+      return base.map(node => ({
+        ...node,
+        _commandHighlighted: symbolSet.has(node.id.toUpperCase()),
+      }));
+    }
+
+    return base;
+  }, [visualizationData?.nodes, command?.selectedSymbols]);
+
+  const enrichedNodes = commandFilteredNodes;
 
   const hasValidDimensions = dimensions.width > 100 && dimensions.height > 100;
   const hasVisualizationData = visualizationData?.nodes?.length > 0;
