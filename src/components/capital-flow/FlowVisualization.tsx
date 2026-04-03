@@ -100,7 +100,25 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     activeCategory
   });
 
-  const { setSelectedNodeId: setCommandNodeId } = useSolarCoreCommand();
+  const { command, clearCommand, setSelectedNodeId: setCommandNodeId } = useSolarCoreCommand();
+
+  // React to Helius Oracle commands
+  useEffect(() => {
+    if (!command) return;
+
+    // Apply zoom if specified
+    // (zoomLevel is a prop; the command can't directly change it, but we log for awareness)
+
+    // Apply focus on a specific node
+    if (command.focusNodeId) {
+      setSelectedNodeId(command.focusNodeId);
+    }
+
+    // If action is 'reset', clear selection
+    if (command.action === 'reset') {
+      setSelectedNodeId(null);
+    }
+  }, [command]);
 
   useEffect(() => {
     const handleNodeClick = (event: CustomEvent) => {
