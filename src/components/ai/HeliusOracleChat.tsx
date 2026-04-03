@@ -21,19 +21,31 @@ interface HeliusOracleChatProps {
   className?: string;
 }
 
-/** Parse AI response to extract solar-command blocks */
+/** Parse AI response to extract solar-command blocks (fenced or raw JSON) */
 function parseSolarCommand(text: string): { cleanText: string; command: any | null } {
-  const cmdRegex = /```solar-command\s*([\s\S]*?)```/;
-  const match = text.match(cmdRegex);
-  if (!match) return { cleanText: text, command: null };
-
-  try {
-    const command = JSON.parse(match[1].trim());
-    const cleanText = text.replace(cmdRegex, '').trim();
-    return { cleanText, command };
-  } catch {
-    return { cleanText: text, command: null };
+  // Try fenced ```solar-command ... ``` first
+  const fencedRegex = /```solar-command\s*([\s\S]*?)```/;
+  const fencedMatch = text.match(fencedRegex);
+  if (fencedMatch) {
+    try {
+      const command = JSON.parse(fencedMatch[1].trim());
+      const cleanText = text.replace(fencedRegex, '').trim();
+      return { cleanText, command };
+    } catch { /* fall through */ }
   }
+
+  // Try delimited solar-command ... /solar-command
+  const tagRegex = /solar-command\s*([\s\S]*?)\/solar-command/;
+  const tagMatch = text.match(tagRegex);
+  if (tagMatch) {
+    try {
+      const command = JSON.parse(tagMatch[1].trim());
+      const cleanText = text.replace(tagRegex, '').trim();
+      return { cleanText, command };
+    } catch { /* fall through */ }
+  }
+
+  return { cleanText: text, command: null };
 }
 
 const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
