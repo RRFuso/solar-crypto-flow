@@ -150,11 +150,13 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
 
     if (command) {
       applyHeliusCommand({
+        action: command.action || 'reconstruct',
         selectedSymbols: command.symbols,
         activeCategory: command.category,
         zoomLevel: command.zoom,
-        smartMoneyThreshold: command.threshold,
+        smartMoneyThreshold: command.smartMoneyThreshold ?? command.threshold,
         focusNodeId: command.focus,
+        particleColor: command.particleColor,
       });
     }
 
