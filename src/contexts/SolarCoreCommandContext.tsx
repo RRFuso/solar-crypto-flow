@@ -1,13 +1,17 @@
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
+export type SolarCommandAction = 'reconstruct' | 'focus' | 'filter' | 'highlight' | 'reset';
+
 export interface SolarCoreCommand {
+  action?: SolarCommandAction;
   selectedSymbols?: string[];
   highlightedFlows?: any[];
   activeCategory?: string;
   zoomLevel?: number;
   smartMoneyThreshold?: number;
   focusNodeId?: string | null;
+  particleColor?: string;
 }
 
 interface SolarCoreCommandContextType {
@@ -34,6 +38,7 @@ export const SolarCoreCommandProvider: React.FC<{ children: React.ReactNode }> =
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const applyHeliusCommand = useCallback((cmd: SolarCoreCommand) => {
+    console.log('[SolarCore] Command received:', cmd);
     setCommand(cmd);
   }, []);
 
