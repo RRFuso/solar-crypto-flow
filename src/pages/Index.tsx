@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import CapitalFlowPanel from "@/components/capital-flow/CapitalFlowPanel";
 import Auth from "@/components/auth/Auth";
 import UserMenu from "@/components/auth/UserMenu";
-import { OnChainDataProvider } from '@/contexts/OnChainDataContext';
+
 import { FlowControlsProvider, useFlowControls } from '@/contexts/FlowControlsContext';
 import { SolarCoreCommandProvider, useSolarCoreCommand } from '@/contexts/SolarCoreCommandContext';
 import { useAuth } from "@/contexts/AuthContext";
@@ -140,7 +140,7 @@ const IndexContent = () => {
   }, []);
 
   return (
-    <OnChainDataProvider>
+    <>
       <DashboardLayout>
         {/* Unified Header */}
         <header className="flex-shrink-0 px-2 md:px-4 h-auto md:h-14 flex flex-col md:flex-row items-center justify-between border-b border-slate-700/50 py-2 md:py-0">
@@ -252,7 +252,7 @@ const IndexContent = () => {
           </DialogContent>
         </Dialog>
       </DashboardLayout>
-    </OnChainDataProvider>
+    </>
   );
 };
 

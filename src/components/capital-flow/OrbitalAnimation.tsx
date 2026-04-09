@@ -33,8 +33,15 @@ export class OrbitalAnimation {
     
     if (!centralNode || nonCentralNodes.length === 0) return;
     
-    const animateOrbits = () => {
-      // SYNCHRONIZED: Move all orbital nodes together
+    let lastFrameTime = 0;
+    const targetInterval = 1000 / 30; // 30fps
+    
+    const animateOrbits = (timestamp: number) => {
+      if (timestamp - lastFrameTime < targetInterval) {
+        this.animationRef = requestAnimationFrame(animateOrbits);
+        return;
+      }
+      lastFrameTime = timestamp;
       nonCentralNodes.forEach((node) => {
         // Calculate current angle from center
         const dx = node.x - width/2;
