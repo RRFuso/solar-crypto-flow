@@ -33,8 +33,15 @@ export class OrbitalAnimation {
     
     if (!centralNode || nonCentralNodes.length === 0) return;
     
-    const animateOrbits = () => {
-      // SYNCHRONIZED: Move all orbital nodes together
+    let lastFrameTime = 0;
+    const targetInterval = 1000 / 30; // 30fps
+    
+    const animateOrbits = (timestamp: number) => {
+      if (timestamp - lastFrameTime < targetInterval) {
+        this.animationRef = requestAnimationFrame(animateOrbits);
+        return;
+      }
+      lastFrameTime = timestamp;
       nonCentralNodes.forEach((node) => {
         // Calculate current angle from center
         const dx = node.x - width/2;
@@ -143,8 +150,15 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
 
     let animationFrameId: number;
     const startTime = Date.now();
+    let lastFrameTime = 0;
+    const frameInterval = 1000 / 30; // 30fps throttle
 
-    const animate = () => {
+    const animate = (timestamp: number) => {
+      if (timestamp - lastFrameTime < frameInterval) {
+        animationFrameId = requestAnimationFrame(animate);
+        return;
+      }
+      lastFrameTime = timestamp;
       const currentTime = Date.now();
       const deltaTime = (currentTime - startTime) * rotationSpeed;
 
@@ -238,8 +252,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
       animationFrameId = requestAnimationFrame(animate);
     };
 
-    // Start the synchronized animation
-    animate();
+    animationFrameId = requestAnimationFrame(animate);
 
     // Cleanup function
     return () => {

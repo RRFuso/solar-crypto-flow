@@ -19,7 +19,7 @@ export const StarfieldBackground: React.FC<StarfieldBackgroundProps> = ({ svg, w
     }
 
     const starfield = svg.append('g').attr('class', 'starfield');
-    const numStars = 200; // A reasonable number of stars
+    const numStars = 80; // Reduced for performance
     const stars = Array.from({ length: numStars }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,

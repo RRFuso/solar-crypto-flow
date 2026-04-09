@@ -71,7 +71,7 @@ export const fetchMarketDataOptimized = async (timeframe: string): Promise<FlowD
         // Lower threshold to ensure we get more BTC flows
         if (Math.abs(relativeFlow) > 0.1) {
           flows.push({
-            id: `btc-${coin.symbol}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Add unique ID
+            id: `btc-${coin.symbol}`,
             from: relativeFlow > 0 ? 'BTC' : coin.symbol.toUpperCase(),
             to: relativeFlow > 0 ? coin.symbol.toUpperCase() : 'BTC',
             value: flowMagnitude,
@@ -95,7 +95,7 @@ export const fetchMarketDataOptimized = async (timeframe: string): Promise<FlowD
         const flowTarget = 'BTC';
         const flowValue = 0.1; // Small flow value
         flows.push({
-          id: `${coin.symbol}-btc-default-${Date.now()}-${i}`, // Add unique ID
+          id: `${coin.symbol}-btc-default`,
           from: coin.symbol.toUpperCase(),
           to: flowTarget,
           value: flowValue,
@@ -119,7 +119,7 @@ export const fetchMarketDataOptimized = async (timeframe: string): Promise<FlowD
         
         if (Math.abs(relativeFlow) > 0.5) {
           flows.push({
-            id: `${coinA.symbol}-${coinB.symbol}-${Date.now()}-${i}`, // Add unique ID
+            id: `${coinA.symbol}-${coinB.symbol}`,
             from: relativeFlow > 0 ? coinB.symbol.toUpperCase() : coinA.symbol.toUpperCase(),
             to: relativeFlow > 0 ? coinA.symbol.toUpperCase() : coinB.symbol.toUpperCase(),
             value: flowMagnitude,
