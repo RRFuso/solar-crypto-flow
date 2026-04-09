@@ -106,19 +106,19 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   useEffect(() => {
     if (!command) return;
 
-    // Apply zoom if specified
-    // (zoomLevel is a prop; the command can't directly change it, but we log for awareness)
+    console.log('[SolarCore] Applying command:', command);
 
     // Apply focus on a specific node
     if (command.focusNodeId) {
       setSelectedNodeId(command.focusNodeId);
     }
 
-    // If action is 'reset', clear selection
+    // If action is 'reset', clear selection and clear command
     if (command.action === 'reset') {
       setSelectedNodeId(null);
+      clearCommand();
     }
-  }, [command]);
+  }, [command, clearCommand]);
 
   useEffect(() => {
     const handleNodeClick = (event: CustomEvent) => {

@@ -59,87 +59,100 @@ export const calculateNodePositions = ({
     .filter(node => node.id !== centralNode.id)
     .sort((a, b) => b.marketCap - a.marketCap);
 
-  // **CRITICAL FIX: Dramatically reduced scale for perfect viewport fit**
-  const placedNodes: Array<{x: number, y: number, radius: number}> = [
-    { x: centralNode.x, y: centralNode.y, radius: centralNode.radius * 1.5 } // Reduced from 2 to 1.5
-  ];
-  
-  // **Group nodes by market cap tiers with much smaller scale**
-  const marketCapTiers = orbitalNodes.reduce((tiers, node, index) => {
-    const tierIndex = Math.floor(index / Math.max(1, Math.floor(orbitalNodes.length / orbitLayers)));
-    const clampedTier = Math.min(tierIndex, orbitLayers - 1);
-    if (!tiers[clampedTier]) tiers[clampedTier] = [];
-    tiers[clampedTier].push(node);
-    return tiers;
-  }, {} as Record<number, OrbitalNode[]>);
+  if (orbitalNodes.length === 0) return nodes;
 
-  Object.entries(marketCapTiers).forEach(([tierStr, tierNodes]) => {
-    const tier = parseInt(tierStr);
-    // Elliptical orbits: full width, constrained height
-    const maxRx = width / 2 - 60;
-    const maxRy = height / 2 - 60;
-    const rawRx = baseRadius * Math.pow(tier + 1, 0.75) * 0.9 * (width / Math.min(width, height));
-    const rawRy = baseRadius * Math.pow(tier + 1, 0.75) * 0.9;
-    const orbitRx = Math.min(rawRx, maxRx);
-    const orbitRy = Math.min(rawRy, maxRy);
-    
-    tierNodes.forEach((node, nodeIndex) => {
-      const nodesInTier = tierNodes.length;
-      const baseAngle = (nodeIndex / nodesInTier) * 2 * Math.PI;
-      
-      const symbolHash = hashSymbol(node.symbol);
-      const angleOffset = (symbolHash - 0.5) * (Math.PI / Math.max(8, nodesInTier));
-      let angle = baseAngle + angleOffset;
-      
-      let attempts = 0;
-      let found = false;
-      const maxAttempts = 40;
-      
-      while (!found && attempts < maxAttempts) {
-        const testX = width / 2 + Math.cos(angle) * orbitRx;
-        const testY = height / 2 + Math.sin(angle) * orbitRy;
-        
-        let collision = false;
-        for (const placed of placedNodes) {
-          const dx = testX - placed.x;
-          const dy = testY - placed.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          // **Tighter collision for denser packing**
-          const minDistance = placed.radius + node.radius * 1.8;
-          
-          if (distance < minDistance) {
-            collision = true;
-            break;
-          }
-        }
-        
-        if (!collision) {
-          node.x = testX;
-          node.y = testY;
-          placedNodes.push({ x: testX, y: testY, radius: node.radius * 1.8 });
-          found = true;
-        } else {
-          angle += Math.PI / (nodesInTier * 2.5);
-          attempts++;
+  // Safe margins — account for node radius + label text below
+  const safeMarginX = 70;
+  const safeMarginY = 70;
+  const maxRx = width / 2 - safeMarginX;
+  const maxRy = height / 2 - safeMarginY;
+
+  // Minimum collision distance includes visual footprint (logo + label + badge)
+  const getCollisionRadius = (node: OrbitalNode): number => {
+    return Math.max(node.radius * 2.2, 28);
+  };
+
+  const placedNodes: Array<{ x: number; y: number; collisionR: number }> = [
+    { x: centralNode.x, y: centralNode.y, collisionR: getCollisionRadius(centralNode) * 1.5 },
+  ];
+
+  // Distribute nodes into orbit tiers
+  const effectiveLayers = Math.max(2, Math.min(orbitLayers, Math.ceil(orbitalNodes.length / 6)));
+  const nodesPerLayer = Math.ceil(orbitalNodes.length / effectiveLayers);
+
+  orbitalNodes.forEach((node, index) => {
+    const tierIndex = Math.min(Math.floor(index / nodesPerLayer), effectiveLayers - 1);
+
+    // Orbit radii: spread from 25% to 95% of max
+    const t = effectiveLayers === 1 ? 0.6 : 0.25 + (tierIndex / (effectiveLayers - 1)) * 0.7;
+    const orbitRx = maxRx * t;
+    const orbitRy = maxRy * t;
+
+    const nodesInThisTier = orbitalNodes.filter(
+      (_, i) => Math.min(Math.floor(i / nodesPerLayer), effectiveLayers - 1) === tierIndex
+    ).length;
+    const indexInTier = index - tierIndex * nodesPerLayer;
+
+    // Base angle with tier rotation offset for visual staggering
+    const tierOffset = tierIndex * (Math.PI / effectiveLayers);
+    const baseAngle = tierOffset + (indexInTier / nodesInThisTier) * 2 * Math.PI;
+
+    // Add deterministic jitter via symbol hash
+    const symbolHash = hashSymbol(node.symbol);
+    const jitter = (symbolHash - 0.5) * (Math.PI / Math.max(10, nodesInThisTier));
+    let angle = baseAngle + jitter;
+
+    const myCollisionR = getCollisionRadius(node);
+    let found = false;
+    const maxAttempts = 60;
+
+    for (let attempt = 0; attempt < maxAttempts && !found; attempt++) {
+      const testX = width / 2 + Math.cos(angle) * orbitRx;
+      const testY = height / 2 + Math.sin(angle) * orbitRy;
+
+      // Bounds check
+      if (testX < safeMarginX || testX > width - safeMarginX ||
+          testY < safeMarginY || testY > height - safeMarginY) {
+        angle += Math.PI / (nodesInThisTier * 3);
+        continue;
+      }
+
+      // Collision check against all placed nodes
+      let collision = false;
+      for (const placed of placedNodes) {
+        const dx = testX - placed.x;
+        const dy = testY - placed.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const minDist = placed.collisionR + myCollisionR;
+        if (dist < minDist) {
+          collision = true;
+          break;
         }
       }
-      
-       if (!found) {
-        const fallbackAngle = baseAngle + (hashSymbol(node.symbol) * Math.PI / 3);
-        const rawX = width / 2 + Math.cos(fallbackAngle) * orbitRx;
-        const rawY = height / 2 + Math.sin(fallbackAngle) * orbitRy;
-        const margin = node.radius + 30;
-        node.x = Math.max(margin, Math.min(width - margin, rawX));
-        node.y = Math.max(margin, Math.min(height - margin, rawY));
-        placedNodes.push({ 
-          x: node.x, 
-          y: node.y, 
-          radius: node.radius * 1.8
-        });
+
+      if (!collision) {
+        node.x = testX;
+        node.y = testY;
+        placedNodes.push({ x: testX, y: testY, collisionR: myCollisionR });
+        found = true;
+      } else {
+        // Rotate angle and slightly expand orbit on later attempts
+        angle += Math.PI / (nodesInThisTier * 2);
       }
-    });
+    }
+
+    // Fallback: place at slightly expanded orbit
+    if (!found) {
+      const fallbackAngle = baseAngle + symbolHash * Math.PI * 0.5;
+      const expandFactor = 1.1;
+      const rawX = width / 2 + Math.cos(fallbackAngle) * orbitRx * expandFactor;
+      const rawY = height / 2 + Math.sin(fallbackAngle) * orbitRy * expandFactor;
+      node.x = Math.max(safeMarginX, Math.min(width - safeMarginX, rawX));
+      node.y = Math.max(safeMarginY, Math.min(height - safeMarginY, rawY));
+      placedNodes.push({ x: node.x, y: node.y, collisionR: myCollisionR });
+    }
   });
-  
+
   return nodes;
 };
 
