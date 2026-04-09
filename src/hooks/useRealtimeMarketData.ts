@@ -56,7 +56,7 @@ export const useRealtimeMarketData = (): UseRealtimeMarketDataReturn => {
         
         if (Math.abs(relativeFlow) > 0.1) {
           flows.push({
-            id: `btc-${coin.symbol.toLowerCase()}-${Date.now()}`,
+            id: `btc-${coin.symbol.toLowerCase()}`,
             from: relativeFlow > 0 ? 'BTC' : coin.symbol.toUpperCase(),
             to: relativeFlow > 0 ? coin.symbol.toUpperCase() : 'BTC',
             value: flowMagnitude,
