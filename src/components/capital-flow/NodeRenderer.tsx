@@ -608,18 +608,21 @@ const renderOrUpdateVisualization = (
     .transition().duration(750)
     .attr('r', (d: ExtendedOrbitalNode) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id))
     .attr('fill', (d: ExtendedOrbitalNode) => {
-      // Use sanitized ID to match pattern creation
       const sanitizedId = d.id.replace(/[^a-zA-Z0-9-_]/g, '_');
       return `url(#logo-${sanitizedId})`;
     })
-    .attr('stroke', (d: ExtendedOrbitalNode) => {
+    .attr('stroke', (d: any) => {
+      if ((d as any)._commandHighlighted) return '#facc15'; // Gold highlight for Oracle-selected
       if (selectedNodeId === d.id) return '#ffffff';
       if (d.priceActionSignal?.explosivePotential === 'High') return '#800080';
       const aiInsight = aiInsights.get(d.id);
       if (aiInsight) return getAIRecommendationColor(aiInsight.recommendation);
       return '#00b5d8';
     })
-    .attr('stroke-width', (d: ExtendedOrbitalNode) => selectedNodeId === d.id ? 4 : 2);
+    .attr('stroke-width', (d: any) => {
+      if ((d as any)._commandHighlighted) return 4;
+      return selectedNodeId === d.id ? 4 : 2;
+    });
 
   nodeUpdate.selectAll('text:not(.sentiment-badge-text):not(.sentiment-arrow)')
     .filter(function() { return !d3.select(this).classed('sentiment-badge-text') && !d3.select(this).classed('sentiment-arrow'); })
