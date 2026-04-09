@@ -429,10 +429,13 @@ const renderOrUpdateVisualization = (
   
   nodeUpdate.transition().duration(750)
     .attr('transform', (d: ExtendedOrbitalNode) => `translate(${d.x}, ${d.y}) scale(1)`)
-    .style('opacity', (d: ExtendedOrbitalNode) => {
-      // Se uma categoria específica está selecionada, reduz opacidade dos nós que não pertencem a ela
+    .style('opacity', (d: any) => {
+      // If the Oracle has highlighted specific symbols, dim unselected ones
+      if (d._hasCommandFilter) {
+        return d._commandHighlighted ? 1 : 0.15;
+      }
+      // Category filter
       if (activeCategory !== 'all') {
-        // A 'categories' agora é um array no nó
         const belongsTo = d.categories?.includes(activeCategory);
         return belongsTo ? 1 : 0.2;
       }
