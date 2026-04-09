@@ -150,8 +150,15 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
 
     let animationFrameId: number;
     const startTime = Date.now();
+    let lastFrameTime = 0;
+    const frameInterval = 1000 / 30; // 30fps throttle
 
-    const animate = () => {
+    const animate = (timestamp: number) => {
+      if (timestamp - lastFrameTime < frameInterval) {
+        animationFrameId = requestAnimationFrame(animate);
+        return;
+      }
+      lastFrameTime = timestamp;
       const currentTime = Date.now();
       const deltaTime = (currentTime - startTime) * rotationSpeed;
 
