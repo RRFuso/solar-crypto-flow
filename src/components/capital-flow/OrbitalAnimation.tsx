@@ -252,8 +252,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
       animationFrameId = requestAnimationFrame(animate);
     };
 
-    // Start the synchronized animation
-    animate();
+    animationFrameId = requestAnimationFrame(animate);
 
     // Cleanup function
     return () => {
