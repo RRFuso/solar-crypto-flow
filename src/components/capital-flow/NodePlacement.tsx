@@ -4,11 +4,19 @@ import { CapitalFlowNode } from '@/types/capitalFlow';
 
 export type OrbitalNode = CapitalFlowNode & {
   type: "central" | "orbital";
+  symbol?: string;
+  volume?: number | string;
+  category?: string;
+  divergenceBullish?: boolean;
+  divergenceBearish?: boolean;
+  inflow?: number;
+  outflow?: number;
+  marketCap: number;
 };
 
 interface NodePlacementProps {
   nodes: OrbitalNode[];
-  centralNode: OrbitalNode;
+  centralNode: OrbitalNode | null;
   width: number;
   height: number;
   orbitLayers: number;
@@ -20,6 +28,8 @@ const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
 export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[] => {
   const { nodes, centralNode, width, height, orbitLayers } = props;
+
+  if (!centralNode) return nodes;
 
   centralNode.x = width / 2;
   centralNode.y = height / 2;
@@ -37,15 +47,16 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
   const minR = maxR * 0.20;
 
   // Distribute nodes evenly across layers; outer layers can take one extra
-  const basePerLayer = Math.floor(total / orbitLayers);
-  const extras = total % orbitLayers;
-  const layerCounts: number[] = Array.from({ length: orbitLayers }, (_, i) =>
+  const effectiveLayers = Math.max(1, orbitLayers);
+  const basePerLayer = Math.floor(total / effectiveLayers);
+  const extras = total % effectiveLayers;
+  const layerCounts: number[] = Array.from({ length: effectiveLayers }, (_, i) =>
     basePerLayer + (i < extras ? 1 : 0)
   );
 
   // Linear radius spacing
-  const radii: number[] = Array.from({ length: orbitLayers }, (_, l) =>
-    orbitLayers === 1 ? (minR + maxR) / 2 : minR + (l / (orbitLayers - 1)) * (maxR - minR)
+  const radii: number[] = Array.from({ length: effectiveLayers }, (_, l) =>
+    effectiveLayers === 1 ? (minR + maxR) / 2 : minR + (l / (effectiveLayers - 1)) * (maxR - minR)
   );
 
   const cx = width / 2;
