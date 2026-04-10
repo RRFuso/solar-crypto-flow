@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useMemo, useCallback, useRef, Profiler } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import * as d3 from 'd3';
 import { FlowData, CryptoData } from '@/types/crypto';
 import { ExtendedOrbitalNode } from '@/types/orbitalNodes';
@@ -29,15 +29,18 @@ interface FlowVisualizationProps {
   chartTimeframe?: string;
   activeCategory?: string;
   showLines: boolean;
+  /** Symbols that should be visually highlighted (from Oracle commands) */
+  highlightedSymbols?: Set<string>;
 }
 
-const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({ 
-  flowData, 
+const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
+  flowData,
   zoomLevel = 60,
   predictions = [],
   chartTimeframe = '4h',
   activeCategory = 'all',
-  showLines
+  showLines,
+  highlightedSymbols,
 }) => {
   const {
     svgRef,
@@ -48,29 +51,29 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     animationRef,
     createOrbitalVisualization
   } = useVisualizationSetup(flowData, zoomLevel);
-  
+
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  
-  
+
   const { cryptoDataMaps, isLoading: loadingCryptoData } = useCryptoData();
-  
+
   const symbolsInView = useMemo(() => {
     if (!visualizationData?.nodes) return [];
     return visualizationData.nodes.map(node => node.id);
   }, [visualizationData?.nodes]);
+
+  const symbolsKey = useMemo(() => [...symbolsInView].sort().join(','), [symbolsInView]);
 
   const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(symbolsInView);
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(symbolsInView);
   const { smartMoneyScores, requestOnChainData } = useOnChainData();
   const { flows: smartMoneyFlows, flowDirections } = useSmartMoneyFlows(symbolsInView);
 
-  // ZOOM: Apply via viewBox scaling — no DOM wrapping needed
+  // Stable zoom computation
   const adjustedZoomLevel = useMemo(() => {
     if (dimensions.width === 0 || dimensions.height === 0) return zoomLevel;
     return dimensions.width < 768 ? zoomLevel * 0.6 : zoomLevel * 1.2;
   }, [dimensions.width, dimensions.height, zoomLevel]);
 
-  // Compute viewBox based on zoom: zooming in = smaller viewBox = magnified content
   const viewBox = useMemo(() => {
     const scale = 100 / Math.max(adjustedZoomLevel, 10);
     const vw = dimensions.width * scale;
@@ -80,12 +83,13 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     return `${vx} ${vy} ${vw} ${vh}`;
   }, [adjustedZoomLevel, dimensions]);
 
+  // On-chain data — only re-request when symbol set changes
   useEffect(() => {
     if (symbolsInView.length > 0) {
       requestOnChainData(symbolsInView);
     }
-  }, [symbolsInView, requestOnChainData]);
-  
+  }, [symbolsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useVisualizationData({
     flowData,
     cryptoDataMaps,
@@ -100,36 +104,16 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     activeCategory
   });
 
-  const { command, clearCommand, setSelectedNodeId: setCommandNodeId } = useSolarCoreCommand();
-
-  // React to Helius Oracle commands
-  useEffect(() => {
-    if (!command) return;
-
-    console.log('[SolarCore] Applying command:', command);
-
-    // Apply focus on a specific node
-    if (command.focusNodeId) {
-      setSelectedNodeId(command.focusNodeId);
-    }
-
-    // If action is 'reset', clear selection and clear command
-    if (command.action === 'reset') {
-      setSelectedNodeId(null);
-      clearCommand();
-    }
-  }, [command, clearCommand]);
+  const { setSelectedNodeId: setCommandNodeId } = useSolarCoreCommand();
 
   useEffect(() => {
     const handleNodeClick = (event: CustomEvent) => {
       const nodeId = event.detail.nodeId;
-      setSelectedNodeId(prevId => prevId === nodeId ? null : nodeId);
+      setSelectedNodeId(prev => prev === nodeId ? null : nodeId);
       setCommandNodeId(nodeId);
     };
     document.addEventListener('node-click', handleNodeClick as EventListener);
-    return () => {
-      document.removeEventListener('node-click', handleNodeClick as EventListener);
-    };
+    return () => document.removeEventListener('node-click', handleNodeClick as EventListener);
   }, [setCommandNodeId]);
 
   const getCategoryColor = useCallback((symbol: string) => {
@@ -146,38 +130,26 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     return getSignalCategoryColor('neutral');
   }, [aiInsights, cryptoDataMaps.bySymbol]);
 
-  // Filter/highlight nodes based on Helius Oracle commands
-  const commandFilteredNodes = useMemo(() => {
+  // Enrich nodes with category data + Oracle highlight state
+  const enrichedNodes = useMemo(() => {
     if (!visualizationData?.nodes) return [];
-    const base = visualizationData.nodes.map(node => ({
+
+    const hasHighlight = highlightedSymbols && highlightedSymbols.size > 0;
+
+    return visualizationData.nodes.map(node => ({
       ...node,
       categories: getCategoriesForSymbol(node.id),
+      _commandHighlighted: hasHighlight
+        ? highlightedSymbols!.has(node.id.toUpperCase())
+        : false,
+      _hasCommandFilter: hasHighlight,
     }));
-
-    // If the Oracle sent specific symbols, mark them as highlighted
-    if (command?.selectedSymbols && command.selectedSymbols.length > 0) {
-      const symbolSet = new Set(command.selectedSymbols.map(s => s.toUpperCase()));
-      const hasCommandFilter = true;
-      return base.map(node => ({
-        ...node,
-        _commandHighlighted: symbolSet.has(node.id.toUpperCase()),
-        _hasCommandFilter: hasCommandFilter,
-      }));
-    }
-
-    return base.map(node => ({
-      ...node,
-      _commandHighlighted: false,
-      _hasCommandFilter: false,
-    }));
-  }, [visualizationData?.nodes, command?.selectedSymbols]);
-
-  const enrichedNodes = commandFilteredNodes;
+  }, [visualizationData?.nodes, highlightedSymbols]);
 
   const hasValidDimensions = dimensions.width > 100 && dimensions.height > 100;
   const hasVisualizationData = visualizationData?.nodes?.length > 0;
   const isDataReady = !loadingCryptoData && !loadingSignals && !loadingAI;
-  
+
   if (!hasValidDimensions || !isDataReady) {
     return (
       <div ref={containerRef} className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-black">
@@ -203,68 +175,68 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   return (
     <div ref={containerRef} className="w-full h-full relative overflow-hidden">
       <div className="w-full h-full flex items-center justify-center">
-        <svg 
-          ref={svgRef} 
-          className="w-full h-full" 
+        <svg
+          ref={svgRef}
+          className="w-full h-full"
           style={{ display: 'block' }}
           width={dimensions.width}
           height={dimensions.height}
           viewBox={viewBox}
           preserveAspectRatio="xMidYMid meet"
         />
-      {hasVisualizationData && svgRef.current && (
-        <>
-          <StarfieldBackground
-            svg={d3.select(svgRef.current)}
-            width={dimensions.width}
-            height={dimensions.height}
-            showLines={showLines}
-          />
-          <OrbitLayersComponent 
-            svg={d3.select(svgRef.current)}
-            width={dimensions.width}
-            height={dimensions.height}
-            orbitLayers={4}
-            baseRadius={Math.min(dimensions.width, dimensions.height) * 0.08}
-            extendFullScreen={true}
-            showLines={showLines}
-          />
-          <LinkRendererExtended
-            svg={d3.select(svgRef.current)}
-            links={visualizationData.links}
-            nodes={enrichedNodes}
-            selectedNodeId={selectedNodeId}
-            predictions={predictions}
-            animateWithOrbit={true}
-            getCategoryColor={getCategoryColor}
-            showLines={showLines}
-            activeCategory={activeCategory}
-            smartMoneyFlows={smartMoneyFlows}
-          />
-          <NodeRendererComponent 
-            svg={d3.select(svgRef.current)}
-            nodes={enrichedNodes}
-            centralNode={visualizationData.centralNode}
-            selectedNodeId={selectedNodeId}
-            zoomLevel={adjustedZoomLevel}
-            aiInsights={aiInsights}
-            smartMoneyScores={smartMoneyScores}
-            activeCategory={activeCategory}
-            links={visualizationData.links}
-            flowDirections={flowDirections}
-          />
-          <OrbitalAnimationComponent 
-            svg={d3.select(svgRef.current)}
-            nodes={enrichedNodes}
-            width={dimensions.width}
-            height={dimensions.height}
-            rotationSpeed={0.00001}
-            updateLinksInRealTime={true}
-          />
-        </>
-      )}
+        {hasVisualizationData && svgRef.current && (
+          <>
+            <StarfieldBackground
+              svg={d3.select(svgRef.current)}
+              width={dimensions.width}
+              height={dimensions.height}
+              showLines={showLines}
+            />
+            <OrbitLayersComponent
+              svg={d3.select(svgRef.current)}
+              width={dimensions.width}
+              height={dimensions.height}
+              orbitLayers={4}
+              baseRadius={Math.min(dimensions.width, dimensions.height) * 0.08}
+              extendFullScreen={true}
+              showLines={showLines}
+            />
+            <LinkRendererExtended
+              svg={d3.select(svgRef.current)}
+              links={visualizationData.links}
+              nodes={enrichedNodes}
+              selectedNodeId={selectedNodeId}
+              predictions={predictions}
+              animateWithOrbit={true}
+              getCategoryColor={getCategoryColor}
+              showLines={showLines}
+              activeCategory={activeCategory}
+              smartMoneyFlows={smartMoneyFlows}
+            />
+            <NodeRendererComponent
+              svg={d3.select(svgRef.current)}
+              nodes={enrichedNodes}
+              centralNode={visualizationData.centralNode}
+              selectedNodeId={selectedNodeId}
+              zoomLevel={adjustedZoomLevel}
+              aiInsights={aiInsights}
+              smartMoneyScores={smartMoneyScores}
+              activeCategory={activeCategory}
+              links={visualizationData.links}
+              flowDirections={flowDirections}
+            />
+            <OrbitalAnimationComponent
+              svg={d3.select(svgRef.current)}
+              nodes={enrichedNodes}
+              width={dimensions.width}
+              height={dimensions.height}
+              rotationSpeed={0.00001}
+              updateLinksInRealTime={true}
+            />
+          </>
+        )}
       </div>
-      
+
       <div className="absolute bottom-4 left-4 z-10">
         <ParticleLegend />
       </div>
@@ -275,14 +247,15 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   );
 };
 
-// Strict memoization - only re-render on meaningful prop changes
-export const FlowVisualization = React.memo(FlowVisualizationComponent, (prevProps, nextProps) => {
+// Strict memoization
+export const FlowVisualization = React.memo(FlowVisualizationComponent, (prev, next) => {
   return (
-    prevProps.zoomLevel === nextProps.zoomLevel &&
-    prevProps.chartTimeframe === nextProps.chartTimeframe &&
-    prevProps.activeCategory === nextProps.activeCategory &&
-    prevProps.showLines === nextProps.showLines &&
-    prevProps.flowData.length === nextProps.flowData.length &&
-    prevProps.predictions?.length === nextProps.predictions?.length
+    prev.zoomLevel === next.zoomLevel &&
+    prev.chartTimeframe === next.chartTimeframe &&
+    prev.activeCategory === next.activeCategory &&
+    prev.showLines === next.showLines &&
+    prev.flowData.length === next.flowData.length &&
+    prev.predictions?.length === next.predictions?.length &&
+    prev.highlightedSymbols === next.highlightedSymbols
   );
 });
