@@ -1,11 +1,12 @@
 
-import React, { memo, useMemo } from 'react';
+import React, { memo, useEffect, useRef } from 'react';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
 import { FlowVisualization } from '../FlowVisualization';
 import { SolarSystemControls } from './SolarSystemControls';
 import { LegalDisclaimer } from './LegalDisclaimer';
 import { usePaginatedCryptos } from '@/hooks/capital-flow/usePaginatedCryptos';
+import { useSolarCoreCommand } from '@/contexts/SolarCoreCommandContext';
 
 interface SolarSystemSectionProps {
   flowData: FlowData[];
@@ -15,7 +16,6 @@ interface SolarSystemSectionProps {
   showLines: boolean;
   isLoading: boolean;
   error: unknown;
-  // Control callbacks
   onZoomIn: () => void;
   onZoomOut: () => void;
   onTimeframeChange: (value: string) => void;
@@ -41,6 +41,14 @@ const SolarSystemSection: React.FC<SolarSystemSectionProps> = ({
   flowLimit,
   onFlowLimitChange,
 }) => {
+  // ── Oracle command bridge ─────────────────────────────────────────────────
+  const { command, clearCommand } = useSolarCoreCommand();
+
+  // Derive external props from the current Oracle command
+  const externalCategory = command?.activeCategory ?? undefined;
+  const externalList = command?.action === 'reconstruct' ? 'top-100' : undefined;
+  const externalSymbols = command?.selectedSymbols ?? undefined;
+
   const {
     paginatedData,
     currentPage,
@@ -53,8 +61,26 @@ const SolarSystemSection: React.FC<SolarSystemSectionProps> = ({
     setSelectedCategory,
     setSearchTerm,
     goToPage,
-  } = usePaginatedCryptos({ flowData, pageSize: 99 });
+  } = usePaginatedCryptos({
+    flowData,
+    pageSize: 99,
+    externalCategory,
+    externalList,
+    externalSymbols,
+  });
 
+  // Clear the Oracle command after it has been consumed by this render cycle
+  const prevCommandRef = useRef<typeof command>(null);
+  useEffect(() => {
+    if (command && command !== prevCommandRef.current) {
+      prevCommandRef.current = command;
+      // Give the paginated hook one tick to react, then clear
+      const t = setTimeout(() => clearCommand(), 500);
+      return () => clearTimeout(t);
+    }
+  }, [command, clearCommand]);
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
@@ -77,6 +103,12 @@ const SolarSystemSection: React.FC<SolarSystemSectionProps> = ({
       </div>
     );
   }
+
+  // Determine highlighted symbols for the visualization layer
+  const highlightedSymbols: Set<string> | undefined =
+    command?.selectedSymbols && command.selectedSymbols.length > 0
+      ? new Set(command.selectedSymbols.map(s => s.toUpperCase()))
+      : undefined;
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -106,15 +138,16 @@ const SolarSystemSection: React.FC<SolarSystemSectionProps> = ({
 
       {/* Visualization */}
       <div className="flex-1 relative overflow-hidden">
-        <FlowVisualization 
-          flowData={paginatedData} 
+        <FlowVisualization
+          flowData={paginatedData}
           zoomLevel={zoomLevel}
-          predictions={predictions} 
+          predictions={predictions}
           chartTimeframe={chartTimeframe}
           activeCategory={selectedCategory}
           showLines={showLines}
+          highlightedSymbols={highlightedSymbols}
         />
-        
+
         {/* Legal Disclaimer */}
         <div className="absolute bottom-1 left-2 right-2 z-10">
           <LegalDisclaimer variant="minimal" />
