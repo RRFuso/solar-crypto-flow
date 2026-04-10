@@ -1,4 +1,5 @@
 
+import { lazy, Suspense } from "react";
 import {
   createBrowserRouter,
   RouterProvider,
@@ -9,9 +10,18 @@ import { TooltipProvider, useTooltip } from "@/contexts/TooltipContext";
 import { OnChainDataProvider } from "@/contexts/OnChainDataContext";
 import { BinanceWebSocketProvider } from "@/contexts/BinanceWebSocketContext";
 import { UnifiedTooltip } from "@/components/ui/UnifiedTooltip";
-import Index from "./pages/Index";
-import Landing from "./pages/Landing";
 import "./App.css";
+
+const Index = lazy(() => import("./pages/Index"));
+const Landing = lazy(() => import("./pages/Landing"));
+
+function RouteFallback() {
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-background text-muted-foreground">
+      Carregando...
+    </div>
+  );
+}
 
 function TooltipRenderer() {
   const { isTooltipVisible, tooltipData, tooltipPosition } = useTooltip();
@@ -21,11 +31,19 @@ function TooltipRenderer() {
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Landing />,
+    element: (
+      <Suspense fallback={<RouteFallback />}>
+        <Landing />
+      </Suspense>
+    ),
   },
   {
     path: "/app",
-    element: <Index />,
+    element: (
+      <Suspense fallback={<RouteFallback />}>
+        <Index />
+      </Suspense>
+    ),
   },
 ]);
 
