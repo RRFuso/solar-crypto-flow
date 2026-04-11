@@ -1,10 +1,9 @@
-
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
 import { ExchangeFlow, WhaleTransaction } from '@/types/onchain';
-import { 
-  fetchOnChainMetrics, 
-  fetchBatchOnChainMetrics, 
-  calculateSmartMoneyScore as calculateOracleSmartMoneyScore, 
+import {
+  fetchOnChainMetrics,
+  fetchBatchOnChainMetrics,
+  calculateSmartMoneyScore as calculateOracleSmartMoneyScore,
   getCachedOnChainData,
   OnChainMetrics,
   SmartMoneyScore as OracleSmartMoneyScore
@@ -33,151 +32,131 @@ interface OnChainDataContextType {
 
 const OnChainDataContext = createContext<OnChainDataContextType | undefined>(undefined);
 
+// How long before we re-fetch on-chain data for the same symbol (ms)
+const ON_CHAIN_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function isDataStale(lastUpdated: number | undefined): boolean {
+  if (!lastUpdated) return true;
+  return Date.now() - lastUpdated > ON_CHAIN_TTL_MS;
+}
+
 export const OnChainDataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [onChainData, setOnChainData] = useState<Map<string, OnChainData>>(new Map());
+  const [onChainData, setOnChainData]         = useState<Map<string, OnChainData>>(new Map());
   const [smartMoneyScores, setSmartMoneyScores] = useState<Map<string, SmartMoneyScore>>(new Map());
-  const [loadingSymbols, setLoadingSymbols] = useState<Set<string>>(new Set());
-  const [contractAddressesCache, setContractAddressesCache] = useState<Map<string, { address: string; chain: string }>>(new Map());
+  const [loadingSymbols, setLoadingSymbols]   = useState<Set<string>>(new Set());
+  const [contractAddressesCache]              = useState<Map<string, { address: string; chain: string }>>(new Map());
+
+  // Track last-fetched timestamp per symbol to enforce TTL
+  const lastFetchedRef = useRef<Map<string, number>>(new Map());
+  // Track in-flight requests to avoid parallel duplicates
+  const inFlightRef    = useRef<Set<string>>(new Set());
 
   const calculateSmartMoneyScore = (data: OnChainData): SmartMoneyScore => {
     const { exchangeFlow, whaleTransactions } = data;
-    let currentScore = 0;
-
-    // Exchange flow analysis
+    let score = 0;
     if (exchangeFlow) {
-      if (exchangeFlow.netFlow < 0) currentScore += 4; // Net outflow is bullish
-      else if (exchangeFlow.netFlow > 0) currentScore -= 4; // Net inflow is bearish
+      if (exchangeFlow.netFlow < 0) score += 4;
+      else if (exchangeFlow.netFlow > 0) score -= 4;
     }
-
-    // Whale activity analysis - simplified for alternative provider
-    if (whaleTransactions.length > 0) {
-      currentScore += 2; // Presence of whale activity adds to bullish score
-    }
-    
-    const finalScore = Math.max(-10, Math.min(10, currentScore));
+    if (whaleTransactions.length > 0) score += 2;
+    const finalScore = Math.max(-10, Math.min(10, score));
     let sentiment: 'Bearish' | 'Neutral' | 'Bullish' = 'Neutral';
-    if (finalScore > 2) sentiment = 'Bullish';
-    else if (finalScore < -2) sentiment = 'Bearish';
-
+    if (finalScore > 2)  sentiment = 'Bullish';
+    if (finalScore < -2) sentiment = 'Bearish';
     return { score: finalScore, sentiment };
   };
 
   const requestOnChainData = useCallback(async (symbols: string[]) => {
-    const symbolsToProcess = symbols.filter(s => !onChainData.has(s) && !loadingSymbols.has(s));
-    
-    if (symbolsToProcess.length === 0) return;
+    const now = Date.now();
 
-    setLoadingSymbols(prev => new Set([...prev, ...symbolsToProcess]));
+    // Filter: skip symbols that are in-flight OR whose data is still fresh
+    const symbolsToFetch = symbols.filter(s => {
+      const upper = s.toUpperCase();
+      if (inFlightRef.current.has(upper)) return false;
+      const lastFetched = lastFetchedRef.current.get(upper);
+      if (lastFetched && (now - lastFetched) < ON_CHAIN_TTL_MS) return false;
+      return true;
+    });
 
-    console.log('Fetching real on-chain data for symbols:', symbolsToProcess);
-    
+    if (symbolsToFetch.length === 0) return;
+
+    // Mark all as in-flight
+    const upperSymbols = symbolsToFetch.map(s => s.toUpperCase());
+    upperSymbols.forEach(s => inFlightRef.current.add(s));
+    setLoadingSymbols(prev => new Set([...prev, ...upperSymbols]));
+
+    console.log('[OnChain] Fetching:', upperSymbols);
+
     try {
-      if (symbolsToProcess.length === 1) {
-        // Single symbol - fetch real-time data
-        const symbol = symbolsToProcess[0];
-        const symbolUpper = symbol.toUpperCase();
-        
-        // Try cached data first
-        let metrics = await getCachedOnChainData(symbolUpper);
-        
-        // If no cached data or data is stale, fetch fresh data
-        if (!metrics || isDataStale(metrics.lastUpdated)) {
-          metrics = await fetchOnChainMetrics(symbolUpper);
-        }
-        
-          if (metrics) {
-            const exchangeFlow: ExchangeFlow = {
-              symbol: symbolUpper,
-              timestamp: Date.now(),
-              netFlow: metrics.netFlow,
-              inflow: metrics.exchangeInflow,
-              outflow: metrics.exchangeOutflow
-            };
+      const upsertResults = (metricsMap: Map<string, OnChainMetrics>) => {
+        const newData      = new Map(onChainData);
+        const newScores    = new Map(smartMoneyScores);
+        const fetchedAt    = Date.now();
 
-            const newData: OnChainData = {
-              whaleTransactions: [],
-              exchangeFlow,
-              metrics
-            };
-
-            const oracleScore = calculateOracleSmartMoneyScore(metrics);
-            const smartScore: SmartMoneyScore = {
-              score: oracleScore.score,
-              sentiment: oracleScore.sentiment,
-              confidence: oracleScore.confidence,
-              factors: oracleScore.factors
-            };
-
-            setOnChainData(prev => new Map(prev).set(symbolUpper, newData));
-            setSmartMoneyScores(prev => new Map(prev).set(symbolUpper, smartScore));
-          }
-      } else {
-        // Multiple symbols - use batch processing
-        const metricsMap = await fetchBatchOnChainMetrics(symbolsToProcess);
-        
         metricsMap.forEach((metrics, symbolUpper) => {
           const exchangeFlow: ExchangeFlow = {
-            symbol: symbolUpper,
-            timestamp: Date.now(),
-            netFlow: metrics.netFlow,
-            inflow: metrics.exchangeInflow,
-            outflow: metrics.exchangeOutflow
+            symbol:    symbolUpper,
+            timestamp: fetchedAt,
+            netFlow:   metrics.netFlow,
+            inflow:    metrics.exchangeInflow,
+            outflow:   metrics.exchangeOutflow,
           };
-
-          const newData: OnChainData = {
-            whaleTransactions: [],
-            exchangeFlow,
-            metrics
-          };
+          newData.set(symbolUpper, { whaleTransactions: [], exchangeFlow, metrics });
 
           const oracleScore = calculateOracleSmartMoneyScore(metrics);
-          const smartScore: SmartMoneyScore = {
-            score: oracleScore.score,
-            sentiment: oracleScore.sentiment,
+          newScores.set(symbolUpper, {
+            score:      oracleScore.score,
+            sentiment:  oracleScore.sentiment,
             confidence: oracleScore.confidence,
-            factors: oracleScore.factors
-          };
+            factors:    oracleScore.factors,
+          });
 
-          setOnChainData(prev => new Map(prev).set(symbolUpper, newData));
-          setSmartMoneyScores(prev => new Map(prev).set(symbolUpper, smartScore));
+          lastFetchedRef.current.set(symbolUpper, fetchedAt);
         });
+
+        setOnChainData(newData);
+        setSmartMoneyScores(newScores);
+      };
+
+      if (upperSymbols.length === 1) {
+        const sym = upperSymbols[0];
+        // Try cache first
+        let metrics = await getCachedOnChainData(sym);
+        if (!metrics) metrics = await fetchOnChainMetrics(sym);
+        if (metrics) upsertResults(new Map([[sym, metrics]]));
+      } else {
+        // Batch
+        const metricsMap = await fetchBatchOnChainMetrics(upperSymbols);
+        upsertResults(metricsMap);
       }
-    } catch (error) {
-      console.error('Error fetching on-chain data:', error);
-      // Set neutral scores for failed symbols
-      symbolsToProcess.forEach(symbol => {
-        const symbolUpper = symbol.toUpperCase();
-        setOnChainData(prev => new Map(prev).set(symbolUpper, { whaleTransactions: [], exchangeFlow: null }));
-        setSmartMoneyScores(prev => new Map(prev).set(symbolUpper, { score: 0, sentiment: 'Neutral' }));
-      });
+    } catch (err) {
+      console.error('[OnChain] Error fetching on-chain data:', err);
     } finally {
+      upperSymbols.forEach(s => inFlightRef.current.delete(s));
       setLoadingSymbols(prev => {
-        const newSet = new Set(prev);
-        symbolsToProcess.forEach(symbol => newSet.delete(symbol));
-        return newSet;
+        const next = new Set(prev);
+        upperSymbols.forEach(s => next.delete(s));
+        return next;
       });
     }
-  }, [onChainData, loadingSymbols]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);   // stable — reads Maps via closures but only writes via setters
 
-  // Helper function to check if data is stale (older than 5 minutes)
-  const isDataStale = (lastUpdated: string): boolean => {
-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-    return new Date(lastUpdated).getTime() < fiveMinutesAgo;
-  };
-
-  const isLoading = (symbol: string): boolean => loadingSymbols.has(symbol);
+  const isLoading = useCallback((symbol: string) =>
+    loadingSymbols.has(symbol.toUpperCase()), [loadingSymbols]);
 
   return (
-    <OnChainDataContext.Provider value={{ onChainData, smartMoneyScores, isLoading, requestOnChainData, contractAddressesCache }}>
+    <OnChainDataContext.Provider value={{
+      onChainData, smartMoneyScores, isLoading,
+      requestOnChainData, contractAddressesCache,
+    }}>
       {children}
     </OnChainDataContext.Provider>
   );
 };
 
 export const useOnChainData = () => {
-  const context = useContext(OnChainDataContext);
-  if (context === undefined) {
-    throw new Error('useOnChainData must be used within an OnChainDataProvider');
-  }
-  return context;
+  const ctx = useContext(OnChainDataContext);
+  if (!ctx) throw new Error('useOnChainData must be used within OnChainDataProvider');
+  return ctx;
 };
