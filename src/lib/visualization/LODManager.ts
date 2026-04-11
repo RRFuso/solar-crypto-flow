@@ -176,8 +176,7 @@ export class LODManager {
     }
     // Quality upgrades removed — only degrade to avoid frame-rate yo-yo
     // (users can manually set LOD if needed)
-    }
-    
+
     // Reset samples after adjustment
     this.frameTimeSamples = [];
   }
