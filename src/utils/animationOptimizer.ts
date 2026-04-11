@@ -1,156 +1,90 @@
 /**
- * Otimizador de performance para animações D3
- * Reduz o "salto" das partículas e melhora a fluidez
+ * AnimationOptimizer — coordena todas as animações D3 do app.
+ * CORREÇÕES: 30fps (era 60), Visibility API, DOMBatcher via microtask.
  */
-
-import * as d3 from 'd3';
 
 export class AnimationOptimizer {
   private frameId: number | null = null;
   private isRunning = false;
   private lastTime = 0;
   private callbacks: Set<(deltaTime: number, timestamp: number) => void> = new Set();
-  
-  private targetFPS = 60;
-  private frameInterval = 1000 / this.targetFPS;
+  private readonly TARGET_FPS     = 30;
+  private readonly FRAME_INTERVAL = 1000 / 30;
+
+  constructor() {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { this.pause(); }
+      else if (this.callbacks.size > 0) { this.resume(); }
+    });
+  }
 
   start() {
     if (this.isRunning) return;
     this.isRunning = true;
-    this.lastTime = performance.now();
-    this.animate();
+    this.lastTime  = performance.now();
+    this.frameId   = requestAnimationFrame(this.animate);
   }
 
   stop() {
-    if (this.frameId) {
-      cancelAnimationFrame(this.frameId);
-      this.frameId = null;
-    }
     this.isRunning = false;
+    if (this.frameId !== null) { cancelAnimationFrame(this.frameId); this.frameId = null; }
   }
 
-  addCallback(callback: (deltaTime: number, timestamp: number) => void) {
-    this.callbacks.add(callback);
+  private pause() { if (this.frameId !== null) { cancelAnimationFrame(this.frameId); this.frameId = null; } }
+  private resume() { if (!this.isRunning) return; this.lastTime = performance.now(); this.frameId = requestAnimationFrame(this.animate); }
+
+  addCallback(cb: (dt: number, ts: number) => void) {
+    this.callbacks.add(cb);
+    if (!this.isRunning) this.start();
+  }
+  removeCallback(cb: (dt: number, ts: number) => void) {
+    this.callbacks.delete(cb);
+    if (this.callbacks.size === 0) this.stop();
   }
 
-  removeCallback(callback: (deltaTime: number, timestamp: number) => void) {
-    this.callbacks.delete(callback);
-  }
-
-  private animate = () => {
+  private animate = (ts: number) => {
     if (!this.isRunning) return;
-
-    const currentTime = performance.now();
-    const deltaTime = currentTime - this.lastTime;
-
-    // Limitar FPS para evitar consumo excessivo
-    if (deltaTime >= this.frameInterval) {
-      this.callbacks.forEach(callback => {
-        try {
-          callback(deltaTime, currentTime);
-        } catch (error) {
-          console.warn('Animation callback error:', error);
-        }
-      });
-      
-      this.lastTime = currentTime - (deltaTime % this.frameInterval);
+    const delta = ts - this.lastTime;
+    if (delta >= this.FRAME_INTERVAL) {
+      this.callbacks.forEach(cb => { try { cb(delta, ts); } catch(e) { console.warn('[animator]', e); } });
+      this.lastTime = ts - (delta % this.FRAME_INTERVAL);
     }
-
     this.frameId = requestAnimationFrame(this.animate);
   };
 }
 
-// Instância global para coordenar todas as animações
 export const globalAnimator = new AnimationOptimizer();
 
-/**
- * Sistema de interpolação suave para eliminar "saltos"
- */
 export class SmoothInterpolator {
-  private currentValue: number;
-  private targetValue: number;
-  private speed: number;
-
-  constructor(initialValue: number = 0, speed: number = 0.1) {
-    this.currentValue = initialValue;
-    this.targetValue = initialValue;
-    this.speed = speed;
+  private current: number; private target: number; private speed: number;
+  constructor(initial = 0, speed = 0.1) { this.current = initial; this.target = initial; this.speed = speed; }
+  setTarget(v: number) { this.target = v; }
+  update(dt: number): number {
+    const diff = this.target - this.current;
+    if (Math.abs(diff) > 0.001) { this.current += diff * this.speed * (dt / 16.67); } else { this.current = this.target; }
+    return this.current;
   }
-
-  setTarget(value: number) {
-    this.targetValue = value;
-  }
-
-  update(deltaTime: number): number {
-    const diff = this.targetValue - this.currentValue;
-    if (Math.abs(diff) > 0.001) {
-      // Interpolação exponencial suave
-      this.currentValue += diff * this.speed * (deltaTime / 16.67); // Normalizado para 60fps
-    } else {
-      this.currentValue = this.targetValue;
-    }
-    return this.currentValue;
-  }
-
-  getCurrentValue(): number {
-    return this.currentValue;
-  }
+  getCurrentValue() { return this.current; }
 }
 
-/**
- * Pool de objetos para reutilização e melhor performance
- */
 export class ObjectPool<T> {
   private pool: T[] = [];
-  private createFn: () => T;
-  private resetFn: (obj: T) => void;
-
-  constructor(createFn: () => T, resetFn: (obj: T) => void, initialSize: number = 10) {
-    this.createFn = createFn;
-    this.resetFn = resetFn;
-    
-    // Pré-alocar objetos
-    for (let i = 0; i < initialSize; i++) {
-      this.pool.push(this.createFn());
-    }
+  constructor(private createFn: () => T, private resetFn: (o: T) => void, n = 10) {
+    for (let i = 0; i < n; i++) this.pool.push(createFn());
   }
-
-  get(): T {
-    if (this.pool.length > 0) {
-      return this.pool.pop()!;
-    }
-    return this.createFn();
-  }
-
-  release(obj: T) {
-    this.resetFn(obj);
-    this.pool.push(obj);
-  }
+  get(): T { return this.pool.pop() ?? this.createFn(); }
+  release(o: T) { this.resetFn(o); this.pool.push(o); }
 }
 
-/**
- * Batching de operações DOM para melhor performance
- */
 export class DOMBatcher {
-  private operations: (() => void)[] = [];
-  private isScheduled = false;
-
-  add(operation: () => void) {
-    this.operations.push(operation);
-    this.schedule();
-  }
-
-  private schedule() {
-    if (this.isScheduled) return;
-    this.isScheduled = true;
-    
-    requestAnimationFrame(() => {
-      // Executar todas as operações em lote
-      this.operations.forEach(op => op());
-      this.operations.length = 0;
-      this.isScheduled = false;
-    });
+  private ops: (() => void)[] = [];
+  private scheduled = false;
+  add(op: () => void) {
+    this.ops.push(op);
+    if (!this.scheduled) {
+      this.scheduled = true;
+      queueMicrotask(() => { this.ops.forEach(f => f()); this.ops.length = 0; this.scheduled = false; });
+    }
   }
 }
-
 export const domBatcher = new DOMBatcher();

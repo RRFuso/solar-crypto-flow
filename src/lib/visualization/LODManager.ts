@@ -25,9 +25,9 @@ export interface PerformanceMetrics {
 export const LOD_LEVELS: Record<string, LODLevel> = {
   ultra: {
     name: 'ultra',
-    particleCount: 30,
-    particleSize: 4,
-    trailLength: 15,
+    particleCount: 15,
+    particleSize: 3,
+    trailLength: 8,
     glowIntensity: 1.0,
     updateInterval: 16,  // 60fps
     enableBlur: true,
@@ -38,9 +38,9 @@ export const LOD_LEVELS: Record<string, LODLevel> = {
   },
   high: {
     name: 'high',
-    particleCount: 20,
-    particleSize: 3.5,
-    trailLength: 10,
+    particleCount: 12,
+    particleSize: 3,
+    trailLength: 6,
     glowIntensity: 0.8,
     updateInterval: 16,
     enableBlur: true,
@@ -105,7 +105,7 @@ export class LODManager {
   private zoom = 1;
   private listeners: Set<(level: LODLevel) => void> = new Set();
 
-  constructor(initialLevel: keyof typeof LOD_LEVELS = 'high') {
+  constructor(initialLevel: keyof typeof LOD_LEVELS = 'medium') {
     this.currentLevel = LOD_LEVELS[initialLevel];
     this.detectDeviceCapabilities();
   }
@@ -174,10 +174,8 @@ export class LODManager {
       this.setLevel(levels[currentIndex + 1].name as keyof typeof LOD_LEVELS);
       console.log(`[LOD] Reducing quality to ${this.currentLevel.name} (FPS: ${this.metrics.fps})`);
     }
-    // If FPS is good, consider increasing quality
-    else if (this.metrics.fps > 55 && currentIndex > 0) {
-      this.setLevel(levels[currentIndex - 1].name as keyof typeof LOD_LEVELS);
-      console.log(`[LOD] Increasing quality to ${this.currentLevel.name} (FPS: ${this.metrics.fps})`);
+    // Quality upgrades removed — only degrade to avoid frame-rate yo-yo
+    // (users can manually set LOD if needed)
     }
     
     // Reset samples after adjustment

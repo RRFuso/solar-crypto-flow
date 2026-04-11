@@ -1,5 +1,4 @@
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 
 interface StarfieldBackgroundProps {
@@ -9,36 +8,61 @@ interface StarfieldBackgroundProps {
   showLines: boolean;
 }
 
-export const StarfieldBackground: React.FC<StarfieldBackgroundProps> = ({ svg, width, height, showLines }) => {
-  useEffect(() => {
-    svg.selectAll('.starfield').remove();
+// Stars are generated once and stored outside the component.
+// On resize the same stars are repositioned via percentage, avoiding
+// the cost of DOM re-creation.
+function buildStars(count: number) {
+  return Array.from({ length: count }, () => ({
+    xPct: Math.random(), // 0-1 percentage of width
+    yPct: Math.random(), // 0-1 percentage of height
+    r:    Math.random() * 1.2 + 0.4,
+    o:    Math.random() * 0.5 + 0.3,
+  }));
+}
 
+const STAR_COUNT = 80;
+const starData   = buildStars(STAR_COUNT); // computed once per module load
+
+export const StarfieldBackground: React.FC<StarfieldBackgroundProps> = ({
+  svg, width, height, showLines,
+}) => {
+  const renderedRef = useRef(false);
+
+  useEffect(() => {
     if (showLines) {
-      // If lines are shown, do not render the starfield.
+      svg.selectAll('.starfield').remove();
+      renderedRef.current = false;
       return;
     }
 
-    const starfield = svg.append('g').attr('class', 'starfield');
-    const numStars = 80; // Reduced for performance
-    const stars = Array.from({ length: numStars }, () => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      radius: Math.random() * 1.5 + 0.5,
-    }));
+    if (!width || !height) return;
 
-    starfield.selectAll('.star')
-      .data(stars)
-      .enter()
-      .append('circle')
-      .attr('class', 'star')
-      .attr('cx', d => d.x)
-      .attr('cy', d => d.y)
-      .attr('r', d => d.radius)
-      .style('fill', 'white')
-      .style('fill-opacity', 0.7);
+    if (!renderedRef.current) {
+      // First render: create DOM elements once
+      svg.selectAll('.starfield').remove();
+      const g = svg.append('g').attr('class', 'starfield');
+
+      g.selectAll('.star')
+        .data(starData)
+        .enter()
+        .append('circle')
+        .attr('class', 'star')
+        .attr('cx',      d => d.xPct * width)
+        .attr('cy',      d => d.yPct * height)
+        .attr('r',       d => d.r)
+        .attr('fill',    'white')
+        .attr('opacity', d => d.o);
+
+      renderedRef.current = true;
+    } else {
+      // Subsequent renders: only reposition (no DOM creation)
+      svg.select('.starfield').selectAll<SVGCircleElement, typeof starData[0]>('.star')
+        .attr('cx', d => d.xPct * width)
+        .attr('cy', d => d.yPct * height);
+    }
 
     return () => {
-      svg.selectAll('.starfield').remove();
+      // Only remove on unmount (showLines handled at top of effect)
     };
   }, [svg, width, height, showLines]);
 
