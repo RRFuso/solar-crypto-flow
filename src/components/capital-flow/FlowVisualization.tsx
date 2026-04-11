@@ -196,7 +196,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
               svg={d3.select(svgRef.current)}
               width={dimensions.width}
               height={dimensions.height}
-              orbitLayers={4}
+              orbitLayers={7}
               baseRadius={Math.min(dimensions.width, dimensions.height) * 0.08}
               extendFullScreen={true}
               showLines={showLines}
@@ -231,7 +231,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
               width={dimensions.width}
               height={dimensions.height}
               rotationSpeed={0.00001}
-              updateLinksInRealTime={true}
+              updateLinksInRealTime={false}
             />
           </>
         )}

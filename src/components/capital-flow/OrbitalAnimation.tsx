@@ -107,26 +107,9 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
       });
 
       // ── DOM: batch all D3 writes in one pass ─────────────────────────
-      // node groups (translate only — no complex attr cascade)
+      // node groups use translate — glows are children so they follow automatically
       currentSvg.selectAll<SVGGElement, OrbitalNode>('g.node')
         .attr('transform', d => `translate(${d.x ?? 0},${d.y ?? 0})`);
-
-      // glows follow node coordinates (absolute, not relative to group)
-      currentSvg.selectAll<SVGCircleElement, OrbitalNode>('.node-glow')
-        .attr('cx', d => d.x ?? 0)
-        .attr('cy', d => d.y ?? 0);
-
-      // links (only when explicitly requested — expensive)
-      if (updateLinksInRealTime) {
-        currentSvg.selectAll<SVGPathElement, OrbitalLink>('path.link-path, path.flow-link')
-          .attr('d', d => {
-            if (!d?.source?.x || !d?.target?.x) return '';
-            const sx = d.source.x, sy = d.source.y;
-            const tx = d.target.x, ty = d.target.y;
-            const dr = Math.sqrt((tx - sx) ** 2 + (ty - sy) ** 2) * 1.2;
-            return `M${sx},${sy} A${dr},${dr} 0 0,1 ${tx},${ty}`;
-          });
-      }
     };
 
     registerTick(instanceKey, tick);
