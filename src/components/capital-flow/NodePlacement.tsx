@@ -43,21 +43,25 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
   const total = nonCentralNodes.length;
   const safeMargin = 48;
   const maxR = Math.min(width, height) / 2 - safeMargin;
-  // Inner orbit at 20% so nodes spread from near-center to near-edge
-  const minR = maxR * 0.20;
+  // Inner orbit at 35% so nodes start further from center
+  const minR = maxR * 0.35;
 
-  // Distribute nodes evenly across layers; outer layers can take one extra
+  // More layers = fewer nodes per layer = less crowding
   const effectiveLayers = Math.max(1, orbitLayers);
   const basePerLayer = Math.floor(total / effectiveLayers);
   const extras = total % effectiveLayers;
+  // Put fewer nodes on inner layers, more on outer (outer has more circumference)
   const layerCounts: number[] = Array.from({ length: effectiveLayers }, (_, i) =>
-    basePerLayer + (i < extras ? 1 : 0)
+    basePerLayer + (i >= effectiveLayers - extras ? 1 : 0)
   );
 
-  // Linear radius spacing
-  const radii: number[] = Array.from({ length: effectiveLayers }, (_, l) =>
-    effectiveLayers === 1 ? (minR + maxR) / 2 : minR + (l / (effectiveLayers - 1)) * (maxR - minR)
-  );
+  // Exponential radius spacing — inner layers get more breathing room
+  const radii: number[] = Array.from({ length: effectiveLayers }, (_, l) => {
+    if (effectiveLayers === 1) return (minR + maxR) / 2;
+    const t = l / (effectiveLayers - 1);
+    // Use sqrt curve so inner orbits are more spread apart
+    return minR + Math.sqrt(t) * (maxR - minR);
+  });
 
   const cx = width / 2;
   const cy = height / 2;
