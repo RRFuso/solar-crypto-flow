@@ -41,26 +41,32 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
   if (nonCentralNodes.length === 0) return nodes;
 
   const total = nonCentralNodes.length;
-  const safeMargin = 32;
-  // Use diagonal to fill the full rectangular container, not just the inscribed circle
-  const maxR = Math.sqrt(width * width + height * height) / 2 - safeMargin;
-  // Inner orbit at 25% — more room for outer orbits to spread
-  const minR = maxR * 0.18;
+  const safeMargin = 36;
 
-  // More layers = fewer nodes per layer = less crowding
+  // Elliptical radii — fill the rectangle while keeping oval/solar shape
+  const maxRx = width / 2 - safeMargin;
+  const maxRy = height / 2 - safeMargin;
+  const minRx = maxRx * 0.12;
+  const minRy = maxRy * 0.12;
+
   const effectiveLayers = Math.max(1, orbitLayers);
   const basePerLayer = Math.floor(total / effectiveLayers);
   const extras = total % effectiveLayers;
-  // Put fewer nodes on inner layers, more on outer (outer has more circumference)
+  // Outer layers get extra nodes (more circumference)
   const layerCounts: number[] = Array.from({ length: effectiveLayers }, (_, i) =>
     basePerLayer + (i >= effectiveLayers - extras ? 1 : 0)
   );
 
-  // Linear radius spacing — even distribution across the full container
-  const radii: number[] = Array.from({ length: effectiveLayers }, (_, l) => {
-    if (effectiveLayers === 1) return (minR + maxR) / 2;
+  // Sqrt spacing — inner orbits get more breathing room
+  const radiiX: number[] = Array.from({ length: effectiveLayers }, (_, l) => {
+    if (effectiveLayers === 1) return (minRx + maxRx) / 2;
     const t = l / (effectiveLayers - 1);
-    return minR + t * (maxR - minR);
+    return minRx + Math.sqrt(t) * (maxRx - minRx);
+  });
+  const radiiY: number[] = Array.from({ length: effectiveLayers }, (_, l) => {
+    if (effectiveLayers === 1) return (minRy + maxRy) / 2;
+    const t = l / (effectiveLayers - 1);
+    return minRy + Math.sqrt(t) * (maxRy - minRy);
   });
 
   const cx = width / 2;
@@ -71,14 +77,16 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
 
   nonCentralNodes.forEach((node) => {
     const nodesInThisLayer = layerCounts[layerIdx];
-    const r = radii[layerIdx];
+    const rx = radiiX[layerIdx];
+    const ry = radiiY[layerIdx];
 
-    // Each layer starts at a golden-angle offset so spokes never overlap
-    const angleOffset = layerIdx * GOLDEN_ANGLE * 13; // prime multiplier per orbit
+    // Golden-angle offset per layer so spokes never overlap
+    const angleOffset = layerIdx * GOLDEN_ANGLE * 13;
     const angle = angleOffset + (posInLayer / nodesInThisLayer) * 2 * Math.PI;
 
-    const rawX = cx + Math.cos(angle) * r;
-    const rawY = cy + Math.sin(angle) * r;
+    // Elliptical placement
+    const rawX = cx + Math.cos(angle) * rx;
+    const rawY = cy + Math.sin(angle) * ry;
 
     const half = (node.radius || 15) + 16;
     node.x = Math.max(half, Math.min(width - half, rawX));
