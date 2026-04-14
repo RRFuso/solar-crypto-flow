@@ -426,12 +426,28 @@ const renderOrUpdateVisualization = (
 
   const nodeUpdate = nodeEnter.merge(nodeSelection as d3.Selection<SVGGElement, ExtendedOrbitalNode, SVGGElement, unknown>);
   
+  // Build set of connected node IDs for selected node
+  const connectedNodeIds = new Set<string>();
+  if (selectedNodeId) {
+    connectedNodeIds.add(selectedNodeId);
+    (allCapitalFlows || []).forEach(link => {
+      const srcId = (link as any).source?.id || (link as any).source;
+      const tgtId = (link as any).target?.id || (link as any).target;
+      if (srcId === selectedNodeId) connectedNodeIds.add(tgtId);
+      if (tgtId === selectedNodeId) connectedNodeIds.add(srcId);
+    });
+  }
+
   nodeUpdate.transition().duration(750)
     .attr('transform', (d: ExtendedOrbitalNode) => `translate(${d.x}, ${d.y}) scale(1)`)
     .style('opacity', (d: any) => {
       // If the Oracle has highlighted specific symbols, dim unselected ones
       if (d._hasCommandFilter) {
         return d._commandHighlighted ? 1 : 0.15;
+      }
+      // Selected node: highlight connected, dim others
+      if (selectedNodeId) {
+        return connectedNodeIds.has(d.id) ? 1 : 0.15;
       }
       // Category filter
       if (activeCategory !== 'all') {
