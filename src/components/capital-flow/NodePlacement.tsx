@@ -41,10 +41,11 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
   if (nonCentralNodes.length === 0) return nodes;
 
   const total = nonCentralNodes.length;
-  const safeMargin = 48;
-  const maxR = Math.min(width, height) / 2 - safeMargin;
-  // Inner orbit at 35% so nodes start further from center
-  const minR = maxR * 0.35;
+  const safeMargin = 32;
+  // Use diagonal to fill the full rectangular container, not just the inscribed circle
+  const maxR = Math.sqrt(width * width + height * height) / 2 - safeMargin;
+  // Inner orbit at 25% — more room for outer orbits to spread
+  const minR = maxR * 0.18;
 
   // More layers = fewer nodes per layer = less crowding
   const effectiveLayers = Math.max(1, orbitLayers);
@@ -55,12 +56,11 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
     basePerLayer + (i >= effectiveLayers - extras ? 1 : 0)
   );
 
-  // Exponential radius spacing — inner layers get more breathing room
+  // Linear radius spacing — even distribution across the full container
   const radii: number[] = Array.from({ length: effectiveLayers }, (_, l) => {
     if (effectiveLayers === 1) return (minR + maxR) / 2;
     const t = l / (effectiveLayers - 1);
-    // Use sqrt curve so inner orbits are more spread apart
-    return minR + Math.sqrt(t) * (maxR - minR);
+    return minR + t * (maxR - minR);
   });
 
   const cx = width / 2;

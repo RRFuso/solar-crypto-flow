@@ -44,10 +44,10 @@ export const addFlowParticles = (
   
   // Process each link for particle animation
   links.forEach((link: LinkData, linkIndex) => {
-    // Skip particle animation for unselected links when a node is selected
-    if (selectedNodeId && link.source.id !== selectedNodeId && link.target.id !== selectedNodeId) {
-      return;
-    }
+    // Determine if this link is connected to the selected node
+    const isConnectedToSelected = selectedNodeId
+      ? (link.source.id === selectedNodeId || link.target.id === selectedNodeId)
+      : true;
     
     // Get the path element for this link
     const path = svg.select(`#link-${linkIndex}`).node() as SVGPathElement;
@@ -107,13 +107,18 @@ export const addFlowParticles = (
         : 0;
       
       // Create particle element with conditional glow effect
+      // Dim particles on unconnected links instead of hiding them
+      const baseOpacity = flowConfig?.isRealData ? 0.9 : 0.7;
+      const opacity = isConnectedToSelected ? baseOpacity : 0.12;
+      const size = isConnectedToSelected ? particleSize : particleSize * 0.6;
+
       const element = particleGroup.append("circle")
         .attr("class", `particle ${flowConfig?.isRealData ? 'real-flow' : ''}`)
-        .attr("r", particleSize)
+        .attr("r", size)
         .attr("fill", particleColor)
         .attr("cx", point.x)
         .attr("cy", point.y)
-        .attr("opacity", flowConfig?.isRealData ? 0.9 : 0.7);
+        .attr("opacity", opacity);
       
       // Apply glow only if LOD allows
       if (glowSize > 0) {
