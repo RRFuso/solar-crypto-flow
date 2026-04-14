@@ -46,8 +46,9 @@ export const calculateNodePositions = (props: NodePlacementProps): OrbitalNode[]
   // Elliptical radii — fill the rectangle while keeping oval/solar shape
   const maxRx = width / 2 - safeMargin;
   const maxRy = height / 2 - safeMargin;
-  const minRx = maxRx * 0.12;
-  const minRy = maxRy * 0.12;
+  // Inner orbit starts at 30% so central nodes aren't crammed together
+  const minRx = maxRx * 0.30;
+  const minRy = maxRy * 0.30;
 
   const effectiveLayers = Math.max(1, orbitLayers);
   const basePerLayer = Math.floor(total / effectiveLayers);
