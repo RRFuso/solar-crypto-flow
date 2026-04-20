@@ -148,7 +148,9 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
 
   const hasValidDimensions = dimensions.width > 100 && dimensions.height > 100;
   const hasVisualizationData = visualizationData?.nodes?.length > 0;
-  const isDataReady = !loadingCryptoData && !loadingSignals && !loadingAI;
+  // Only block on crypto data — signals and AI insights are enrichment layers
+  // that progressively populate the already-rendered Solar Core.
+  const isDataReady = !loadingCryptoData;
 
   if (!hasValidDimensions || !isDataReady) {
     return (
