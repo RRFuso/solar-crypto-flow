@@ -194,7 +194,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
           preserveAspectRatio="xMidYMid meet"
         />
         {hasVisualizationData && svgRef.current && (
-          <>
+          <React.Fragment key={renderEpoch}>
             <StarfieldBackground
               svg={d3.select(svgRef.current)}
               width={dimensions.width}
