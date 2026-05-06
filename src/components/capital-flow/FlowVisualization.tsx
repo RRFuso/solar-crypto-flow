@@ -49,7 +49,9 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     visualizationData,
     setVisualizationData,
     animationRef,
-    createOrbitalVisualization
+    createOrbitalVisualization,
+    renderEpoch,
+    setRenderEpoch
   } = useVisualizationSetup(flowData, zoomLevel);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
