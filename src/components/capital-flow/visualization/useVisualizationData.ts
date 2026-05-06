@@ -32,6 +32,7 @@ interface UseVisualizationDataProps {
     height: number
   ) => { svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, nodes: OrbitalNode[], links: LinkData[], centralNode: OrbitalNode | null };
   activeCategory?: string;
+  onSvgCleared?: () => void;
 }
 
 const getVolumeAsNumber = (vol: number | string | undefined): number | undefined => {
@@ -62,7 +63,8 @@ export const useVisualizationData = ({
   setVisualizationData,
   animationRef,
   createOrbitalVisualization,
-  activeCategory = 'all'
+  activeCategory = 'all',
+  onSvgCleared
 }: UseVisualizationDataProps) => {
   // Track whether we've done the initial layout
   const initializedRef = useRef(false);
@@ -98,6 +100,7 @@ export const useVisualizationData = ({
     // Only clear SVG on first init or when symbols change
     if (!initializedRef.current || flowKey !== previousFlowKeyRef.current) {
       d3.select(svgRef.current).selectAll("*").remove();
+      onSvgCleared?.();
     }
 
     const { nodes: baseNodes, links, centralNode: baseCentralNode } = createOrbitalVisualization(

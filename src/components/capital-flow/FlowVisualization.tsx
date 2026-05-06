@@ -49,7 +49,9 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     visualizationData,
     setVisualizationData,
     animationRef,
-    createOrbitalVisualization
+    createOrbitalVisualization,
+    renderEpoch,
+    setRenderEpoch
   } = useVisualizationSetup(flowData, zoomLevel);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -90,6 +92,10 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     }
   }, [symbolsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleSvgCleared = useCallback(() => {
+    setRenderEpoch(prev => prev + 1);
+  }, [setRenderEpoch]);
+
   useVisualizationData({
     flowData,
     cryptoDataMaps,
@@ -101,7 +107,8 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     setVisualizationData,
     animationRef,
     createOrbitalVisualization,
-    activeCategory
+    activeCategory,
+    onSvgCleared: handleSvgCleared
   });
 
   const { setSelectedNodeId: setCommandNodeId } = useSolarCoreCommand();
@@ -187,7 +194,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
           preserveAspectRatio="xMidYMid meet"
         />
         {hasVisualizationData && svgRef.current && (
-          <>
+          <React.Fragment key={renderEpoch}>
             <StarfieldBackground
               svg={d3.select(svgRef.current)}
               width={dimensions.width}
@@ -235,7 +242,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
               rotationSpeed={0.00001}
               updateLinksInRealTime={false}
             />
-          </>
+          </React.Fragment>
         )}
       </div>
 

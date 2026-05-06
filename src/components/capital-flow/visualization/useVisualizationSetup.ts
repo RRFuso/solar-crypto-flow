@@ -18,6 +18,7 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
   const containerRef = useRef<HTMLDivElement>(null);
   const { createOrbitalVisualization } = useOrbitalVisualization();
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [renderEpoch, setRenderEpoch] = useState(0);
   
   const [visualizationData, setVisualizationData] = useState<{
     nodes: ExtendedOrbitalNode[],
@@ -100,6 +101,8 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
     setVisualizationData,
     animationRef,
     handleNodeSelection,
-    createOrbitalVisualization
+    createOrbitalVisualization,
+    renderEpoch,
+    setRenderEpoch
   };
 };
