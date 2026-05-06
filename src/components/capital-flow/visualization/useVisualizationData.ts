@@ -63,7 +63,8 @@ export const useVisualizationData = ({
   setVisualizationData,
   animationRef,
   createOrbitalVisualization,
-  activeCategory = 'all'
+  activeCategory = 'all',
+  onSvgCleared
 }: UseVisualizationDataProps) => {
   // Track whether we've done the initial layout
   const initializedRef = useRef(false);
