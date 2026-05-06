@@ -92,6 +92,10 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     }
   }, [symbolsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleSvgCleared = useCallback(() => {
+    setRenderEpoch(prev => prev + 1);
+  }, [setRenderEpoch]);
+
   useVisualizationData({
     flowData,
     cryptoDataMaps,
@@ -103,7 +107,8 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     setVisualizationData,
     animationRef,
     createOrbitalVisualization,
-    activeCategory
+    activeCategory,
+    onSvgCleared: handleSvgCleared
   });
 
   const { setSelectedNodeId: setCommandNodeId } = useSolarCoreCommand();
