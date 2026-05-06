@@ -100,6 +100,7 @@ export const useVisualizationData = ({
     // Only clear SVG on first init or when symbols change
     if (!initializedRef.current || flowKey !== previousFlowKeyRef.current) {
       d3.select(svgRef.current).selectAll("*").remove();
+      onSvgCleared?.();
     }
 
     const { nodes: baseNodes, links, centralNode: baseCentralNode } = createOrbitalVisualization(
