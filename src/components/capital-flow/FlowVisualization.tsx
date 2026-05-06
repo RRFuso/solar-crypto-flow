@@ -242,7 +242,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
               rotationSpeed={0.00001}
               updateLinksInRealTime={false}
             />
-          </>
+          </React.Fragment>
         )}
       </div>
 
