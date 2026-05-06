@@ -101,6 +101,8 @@ export const useVisualizationSetup = (flowData: FlowData[], zoomLevel: number = 
     setVisualizationData,
     animationRef,
     handleNodeSelection,
-    createOrbitalVisualization
+    createOrbitalVisualization,
+    renderEpoch,
+    setRenderEpoch
   };
 };
