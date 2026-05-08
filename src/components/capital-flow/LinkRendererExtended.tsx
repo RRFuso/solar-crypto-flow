@@ -43,6 +43,11 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
 }) => {
   const linkElementsRef = useRef<d3.Selection<any, any, any, any> | null>(null);
   const particleCleanupRef = useRef<(() => void) | null>(null);
+  const smartMoneyFlowsRef = useRef<SmartMoneyFlow[] | undefined>(smartMoneyFlows);
+
+  useEffect(() => {
+    smartMoneyFlowsRef.current = smartMoneyFlows;
+  }, [smartMoneyFlows]);
 
   const getColorForFlow = (category: string) => {
     if (getCategoryColor) {
@@ -90,7 +95,9 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
     particleCleanupRef.current?.();
     particleCleanupRef.current = null;
 
-    const linkGroup = svg.insert("g", ".node").attr("class", "flow-links");
+    const linkGroup = svg.select(".nodes-group").empty()
+      ? svg.append("g").attr("class", "flow-links")
+      : svg.insert("g", ".nodes-group").attr("class", "flow-links");
     linkGroup.style("visibility", showLines ? "visible" : "hidden");
 
     const handleMouseOver = (event: MouseEvent, linkData: LinkData) => {};
@@ -101,7 +108,8 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
     linkElementsRef.current = link;
 
     const getFlowConfig = (link: LinkData): FlowParticleConfig => {
-        if (!smartMoneyFlows || smartMoneyFlows.length === 0) {
+        const currentSmartMoneyFlows = smartMoneyFlowsRef.current;
+        if (!currentSmartMoneyFlows || currentSmartMoneyFlows.length === 0) {
           return {
             direction: link.percentage > 0 ? 1 : -1,
             color: '#facc15',
@@ -111,8 +119,8 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
         }
         const sourceSymbol = link.source.id?.toUpperCase();
         const targetSymbol = link.target.id?.toUpperCase();
-        const sourceFlow = smartMoneyFlows.find(f => f.token_symbol === sourceSymbol);
-        const targetFlow = smartMoneyFlows.find(f => f.token_symbol === targetSymbol);
+        const sourceFlow = currentSmartMoneyFlows.find(f => f.token_symbol === sourceSymbol);
+        const targetFlow = currentSmartMoneyFlows.find(f => f.token_symbol === targetSymbol);
         const primaryFlow = (sourceFlow?.flow_intensity || 0) > (targetFlow?.flow_intensity || 0) ? sourceFlow : targetFlow;
 
         if (!primaryFlow) {
@@ -145,7 +153,7 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
       svg.selectAll(".particles-group").remove();
       linkElementsRef.current = null;
     };
-  }, [svg, processedLinksKey, selectedNodeId, showLines, activeCategory, smartMoneyFlows]);
+  }, [svg, processedLinksKey, selectedNodeId, showLines, activeCategory]);
 
   useEffect(() => {
     if (!animateWithOrbit) return;
