@@ -41,6 +41,7 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
   activeCategory = 'all',
   smartMoneyFlows
 }) => {
+  const svgElement = svg?.node();
   const linkElementsRef = useRef<d3.Selection<any, any, any, any> | null>(null);
   const particleCleanupRef = useRef<(() => void) | null>(null);
   const smartMoneyFlowsRef = useRef<SmartMoneyFlow[] | undefined>(smartMoneyFlows);
@@ -88,23 +89,25 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
   const processedLinksKey = useMemo(() => getLinksKey(processedLinks), [processedLinks]);
 
   useEffect(() => {
-    if (!svg || processedLinks.length === 0) return;
+    if (!svgElement || processedLinks.length === 0) return;
 
-    svg.selectAll(".flow-links").remove();
-    svg.selectAll(".particles-group").remove();
+    const stableSvg = d3.select(svgElement);
+
+    stableSvg.selectAll(".flow-links").remove();
+    stableSvg.selectAll(".particles-group").remove();
     particleCleanupRef.current?.();
     particleCleanupRef.current = null;
 
-    const linkGroup = svg.select(".nodes-group").empty()
-      ? svg.append("g").attr("class", "flow-links")
-      : svg.insert("g", ".nodes-group").attr("class", "flow-links");
+    const linkGroup = stableSvg.select(".nodes-group").empty()
+      ? stableSvg.append("g").attr("class", "flow-links")
+      : stableSvg.insert("g", ".nodes-group").attr("class", "flow-links");
     linkGroup.style("visibility", showLines ? "visible" : "hidden");
 
     const handleMouseOver = (event: MouseEvent, linkData: LinkData) => {};
     const handleMouseOut = () => {};
 
-    const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut, activeCategory);
-    createArrowheads(svg, processedLinks);
+    const link = stylizeLinks(stableSvg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut, activeCategory);
+    createArrowheads(stableSvg, processedLinks);
     linkElementsRef.current = link;
 
     const getFlowConfig = (link: LinkData): FlowParticleConfig => {
@@ -143,17 +146,17 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
       };
 
     if (showLines && processedLinks.length > 0) {
-      particleCleanupRef.current = addFlowParticles(svg, linkGroup, processedLinks, selectedNodeId, getFlowConfig);
+      particleCleanupRef.current = addFlowParticles(stableSvg, linkGroup, processedLinks, selectedNodeId, getFlowConfig);
     }
 
     return () => {
       particleCleanupRef.current?.();
       particleCleanupRef.current = null;
-      svg.selectAll(".flow-links").remove();
-      svg.selectAll(".particles-group").remove();
+      stableSvg.selectAll(".flow-links").remove();
+      stableSvg.selectAll(".particles-group").remove();
       linkElementsRef.current = null;
     };
-  }, [svg, processedLinksKey, selectedNodeId, showLines, activeCategory]);
+  }, [svgElement, processedLinksKey, selectedNodeId, showLines, activeCategory]);
 
   useEffect(() => {
     if (!animateWithOrbit) return;
