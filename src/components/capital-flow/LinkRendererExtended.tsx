@@ -189,8 +189,6 @@ export const LinkRendererExtended = React.memo(LinkRendererExtendedInner, (prev,
   if (prev.selectedNodeId !== next.selectedNodeId) return false;
   if (prev.links.length !== next.links.length) return false;
   if (prev.nodes.length !== next.nodes.length) return false;
-  // Smart money flows change
-  if (prev.smartMoneyFlows?.length !== next.smartMoneyFlows?.length) return false;
   return true;
 });
 
