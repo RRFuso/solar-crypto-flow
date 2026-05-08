@@ -1,8 +1,10 @@
 
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
 import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
+import { addFlowParticles } from './link-renderer/ParticleAnimation';
+import { globalAnimator } from '@/utils/animationOptimizer';
 import { LinkData } from '@/types/capitalFlow';
 import { NarrativeNode } from '@/types/narratives';
 import { getCategoryColor as getSignalCategoryColor } from './constants/signalCategories';
@@ -39,8 +41,14 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
   activeCategory = 'all',
   smartMoneyFlows
 }) => {
-  const previousLinksKeyRef = useRef<string>('');
+  const svgElement = svg?.node();
   const linkElementsRef = useRef<d3.Selection<any, any, any, any> | null>(null);
+  const particleCleanupRef = useRef<(() => void) | null>(null);
+  const smartMoneyFlowsRef = useRef<SmartMoneyFlow[] | undefined>(smartMoneyFlows);
+
+  useEffect(() => {
+    smartMoneyFlowsRef.current = smartMoneyFlows;
+  }, [smartMoneyFlows]);
 
   const getColorForFlow = (category: string) => {
     if (getCategoryColor) {
@@ -78,33 +86,33 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
     }).filter(Boolean) as LinkData[];
   }, [links, nodes, getCategoryColor]);
 
+  const processedLinksKey = useMemo(() => getLinksKey(processedLinks), [processedLinks]);
+
   useEffect(() => {
-    if (!svg || processedLinks.length === 0) return;
+    if (!svgElement || processedLinks.length === 0) return;
 
-    const currentLinksKey = getLinksKey(processedLinks);
-    const linksStructureChanged = currentLinksKey !== previousLinksKeyRef.current;
+    const stableSvg = d3.select(svgElement);
 
-    // Only rebuild link DOM elements if the structure changed
-    if (linksStructureChanged) {
-      svg.selectAll(".flow-links").remove();
-      svg.selectAll(".particles-group").remove();
+    stableSvg.selectAll(".flow-links").remove();
+    stableSvg.selectAll(".particles-group").remove();
+    particleCleanupRef.current?.();
+    particleCleanupRef.current = null;
 
-      const linkGroup = svg.append("g").attr("class", "flow-links");
-      linkGroup.style("visibility", showLines ? "visible" : "hidden");
+    const linkGroup = stableSvg.select(".nodes-group").empty()
+      ? stableSvg.append("g").attr("class", "flow-links")
+      : stableSvg.insert("g", ".nodes-group").attr("class", "flow-links");
+    linkGroup.style("visibility", showLines ? "visible" : "hidden");
 
-      const handleMouseOver = (event: MouseEvent, linkData: LinkData) => {};
-      const handleMouseOut = () => {};
+    const handleMouseOver = (event: MouseEvent, linkData: LinkData) => {};
+    const handleMouseOut = () => {};
 
-      const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut, activeCategory);
-      createArrowheads(svg, processedLinks);
-      linkElementsRef.current = link;
-      previousLinksKeyRef.current = currentLinksKey;
+    const link = stylizeLinks(stableSvg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut, activeCategory);
+    createArrowheads(stableSvg, processedLinks);
+    linkElementsRef.current = link;
 
-      // Particle system
-      let particleCleanup: (() => void) | null = null;
-      
-      const getFlowConfig = (link: LinkData): FlowParticleConfig => {
-        if (!smartMoneyFlows || smartMoneyFlows.length === 0) {
+    const getFlowConfig = (link: LinkData): FlowParticleConfig => {
+        const currentSmartMoneyFlows = smartMoneyFlowsRef.current;
+        if (!currentSmartMoneyFlows || currentSmartMoneyFlows.length === 0) {
           return {
             direction: link.percentage > 0 ? 1 : -1,
             color: '#facc15',
@@ -114,8 +122,8 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
         }
         const sourceSymbol = link.source.id?.toUpperCase();
         const targetSymbol = link.target.id?.toUpperCase();
-        const sourceFlow = smartMoneyFlows.find(f => f.token_symbol === sourceSymbol);
-        const targetFlow = smartMoneyFlows.find(f => f.token_symbol === targetSymbol);
+        const sourceFlow = currentSmartMoneyFlows.find(f => f.token_symbol === sourceSymbol);
+        const targetFlow = currentSmartMoneyFlows.find(f => f.token_symbol === targetSymbol);
         const primaryFlow = (sourceFlow?.flow_intensity || 0) > (targetFlow?.flow_intensity || 0) ? sourceFlow : targetFlow;
 
         if (!primaryFlow) {
@@ -136,45 +144,42 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
           isRealData: true,
         };
       };
-      
-      if (showLines && processedLinks.length > 0) {
-        import('./link-renderer/ParticleAnimation').then(({ addFlowParticles }) => {
-          particleCleanup = addFlowParticles(svg, linkGroup, processedLinks, selectedNodeId, getFlowConfig);
-        });
-      }
 
-      // Orbital animation for links
-      if (animateWithOrbit) {
-        import('@/utils/animationOptimizer').then(({ globalAnimator }) => {
-          const updateLinks = (deltaTime: number) => {
-            if (!linkElementsRef.current) return;
-            linkElementsRef.current.attr("d", (d: LinkData) => {
-              if (!d.source || !d.target || 
-                  typeof d.source.x !== 'number' || typeof d.source.y !== 'number' ||
-                  typeof d.target.x !== 'number' || typeof d.target.y !== 'number') {
-                return "";
-              }
-              const dx = d.target.x - d.source.x;
-              const dy = d.target.y - d.source.y;
-              const dr = Math.sqrt(dx * dx + dy * dy) * 0.8;
-              return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-            });
-          };
-          globalAnimator.addCallback(updateLinks);
-          globalAnimator.start();
-        });
-      }
-
-      return () => {
-        if (particleCleanup) particleCleanup();
-        svg.selectAll(".flow-links").remove();
-        svg.selectAll(".particles-group").remove();
-      };
-    } else {
-      // Structure didn't change — just update visibility
-      svg.selectAll(".flow-links").style("visibility", showLines ? "visible" : "hidden");
+    if (showLines && processedLinks.length > 0) {
+      particleCleanupRef.current = addFlowParticles(stableSvg, linkGroup, processedLinks, selectedNodeId, getFlowConfig);
     }
-  }, [svg, processedLinks, selectedNodeId, animateWithOrbit, showLines, activeCategory, smartMoneyFlows]);
+
+    return () => {
+      particleCleanupRef.current?.();
+      particleCleanupRef.current = null;
+      stableSvg.selectAll(".flow-links").remove();
+      stableSvg.selectAll(".particles-group").remove();
+      linkElementsRef.current = null;
+    };
+  }, [svgElement, processedLinksKey, selectedNodeId, showLines, activeCategory]);
+
+  useEffect(() => {
+    if (!animateWithOrbit) return;
+
+    const updateLinks = () => {
+      if (!linkElementsRef.current) return;
+      linkElementsRef.current.attr("d", (d: LinkData) => {
+        if (!d.source || !d.target || 
+            typeof d.source.x !== 'number' || typeof d.source.y !== 'number' ||
+            typeof d.target.x !== 'number' || typeof d.target.y !== 'number') {
+          return "";
+        }
+        const dx = d.target.x - d.source.x;
+        const dy = d.target.y - d.source.y;
+        const dr = Math.sqrt(dx * dx + dy * dy) * 0.8;
+        return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+      });
+    };
+
+    globalAnimator.addCallback(updateLinks);
+    globalAnimator.start();
+    return () => globalAnimator.removeCallback(updateLinks);
+  }, [animateWithOrbit]);
 
   return null;
 };
@@ -187,8 +192,6 @@ export const LinkRendererExtended = React.memo(LinkRendererExtendedInner, (prev,
   if (prev.selectedNodeId !== next.selectedNodeId) return false;
   if (prev.links.length !== next.links.length) return false;
   if (prev.nodes.length !== next.nodes.length) return false;
-  // Smart money flows change
-  if (prev.smartMoneyFlows?.length !== next.smartMoneyFlows?.length) return false;
   return true;
 });
 

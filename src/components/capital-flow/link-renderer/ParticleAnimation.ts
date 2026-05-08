@@ -1,14 +1,14 @@
 
 import * as d3 from 'd3';
 import { LinkData } from '@/types/capitalFlow';
-import { globalAnimator, SmoothInterpolator, domBatcher } from '@/utils/animationOptimizer';
+import { globalAnimator, domBatcher } from '@/utils/animationOptimizer';
 import { FlowParticleConfig, SMART_MONEY_COLORS } from '@/types/smartMoney';
-import { lodManager, LODLevel } from '@/lib/visualization/LODManager';
+import { lodManager } from '@/lib/visualization/LODManager';
 
 interface ParticleData {
   linkIndex: number;
   path: SVGPathElement;
-  progress: SmoothInterpolator;
+  progress: number;
   speed: number;
   direction: number;
   color: string;
@@ -73,18 +73,20 @@ export const addFlowParticles = (
     const baseSpeed = flowConfig?.speed ?? 0.002;
     
     // Calculate number of particles based on value, intensity, and LOD
-    let baseParticleCount = Math.min(lodSettings.particleCount / 5, 1 + Math.floor(Math.abs(link.value) / 20000000));
+    const maxBaseParticles = Math.max(1, Math.floor(lodSettings.particleCount / 5));
+    let baseParticleCount = Math.max(1, Math.min(maxBaseParticles, 1 + Math.floor(Math.abs(link.value) / 20000000)));
     
     // Aumentar partículas para fluxos de alta intensidade (respeitando LOD)
     if (flowConfig?.intensity && flowConfig.intensity > 50) {
-      baseParticleCount = Math.min(lodSettings.particleCount / 3, baseParticleCount + 1);
+      baseParticleCount = Math.max(1, Math.floor(Math.min(lodSettings.particleCount / 3, baseParticleCount + 1)));
     }
     
     // Increase particles for selected links
     let particleCount = baseParticleCount;
     if (selectedNodeId && (link.source.id === selectedNodeId || link.target.id === selectedNodeId)) {
-      particleCount = Math.min(lodSettings.particleCount / 2, particleCount + 2);
+      particleCount = Math.max(1, Math.floor(Math.min(lodSettings.particleCount / 2, particleCount + 2)));
     }
+    particleCount = Math.max(1, Math.floor(particleCount));
     
     // Create particles for this link
     for (let i = 0; i < particleCount; i++) {
@@ -92,9 +94,6 @@ export const addFlowParticles = (
       const initialPosition = (i + Math.random() * 0.3) / particleCount;
       const pathLength = path.getTotalLength();
       const point = path.getPointAtLength(initialPosition * pathLength);
-      
-      // Create smooth interpolator for position
-      const progressInterpolator = new SmoothInterpolator(initialPosition, 0.08);
       
       // Tamanho variável baseado na intensidade e LOD
       const particleSize = flowConfig?.intensity 
@@ -129,7 +128,7 @@ export const addFlowParticles = (
       particles.push({
         linkIndex,
         path: path,
-        progress: progressInterpolator,
+        progress: initialPosition,
         speed: baseSpeed + Math.random() * 0.001,
         direction: direction,
         color: particleColor,
@@ -156,27 +155,16 @@ export const addFlowParticles = (
     const updates: (() => void)[] = [];
     
     particles.forEach(particle => {
-      // Update progress with smooth interpolation
-      const currentProgress = particle.progress.getCurrentValue();
-      let newProgress = currentProgress + (particle.speed * particle.direction * deltaTime / 16.67);
-      
-      // Handle wrapping with smooth transition
-      if (newProgress > 1) {
-        newProgress = 0;
-        particle.progress.setTarget(0);
-      } else if (newProgress < 0) {
-        newProgress = 1;
-        particle.progress.setTarget(1);
-      } else {
-        particle.progress.setTarget(newProgress);
-      }
-      
-      // Update interpolator
-      const smoothProgress = particle.progress.update(deltaTime);
+      const direction = particle.direction === 0 ? 1 : particle.direction;
+      particle.progress = (particle.progress + (particle.speed * direction * deltaTime / 16.67)) % 1;
+      if (particle.progress < 0) particle.progress += 1;
       
       // Calculate position along path
-      if (particle.path && particle.pathLength > 0) {
-        const point = particle.path.getPointAtLength(smoothProgress * particle.pathLength);
+      if (particle.path) {
+        const currentPathLength = particle.path.getTotalLength();
+        if (currentPathLength <= 0) return;
+        particle.pathLength = currentPathLength;
+        const point = particle.path.getPointAtLength(particle.progress * particle.pathLength);
         
         // Batch the DOM update
         updates.push(() => {

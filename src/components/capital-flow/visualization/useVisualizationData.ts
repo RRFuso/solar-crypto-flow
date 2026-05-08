@@ -78,10 +78,11 @@ export const useVisualizationData = ({
     if (!flowData || flowData.length === 0 || !svgRef.current || !dimensions.width) return;
 
     const flowKey = getFlowDataKey(flowData);
-    const dimensionsChanged = true; // dimensions are in dep array
+    const dimensionsKey = `${dimensions.width}x${dimensions.height}`;
+    const layoutKey = `${flowKey}|${dimensionsKey}`;
 
     // Only rebuild if the symbol set changed or first init
-    if (initializedRef.current && flowKey === previousFlowKeyRef.current && !dimensionsChanged) {
+    if (initializedRef.current && layoutKey === previousFlowKeyRef.current) {
       return;
     }
 
@@ -97,11 +98,7 @@ export const useVisualizationData = ({
       animationRef.current = null;
     }
 
-    // Only clear SVG on first init or when symbols change
-    if (!initializedRef.current || flowKey !== previousFlowKeyRef.current) {
-      d3.select(svgRef.current).selectAll("*").remove();
-      onSvgCleared?.();
-    }
+    d3.select(svgRef.current).selectAll("*").remove();
 
     const { nodes: baseNodes, links, centralNode: baseCentralNode } = createOrbitalVisualization(
       flowData, 
@@ -172,7 +169,7 @@ export const useVisualizationData = ({
     nodesRef.current = enrichedNodes;
     linksRef.current = links;
     centralNodeRef.current = enrichedCentralNode;
-    previousFlowKeyRef.current = flowKey;
+    previousFlowKeyRef.current = layoutKey;
     initializedRef.current = true;
 
     setVisualizationData({ 
@@ -181,10 +178,11 @@ export const useVisualizationData = ({
       centralNode: enrichedCentralNode,
       selectedNodeId: null
     });
+    onSvgCleared?.();
 
   // Only depend on structural changes - NOT on data that changes frequently
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flowData, dimensions, createOrbitalVisualization, svgRef]);
+  }, [flowData, dimensions.width, dimensions.height, createOrbitalVisualization, svgRef]);
 
   // EFFECT 2: Incrementally update node data (prices, signals, AI) without rebuilding layout
   useEffect(() => {
