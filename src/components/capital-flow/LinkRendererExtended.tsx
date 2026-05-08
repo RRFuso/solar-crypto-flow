@@ -1,8 +1,10 @@
 
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import * as d3 from 'd3';
 import { Prediction } from '@/lib/aiModel';
 import { stylizeLinks, createArrowheads } from './link-renderer/LinkStyling';
+import { addFlowParticles } from './link-renderer/ParticleAnimation';
+import { globalAnimator } from '@/utils/animationOptimizer';
 import { LinkData } from '@/types/capitalFlow';
 import { NarrativeNode } from '@/types/narratives';
 import { getCategoryColor as getSignalCategoryColor } from './constants/signalCategories';
@@ -39,8 +41,8 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
   activeCategory = 'all',
   smartMoneyFlows
 }) => {
-  const previousLinksKeyRef = useRef<string>('');
   const linkElementsRef = useRef<d3.Selection<any, any, any, any> | null>(null);
+  const particleCleanupRef = useRef<(() => void) | null>(null);
 
   const getColorForFlow = (category: string) => {
     if (getCategoryColor) {
@@ -78,32 +80,27 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
     }).filter(Boolean) as LinkData[];
   }, [links, nodes, getCategoryColor]);
 
+  const processedLinksKey = useMemo(() => getLinksKey(processedLinks), [processedLinks]);
+
   useEffect(() => {
     if (!svg || processedLinks.length === 0) return;
 
-    const currentLinksKey = getLinksKey(processedLinks);
-    const linksStructureChanged = currentLinksKey !== previousLinksKeyRef.current;
+    svg.selectAll(".flow-links").remove();
+    svg.selectAll(".particles-group").remove();
+    particleCleanupRef.current?.();
+    particleCleanupRef.current = null;
 
-    // Only rebuild link DOM elements if the structure changed
-    if (linksStructureChanged) {
-      svg.selectAll(".flow-links").remove();
-      svg.selectAll(".particles-group").remove();
+    const linkGroup = svg.insert("g", ".node").attr("class", "flow-links");
+    linkGroup.style("visibility", showLines ? "visible" : "hidden");
 
-      const linkGroup = svg.append("g").attr("class", "flow-links");
-      linkGroup.style("visibility", showLines ? "visible" : "hidden");
+    const handleMouseOver = (event: MouseEvent, linkData: LinkData) => {};
+    const handleMouseOut = () => {};
 
-      const handleMouseOver = (event: MouseEvent, linkData: LinkData) => {};
-      const handleMouseOut = () => {};
+    const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut, activeCategory);
+    createArrowheads(svg, processedLinks);
+    linkElementsRef.current = link;
 
-      const link = stylizeLinks(svg, linkGroup, processedLinks, selectedNodeId, handleMouseOver, handleMouseOut, activeCategory);
-      createArrowheads(svg, processedLinks);
-      linkElementsRef.current = link;
-      previousLinksKeyRef.current = currentLinksKey;
-
-      // Particle system
-      let particleCleanup: (() => void) | null = null;
-      
-      const getFlowConfig = (link: LinkData): FlowParticleConfig => {
+    const getFlowConfig = (link: LinkData): FlowParticleConfig => {
         if (!smartMoneyFlows || smartMoneyFlows.length === 0) {
           return {
             direction: link.percentage > 0 ? 1 : -1,
@@ -136,45 +133,42 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
           isRealData: true,
         };
       };
-      
-      if (showLines && processedLinks.length > 0) {
-        import('./link-renderer/ParticleAnimation').then(({ addFlowParticles }) => {
-          particleCleanup = addFlowParticles(svg, linkGroup, processedLinks, selectedNodeId, getFlowConfig);
-        });
-      }
 
-      // Orbital animation for links
-      if (animateWithOrbit) {
-        import('@/utils/animationOptimizer').then(({ globalAnimator }) => {
-          const updateLinks = (deltaTime: number) => {
-            if (!linkElementsRef.current) return;
-            linkElementsRef.current.attr("d", (d: LinkData) => {
-              if (!d.source || !d.target || 
-                  typeof d.source.x !== 'number' || typeof d.source.y !== 'number' ||
-                  typeof d.target.x !== 'number' || typeof d.target.y !== 'number') {
-                return "";
-              }
-              const dx = d.target.x - d.source.x;
-              const dy = d.target.y - d.source.y;
-              const dr = Math.sqrt(dx * dx + dy * dy) * 0.8;
-              return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-            });
-          };
-          globalAnimator.addCallback(updateLinks);
-          globalAnimator.start();
-        });
-      }
-
-      return () => {
-        if (particleCleanup) particleCleanup();
-        svg.selectAll(".flow-links").remove();
-        svg.selectAll(".particles-group").remove();
-      };
-    } else {
-      // Structure didn't change — just update visibility
-      svg.selectAll(".flow-links").style("visibility", showLines ? "visible" : "hidden");
+    if (showLines && processedLinks.length > 0) {
+      particleCleanupRef.current = addFlowParticles(svg, linkGroup, processedLinks, selectedNodeId, getFlowConfig);
     }
-  }, [svg, processedLinks, selectedNodeId, animateWithOrbit, showLines, activeCategory, smartMoneyFlows]);
+
+    return () => {
+      particleCleanupRef.current?.();
+      particleCleanupRef.current = null;
+      svg.selectAll(".flow-links").remove();
+      svg.selectAll(".particles-group").remove();
+      linkElementsRef.current = null;
+    };
+  }, [svg, processedLinksKey, selectedNodeId, showLines, activeCategory, smartMoneyFlows]);
+
+  useEffect(() => {
+    if (!animateWithOrbit) return;
+
+    const updateLinks = () => {
+      if (!linkElementsRef.current) return;
+      linkElementsRef.current.attr("d", (d: LinkData) => {
+        if (!d.source || !d.target || 
+            typeof d.source.x !== 'number' || typeof d.source.y !== 'number' ||
+            typeof d.target.x !== 'number' || typeof d.target.y !== 'number') {
+          return "";
+        }
+        const dx = d.target.x - d.source.x;
+        const dy = d.target.y - d.source.y;
+        const dr = Math.sqrt(dx * dx + dy * dy) * 0.8;
+        return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+      });
+    };
+
+    globalAnimator.addCallback(updateLinks);
+    globalAnimator.start();
+    return () => globalAnimator.removeCallback(updateLinks);
+  }, [animateWithOrbit]);
 
   return null;
 };
