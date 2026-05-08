@@ -86,26 +86,20 @@ export const useCredits = () => {
   };
 
   const useCredit = async (): Promise<boolean> => {
-    if (!user || !credits) return false;
-    
+    if (!user) return false;
+
     // Admins and paid users don't consume credits
     if (isAdmin || subscriptionPlan !== 'free') return true;
-    
-    if (credits.credits <= 0) return false;
 
     try {
-      const { error } = await supabase
-        .from('user_credits')
-        .update({ 
-          credits: credits.credits - 1,
-          flows_used: credits.flows_used + 1 
-        })
-        .eq('user_id', user.id);
-
+      const { data, error } = await supabase.rpc('consume_credit');
       if (error) throw error;
-      
-      await fetchCredits();
-      return true;
+
+      if (data) {
+        await fetchCredits();
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('Error using credit:', error);
       toast.error('Erro ao usar crédito');

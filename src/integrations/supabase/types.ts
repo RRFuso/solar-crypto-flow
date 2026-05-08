@@ -930,6 +930,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      consume_credit: { Args: never; Returns: boolean }
       get_current_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
