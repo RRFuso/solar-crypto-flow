@@ -62,6 +62,7 @@ export function usePaginatedCryptos({
   externalCategory,
   externalList,
   externalSymbols,
+  rankingSource,
 }: UsePaginatedCryptosOptions): UsePaginatedCryptosResult {
   const [currentPage, setCurrentPage] = useState(1);
   const [currentList, setCurrentListState] = useState(initialList);
