@@ -174,16 +174,18 @@ export function usePaginatedCryptos({
 
     // ── List-specific sorting ─────────────────────────────────────────────
     switch (currentList) {
+      // Ranges são INCLUSIVOS por rank (posição 1-based).
+      // Ex.: 'top-200' = ranks 100..200 → slice(99, 200)
       case 'top-100':   result = result.slice(0, 100); break;
-      case 'top-200':   result = result.slice(100, 200); break;
-      case 'top-300':   result = result.slice(200, 300); break;
-      case 'top-400':   result = result.slice(300, 400); break;
-      case 'top-500':   result = result.slice(400, 500); break;
-      case 'top-600':   result = result.slice(500, 600); break;
-      case 'top-700':   result = result.slice(600, 700); break;
-      case 'top-800':   result = result.slice(700, 800); break;
-      case 'top-900':   result = result.slice(800, 900); break;
-      case 'top-1000':  result = result.slice(900, 1000); break;
+      case 'top-200':   result = result.slice(99, 200); break;
+      case 'top-300':   result = result.slice(199, 300); break;
+      case 'top-400':   result = result.slice(299, 400); break;
+      case 'top-500':   result = result.slice(399, 500); break;
+      case 'top-600':   result = result.slice(499, 600); break;
+      case 'top-700':   result = result.slice(599, 700); break;
+      case 'top-800':   result = result.slice(699, 800); break;
+      case 'top-900':   result = result.slice(799, 900); break;
+      case 'top-1000':  result = result.slice(899, 1000); break;
 
       case 'volume-spike': {
         result = result
