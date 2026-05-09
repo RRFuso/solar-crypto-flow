@@ -51,6 +51,40 @@ const SolarSystemSection: React.FC<SolarSystemSectionProps> = ({
   const externalList = command?.action === 'reconstruct' ? 'top-100' : undefined;
   const externalSymbols = command?.selectedSymbols ?? undefined;
 
+  // Fetch the full ranked universe (top 1000 by market cap) so that lists
+  // 100-200 ... 900-1000 can paginate even when live flowData is sparse.
+  const { data: rankedUniverseRaw } = useQuery({
+    queryKey: ['ranked-universe-1000'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cryptocurrencies')
+        .select('symbol, name, market_cap, volume_24h, price_change_percentage_24h, current_price')
+        .order('market_cap', { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
+  });
+
+  const rankingSource: FlowData[] | undefined = useMemo(() => {
+    if (!rankedUniverseRaw) return undefined;
+    return rankedUniverseRaw.map((c: any) => ({
+      id: `rank-${c.symbol}`,
+      from: (c.symbol || '').toUpperCase(),
+      to: 'BTC',
+      value: 0,
+      percentage: 0,
+      marketCap: c.market_cap ?? 0,
+      volume: c.volume_24h ?? 0,
+      change: c.price_change_percentage_24h ?? 0,
+      price: c.current_price ?? 0,
+      name: c.name,
+    } as FlowData));
+  }, [rankedUniverseRaw]);
+
   const {
     paginatedData,
     currentPage,
@@ -69,6 +103,7 @@ const SolarSystemSection: React.FC<SolarSystemSectionProps> = ({
     externalCategory,
     externalList,
     externalSymbols,
+    rankingSource,
   });
 
   // Clear the Oracle command after it has been consumed by this render cycle
