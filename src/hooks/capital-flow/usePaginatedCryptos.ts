@@ -10,6 +10,9 @@ interface UsePaginatedCryptosOptions {
   externalCategory?: string;
   externalList?: string;
   externalSymbols?: string[];
+  // Full ranked universe (sorted by market cap desc) used for top-N pagination
+  // Allows lists 100-200 ... 900-1000 to work even when flowData is sparse
+  rankingSource?: FlowData[];
 }
 
 interface UsePaginatedCryptosResult {
