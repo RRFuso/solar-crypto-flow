@@ -233,7 +233,7 @@ export function usePaginatedCryptos({
     }
 
     return result;
-  }, [rankedData, searchTerm, selectedCategory, currentList, externalSymbols]);
+  }, [rankedUniverse, searchTerm, selectedCategory, currentList, externalSymbols]);
 
   // Unique symbols with fixed coins always included
   const uniqueSymbols = useMemo(() => {
