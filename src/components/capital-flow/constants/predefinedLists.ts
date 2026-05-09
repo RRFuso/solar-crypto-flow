@@ -2,16 +2,16 @@
 // Listas predefinidas estratégicas
 export const PREDEFINED_LISTS = {
   // Paginação por ranking (0-99, 100-199, etc.)
-  'top-100': { label: 'Top 1-100', range: [0, 99], dynamic: false },
-  'top-200': { label: 'Top 100-200', range: [100, 199], dynamic: false },
-  'top-300': { label: 'Top 200-300', range: [200, 299], dynamic: false },
-  'top-400': { label: 'Top 300-400', range: [300, 399], dynamic: false },
-  'top-500': { label: 'Top 400-500', range: [400, 499], dynamic: false },
-  'top-600': { label: 'Top 500-600', range: [500, 599], dynamic: false },
-  'top-700': { label: 'Top 600-700', range: [600, 699], dynamic: false },
-  'top-800': { label: 'Top 700-800', range: [700, 799], dynamic: false },
-  'top-900': { label: 'Top 800-900', range: [800, 899], dynamic: false },
-  'top-1000': { label: 'Top 900-1000', range: [900, 999], dynamic: false },
+  'top-100': { label: 'Top 1-100', range: [1, 100], dynamic: false },
+  'top-200': { label: 'Top 100-200', range: [100, 200], dynamic: false },
+  'top-300': { label: 'Top 200-300', range: [200, 300], dynamic: false },
+  'top-400': { label: 'Top 300-400', range: [300, 400], dynamic: false },
+  'top-500': { label: 'Top 400-500', range: [400, 500], dynamic: false },
+  'top-600': { label: 'Top 500-600', range: [500, 600], dynamic: false },
+  'top-700': { label: 'Top 600-700', range: [600, 700], dynamic: false },
+  'top-800': { label: 'Top 700-800', range: [700, 800], dynamic: false },
+  'top-900': { label: 'Top 800-900', range: [800, 900], dynamic: false },
+  'top-1000': { label: 'Top 900-1000', range: [900, 1000], dynamic: false },
   
   // Listas estratégicas dinâmicas
   'volume-spike': { 
