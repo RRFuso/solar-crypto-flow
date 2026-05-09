@@ -10,6 +10,9 @@ interface UsePaginatedCryptosOptions {
   externalCategory?: string;
   externalList?: string;
   externalSymbols?: string[];
+  // Full ranked universe (sorted by market cap desc) used for top-N pagination
+  // Allows lists 100-200 ... 900-1000 to work even when flowData is sparse
+  rankingSource?: FlowData[];
 }
 
 interface UsePaginatedCryptosResult {
@@ -59,6 +62,7 @@ export function usePaginatedCryptos({
   externalCategory,
   externalList,
   externalSymbols,
+  rankingSource,
 }: UsePaginatedCryptosOptions): UsePaginatedCryptosResult {
   const [currentPage, setCurrentPage] = useState(1);
   const [currentList, setCurrentListState] = useState(initialList);
@@ -105,9 +109,30 @@ export function usePaginatedCryptos({
     return [...deduplicatedData].sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
   }, [deduplicatedData]);
 
+  // Build the effective ranked universe used for top-N pagination.
+  // Prefer the provided rankingSource (e.g. top 1000 from DB), enriching each
+  // entry with real flow data from rankedData when the symbol matches.
+  const rankedUniverse = useMemo(() => {
+    if (!rankingSource || rankingSource.length === 0) return rankedData;
+
+    const flowBySymbol = new Map<string, FlowData>();
+    const stableSet = new Set(CRYPTO_CATEGORIES.stablecoin);
+    for (const f of rankedData) {
+      const primary = (f.from === 'BTC' || stableSet.has(f.from)) ? f.to : f.from;
+      flowBySymbol.set(primary.toUpperCase(), f);
+    }
+
+    const sorted = [...rankingSource].sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
+    return sorted.map(item => {
+      const primary = (item.from === 'BTC' || stableSet.has(item.from)) ? item.to : item.from;
+      const real = flowBySymbol.get(primary.toUpperCase());
+      return real ? { ...item, ...real } : item;
+    });
+  }, [rankingSource, rankedData]);
+
   // Filter and sort
   const filteredData = useMemo(() => {
-    let result = [...rankedData];
+    let result = [...rankedUniverse];
 
     // Search filter
     if (searchTerm.trim()) {
@@ -208,7 +233,7 @@ export function usePaginatedCryptos({
     }
 
     return result;
-  }, [rankedData, searchTerm, selectedCategory, currentList, externalSymbols]);
+  }, [rankedUniverse, searchTerm, selectedCategory, currentList, externalSymbols]);
 
   // Unique symbols with fixed coins always included
   const uniqueSymbols = useMemo(() => {

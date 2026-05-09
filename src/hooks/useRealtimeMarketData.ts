@@ -84,7 +84,7 @@ export const useRealtimeMarketData = (): UseRealtimeMarketDataReturn => {
         .from('cryptocurrencies')
         .select('id, symbol, name, current_price, volume_24h, price_change_percentage_24h, market_cap, last_updated')
         .order('market_cap', { ascending: false })
-        .limit(250);
+        .limit(1000);
 
       if (fetchError) throw fetchError;
 
