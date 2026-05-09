@@ -109,9 +109,30 @@ export function usePaginatedCryptos({
     return [...deduplicatedData].sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
   }, [deduplicatedData]);
 
+  // Build the effective ranked universe used for top-N pagination.
+  // Prefer the provided rankingSource (e.g. top 1000 from DB), enriching each
+  // entry with real flow data from rankedData when the symbol matches.
+  const rankedUniverse = useMemo(() => {
+    if (!rankingSource || rankingSource.length === 0) return rankedData;
+
+    const flowBySymbol = new Map<string, FlowData>();
+    const stableSet = new Set(CRYPTO_CATEGORIES.stablecoin);
+    for (const f of rankedData) {
+      const primary = (f.from === 'BTC' || stableSet.has(f.from)) ? f.to : f.from;
+      flowBySymbol.set(primary.toUpperCase(), f);
+    }
+
+    const sorted = [...rankingSource].sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
+    return sorted.map(item => {
+      const primary = (item.from === 'BTC' || stableSet.has(item.from)) ? item.to : item.from;
+      const real = flowBySymbol.get(primary.toUpperCase());
+      return real ? { ...item, ...real } : item;
+    });
+  }, [rankingSource, rankedData]);
+
   // Filter and sort
   const filteredData = useMemo(() => {
-    let result = [...rankedData];
+    let result = [...rankedUniverse];
 
     // Search filter
     if (searchTerm.trim()) {
