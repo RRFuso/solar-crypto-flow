@@ -1,5 +1,6 @@
 
-import React, { memo, useEffect, useRef } from 'react';
+import React, { memo, useEffect, useMemo, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { FlowData } from '@/types/crypto';
 import { Prediction } from '@/lib/aiModel';
 import { FlowVisualization } from '../FlowVisualization';
@@ -7,6 +8,7 @@ import { SolarSystemControls } from './SolarSystemControls';
 import { LegalDisclaimer } from './LegalDisclaimer';
 import { usePaginatedCryptos } from '@/hooks/capital-flow/usePaginatedCryptos';
 import { useSolarCoreCommand } from '@/contexts/SolarCoreCommandContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SolarSystemSectionProps {
   flowData: FlowData[];
