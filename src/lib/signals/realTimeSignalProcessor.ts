@@ -111,11 +111,43 @@ export class RealTimeSignalProcessor {
         timestamp: new Date().toISOString()
       });
     }
-    
+
+    // MACD com detecção de divergências (requer priceHistory)
+    const macdPrices = crypto.priceHistory || [];
+    if (macdPrices.length >= 35) {
+      try {
+        const macd = MACD.calculate(macdPrices);
+        const latestDiv = macd.divergences[macd.divergences.length - 1];
+        if (latestDiv && latestDiv.index > macd.histogram.length - 10) {
+          if (latestDiv.type === 'bullish') {
+            signals.push({
+              symbol: crypto.symbol || '',
+              signalType: 'accumulation_edge',
+              strength: Math.min(0.95, macd.confidence || 0.75),
+              phase: 'middle',
+              volumeAnomaly: volumeRatio > 2,
+              smartMoneyFlow: 'in',
+              timestamp: new Date().toISOString(),
+            });
+          } else if (latestDiv.type === 'bearish') {
+            signals.push({
+              symbol: crypto.symbol || '',
+              signalType: 'distribution_edge',
+              strength: Math.min(0.95, macd.confidence || 0.75),
+              phase: 'middle',
+              volumeAnomaly: volumeRatio > 2,
+              smartMoneyFlow: 'out',
+              timestamp: new Date().toISOString(),
+            });
+          }
+        }
+      } catch {
+        // dados insuficientes
+      }
+    }
+
     return signals;
   }
-  
-  // Processar sinais de fundo
   static processBottomSignals(crypto: CryptoData): BottomSignal[] {
     const signals: BottomSignal[] = [];
     
