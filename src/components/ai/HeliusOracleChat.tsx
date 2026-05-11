@@ -197,7 +197,13 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
       });
     }
 
-    setMessages([...updatedMessages, { sender: 'ai', text: cleanText || aiResponse }]);
+    const finalText = cleanText && cleanText.length > 0
+      ? cleanText
+      : command
+        ? summarizeCommand(command)
+        : aiResponse;
+
+    setMessages([...updatedMessages, { sender: 'ai', text: finalText }]);
     setIsLoading(false);
   }, [userInput, isLoading, messages, applyHeliusCommand, selectedCategory]);
 
