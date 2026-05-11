@@ -21,27 +21,64 @@ interface HeliusOracleChatProps {
   className?: string;
 }
 
-/** Parse AI response to extract solar-command blocks (fenced or raw JSON) */
+/** Strip JSON-style line/block comments so JSON.parse accepts AI-generated blocks */
+function stripJsonComments(s: string): string {
+  return s.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+/** Build a human-readable summary from a parsed solar-command (used when the AI returned only JSON). */
+function summarizeCommand(cmd: any): string {
+  const parts: string[] = ['Aqui está a interpretação da sua solicitação:'];
+  if (Array.isArray(cmd.symbols) && cmd.symbols.length) {
+    parts.push(`- **Ativos em foco:** ${cmd.symbols.join(', ')}`);
+  }
+  if (cmd.category) parts.push(`- **Categoria:** ${cmd.category}`);
+  const focusSym = typeof cmd.focus === 'string' ? cmd.focus : cmd.focus?.symbol;
+  if (focusSym) parts.push(`- **Centro da visualização:** ${focusSym}`);
+  if (typeof cmd.zoom === 'number') parts.push(`- **Zoom:** ${cmd.zoom}%`);
+  if (typeof cmd.smartMoneyThreshold === 'number') {
+    parts.push(`- **Limiar de smart money:** ${cmd.smartMoneyThreshold}`);
+  }
+  parts.push('\nReconfigurando o Solar Core agora. _Análises informativas, sem aconselhamento financeiro._');
+  return parts.join('\n');
+}
+
+/** Parse AI response to extract solar-command blocks (fenced, tagged, or bare JSON) */
 function parseSolarCommand(text: string): { cleanText: string; command: any | null } {
-  // Try fenced ```solar-command ... ``` first
-  const fencedRegex = /```solar-command\s*([\s\S]*?)```/;
+  // 1) Fenced ```solar-command ... ``` or ```json ... ```
+  const fencedRegex = /```(?:solar-command|json)?\s*([\s\S]*?)```/i;
   const fencedMatch = text.match(fencedRegex);
   if (fencedMatch) {
     try {
-      const command = JSON.parse(fencedMatch[1].trim());
-      const cleanText = text.replace(fencedRegex, '').trim();
-      return { cleanText, command };
+      const command = JSON.parse(stripJsonComments(fencedMatch[1].trim()));
+      if (command && (command.symbols || command.category || command.focus || command.zoom)) {
+        const cleanText = text.replace(fencedMatch[0], '').trim();
+        return { cleanText, command };
+      }
     } catch { /* fall through */ }
   }
 
-  // Try delimited solar-command ... /solar-command
+  // 2) Delimited solar-command ... /solar-command
   const tagRegex = /solar-command\s*([\s\S]*?)\/solar-command/;
   const tagMatch = text.match(tagRegex);
   if (tagMatch) {
     try {
-      const command = JSON.parse(tagMatch[1].trim());
+      const command = JSON.parse(stripJsonComments(tagMatch[1].trim()));
       const cleanText = text.replace(tagRegex, '').trim();
       return { cleanText, command };
+    } catch { /* fall through */ }
+  }
+
+  // 3) Bare JSON object containing solar-command keys (with or without surrounding text)
+  const trimmed = text.trim();
+  const bareMatch = trimmed.match(/\{[\s\S]*?"(?:symbols|category|focus|zoom)"[\s\S]*\}/);
+  if (bareMatch) {
+    try {
+      const command = JSON.parse(stripJsonComments(bareMatch[0]));
+      if (command && (command.symbols || command.category || command.focus || command.zoom)) {
+        const cleanText = trimmed.replace(bareMatch[0], '').trim();
+        return { cleanText, command };
+      }
     } catch { /* fall through */ }
   }
 
