@@ -148,6 +148,8 @@ export class RealTimeSignalProcessor {
 
     return signals;
   }
+
+  // Processar sinais de fundo
   static processBottomSignals(crypto: CryptoData): BottomSignal[] {
     const signals: BottomSignal[] = [];
     
