@@ -6,6 +6,8 @@ import {
   OnChainData,
   PredictiveSignalAggregated 
 } from '@/types/predictiveSignals';
+import { BollingerBands } from '@/lib/indicators/BollingerBands';
+import { MACD } from '@/lib/indicators/MACD';
 
 export class RealTimeSignalProcessor {
   
