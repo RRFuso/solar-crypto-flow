@@ -43,7 +43,35 @@ export class RealTimeSignalProcessor {
         timestamp: new Date().toISOString()
       });
     }
-    
+
+    // Bollinger Bands squeeze + breakout (requer priceHistory)
+    const prices = crypto.priceHistory || [];
+    if (prices.length >= 20) {
+      try {
+        const bb = BollingerBands.calculate(prices);
+        if (bb.isSqueeze && bb.signal === 'buy' && bb.confidence > 0.7) {
+          const bw = bb.bandwidth[bb.bandwidth.length - 1];
+          signals.push({
+            symbol: crypto.symbol || '',
+            signalType: 'explosive_upside',
+            confidence: bb.confidence,
+            factors: [
+              'Bollinger Bands squeeze detectado',
+              'Breakout acima da banda superior',
+              `Bandwidth: ${bw.toFixed(2)}%`,
+              `%B: ${bb.percentB.toFixed(0)}%`,
+            ],
+            riskLevel: 'medium',
+            targetGain: 15 + bb.confidence * 20,
+            timeframe: '4h',
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } catch {
+        // dados insuficientes — ignorar silenciosamente
+      }
+    }
+
     return signals;
   }
   
