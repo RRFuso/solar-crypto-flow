@@ -155,6 +155,7 @@ export interface CryptoData {
   tokenEntertainmentDescription?: string;
   hasBullishDivergence?: boolean;
   hasBearishDivergence?: boolean;
+  priceHistory?: number[];
 }
 
 export interface FlowData {
