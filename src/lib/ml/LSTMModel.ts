@@ -114,7 +114,8 @@ export class LSTMModel {
     const predictions: number[] = [];
 
     for (let i = 0; i < horizon; i++) {
-      const inputTensor = tf.tensor3d([currentSequence], [1, this.lookback, 1]);
+      const nested: number[][][] = [currentSequence.map((v) => [v])];
+      const inputTensor = tf.tensor3d(nested, [1, this.lookback, 1]);
       const prediction = this.model.predict(inputTensor) as tf.Tensor;
       const predictedValue = (await prediction.data())[0];
       predictions.push(predictedValue);

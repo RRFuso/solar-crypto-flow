@@ -81,6 +81,8 @@ export class DataPreprocessor {
   }
 
   static reshapeForLSTM(X: number[][], timesteps: number, features = 1): tf.Tensor3D {
-    return tf.tensor3d(X, [X.length, timesteps, features]);
+    const nested: number[][][] = X.map((seq) => seq.map((v) => [v]));
+    void features;
+    return tf.tensor3d(nested, [X.length, timesteps, 1]);
   }
 }
