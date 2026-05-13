@@ -26,4 +26,26 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    target: 'es2020',
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-tooltip',
+          ],
+          'chart-vendor': ['recharts', 'd3'],
+          'tensorflow': ['@tensorflow/tfjs'],
+          'three-vendor': ['three'],
+          'supabase': ['@supabase/supabase-js'],
+        },
+      },
+    },
+  },
 }));
