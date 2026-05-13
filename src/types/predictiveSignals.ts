@@ -1,4 +1,5 @@
 // Tipos para sinais preditivos otimizados
+import type { PatternSignal } from '@/lib/patterns/CandlestickPatterns';
 
 export interface ExplosiveSignal {
   symbol: string;
@@ -41,12 +42,22 @@ export interface OnChainData {
   lastUpdated: string;
 }
 
+export interface TechnicalIndicatorSummary {
+  bollingerSqueeze?: boolean;
+  bollingerBandwidth?: number;
+  bollingerPercentB?: number;
+  macdDivergence?: 'bullish' | 'bearish' | null;
+  macdConfidence?: number;
+}
+
 export interface PredictiveSignalAggregated {
   symbol: string;
   explosiveSignals: ExplosiveSignal[];
   edgeSignals: EdgeSignal[];
   bottomSignals: BottomSignal[];
   onChainData: OnChainData | null;
+  patternSignals?: PatternSignal[];
+  technicals?: TechnicalIndicatorSummary;
   overallScore: number; // 0-100
   recommendedAction: 'buy' | 'sell' | 'hold' | 'watch';
   riskLevel: 'very_low' | 'low' | 'medium' | 'high' | 'very_high';
