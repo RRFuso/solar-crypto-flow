@@ -8,6 +8,8 @@ import {
 } from '@/types/predictiveSignals';
 import { BollingerBands } from '@/lib/indicators/BollingerBands';
 import { MACD } from '@/lib/indicators/MACD';
+import { CandlestickPatterns, type PatternSignal } from '@/lib/patterns/CandlestickPatterns';
+import type { TechnicalIndicatorSummary } from '@/types/predictiveSignals';
 
 export class RealTimeSignalProcessor {
   
@@ -224,28 +226,79 @@ export class RealTimeSignalProcessor {
     };
   }
   
+  // Resumo dos indicadores técnicos avançados (Bollinger + MACD)
+  static computeTechnicalSummary(crypto: CryptoData): TechnicalIndicatorSummary {
+    const summary: TechnicalIndicatorSummary = {};
+    const prices = crypto.priceHistory || [];
+
+    if (prices.length >= 20) {
+      try {
+        const bb = BollingerBands.calculate(prices);
+        summary.bollingerSqueeze = bb.isSqueeze;
+        summary.bollingerBandwidth = bb.bandwidth[bb.bandwidth.length - 1];
+        summary.bollingerPercentB = bb.percentB;
+      } catch { /* dados insuficientes */ }
+    }
+
+    if (prices.length >= 35) {
+      try {
+        const macd = MACD.calculate(prices);
+        const latestDiv = macd.divergences[macd.divergences.length - 1];
+        if (latestDiv && latestDiv.index > macd.histogram.length - 10) {
+          summary.macdDivergence = latestDiv.type;
+          summary.macdConfidence = macd.confidence;
+        } else {
+          summary.macdDivergence = null;
+        }
+      } catch { /* dados insuficientes */ }
+    }
+
+    return summary;
+  }
+
+  // Detecta padrões de candlestick quando candleHistory está disponível
+  static processPatternSignals(crypto: CryptoData): PatternSignal[] {
+    const candles = crypto.candleHistory || [];
+    if (candles.length < 1) return [];
+    try {
+      return CandlestickPatterns.analyzePatterns(candles);
+    } catch {
+      return [];
+    }
+  }
+
   // Processar todos os sinais para uma crypto
   static processAllSignals(crypto: CryptoData): PredictiveSignalAggregated {
     const explosiveSignals = this.processExplosiveSignals(crypto);
     const edgeSignals = this.processEdgeSignals(crypto);
     const bottomSignals = this.processBottomSignals(crypto);
     const onChainData = this.generateOnChainData(crypto);
-    
+    const patternSignals = this.processPatternSignals(crypto);
+    const technicals = this.computeTechnicalSummary(crypto);
+
     // Calcular score geral
     const allSignals = [...explosiveSignals, ...edgeSignals, ...bottomSignals];
     const totalConfidence = allSignals.reduce((sum, signal) => {
-      const signalStrength = 'confidence' in signal ? signal.confidence : 
+      const signalStrength = 'confidence' in signal ? signal.confidence :
                             'strength' in signal ? signal.strength : 0;
       return sum + signalStrength;
     }, 0);
-    
-    const overallScore = Math.min(100, allSignals.length > 0 ? 
+
+    let overallScore = Math.min(100, allSignals.length > 0 ?
       (totalConfidence / allSignals.length) * 100 : 0);
-    
+
+    // Ajustar score com padrões de candlestick (±10 pts)
+    let patternAdjustment = 0;
+    patternSignals.forEach(p => {
+      if (p.signal === 'buy') patternAdjustment += p.confidence * 10;
+      else if (p.signal === 'sell') patternAdjustment -= p.confidence * 10;
+    });
+    overallScore = Math.max(0, Math.min(100, overallScore + patternAdjustment));
+
     // Determinar ação recomendada
     let recommendedAction: 'buy' | 'sell' | 'hold' | 'watch' = 'watch';
     let riskLevel: 'very_low' | 'low' | 'medium' | 'high' | 'very_high' = 'medium';
-    
+
     if (explosiveSignals.length > 0 && explosiveSignals[0].confidence > 0.7) {
       recommendedAction = 'buy';
       riskLevel = explosiveSignals[0].riskLevel === 'low' ? 'low' : 'medium';
@@ -258,13 +311,15 @@ export class RealTimeSignalProcessor {
     } else if (overallScore > 60) {
       recommendedAction = 'hold';
     }
-    
+
     return {
       symbol: crypto.symbol || '',
       explosiveSignals,
       edgeSignals,
       bottomSignals,
       onChainData,
+      patternSignals,
+      technicals,
       overallScore,
       recommendedAction,
       riskLevel,

@@ -156,6 +156,7 @@ export interface CryptoData {
   hasBullishDivergence?: boolean;
   hasBearishDivergence?: boolean;
   priceHistory?: number[];
+  candleHistory?: { open: number; high: number; low: number; close: number; volume?: number }[];
 }
 
 export interface FlowData {
