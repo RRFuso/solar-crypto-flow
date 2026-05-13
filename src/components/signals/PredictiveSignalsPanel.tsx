@@ -246,7 +246,63 @@ export const PredictiveSignalsPanel: React.FC<PredictiveSignalsPanelProps> = ({
                 </div>
               )}
 
-              <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground">
+              {/* Indicadores Técnicos Avançados */}
+              {signal.technicals && (signal.technicals.bollingerSqueeze !== undefined || signal.technicals.macdDivergence !== undefined) && (
+                <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    <span className="font-medium text-sm">Indicadores Técnicos</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {signal.technicals.bollingerSqueeze && (
+                      <Badge variant="secondary">🎯 BB Squeeze</Badge>
+                    )}
+                    {signal.technicals.bollingerBandwidth !== undefined && (
+                      <Badge variant="outline">BW {signal.technicals.bollingerBandwidth.toFixed(2)}%</Badge>
+                    )}
+                    {signal.technicals.bollingerPercentB !== undefined && (
+                      <Badge variant="outline">%B {signal.technicals.bollingerPercentB.toFixed(0)}</Badge>
+                    )}
+                    {signal.technicals.macdDivergence === 'bullish' && (
+                      <Badge className="bg-success/20 text-success-foreground border-0">
+                        📈 MACD Div. Bullish ({((signal.technicals.macdConfidence ?? 0) * 100).toFixed(0)}%)
+                      </Badge>
+                    )}
+                    {signal.technicals.macdDivergence === 'bearish' && (
+                      <Badge className="bg-destructive/20 text-destructive-foreground border-0">
+                        📉 MACD Div. Bearish ({((signal.technicals.macdConfidence ?? 0) * 100).toFixed(0)}%)
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Padrões de Candlestick */}
+              {signal.patternSignals && signal.patternSignals.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm flex items-center gap-2">
+                    🕯️ Padrões de Candlestick ({signal.patternSignals.length})
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {signal.patternSignals.map((p, idx) => (
+                      <Badge
+                        key={idx}
+                        className={
+                          p.signal === 'buy'
+                            ? 'bg-success/20 text-success-foreground border-0'
+                            : p.signal === 'sell'
+                            ? 'bg-destructive/20 text-destructive-foreground border-0'
+                            : 'bg-warning/20 text-warning-foreground border-0'
+                        }
+                        title={p.description}
+                      >
+                        {p.pattern.replace(/_/g, ' ')} · {(p.confidence * 100).toFixed(0)}%
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   Atualizado: {new Date(signal.timestamp).toLocaleTimeString()}
