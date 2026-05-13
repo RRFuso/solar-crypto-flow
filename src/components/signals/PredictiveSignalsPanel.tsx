@@ -303,6 +303,7 @@ export const PredictiveSignalsPanel: React.FC<PredictiveSignalsPanelProps> = ({
                 </div>
               )}
 
+              <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   Atualizado: {new Date(signal.timestamp).toLocaleTimeString()}
