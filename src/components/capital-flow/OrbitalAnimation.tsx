@@ -159,7 +159,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [width, height, rotationSpeed, updateLinksInRealTime]);
+  }, [width, height, rotationSpeed, updateLinksInRealTime, enabled]);
 
   return null;
 };
