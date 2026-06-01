@@ -22,6 +22,7 @@ export interface LinkRendererExtendedProps {
   showLines: boolean;
   activeCategory?: string;
   smartMoneyFlows?: SmartMoneyFlow[];
+  showParticles?: boolean;
 }
 
 // Stable key for link list to detect structural changes
@@ -39,7 +40,8 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
   getCategoryColor,
   showLines,
   activeCategory = 'all',
-  smartMoneyFlows
+  smartMoneyFlows,
+  showParticles = true,
 }) => {
   const svgElement = svg?.node();
   const linkElementsRef = useRef<d3.Selection<any, any, any, any> | null>(null);
@@ -145,7 +147,7 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
         };
       };
 
-    if (showLines && processedLinks.length > 0) {
+    if (showLines && showParticles && processedLinks.length > 0) {
       particleCleanupRef.current = addFlowParticles(stableSvg, linkGroup, processedLinks, selectedNodeId, getFlowConfig);
     }
 
@@ -188,6 +190,7 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
 export const LinkRendererExtended = React.memo(LinkRendererExtendedInner, (prev, next) => {
   // Re-render only if these change
   if (prev.showLines !== next.showLines) return false;
+  if (prev.showParticles !== next.showParticles) return false;
   if (prev.activeCategory !== next.activeCategory) return false;
   if (prev.selectedNodeId !== next.selectedNodeId) return false;
   if (prev.links.length !== next.links.length) return false;

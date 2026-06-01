@@ -225,11 +225,12 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
               nodes={enrichedNodes}
               selectedNodeId={selectedNodeId}
               predictions={predictions}
-              animateWithOrbit={true}
+              animateWithOrbit={lod.animateLinks}
               getCategoryColor={getCategoryColor}
               showLines={showLines}
               activeCategory={activeCategory}
               smartMoneyFlows={smartMoneyFlows}
+              showParticles={lod.showParticles}
             />
             <NodeRendererComponent
               svg={d3.select(svgRef.current)}
@@ -250,6 +251,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
               height={dimensions.height}
               rotationSpeed={0.00001}
               updateLinksInRealTime={false}
+              enabled={lod.animateLinks}
             />
           </React.Fragment>
         )}

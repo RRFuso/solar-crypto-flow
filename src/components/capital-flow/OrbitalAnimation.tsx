@@ -17,6 +17,7 @@ interface OrbitalAnimationProps {
   height: number;
   rotationSpeed?: number;
   updateLinksInRealTime?: boolean;
+  enabled?: boolean;
 }
 
 // ─── Singleton rAF loop ────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
   height,
   rotationSpeed = 0.00001,
   updateLinksInRealTime = false,
+  enabled = true,
 }) => {
   const nodesRef = useRef(nodes);
   const svgRef   = useRef(svg);
@@ -73,7 +75,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
   svgRef.current   = svg;
 
   useEffect(() => {
-    if (!svg || nodes.length === 0) return;
+    if (!enabled || !svg || nodes.length === 0) return;
 
     const instanceKey = Symbol('orbital-instance');
     // Adaptive FPS: start at 30, degrade to 20 if frames take too long
@@ -157,7 +159,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [width, height, rotationSpeed, updateLinksInRealTime]);
+  }, [width, height, rotationSpeed, updateLinksInRealTime, enabled]);
 
   return null;
 };
