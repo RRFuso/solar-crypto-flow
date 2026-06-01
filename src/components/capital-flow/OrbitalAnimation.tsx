@@ -67,6 +67,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
   height,
   rotationSpeed = 0.00001,
   updateLinksInRealTime = false,
+  enabled = true,
 }) => {
   const nodesRef = useRef(nodes);
   const svgRef   = useRef(svg);
