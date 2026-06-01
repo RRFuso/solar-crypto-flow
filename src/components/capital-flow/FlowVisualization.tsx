@@ -21,6 +21,7 @@ import { useSmartMoneyFlows } from '@/hooks/useSmartMoneyFlows';
 import { getCategoriesForSymbol } from '@/lib/marketData/categoryMapping';
 import { mapAIRecommendationToSignal, getCategoryColor as getSignalCategoryColor, determineCryptoSignalCategory } from './constants/signalCategories';
 import { useSolarCoreCommand } from '@/contexts/SolarCoreCommandContext';
+import { usePerformanceLOD } from './visualization/usePerformanceLOD';
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
@@ -137,13 +138,16 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     return getSignalCategoryColor('neutral');
   }, [aiInsights, cryptoDataMaps.bySymbol]);
 
-  // Enrich nodes with category data + Oracle highlight state
+  // Adaptive Level-of-Detail (FPS-driven quality)
+  const lod = usePerformanceLOD();
+
+  // Enrich nodes with category data + Oracle highlight state, capped by LOD
   const enrichedNodes = useMemo(() => {
     if (!visualizationData?.nodes) return [];
 
     const hasHighlight = highlightedSymbols && highlightedSymbols.size > 0;
 
-    return visualizationData.nodes.map(node => ({
+    const enriched = visualizationData.nodes.map(node => ({
       ...node,
       categories: getCategoriesForSymbol(node.id),
       _commandHighlighted: hasHighlight
@@ -151,7 +155,16 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
         : false,
       _hasCommandFilter: hasHighlight,
     }));
-  }, [visualizationData?.nodes, highlightedSymbols]);
+
+    // Cull beyond LOD cap — keep highest-priority nodes (central + highlighted + top by marketCap)
+    if (enriched.length <= lod.maxNodes) return enriched;
+    const sorted = [...enriched].sort((a, b) => {
+      const ap = (a.type === 'central' ? 1e18 : 0) + (a._commandHighlighted ? 1e15 : 0) + (a.marketCap || 0);
+      const bp = (b.type === 'central' ? 1e18 : 0) + (b._commandHighlighted ? 1e15 : 0) + (b.marketCap || 0);
+      return bp - ap;
+    });
+    return sorted.slice(0, lod.maxNodes);
+  }, [visualizationData?.nodes, highlightedSymbols, lod.maxNodes]);
 
   const hasValidDimensions = dimensions.width > 100 && dimensions.height > 100;
   const hasVisualizationData = visualizationData?.nodes?.length > 0;
