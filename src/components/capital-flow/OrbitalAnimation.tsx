@@ -75,7 +75,7 @@ export const OrbitalAnimationComponent: React.FC<OrbitalAnimationProps> = ({
   svgRef.current   = svg;
 
   useEffect(() => {
-    if (!svg || nodes.length === 0) return;
+    if (!enabled || !svg || nodes.length === 0) return;
 
     const instanceKey = Symbol('orbital-instance');
     // Adaptive FPS: start at 30, degrade to 20 if frames take too long
