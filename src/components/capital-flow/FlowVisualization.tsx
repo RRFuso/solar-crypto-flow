@@ -251,6 +251,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
               height={dimensions.height}
               rotationSpeed={0.00001}
               updateLinksInRealTime={false}
+              enabled={lod.animateLinks}
             />
           </React.Fragment>
         )}
