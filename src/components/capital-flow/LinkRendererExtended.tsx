@@ -22,6 +22,7 @@ export interface LinkRendererExtendedProps {
   showLines: boolean;
   activeCategory?: string;
   smartMoneyFlows?: SmartMoneyFlow[];
+  showParticles?: boolean;
 }
 
 // Stable key for link list to detect structural changes
