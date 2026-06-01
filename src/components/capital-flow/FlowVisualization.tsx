@@ -21,6 +21,7 @@ import { useSmartMoneyFlows } from '@/hooks/useSmartMoneyFlows';
 import { getCategoriesForSymbol } from '@/lib/marketData/categoryMapping';
 import { mapAIRecommendationToSignal, getCategoryColor as getSignalCategoryColor, determineCryptoSignalCategory } from './constants/signalCategories';
 import { useSolarCoreCommand } from '@/contexts/SolarCoreCommandContext';
+import { usePerformanceLOD } from './visualization/usePerformanceLOD';
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
