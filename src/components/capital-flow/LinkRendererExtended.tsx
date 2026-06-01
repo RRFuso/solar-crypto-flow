@@ -147,7 +147,7 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
         };
       };
 
-    if (showLines && processedLinks.length > 0) {
+    if (showLines && showParticles && processedLinks.length > 0) {
       particleCleanupRef.current = addFlowParticles(stableSvg, linkGroup, processedLinks, selectedNodeId, getFlowConfig);
     }
 
