@@ -225,11 +225,12 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
               nodes={enrichedNodes}
               selectedNodeId={selectedNodeId}
               predictions={predictions}
-              animateWithOrbit={true}
+              animateWithOrbit={lod.animateLinks}
               getCategoryColor={getCategoryColor}
               showLines={showLines}
               activeCategory={activeCategory}
               smartMoneyFlows={smartMoneyFlows}
+              showParticles={lod.showParticles}
             />
             <NodeRendererComponent
               svg={d3.select(svgRef.current)}
