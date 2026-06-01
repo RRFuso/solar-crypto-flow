@@ -40,7 +40,8 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
   getCategoryColor,
   showLines,
   activeCategory = 'all',
-  smartMoneyFlows
+  smartMoneyFlows,
+  showParticles = true,
 }) => {
   const svgElement = svg?.node();
   const linkElementsRef = useRef<d3.Selection<any, any, any, any> | null>(null);
