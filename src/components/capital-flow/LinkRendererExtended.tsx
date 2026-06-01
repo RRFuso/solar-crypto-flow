@@ -190,6 +190,7 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
 export const LinkRendererExtended = React.memo(LinkRendererExtendedInner, (prev, next) => {
   // Re-render only if these change
   if (prev.showLines !== next.showLines) return false;
+  if (prev.showParticles !== next.showParticles) return false;
   if (prev.activeCategory !== next.activeCategory) return false;
   if (prev.selectedNodeId !== next.selectedNodeId) return false;
   if (prev.links.length !== next.links.length) return false;
