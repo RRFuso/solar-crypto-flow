@@ -17,6 +17,7 @@ interface OrbitalAnimationProps {
   height: number;
   rotationSpeed?: number;
   updateLinksInRealTime?: boolean;
+  enabled?: boolean;
 }
 
 // ─── Singleton rAF loop ────────────────────────────────────────────────────
