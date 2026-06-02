@@ -21,6 +21,8 @@ interface NodeRendererProps {
   activeCategory?: string;
   links?: CapitalFlowLink[];
   flowDirections?: Map<string, FlowDirection>;
+  /** Max number of visible labels (label virtualization). Defaults to Infinity. */
+  maxLabels?: number;
 }
 
 const getAIRecommendationColor = (recommendation: string): string => {
