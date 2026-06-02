@@ -698,10 +698,11 @@ export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
         hideTooltip,
         props.activeCategory || 'all',
         props.links,
-        props.flowDirections
+        props.flowDirections,
+        props.maxLabels ?? Infinity
       );
     }
-  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip, props.activeCategory, props.links, props.flowDirections]);
+  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip, props.activeCategory, props.links, props.flowDirections, props.maxLabels]);
 
   return null;
 });
