@@ -24,7 +24,7 @@ export function usePerformanceLOD(manualOverride?: QualityLevel): PerformanceSta
   const [state, setState] = useState<PerformanceState>({
     fps: 60,
     quality: manualOverride ?? 'high',
-    maxNodes: 200,
+    maxNodes: 500,
     showParticles: true,
     animateLinks: true,
   });
