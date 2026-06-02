@@ -665,17 +665,19 @@ const renderOrUpdateVisualization = (
     .filter(function() { return !d3.select(this).classed('sentiment-badge-text') && !d3.select(this).classed('sentiment-arrow'); })
     .transition().duration(750)
     .attr('dy', (d: ExtendedOrbitalNode) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) + 16)
+    .attr('opacity', (d: ExtendedOrbitalNode) => labelVisibleIds.has(d.id) ? 1 : 0)
     .text((d: ExtendedOrbitalNode) => {
+      if (!labelVisibleIds.has(d.id)) return '';
       const aiInsight = aiInsights.get(d.id);
       const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
-      
+
       // Add on-chain indicator to the symbol name
       let suffix = '';
       if (onChainSentiment === 'Bullish') suffix = ' 🟢';
       else if (onChainSentiment === 'Bearish') suffix = ' 🔴';
       else if (aiInsight?.recommendation === 'strong_buy') suffix = ' 🚀';
       else if (aiInsight?.recommendation === 'strong_sell') suffix = ' ⚠️';
-      
+
       return `${d.id}${suffix}`;
     });
 };
