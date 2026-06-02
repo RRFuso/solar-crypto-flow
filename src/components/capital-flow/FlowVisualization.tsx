@@ -243,6 +243,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
               activeCategory={activeCategory}
               links={visualizationData.links}
               flowDirections={flowDirections}
+              maxLabels={lod.maxLabels}
             />
             <OrbitalAnimationComponent
               svg={d3.select(svgRef.current)}
