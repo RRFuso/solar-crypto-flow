@@ -142,6 +142,7 @@ const renderOrUpdateVisualization = (
   activeCategory: string = 'all',
   allCapitalFlows?: CapitalFlowLink[],
   flowDirections?: Map<string, FlowDirection>,
+  maxLabels: number = Infinity,
 ) => {
   // Helper: lookup smart money score with case-insensitive matching
   const getSmartMoneyScore = (nodeId: string) => {
