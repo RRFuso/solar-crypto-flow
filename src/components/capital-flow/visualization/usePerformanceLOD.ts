@@ -24,7 +24,7 @@ export function usePerformanceLOD(manualOverride?: QualityLevel): PerformanceSta
   const [state, setState] = useState<PerformanceState>({
     fps: 60,
     quality: manualOverride ?? 'high',
-    maxNodes: 200,
+    maxNodes: 500,
     showParticles: true,
     animateLinks: true,
   });
@@ -90,9 +90,12 @@ export function usePerformanceLOD(manualOverride?: QualityLevel): PerformanceSta
 }
 
 function qualityPreset(q: QualityLevel) {
+  // Visual stability: particles and node cap are kept constant across quality
+  // levels so the user never sees nodes disappear or particles vanish after the
+  // initial render. Only link animation (cheap to toggle) adapts to FPS.
   switch (q) {
-    case 'high':   return { maxNodes: 200, showParticles: true,  animateLinks: true  };
-    case 'medium': return { maxNodes: 120, showParticles: true,  animateLinks: false };
-    case 'low':    return { maxNodes: 60,  showParticles: false, animateLinks: false };
+    case 'high':   return { maxNodes: 500, showParticles: true, animateLinks: true  };
+    case 'medium': return { maxNodes: 500, showParticles: true, animateLinks: true  };
+    case 'low':    return { maxNodes: 500, showParticles: true, animateLinks: false };
   }
 }
