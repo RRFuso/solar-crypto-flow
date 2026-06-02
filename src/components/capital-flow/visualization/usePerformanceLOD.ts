@@ -7,6 +7,8 @@ interface PerformanceState {
   quality: QualityLevel;
   /** Recommended cap on rendered nodes (cull beyond this) */
   maxNodes: number;
+  /** Recommended cap on visible labels (label virtualization) */
+  maxLabels: number;
   /** Whether to render decorative particles/glows */
   showParticles: boolean;
   /** Whether to render link animations */
@@ -25,6 +27,7 @@ export function usePerformanceLOD(manualOverride?: QualityLevel): PerformanceSta
     fps: 60,
     quality: manualOverride ?? 'high',
     maxNodes: 500,
+    maxLabels: 150,
     showParticles: true,
     animateLinks: true,
   });
@@ -91,11 +94,10 @@ export function usePerformanceLOD(manualOverride?: QualityLevel): PerformanceSta
 
 function qualityPreset(q: QualityLevel) {
   // Visual stability: particles and node cap are kept constant across quality
-  // levels so the user never sees nodes disappear or particles vanish after the
-  // initial render. Only link animation (cheap to toggle) adapts to FPS.
+  // levels. Link animation and label budget adapt to FPS.
   switch (q) {
-    case 'high':   return { maxNodes: 500, showParticles: true, animateLinks: true  };
-    case 'medium': return { maxNodes: 500, showParticles: true, animateLinks: true  };
-    case 'low':    return { maxNodes: 500, showParticles: true, animateLinks: false };
+    case 'high':   return { maxNodes: 500, maxLabels: 200, showParticles: true, animateLinks: true  };
+    case 'medium': return { maxNodes: 500, maxLabels: 100, showParticles: true, animateLinks: true  };
+    case 'low':    return { maxNodes: 500, maxLabels: 50,  showParticles: true, animateLinks: false };
   }
 }

@@ -21,6 +21,8 @@ interface NodeRendererProps {
   activeCategory?: string;
   links?: CapitalFlowLink[];
   flowDirections?: Map<string, FlowDirection>;
+  /** Max number of visible labels (label virtualization). Defaults to Infinity. */
+  maxLabels?: number;
 }
 
 const getAIRecommendationColor = (recommendation: string): string => {
@@ -140,6 +142,7 @@ const renderOrUpdateVisualization = (
   activeCategory: string = 'all',
   allCapitalFlows?: CapitalFlowLink[],
   flowDirections?: Map<string, FlowDirection>,
+  maxLabels: number = Infinity,
 ) => {
   // Helper: lookup smart money score with case-insensitive matching
   const getSmartMoneyScore = (nodeId: string) => {
@@ -438,6 +441,25 @@ const renderOrUpdateVisualization = (
     });
   }
 
+  // Label virtualization: pick top-N nodes for visible labels.
+  // Priority: central > selected/connected > Oracle-highlighted > smart-money > marketCap.
+  const labelVisibleIds = new Set<string>();
+  if (Number.isFinite(maxLabels) && nodes.length > maxLabels) {
+    const ranked = [...nodes].map(n => {
+      let p = (n as any).marketCap || 0;
+      if (centralNode && n.id === centralNode.id) p += 1e20;
+      if (selectedNodeId && connectedNodeIds.has(n.id)) p += 1e18;
+      if ((n as any)._commandHighlighted) p += 1e17;
+      const sm = getSmartMoneyScore(n.id);
+      if (sm && (sm.sentiment === 'Bullish' || sm.sentiment === 'Bearish')) p += 1e15;
+      return { id: n.id, p };
+    }).sort((a, b) => b.p - a.p);
+    ranked.slice(0, maxLabels).forEach(r => labelVisibleIds.add(r.id));
+  } else {
+    nodes.forEach(n => labelVisibleIds.add(n.id));
+  }
+
+
   nodeUpdate.transition().duration(750)
     .attr('transform', (d: ExtendedOrbitalNode) => `translate(${d.x}, ${d.y}) scale(1)`)
     .style('opacity', (d: any) => {
@@ -643,17 +665,19 @@ const renderOrUpdateVisualization = (
     .filter(function() { return !d3.select(this).classed('sentiment-badge-text') && !d3.select(this).classed('sentiment-arrow'); })
     .transition().duration(750)
     .attr('dy', (d: ExtendedOrbitalNode) => calculateNodeRadius(d, zoomLevel, d.id === centralNode?.id) + 16)
+    .attr('opacity', (d: ExtendedOrbitalNode) => labelVisibleIds.has(d.id) ? 1 : 0)
     .text((d: ExtendedOrbitalNode) => {
+      if (!labelVisibleIds.has(d.id)) return '';
       const aiInsight = aiInsights.get(d.id);
       const onChainSentiment = getSmartMoneyScore(d.id)?.sentiment;
-      
+
       // Add on-chain indicator to the symbol name
       let suffix = '';
       if (onChainSentiment === 'Bullish') suffix = ' 🟢';
       else if (onChainSentiment === 'Bearish') suffix = ' 🔴';
       else if (aiInsight?.recommendation === 'strong_buy') suffix = ' 🚀';
       else if (aiInsight?.recommendation === 'strong_sell') suffix = ' ⚠️';
-      
+
       return `${d.id}${suffix}`;
     });
 };
@@ -674,10 +698,11 @@ export const NodeRendererComponent = React.memo((props: NodeRendererProps) => {
         hideTooltip,
         props.activeCategory || 'all',
         props.links,
-        props.flowDirections
+        props.flowDirections,
+        props.maxLabels ?? Infinity
       );
     }
-  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip, props.activeCategory, props.links, props.flowDirections]);
+  }, [props.svg, props.nodes, props.centralNode, props.selectedNodeId, props.zoomLevel, props.aiInsights, props.smartMoneyScores, showTooltip, hideTooltip, props.activeCategory, props.links, props.flowDirections, props.maxLabels]);
 
   return null;
 });
