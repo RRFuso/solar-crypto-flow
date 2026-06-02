@@ -27,6 +27,7 @@ export function usePerformanceLOD(manualOverride?: QualityLevel): PerformanceSta
     fps: 60,
     quality: manualOverride ?? 'high',
     maxNodes: 500,
+    maxLabels: 150,
     showParticles: true,
     animateLinks: true,
   });
