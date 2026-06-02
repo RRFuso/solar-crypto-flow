@@ -7,6 +7,8 @@ interface PerformanceState {
   quality: QualityLevel;
   /** Recommended cap on rendered nodes (cull beyond this) */
   maxNodes: number;
+  /** Recommended cap on visible labels (label virtualization) */
+  maxLabels: number;
   /** Whether to render decorative particles/glows */
   showParticles: boolean;
   /** Whether to render link animations */
