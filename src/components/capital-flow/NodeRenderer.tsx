@@ -441,6 +441,25 @@ const renderOrUpdateVisualization = (
     });
   }
 
+  // Label virtualization: pick top-N nodes for visible labels.
+  // Priority: central > selected/connected > Oracle-highlighted > smart-money > marketCap.
+  const labelVisibleIds = new Set<string>();
+  if (Number.isFinite(maxLabels) && nodes.length > maxLabels) {
+    const ranked = [...nodes].map(n => {
+      let p = (n as any).marketCap || 0;
+      if (centralNode && n.id === centralNode.id) p += 1e20;
+      if (selectedNodeId && connectedNodeIds.has(n.id)) p += 1e18;
+      if ((n as any)._commandHighlighted) p += 1e17;
+      const sm = getSmartMoneyScore(n.id);
+      if (sm && (sm.sentiment === 'Bullish' || sm.sentiment === 'Bearish')) p += 1e15;
+      return { id: n.id, p };
+    }).sort((a, b) => b.p - a.p);
+    ranked.slice(0, maxLabels).forEach(r => labelVisibleIds.add(r.id));
+  } else {
+    nodes.forEach(n => labelVisibleIds.add(n.id));
+  }
+
+
   nodeUpdate.transition().duration(750)
     .attr('transform', (d: ExtendedOrbitalNode) => `translate(${d.x}, ${d.y}) scale(1)`)
     .style('opacity', (d: any) => {
