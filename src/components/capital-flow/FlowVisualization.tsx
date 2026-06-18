@@ -149,7 +149,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
 
     const enriched = visualizationData.nodes.map(node => ({
       ...node,
-      categories: getCategoriesForSymbol(node.id),
+      categories: getCategoriesForSymbol(node.id) as string[],
       _commandHighlighted: hasHighlight
         ? highlightedSymbols!.has(node.id.toUpperCase())
         : false,
