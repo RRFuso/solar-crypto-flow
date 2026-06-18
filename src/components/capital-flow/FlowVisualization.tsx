@@ -59,12 +59,26 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
 
   const { cryptoDataMaps, isLoading: loadingCryptoData } = useCryptoData();
 
-  const symbolsInView = useMemo(() => {
-    if (!visualizationData?.nodes) return [];
-    return visualizationData.nodes.map(node => node.id);
+  // Stable symbol list — keep the SAME array reference across price ticks
+  // when the underlying set of symbols hasn't changed. This prevents a
+  // cascade of re-fetches in usePriceActionSignals / useAdvancedAI /
+  // useSmartMoneyFlows when only node data (price, etc.) updates.
+  const symbolsCacheRef = useRef<{ key: string; arr: string[] }>({ key: '', arr: [] });
+  const { symbolsInView, symbolsKey } = useMemo(() => {
+    const nodes = visualizationData?.nodes;
+    if (!nodes || nodes.length === 0) {
+      if (symbolsCacheRef.current.key !== '') {
+        symbolsCacheRef.current = { key: '', arr: [] };
+      }
+      return { symbolsInView: symbolsCacheRef.current.arr, symbolsKey: '' };
+    }
+    const next = nodes.map(n => n.id);
+    const key = [...next].sort().join(',');
+    if (key !== symbolsCacheRef.current.key) {
+      symbolsCacheRef.current = { key, arr: next };
+    }
+    return { symbolsInView: symbolsCacheRef.current.arr, symbolsKey: key };
   }, [visualizationData?.nodes]);
-
-  const symbolsKey = useMemo(() => [...symbolsInView].sort().join(','), [symbolsInView]);
 
   const { signals: priceActionSignals, signalsLoading: loadingSignals } = usePriceActionSignals(symbolsInView);
   const { insights: aiInsights, isLoading: loadingAI } = useAdvancedAI(symbolsInView);
@@ -124,19 +138,27 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     return () => document.removeEventListener('node-click', handleNodeClick as EventListener);
   }, [setCommandNodeId]);
 
+  // Keep latest maps in refs so the callback identity stays stable across
+  // frequent AI/price updates (otherwise it invalidates downstream memos
+  // in LinkRendererExtended on every poll).
+  const aiInsightsRef = useRef(aiInsights);
+  const cryptoBySymbolRef = useRef(cryptoDataMaps.bySymbol);
+  useEffect(() => { aiInsightsRef.current = aiInsights; }, [aiInsights]);
+  useEffect(() => { cryptoBySymbolRef.current = cryptoDataMaps.bySymbol; }, [cryptoDataMaps.bySymbol]);
+
   const getCategoryColor = useCallback((symbol: string) => {
-    const aiInsight = aiInsights.get(symbol);
+    const aiInsight = aiInsightsRef.current.get(symbol);
     if (aiInsight) {
       const signalCategory = mapAIRecommendationToSignal(aiInsight.recommendation);
       return getSignalCategoryColor(signalCategory);
     }
-    const crypto = cryptoDataMaps.bySymbol.get(symbol);
+    const crypto = cryptoBySymbolRef.current.get(symbol);
     if (crypto) {
       const signalCategory = determineCryptoSignalCategory(crypto);
       return getSignalCategoryColor(signalCategory);
     }
     return getSignalCategoryColor('neutral');
-  }, [aiInsights, cryptoDataMaps.bySymbol]);
+  }, []);
 
   // Adaptive Level-of-Detail (FPS-driven quality)
   const lod = usePerformanceLOD();
@@ -149,7 +171,7 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
 
     const enriched = visualizationData.nodes.map(node => ({
       ...node,
-      categories: getCategoriesForSymbol(node.id),
+      categories: getCategoriesForSymbol(node.id) as string[],
       _commandHighlighted: hasHighlight
         ? highlightedSymbols!.has(node.id.toUpperCase())
         : false,
