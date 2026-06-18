@@ -22,6 +22,7 @@ import { getCategoriesForSymbol } from '@/lib/marketData/categoryMapping';
 import { mapAIRecommendationToSignal, getCategoryColor as getSignalCategoryColor, determineCryptoSignalCategory } from './constants/signalCategories';
 import { useSolarCoreCommand } from '@/contexts/SolarCoreCommandContext';
 import { usePerformanceLOD } from './visualization/usePerformanceLOD';
+import { setPerf } from '@/lib/perf/perfStore';
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
