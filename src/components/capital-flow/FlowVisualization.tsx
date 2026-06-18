@@ -138,19 +138,27 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     return () => document.removeEventListener('node-click', handleNodeClick as EventListener);
   }, [setCommandNodeId]);
 
+  // Keep latest maps in refs so the callback identity stays stable across
+  // frequent AI/price updates (otherwise it invalidates downstream memos
+  // in LinkRendererExtended on every poll).
+  const aiInsightsRef = useRef(aiInsights);
+  const cryptoBySymbolRef = useRef(cryptoDataMaps.bySymbol);
+  useEffect(() => { aiInsightsRef.current = aiInsights; }, [aiInsights]);
+  useEffect(() => { cryptoBySymbolRef.current = cryptoDataMaps.bySymbol; }, [cryptoDataMaps.bySymbol]);
+
   const getCategoryColor = useCallback((symbol: string) => {
-    const aiInsight = aiInsights.get(symbol);
+    const aiInsight = aiInsightsRef.current.get(symbol);
     if (aiInsight) {
       const signalCategory = mapAIRecommendationToSignal(aiInsight.recommendation);
       return getSignalCategoryColor(signalCategory);
     }
-    const crypto = cryptoDataMaps.bySymbol.get(symbol);
+    const crypto = cryptoBySymbolRef.current.get(symbol);
     if (crypto) {
       const signalCategory = determineCryptoSignalCategory(crypto);
       return getSignalCategoryColor(signalCategory);
     }
     return getSignalCategoryColor('neutral');
-  }, [aiInsights, cryptoDataMaps.bySymbol]);
+  }, []);
 
   // Adaptive Level-of-Detail (FPS-driven quality)
   const lod = usePerformanceLOD();
