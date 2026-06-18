@@ -14,6 +14,7 @@ import "./App.css";
 
 const Index = lazy(() => import("./pages/Index"));
 const Landing = lazy(() => import("./pages/Landing"));
+const AdminPerf = lazy(() => import("./pages/AdminPerf"));
 
 function RouteFallback() {
   return (
@@ -42,6 +43,14 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<RouteFallback />}>
         <Index />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/admin",
+    element: (
+      <Suspense fallback={<RouteFallback />}>
+        <AdminPerf />
       </Suspense>
     ),
   },
