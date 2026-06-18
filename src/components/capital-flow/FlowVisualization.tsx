@@ -163,17 +163,6 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
   // Adaptive Level-of-Detail (FPS-driven quality)
   const lod = usePerformanceLOD();
 
-  // Publish render counts to perf monitor
-  useEffect(() => {
-    import('@/lib/perf/perfStore').then(({ setPerf }) => {
-      setPerf({
-        nodesRendered: enrichedNodes.length,
-        labelsRendered: Math.min(enrichedNodes.length, lod.maxLabels),
-        linksRendered: visualizationData?.links?.length ?? 0,
-      });
-    });
-  });
-
   // Enrich nodes with category data + Oracle highlight state, capped by LOD
   const enrichedNodes = useMemo(() => {
     if (!visualizationData?.nodes) return [];
@@ -198,6 +187,15 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     });
     return sorted.slice(0, lod.maxNodes);
   }, [visualizationData?.nodes, highlightedSymbols, lod.maxNodes]);
+
+  // Publish render counts to perf monitor
+  useEffect(() => {
+    setPerf({
+      nodesRendered: enrichedNodes.length,
+      labelsRendered: Math.min(enrichedNodes.length, lod.maxLabels),
+      linksRendered: visualizationData?.links?.length ?? 0,
+    });
+  }, [enrichedNodes.length, lod.maxLabels, visualizationData?.links?.length]);
 
   const hasValidDimensions = dimensions.width > 100 && dimensions.height > 100;
   const hasVisualizationData = visualizationData?.nodes?.length > 0;
