@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { setPerf } from '@/lib/perf/perfStore';
 
 export type QualityLevel = 'high' | 'medium' | 'low';
 
@@ -88,6 +89,19 @@ export function usePerformanceLOD(manualOverride?: QualityLevel): PerformanceSta
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
   }, [manualOverride]);
+
+  // Publish snapshot to perf store for admin monitor
+  useEffect(() => {
+    setPerf({
+      fps: state.fps,
+      quality: state.quality,
+      maxNodes: state.maxNodes,
+      maxLabels: state.maxLabels,
+      showParticles: state.showParticles,
+      animateLinks: state.animateLinks,
+      particlesEnabled: state.showParticles,
+    });
+  }, [state]);
 
   return state;
 }

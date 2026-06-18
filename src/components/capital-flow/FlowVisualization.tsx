@@ -22,6 +22,7 @@ import { getCategoriesForSymbol } from '@/lib/marketData/categoryMapping';
 import { mapAIRecommendationToSignal, getCategoryColor as getSignalCategoryColor, determineCryptoSignalCategory } from './constants/signalCategories';
 import { useSolarCoreCommand } from '@/contexts/SolarCoreCommandContext';
 import { usePerformanceLOD } from './visualization/usePerformanceLOD';
+import { setPerf } from '@/lib/perf/perfStore';
 
 interface FlowVisualizationProps {
   flowData: FlowData[];
@@ -187,6 +188,15 @@ const FlowVisualizationComponent: React.FC<FlowVisualizationProps> = ({
     });
     return sorted.slice(0, lod.maxNodes);
   }, [visualizationData?.nodes, highlightedSymbols, lod.maxNodes]);
+
+  // Publish render counts to perf monitor
+  useEffect(() => {
+    setPerf({
+      nodesRendered: enrichedNodes.length,
+      labelsRendered: Math.min(enrichedNodes.length, lod.maxLabels),
+      linksRendered: visualizationData?.links?.length ?? 0,
+    });
+  }, [enrichedNodes.length, lod.maxLabels, visualizationData?.links?.length]);
 
   const hasValidDimensions = dimensions.width > 100 && dimensions.height > 100;
   const hasVisualizationData = visualizationData?.nodes?.length > 0;
