@@ -104,30 +104,57 @@ export const CRYPTO_CATEGORIES: Record<string, string[]> = {
   ]
 };
 
+// ============================================================
+// Indexes pre-computed once at module load for O(1) lookups.
+// Avoids O(N*M) scans inside hot render paths.
+// ============================================================
+
+/** category -> Set<SYMBOL> (uppercase) for instant membership checks */
+const CATEGORY_SETS: Record<string, Set<string>> = (() => {
+  const out: Record<string, Set<string>> = {};
+  for (const [category, tokens] of Object.entries(CRYPTO_CATEGORIES)) {
+    out[category] = new Set(tokens.map((t) => t.toUpperCase()));
+  }
+  return out;
+})();
+
+/** SYMBOL (uppercase) -> categories[] reverse index, frozen for safe sharing */
+const SYMBOL_TO_CATEGORIES: Map<string, readonly string[]> = (() => {
+  const acc = new Map<string, string[]>();
+  for (const [category, tokens] of Object.entries(CRYPTO_CATEGORIES)) {
+    for (const token of tokens) {
+      const key = token.toUpperCase();
+      let arr = acc.get(key);
+      if (!arr) {
+        arr = [];
+        acc.set(key, arr);
+      }
+      if (!arr.includes(category)) arr.push(category);
+    }
+  }
+  const frozen = new Map<string, readonly string[]>();
+  acc.forEach((v, k) => frozen.set(k, Object.freeze(v)));
+  return frozen;
+})();
+
+const EMPTY_CATEGORIES: readonly string[] = Object.freeze([]);
+
 /**
- * Determina se um símbolo pertence a uma categoria específica
+ * Determina se um símbolo pertence a uma categoria específica.
+ * O(1) via Set lookup.
  */
 export const belongsToCategory = (symbol: string, category: string): boolean => {
   if (category === 'all') return true;
-  
-  const categoryTokens = CRYPTO_CATEGORIES[category];
-  if (!categoryTokens) return false;
-  
-  return categoryTokens.includes(symbol.toUpperCase());
+  const set = CATEGORY_SETS[category];
+  if (!set) return false;
+  return set.has(symbol.toUpperCase());
 };
 
 /**
- * Retorna todas as categorias às quais um símbolo pertence
+ * Retorna todas as categorias às quais um símbolo pertence.
+ * O(1) via reverse index. Retorna a MESMA referência a cada chamada
+ * para o mesmo símbolo (útil para memoização downstream).
  */
-export const getCategoriesForSymbol = (symbol: string): string[] => {
-  const upperSymbol = symbol.toUpperCase();
-  const categories: string[] = [];
-  
-  for (const [category, tokens] of Object.entries(CRYPTO_CATEGORIES)) {
-    if (tokens.includes(upperSymbol)) {
-      categories.push(category);
-    }
-  }
-  
-  return categories;
+export const getCategoriesForSymbol = (symbol: string): readonly string[] => {
+  return SYMBOL_TO_CATEGORIES.get(symbol.toUpperCase()) ?? EMPTY_CATEGORIES;
 };
