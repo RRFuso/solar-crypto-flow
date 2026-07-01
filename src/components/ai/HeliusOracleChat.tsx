@@ -100,18 +100,23 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
     text: '',
   });
 
-  // Initialize WebLLM engine on mount (runs in Web Worker — won't block UI)
+  // WebLLM is NOT auto-loaded — user must click "Ativar IA Local" to download the model.
   useEffect(() => {
-    getWebLLMEngine(setLlmProgress);
     return () => {
       unloadWebLLM();
     };
   }, []);
 
+  const handleActivateLocalAI = useCallback(() => {
+    if (llmProgress.status !== 'idle') return;
+    getWebLLMEngine(setLlmProgress);
+  }, [llmProgress.status]);
+
   // Handle unload from status indicator
   const handleUnload = useCallback(() => {
     setLlmProgress({ status: 'idle', progress: 0, text: '' });
   }, []);
+
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
@@ -240,7 +245,24 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
       </div>
 
       {/* WebLLM Status with Unload button */}
-      <WebLLMStatusIndicator progress={llmProgress} onUnload={handleUnload} />
+      {llmProgress.status === 'idle' ? (
+        <div className="px-3 py-2 border-b border-border bg-muted/20 flex items-center justify-between gap-2">
+          <span className="text-[10px] text-muted-foreground">
+            IA Local desativada • usando modo cloud
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 text-[10px] px-2"
+            onClick={handleActivateLocalAI}
+          >
+            <Sparkles className="w-3 h-3 mr-1" /> Ativar IA Local
+          </Button>
+        </div>
+      ) : (
+        <WebLLMStatusIndicator progress={llmProgress} onUnload={handleUnload} />
+      )}
+
 
       {/* Chat Messages */}
       <ScrollArea className="flex-1 p-3" ref={scrollRef}>

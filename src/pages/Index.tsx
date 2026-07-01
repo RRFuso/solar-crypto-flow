@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef, lazy } from "react";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import CapitalFlowPanel from "@/components/capital-flow/CapitalFlowPanel";
@@ -20,7 +20,7 @@ import { usePredictions } from '@/hooks/capital-flow/usePredictions';
 import { useCredits } from '@/hooks/useCredits';
 import { useRealtimeMarketData } from '@/hooks/useRealtimeMarketData';
 import { Badge } from '@/components/ui/badge';
-import HeliusOracleChat from "@/components/ai/HeliusOracleChat";
+const HeliusOracleChat = lazy(() => import("@/components/ai/HeliusOracleChat"));
 import { Suspense } from "react";
 
 const IndexContent = () => {
