@@ -604,22 +604,22 @@ async function processTransactionsToFlows(
       flow.successfulTxCount++;
     }
 
-    // Accumulate confidence factors
-    flow.confidenceFactors.transactionSize += confidence.transactionSize;
-    flow.confidenceFactors.gasPrice += confidence.gasPrice;
-    flow.confidenceFactors.toExchange += confidence.toExchange;
-    flow.confidenceFactors.fromExchange += confidence.fromExchange;
-    flow.confidenceFactors.successfulTx += confidence.successfulTx;
-    flow.confidenceFactors.historicalPattern += confidence.historicalPattern;
-    flow.confidenceScore += confidence.total;
+    // Weighted-value accumulation of confidence factors (proportional, not additive-fixed)
+    const w = Math.max(1, tx.valueUSD);
+    flow.confidenceFactors.transactionSize += confidence.transactionSize * w;
+    flow.confidenceFactors.gasPrice += confidence.gasPrice * w;
+    flow.confidenceFactors.toExchange += confidence.toExchange * w;
+    flow.confidenceFactors.fromExchange += confidence.fromExchange * w;
+    flow.confidenceFactors.successfulTx += confidence.successfulTx * w;
+    flow.confidenceFactors.historicalPattern += confidence.historicalPattern * w;
+    // Track value-weighted confidence sum; final score = weighted mean (0-100)
+    flow.confidenceScore += confidence.total * w;
 
     // Calculate inflow/outflow
     if (tx.toExchange && !tx.fromExchange) {
-      // Money going TO exchange = potential selling = bearish for price
       flow.inflowUSD += tx.valueUSD;
       flow.netFlowUSD -= tx.valueUSD;
     } else if (tx.fromExchange && !tx.toExchange) {
-      // Money coming FROM exchange = accumulation = bullish for price
       flow.outflowUSD += tx.valueUSD;
       flow.netFlowUSD += tx.valueUSD;
     }
@@ -628,20 +628,28 @@ async function processTransactionsToFlows(
   // Calculate final metrics for each symbol
   for (const [symbol, flow] of flowsBySymbol) {
     const totalFlow = flow.inflowUSD + flow.outflowUSD;
-    
+    const symbolTxs = significantTxs.filter(t => t.tokenSymbol === symbol);
+    const weightSum = symbolTxs.reduce((s, t) => s + Math.max(1, t.valueUSD), 0);
+
+    // Value-weighted mean confidence (0-100)
+    if (weightSum > 0) {
+      flow.confidenceScore = Math.min(100, flow.confidenceScore / weightSum);
+      flow.confidenceFactors.transactionSize = flow.confidenceFactors.transactionSize / weightSum;
+      flow.confidenceFactors.gasPrice = flow.confidenceFactors.gasPrice / weightSum;
+      flow.confidenceFactors.toExchange = flow.confidenceFactors.toExchange / weightSum;
+      flow.confidenceFactors.fromExchange = flow.confidenceFactors.fromExchange / weightSum;
+      flow.confidenceFactors.successfulTx = flow.confidenceFactors.successfulTx / weightSum;
+      flow.confidenceFactors.historicalPattern = flow.confidenceFactors.historicalPattern / weightSum;
+    }
+
     if (totalFlow > 0) {
-      // Intensity weighted by confidence score
-      const avgConfidence = flow.confidenceScore / Math.max(1, significantTxs.filter(t => t.tokenSymbol === symbol).length);
-      flow.intensity = Math.min(100, (totalFlow / 1000000) * 10 * (avgConfidence / 40));
-      
+      // Intensity scales with volume and confidence quality
+      flow.intensity = Math.min(100, (totalFlow / 1000000) * 10 * (flow.confidenceScore / 50));
+
       const ratio = flow.netFlowUSD / totalFlow;
-      if (ratio > 0.2) {
-        flow.dominantDirection = 'bullish';
-      } else if (ratio < -0.2) {
-        flow.dominantDirection = 'bearish';
-      } else {
-        flow.dominantDirection = 'neutral';
-      }
+      if (ratio > 0.2) flow.dominantDirection = 'bullish';
+      else if (ratio < -0.2) flow.dominantDirection = 'bearish';
+      else flow.dominantDirection = 'neutral';
     }
   }
 
