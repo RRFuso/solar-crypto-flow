@@ -193,17 +193,17 @@ async function getWalletPerformance(walletAddresses: string[]): Promise<Map<stri
   return map;
 }
 
-// Fetch priority wallets with caching
-async function getPriorityWallets(limit: number = 20): Promise<SmartMoneyWallet[]> {
-  const cacheKey = `smartmoney:wallets:${limit}`;
-  
+// Fetch priority wallets with caching (default increased for wider coverage)
+async function getPriorityWallets(limit: number = 100): Promise<SmartMoneyWallet[]> {
+  const cacheKey = `smartmoney:wallets:v2:${limit}`;
+
   return await getOrFetch(cacheKey, async () => {
     const { data, error } = await supabase
       .from('smart_money_wallets')
       .select('*')
       .eq('is_active', true)
+      .order('historical_impact_score', { ascending: false, nullsFirst: false })
       .order('priority', { ascending: false })
-      .order('historical_impact_score', { ascending: false })
       .limit(limit);
 
     if (error) {
