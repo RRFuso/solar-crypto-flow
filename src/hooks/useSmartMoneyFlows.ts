@@ -123,9 +123,9 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
         successful_tx_count: row.successful_tx_count,
       })) as SmartMoneyFlow[];
     },
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    staleTime: 90 * 1000,          // 90s — flow data is time-sensitive
+    refetchInterval: 2 * 60 * 1000, // refresh every 2 min
+    refetchOnWindowFocus: true,
   });
 
   // Fetch confidence breakdown for detailed analysis
