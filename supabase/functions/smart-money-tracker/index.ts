@@ -807,9 +807,9 @@ serve(async (req) => {
 
     // ===== UPDATE_FLOWS =====
     if (action === 'update_flows') {
-      console.log('Starting smart money flow update with 6 heuristics...');
+      console.log('Starting smart money flow update (weighted confidence, multi-chain)...');
 
-      const wallets = await getPriorityWallets(30);
+      const wallets = await getPriorityWallets(100);
       console.log(`Found ${wallets.length} priority wallets`);
 
       if (wallets.length === 0) {
@@ -832,15 +832,28 @@ serve(async (req) => {
       // Merge with known exchanges
       KNOWN_EXCHANGE_ADDRESSES.forEach(addr => exchangeAddresses.add(addr));
 
+      // Group wallets by chain for correct fetcher routing
+      const ethWallets = wallets.filter(w => !w.chain || w.chain === 'ethereum').map(w => w.wallet_address);
+      const bscWallets = wallets.filter(w => w.chain === 'bsc' || w.chain === 'bnb').map(w => w.wallet_address);
+      const solWallets = wallets.filter(w => w.chain === 'solana').map(w => w.wallet_address);
       const allAddresses = wallets.map(w => w.wallet_address);
-      
+
+      // Historical impact lookup (used to weight confidence when live perf missing)
+      const impactByAddr = new Map<string, number>();
+      wallets.forEach(w => impactByAddr.set(w.wallet_address.toLowerCase(), w.historical_impact_score || 0));
+
       // Fetch wallet performance data
       const walletPerformance = await getWalletPerformance(allAddresses);
       console.log(`Loaded performance data for ${walletPerformance.size} wallets`);
 
-      // Fetch transactions with enhanced details
-      const transactions = await fetchWalletTransactionsBatch(allAddresses);
-      console.log(`Fetched ${transactions.length} transactions with gas details`);
+      // Fetch transactions across all chains in parallel
+      const [ethTxs, bscTxs, solTxs] = await Promise.all([
+        ethWallets.length ? fetchWalletTransactionsBatch(ethWallets) : Promise.resolve([]),
+        bscWallets.length ? fetchBscWalletTransactionsBatch(bscWallets) : Promise.resolve([]),
+        solWallets.length ? fetchSolanaWalletTransactionsBatch(solWallets) : Promise.resolve([]),
+      ]);
+      const transactions = [...ethTxs, ...bscTxs, ...solTxs];
+      console.log(`Fetched ${transactions.length} txs (ETH=${ethTxs.length} BSC=${bscTxs.length} SOL=${solTxs.length})`);
 
       // Get prices
       const uniqueSymbols = [...new Set(
