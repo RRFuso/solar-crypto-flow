@@ -143,9 +143,9 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
       if (error) throw error;
       return data?.data || [];
     },
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    staleTime: 90 * 1000,
+    refetchInterval: 2 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // Process flows into directions with confidence weighting
