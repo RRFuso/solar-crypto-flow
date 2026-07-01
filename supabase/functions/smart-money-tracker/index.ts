@@ -341,6 +341,114 @@ async function fetchWalletTransactionsBatch(
   return allTransactions;
 }
 
+// ========== BSC (BscScan / Etherscan V2 multi-chain) ==========
+async function fetchBscWalletTransactionsBatch(
+  walletAddresses: string[]
+): Promise<TransactionWithDetails[]> {
+  if (walletAddresses.length === 0) return [];
+  const apiKey = Deno.env.get('ETHERSCAN_API_KEY');
+  if (!apiKey) {
+    console.warn('[BSC] ETHERSCAN_API_KEY not set, skipping BSC coverage');
+    return [];
+  }
+  const cacheKey = `bsc:wallettx:${walletAddresses.slice(0, 5).join('_')}`;
+  const cached = await getCache<TransactionWithDetails[]>(cacheKey);
+  if (cached && cached.length > 0) return cached;
+
+  const all: TransactionWithDetails[] = [];
+  // Etherscan V2 multichain: chainid=56 for BSC. Sequential to respect rate limits.
+  for (const address of walletAddresses) {
+    try {
+      const url = `https://api.etherscan.io/v2/api?chainid=56&module=account&action=tokentx&address=${address}&page=1&offset=50&sort=desc&apikey=${apiKey}`;
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const json = await res.json();
+      if (json.status !== '1' || !Array.isArray(json.result)) continue;
+      for (const tx of json.result) {
+        const decimals = parseInt(tx.tokenDecimal || '18');
+        const value = Number(tx.value) / Math.pow(10, decimals);
+        const symbol = (tx.tokenSymbol || 'BNB').toUpperCase();
+        const fromAddr = (tx.from || '').toLowerCase();
+        const toAddr = (tx.to || '').toLowerCase();
+        all.push({
+          hash: tx.hash,
+          from: fromAddr,
+          to: toAddr,
+          value,
+          valueUSD: 0,
+          tokenSymbol: symbol,
+          gasPrice: tx.gasPrice ? Number(tx.gasPrice) / 1e9 : undefined,
+          gasUsed: tx.gasUsed ? Number(tx.gasUsed) : undefined,
+          isError: tx.isError === '1',
+          walletAddress: address.toLowerCase(),
+          toExchange: KNOWN_EXCHANGE_ADDRESSES.has(toAddr),
+          fromExchange: KNOWN_EXCHANGE_ADDRESSES.has(fromAddr),
+        });
+      }
+      await new Promise(r => setTimeout(r, 220));
+    } catch (e) {
+      console.error(`[BSC] fetch failed for ${address}:`, e);
+    }
+  }
+  console.log(`[BSC] fetched ${all.length} txs from ${walletAddresses.length} wallets`);
+  if (all.length > 0) await setCache(cacheKey, all, CacheTTL.WALLET_TX);
+  return all;
+}
+
+// ========== SOLANA (Solscan public API) ==========
+async function fetchSolanaWalletTransactionsBatch(
+  walletAddresses: string[]
+): Promise<TransactionWithDetails[]> {
+  if (walletAddresses.length === 0) return [];
+  const cacheKey = `sol:wallettx:${walletAddresses.slice(0, 5).join('_')}`;
+  const cached = await getCache<TransactionWithDetails[]>(cacheKey);
+  if (cached && cached.length > 0) return cached;
+
+  const solscanToken = Deno.env.get('SOLSCAN_API_KEY'); // optional (pro)
+  const all: TransactionWithDetails[] = [];
+
+  for (const address of walletAddresses) {
+    try {
+      const url = `https://public-api.solscan.io/account/splTransfers?account=${address}&limit=50`;
+      const headers: Record<string, string> = { 'accept': 'application/json' };
+      if (solscanToken) headers['token'] = solscanToken;
+      const res = await fetch(url, { headers });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const items = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+      for (const t of items) {
+        const decimals = t.decimals ?? 9;
+        const raw = Number(t.changeAmount ?? t.amount ?? 0);
+        const value = Math.abs(raw) / Math.pow(10, decimals);
+        const symbol = (t.symbol || t.tokenSymbol || 'SOL').toUpperCase();
+        const fromAddr = (t.owner || t.src || address).toLowerCase();
+        const toAddr = (t.destination || t.dst || '').toLowerCase();
+        all.push({
+          hash: t.signature || t.txHash || '',
+          from: fromAddr,
+          to: toAddr,
+          value,
+          valueUSD: 0,
+          tokenSymbol: symbol,
+          gasPrice: undefined,
+          gasUsed: undefined,
+          isError: false,
+          walletAddress: address.toLowerCase(),
+          toExchange: KNOWN_EXCHANGE_ADDRESSES.has(toAddr),
+          fromExchange: KNOWN_EXCHANGE_ADDRESSES.has(fromAddr),
+        });
+      }
+      await new Promise(r => setTimeout(r, 250));
+    } catch (e) {
+      console.error(`[SOL] fetch failed for ${address}:`, e);
+    }
+  }
+  console.log(`[SOL] fetched ${all.length} transfers from ${walletAddresses.length} wallets`);
+  if (all.length > 0) await setCache(cacheKey, all, CacheTTL.WALLET_TX);
+  return all;
+}
+
+
 // Normalize token symbols for price lookup
 const SYMBOL_MAP: Record<string, string> = {
   'WETH': 'ETH', 'WBTC': 'BTC', 'STETH': 'ETH', 'CBETH': 'ETH',
