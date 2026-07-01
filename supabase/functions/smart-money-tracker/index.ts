@@ -530,7 +530,8 @@ async function processTransactionsToFlows(
   transactions: TransactionWithDetails[],
   exchangeAddresses: Set<string>,
   prices: Record<string, number>,
-  walletPerformance: Map<string, WalletPerformance>
+  walletPerformance: Map<string, WalletPerformance>,
+  impactByAddr?: Map<string, number>
 ): Promise<Map<string, FlowData>> {
   const flowsBySymbol = new Map<string, FlowData>();
   const ethPrice = prices['ETH'] || 2000;
@@ -552,9 +553,10 @@ async function processTransactionsToFlows(
   for (const tx of significantTxs) {
     const symbol = tx.tokenSymbol;
     const walletPerf = walletPerformance.get(tx.walletAddress);
-    
-    // Calculate confidence score using 6 heuristics
-    const confidence = calculateConfidenceScore(tx, ethPrice, walletPerf);
+    const histImpact = impactByAddr?.get(tx.walletAddress);
+
+    // Calculate confidence score (weighted, proportional)
+    const confidence = calculateConfidenceScore(tx, ethPrice, walletPerf, histImpact);
 
     // Only process if it's a smart money signal
     if (!confidence.isSmartMoney) continue;
