@@ -879,7 +879,8 @@ serve(async (req) => {
         transactions,
         exchangeAddresses,
         prices,
-        walletPerformance
+        walletPerformance,
+        impactByAddr
       );
       console.log(`Calculated flows for ${flows.size} symbols with confidence scores`);
 
