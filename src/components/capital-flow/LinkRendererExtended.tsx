@@ -113,12 +113,14 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
     linkElementsRef.current = link;
 
     const getFlowConfig = (link: LinkData): FlowParticleConfig => {
+        const NO_DATA_COLOR = '#6b7280';   // grey — no on-chain coverage
+        const NEUTRAL_COLOR = '#facc15';   // yellow — real neutral flow
         const currentSmartMoneyFlows = smartMoneyFlowsRef.current;
         if (!currentSmartMoneyFlows || currentSmartMoneyFlows.length === 0) {
           return {
             direction: link.percentage > 0 ? 1 : -1,
-            color: '#facc15',
-            speed: 0.002,
+            color: NO_DATA_COLOR,
+            speed: 0.0015,
             isRealData: false,
           };
         }
@@ -129,11 +131,12 @@ const LinkRendererExtendedInner: React.FC<LinkRendererExtendedProps> = ({
         const primaryFlow = (sourceFlow?.flow_intensity || 0) > (targetFlow?.flow_intensity || 0) ? sourceFlow : targetFlow;
 
         if (!primaryFlow) {
-          return { direction: link.percentage > 0 ? 1 : -1, color: '#facc15', speed: 0.002, isRealData: false };
+          // No on-chain coverage for either side → grey, dim
+          return { direction: link.percentage > 0 ? 1 : -1, color: NO_DATA_COLOR, speed: 0.0015, isRealData: false };
         }
 
         let direction: 1 | -1 | 0 = 0;
-        let color = '#facc15';
+        let color = NEUTRAL_COLOR; // real neutral (dominant_direction === 'neutral')
         if (primaryFlow.dominant_direction === 'bullish') { direction = 1; color = '#22c55e'; }
         else if (primaryFlow.dominant_direction === 'bearish') { direction = -1; color = '#ef4444'; }
 
