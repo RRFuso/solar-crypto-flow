@@ -20,7 +20,7 @@ import { usePredictions } from '@/hooks/capital-flow/usePredictions';
 import { useCredits } from '@/hooks/useCredits';
 import { useRealtimeMarketData } from '@/hooks/useRealtimeMarketData';
 import { Badge } from '@/components/ui/badge';
-import HeliusOracleChat from "@/components/ai/HeliusOracleChat";
+const HeliusOracleChat = lazy(() => import("@/components/ai/HeliusOracleChat"));
 import { Suspense } from "react";
 
 const IndexContent = () => {
