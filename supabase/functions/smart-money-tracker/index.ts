@@ -104,11 +104,13 @@ function calculateEMA(currentValue: number, previousEMA: number, alpha: number =
   return alpha * currentValue + (1 - alpha) * previousEMA;
 }
 
-// Calculate confidence score for a transaction using 6 heuristics
+// Calculate confidence score using a WEIGHTED, PROPORTIONAL model (0-100).
+// Value and wallet history are the dominant factors; heuristics are modifiers.
 function calculateConfidenceScore(
   tx: TransactionWithDetails,
   ethPrice: number,
-  walletPerformance?: WalletPerformance
+  walletPerformance?: WalletPerformance,
+  walletHistoricalImpact?: number
 ): ConfidenceHeuristics {
   const heuristics: ConfidenceHeuristics = {
     transactionSize: 0,
@@ -121,50 +123,40 @@ function calculateConfidenceScore(
     isSmartMoney: false,
   };
 
-  // 1. Transaction Size: +25 for >10 ETH, +15 for >1 ETH
-  const valueInETH = ethPrice > 0 ? tx.valueUSD / ethPrice : 0;
-  if (valueInETH > ETH_WHALE_THRESHOLD) {
-    heuristics.transactionSize = 25;
-  } else if (valueInETH > ETH_SIGNIFICANT_THRESHOLD) {
-    heuristics.transactionSize = 15;
-  }
+  // --- Weighted, proportional scoring ---
+  // Value component (0-1): log-scale, saturates near $10M
+  // 50k -> ~0, 500k -> ~0.43, 5M -> ~0.86, 10M+ -> 1.0
+  const valueNorm = tx.valueUSD > 0
+    ? Math.min(1, Math.log10(tx.valueUSD / SIGNIFICANT_TX_THRESHOLD + 1) / Math.log10(10000000 / SIGNIFICANT_TX_THRESHOLD + 1))
+    : 0;
 
-  // 2. Gas Price: +15 for >50 Gwei
-  if (tx.gasPrice && tx.gasPrice > HIGH_GAS_THRESHOLD) {
-    heuristics.gasPrice = 15;
-  }
+  // Wallet history (0-1): prefer live perf, fallback to seeded historical_impact_score
+  const impactScore = walletPerformance?.impact_score ?? walletHistoricalImpact ?? 0;
+  const walletNorm = Math.max(0, Math.min(1, impactScore / 100));
 
-  // 3. Transfer TO Exchange: +20 (indicates selling)
-  if (tx.toExchange && !tx.fromExchange) {
-    heuristics.toExchange = 20;
-  }
+  // Heuristic modifier (0-1): exchange direction + gas + success
+  let modifierNorm = 0;
+  let modifierCount = 0;
+  if (tx.toExchange && !tx.fromExchange) { modifierNorm += 1.0; modifierCount++; }
+  else if (tx.fromExchange && !tx.toExchange) { modifierNorm += 1.0; modifierCount++; }
+  if (tx.gasPrice && tx.gasPrice > HIGH_GAS_THRESHOLD) { modifierNorm += 0.6; modifierCount++; }
+  if (!tx.isError) { modifierNorm += 0.3; modifierCount++; }
+  const modifierScore = modifierCount > 0 ? Math.min(1, modifierNorm / 2.0) : 0;
 
-  // 4. Transfer FROM Exchange: +20 (indicates buying)
-  if (tx.fromExchange && !tx.toExchange) {
-    heuristics.fromExchange = 20;
-  }
+  // Weighted composite: 50% value, 35% wallet, 15% heuristics (proportional, not additive)
+  const composite = (valueNorm * 0.50) + (walletNorm * 0.35) + (modifierScore * 0.15);
+  const total = Math.round(composite * 100);
 
-  // 5. Successful Transaction: +5
-  if (!tx.isError) {
-    heuristics.successfulTx = 5;
-  }
+  // Keep breakdown for UI (proportional shares of the 100 points)
+  heuristics.transactionSize = Math.round(valueNorm * 50);
+  heuristics.historicalPattern = Math.round(walletNorm * 35);
+  heuristics.gasPrice = (tx.gasPrice && tx.gasPrice > HIGH_GAS_THRESHOLD) ? Math.round(modifierScore * 6) : 0;
+  heuristics.toExchange = (tx.toExchange && !tx.fromExchange) ? Math.round(modifierScore * 5) : 0;
+  heuristics.fromExchange = (tx.fromExchange && !tx.toExchange) ? Math.round(modifierScore * 5) : 0;
+  heuristics.successfulTx = !tx.isError ? Math.round(modifierScore * 2) : 0;
 
-  // 6. Historical Pattern: +15 for high-impact wallet
-  if (walletPerformance && walletPerformance.impact_score >= WALLET_IMPACT_THRESHOLD) {
-    heuristics.historicalPattern = 15;
-  }
-
-  // Calculate total
-  heuristics.total = 
-    heuristics.transactionSize +
-    heuristics.gasPrice +
-    heuristics.toExchange +
-    heuristics.fromExchange +
-    heuristics.successfulTx +
-    heuristics.historicalPattern;
-
-  // Determine if it qualifies as smart money signal
-  heuristics.isSmartMoney = heuristics.total >= SMART_MONEY_CONFIDENCE_THRESHOLD;
+  heuristics.total = total;
+  heuristics.isSmartMoney = total >= SMART_MONEY_CONFIDENCE_THRESHOLD;
 
   return heuristics;
 }
@@ -201,17 +193,17 @@ async function getWalletPerformance(walletAddresses: string[]): Promise<Map<stri
   return map;
 }
 
-// Fetch priority wallets with caching
-async function getPriorityWallets(limit: number = 20): Promise<SmartMoneyWallet[]> {
-  const cacheKey = `smartmoney:wallets:${limit}`;
-  
+// Fetch priority wallets with caching (default increased for wider coverage)
+async function getPriorityWallets(limit: number = 100): Promise<SmartMoneyWallet[]> {
+  const cacheKey = `smartmoney:wallets:v2:${limit}`;
+
   return await getOrFetch(cacheKey, async () => {
     const { data, error } = await supabase
       .from('smart_money_wallets')
       .select('*')
       .eq('is_active', true)
+      .order('historical_impact_score', { ascending: false, nullsFirst: false })
       .order('priority', { ascending: false })
-      .order('historical_impact_score', { ascending: false })
       .limit(limit);
 
     if (error) {
@@ -349,6 +341,114 @@ async function fetchWalletTransactionsBatch(
   return allTransactions;
 }
 
+// ========== BSC (BscScan / Etherscan V2 multi-chain) ==========
+async function fetchBscWalletTransactionsBatch(
+  walletAddresses: string[]
+): Promise<TransactionWithDetails[]> {
+  if (walletAddresses.length === 0) return [];
+  const apiKey = Deno.env.get('ETHERSCAN_API_KEY');
+  if (!apiKey) {
+    console.warn('[BSC] ETHERSCAN_API_KEY not set, skipping BSC coverage');
+    return [];
+  }
+  const cacheKey = `bsc:wallettx:${walletAddresses.slice(0, 5).join('_')}`;
+  const cached = await getCache<TransactionWithDetails[]>(cacheKey);
+  if (cached && cached.length > 0) return cached;
+
+  const all: TransactionWithDetails[] = [];
+  // Etherscan V2 multichain: chainid=56 for BSC. Sequential to respect rate limits.
+  for (const address of walletAddresses) {
+    try {
+      const url = `https://api.etherscan.io/v2/api?chainid=56&module=account&action=tokentx&address=${address}&page=1&offset=50&sort=desc&apikey=${apiKey}`;
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const json = await res.json();
+      if (json.status !== '1' || !Array.isArray(json.result)) continue;
+      for (const tx of json.result) {
+        const decimals = parseInt(tx.tokenDecimal || '18');
+        const value = Number(tx.value) / Math.pow(10, decimals);
+        const symbol = (tx.tokenSymbol || 'BNB').toUpperCase();
+        const fromAddr = (tx.from || '').toLowerCase();
+        const toAddr = (tx.to || '').toLowerCase();
+        all.push({
+          hash: tx.hash,
+          from: fromAddr,
+          to: toAddr,
+          value,
+          valueUSD: 0,
+          tokenSymbol: symbol,
+          gasPrice: tx.gasPrice ? Number(tx.gasPrice) / 1e9 : undefined,
+          gasUsed: tx.gasUsed ? Number(tx.gasUsed) : undefined,
+          isError: tx.isError === '1',
+          walletAddress: address.toLowerCase(),
+          toExchange: KNOWN_EXCHANGE_ADDRESSES.has(toAddr),
+          fromExchange: KNOWN_EXCHANGE_ADDRESSES.has(fromAddr),
+        });
+      }
+      await new Promise(r => setTimeout(r, 220));
+    } catch (e) {
+      console.error(`[BSC] fetch failed for ${address}:`, e);
+    }
+  }
+  console.log(`[BSC] fetched ${all.length} txs from ${walletAddresses.length} wallets`);
+  if (all.length > 0) await setCache(cacheKey, all, CacheTTL.WALLET_TX);
+  return all;
+}
+
+// ========== SOLANA (Solscan public API) ==========
+async function fetchSolanaWalletTransactionsBatch(
+  walletAddresses: string[]
+): Promise<TransactionWithDetails[]> {
+  if (walletAddresses.length === 0) return [];
+  const cacheKey = `sol:wallettx:${walletAddresses.slice(0, 5).join('_')}`;
+  const cached = await getCache<TransactionWithDetails[]>(cacheKey);
+  if (cached && cached.length > 0) return cached;
+
+  const solscanToken = Deno.env.get('SOLSCAN_API_KEY'); // optional (pro)
+  const all: TransactionWithDetails[] = [];
+
+  for (const address of walletAddresses) {
+    try {
+      const url = `https://public-api.solscan.io/account/splTransfers?account=${address}&limit=50`;
+      const headers: Record<string, string> = { 'accept': 'application/json' };
+      if (solscanToken) headers['token'] = solscanToken;
+      const res = await fetch(url, { headers });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const items = Array.isArray(json?.data) ? json.data : (Array.isArray(json) ? json : []);
+      for (const t of items) {
+        const decimals = t.decimals ?? 9;
+        const raw = Number(t.changeAmount ?? t.amount ?? 0);
+        const value = Math.abs(raw) / Math.pow(10, decimals);
+        const symbol = (t.symbol || t.tokenSymbol || 'SOL').toUpperCase();
+        const fromAddr = (t.owner || t.src || address).toLowerCase();
+        const toAddr = (t.destination || t.dst || '').toLowerCase();
+        all.push({
+          hash: t.signature || t.txHash || '',
+          from: fromAddr,
+          to: toAddr,
+          value,
+          valueUSD: 0,
+          tokenSymbol: symbol,
+          gasPrice: undefined,
+          gasUsed: undefined,
+          isError: false,
+          walletAddress: address.toLowerCase(),
+          toExchange: KNOWN_EXCHANGE_ADDRESSES.has(toAddr),
+          fromExchange: KNOWN_EXCHANGE_ADDRESSES.has(fromAddr),
+        });
+      }
+      await new Promise(r => setTimeout(r, 250));
+    } catch (e) {
+      console.error(`[SOL] fetch failed for ${address}:`, e);
+    }
+  }
+  console.log(`[SOL] fetched ${all.length} transfers from ${walletAddresses.length} wallets`);
+  if (all.length > 0) await setCache(cacheKey, all, CacheTTL.WALLET_TX);
+  return all;
+}
+
+
 // Normalize token symbols for price lookup
 const SYMBOL_MAP: Record<string, string> = {
   'WETH': 'ETH', 'WBTC': 'BTC', 'STETH': 'ETH', 'CBETH': 'ETH',
@@ -430,7 +530,8 @@ async function processTransactionsToFlows(
   transactions: TransactionWithDetails[],
   exchangeAddresses: Set<string>,
   prices: Record<string, number>,
-  walletPerformance: Map<string, WalletPerformance>
+  walletPerformance: Map<string, WalletPerformance>,
+  impactByAddr?: Map<string, number>
 ): Promise<Map<string, FlowData>> {
   const flowsBySymbol = new Map<string, FlowData>();
   const ethPrice = prices['ETH'] || 2000;
@@ -452,9 +553,10 @@ async function processTransactionsToFlows(
   for (const tx of significantTxs) {
     const symbol = tx.tokenSymbol;
     const walletPerf = walletPerformance.get(tx.walletAddress);
-    
-    // Calculate confidence score using 6 heuristics
-    const confidence = calculateConfidenceScore(tx, ethPrice, walletPerf);
+    const histImpact = impactByAddr?.get(tx.walletAddress);
+
+    // Calculate confidence score (weighted, proportional)
+    const confidence = calculateConfidenceScore(tx, ethPrice, walletPerf, histImpact);
 
     // Only process if it's a smart money signal
     if (!confidence.isSmartMoney) continue;
@@ -502,22 +604,22 @@ async function processTransactionsToFlows(
       flow.successfulTxCount++;
     }
 
-    // Accumulate confidence factors
-    flow.confidenceFactors.transactionSize += confidence.transactionSize;
-    flow.confidenceFactors.gasPrice += confidence.gasPrice;
-    flow.confidenceFactors.toExchange += confidence.toExchange;
-    flow.confidenceFactors.fromExchange += confidence.fromExchange;
-    flow.confidenceFactors.successfulTx += confidence.successfulTx;
-    flow.confidenceFactors.historicalPattern += confidence.historicalPattern;
-    flow.confidenceScore += confidence.total;
+    // Weighted-value accumulation of confidence factors (proportional, not additive-fixed)
+    const w = Math.max(1, tx.valueUSD);
+    flow.confidenceFactors.transactionSize += confidence.transactionSize * w;
+    flow.confidenceFactors.gasPrice += confidence.gasPrice * w;
+    flow.confidenceFactors.toExchange += confidence.toExchange * w;
+    flow.confidenceFactors.fromExchange += confidence.fromExchange * w;
+    flow.confidenceFactors.successfulTx += confidence.successfulTx * w;
+    flow.confidenceFactors.historicalPattern += confidence.historicalPattern * w;
+    // Track value-weighted confidence sum; final score = weighted mean (0-100)
+    flow.confidenceScore += confidence.total * w;
 
     // Calculate inflow/outflow
     if (tx.toExchange && !tx.fromExchange) {
-      // Money going TO exchange = potential selling = bearish for price
       flow.inflowUSD += tx.valueUSD;
       flow.netFlowUSD -= tx.valueUSD;
     } else if (tx.fromExchange && !tx.toExchange) {
-      // Money coming FROM exchange = accumulation = bullish for price
       flow.outflowUSD += tx.valueUSD;
       flow.netFlowUSD += tx.valueUSD;
     }
@@ -526,20 +628,28 @@ async function processTransactionsToFlows(
   // Calculate final metrics for each symbol
   for (const [symbol, flow] of flowsBySymbol) {
     const totalFlow = flow.inflowUSD + flow.outflowUSD;
-    
+    const symbolTxs = significantTxs.filter(t => t.tokenSymbol === symbol);
+    const weightSum = symbolTxs.reduce((s, t) => s + Math.max(1, t.valueUSD), 0);
+
+    // Value-weighted mean confidence (0-100)
+    if (weightSum > 0) {
+      flow.confidenceScore = Math.min(100, flow.confidenceScore / weightSum);
+      flow.confidenceFactors.transactionSize = flow.confidenceFactors.transactionSize / weightSum;
+      flow.confidenceFactors.gasPrice = flow.confidenceFactors.gasPrice / weightSum;
+      flow.confidenceFactors.toExchange = flow.confidenceFactors.toExchange / weightSum;
+      flow.confidenceFactors.fromExchange = flow.confidenceFactors.fromExchange / weightSum;
+      flow.confidenceFactors.successfulTx = flow.confidenceFactors.successfulTx / weightSum;
+      flow.confidenceFactors.historicalPattern = flow.confidenceFactors.historicalPattern / weightSum;
+    }
+
     if (totalFlow > 0) {
-      // Intensity weighted by confidence score
-      const avgConfidence = flow.confidenceScore / Math.max(1, significantTxs.filter(t => t.tokenSymbol === symbol).length);
-      flow.intensity = Math.min(100, (totalFlow / 1000000) * 10 * (avgConfidence / 40));
-      
+      // Intensity scales with volume and confidence quality
+      flow.intensity = Math.min(100, (totalFlow / 1000000) * 10 * (flow.confidenceScore / 50));
+
       const ratio = flow.netFlowUSD / totalFlow;
-      if (ratio > 0.2) {
-        flow.dominantDirection = 'bullish';
-      } else if (ratio < -0.2) {
-        flow.dominantDirection = 'bearish';
-      } else {
-        flow.dominantDirection = 'neutral';
-      }
+      if (ratio > 0.2) flow.dominantDirection = 'bullish';
+      else if (ratio < -0.2) flow.dominantDirection = 'bearish';
+      else flow.dominantDirection = 'neutral';
     }
   }
 
@@ -707,9 +817,9 @@ serve(async (req) => {
 
     // ===== UPDATE_FLOWS =====
     if (action === 'update_flows') {
-      console.log('Starting smart money flow update with 6 heuristics...');
+      console.log('Starting smart money flow update (weighted confidence, multi-chain)...');
 
-      const wallets = await getPriorityWallets(30);
+      const wallets = await getPriorityWallets(100);
       console.log(`Found ${wallets.length} priority wallets`);
 
       if (wallets.length === 0) {
@@ -732,15 +842,28 @@ serve(async (req) => {
       // Merge with known exchanges
       KNOWN_EXCHANGE_ADDRESSES.forEach(addr => exchangeAddresses.add(addr));
 
+      // Group wallets by chain for correct fetcher routing
+      const ethWallets = wallets.filter(w => !w.chain || w.chain === 'ethereum').map(w => w.wallet_address);
+      const bscWallets = wallets.filter(w => w.chain === 'bsc' || w.chain === 'bnb').map(w => w.wallet_address);
+      const solWallets = wallets.filter(w => w.chain === 'solana').map(w => w.wallet_address);
       const allAddresses = wallets.map(w => w.wallet_address);
-      
+
+      // Historical impact lookup (used to weight confidence when live perf missing)
+      const impactByAddr = new Map<string, number>();
+      wallets.forEach(w => impactByAddr.set(w.wallet_address.toLowerCase(), w.historical_impact_score || 0));
+
       // Fetch wallet performance data
       const walletPerformance = await getWalletPerformance(allAddresses);
       console.log(`Loaded performance data for ${walletPerformance.size} wallets`);
 
-      // Fetch transactions with enhanced details
-      const transactions = await fetchWalletTransactionsBatch(allAddresses);
-      console.log(`Fetched ${transactions.length} transactions with gas details`);
+      // Fetch transactions across all chains in parallel
+      const [ethTxs, bscTxs, solTxs] = await Promise.all([
+        ethWallets.length ? fetchWalletTransactionsBatch(ethWallets) : Promise.resolve([]),
+        bscWallets.length ? fetchBscWalletTransactionsBatch(bscWallets) : Promise.resolve([]),
+        solWallets.length ? fetchSolanaWalletTransactionsBatch(solWallets) : Promise.resolve([]),
+      ]);
+      const transactions = [...ethTxs, ...bscTxs, ...solTxs];
+      console.log(`Fetched ${transactions.length} txs (ETH=${ethTxs.length} BSC=${bscTxs.length} SOL=${solTxs.length})`);
 
       // Get prices
       const uniqueSymbols = [...new Set(
@@ -756,7 +879,8 @@ serve(async (req) => {
         transactions,
         exchangeAddresses,
         prices,
-        walletPerformance
+        walletPerformance,
+        impactByAddr
       );
       console.log(`Calculated flows for ${flows.size} symbols with confidence scores`);
 

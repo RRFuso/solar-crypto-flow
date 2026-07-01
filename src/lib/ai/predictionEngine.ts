@@ -290,9 +290,9 @@ export class PredictionEngine {
   }
 
   private calculateConfidence(
-    probUp: number, 
-    probDown: number, 
-    probNeutral: number, 
+    probUp: number,
+    probDown: number,
+    probNeutral: number,
     features: AdvancedFeatures
   ): number {
     // Base confidence from probability spread
@@ -303,6 +303,16 @@ export class PredictionEngine {
     if (features.volatilityRegime === 'extreme') confidence *= 0.8;
     if (features.consolidationPhase) confidence *= 0.7;
     if (features.explosivePotential > 70) confidence *= 1.2;
+
+    // Blend with backend-weighted smart-money confidence when available.
+    // The backend already produces a proportional 0-100 score based on wallet
+    // quality and transaction size, so we anchor rather than recompute.
+    const smConfidence =
+      (features as unknown as { smartMoneyConfidence?: number }).smartMoneyConfidence;
+    if (typeof smConfidence === 'number' && smConfidence > 0) {
+      // 60% backend / 40% technical spread — keeps signal aligned with wallet reality
+      confidence = confidence * 0.4 + smConfidence * 0.6;
+    }
 
     return Math.max(0, Math.min(100, confidence));
   }
