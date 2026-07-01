@@ -100,18 +100,23 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
     text: '',
   });
 
-  // Initialize WebLLM engine on mount (runs in Web Worker — won't block UI)
+  // WebLLM is NOT auto-loaded — user must click "Ativar IA Local" to download the model.
   useEffect(() => {
-    getWebLLMEngine(setLlmProgress);
     return () => {
       unloadWebLLM();
     };
   }, []);
 
+  const handleActivateLocalAI = useCallback(() => {
+    if (llmProgress.status !== 'idle') return;
+    getWebLLMEngine(setLlmProgress);
+  }, [llmProgress.status]);
+
   // Handle unload from status indicator
   const handleUnload = useCallback(() => {
     setLlmProgress({ status: 'idle', progress: 0, text: '' });
   }, []);
+
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
