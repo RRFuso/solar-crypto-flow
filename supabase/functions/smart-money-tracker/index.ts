@@ -104,11 +104,13 @@ function calculateEMA(currentValue: number, previousEMA: number, alpha: number =
   return alpha * currentValue + (1 - alpha) * previousEMA;
 }
 
-// Calculate confidence score for a transaction using 6 heuristics
+// Calculate confidence score using a WEIGHTED, PROPORTIONAL model (0-100).
+// Value and wallet history are the dominant factors; heuristics are modifiers.
 function calculateConfidenceScore(
   tx: TransactionWithDetails,
   ethPrice: number,
-  walletPerformance?: WalletPerformance
+  walletPerformance?: WalletPerformance,
+  walletHistoricalImpact?: number
 ): ConfidenceHeuristics {
   const heuristics: ConfidenceHeuristics = {
     transactionSize: 0,
@@ -121,50 +123,40 @@ function calculateConfidenceScore(
     isSmartMoney: false,
   };
 
-  // 1. Transaction Size: +25 for >10 ETH, +15 for >1 ETH
-  const valueInETH = ethPrice > 0 ? tx.valueUSD / ethPrice : 0;
-  if (valueInETH > ETH_WHALE_THRESHOLD) {
-    heuristics.transactionSize = 25;
-  } else if (valueInETH > ETH_SIGNIFICANT_THRESHOLD) {
-    heuristics.transactionSize = 15;
-  }
+  // --- Weighted, proportional scoring ---
+  // Value component (0-1): log-scale, saturates near $10M
+  // 50k -> ~0, 500k -> ~0.43, 5M -> ~0.86, 10M+ -> 1.0
+  const valueNorm = tx.valueUSD > 0
+    ? Math.min(1, Math.log10(tx.valueUSD / SIGNIFICANT_TX_THRESHOLD + 1) / Math.log10(10000000 / SIGNIFICANT_TX_THRESHOLD + 1))
+    : 0;
 
-  // 2. Gas Price: +15 for >50 Gwei
-  if (tx.gasPrice && tx.gasPrice > HIGH_GAS_THRESHOLD) {
-    heuristics.gasPrice = 15;
-  }
+  // Wallet history (0-1): prefer live perf, fallback to seeded historical_impact_score
+  const impactScore = walletPerformance?.impact_score ?? walletHistoricalImpact ?? 0;
+  const walletNorm = Math.max(0, Math.min(1, impactScore / 100));
 
-  // 3. Transfer TO Exchange: +20 (indicates selling)
-  if (tx.toExchange && !tx.fromExchange) {
-    heuristics.toExchange = 20;
-  }
+  // Heuristic modifier (0-1): exchange direction + gas + success
+  let modifierNorm = 0;
+  let modifierCount = 0;
+  if (tx.toExchange && !tx.fromExchange) { modifierNorm += 1.0; modifierCount++; }
+  else if (tx.fromExchange && !tx.toExchange) { modifierNorm += 1.0; modifierCount++; }
+  if (tx.gasPrice && tx.gasPrice > HIGH_GAS_THRESHOLD) { modifierNorm += 0.6; modifierCount++; }
+  if (!tx.isError) { modifierNorm += 0.3; modifierCount++; }
+  const modifierScore = modifierCount > 0 ? Math.min(1, modifierNorm / 2.0) : 0;
 
-  // 4. Transfer FROM Exchange: +20 (indicates buying)
-  if (tx.fromExchange && !tx.toExchange) {
-    heuristics.fromExchange = 20;
-  }
+  // Weighted composite: 50% value, 35% wallet, 15% heuristics (proportional, not additive)
+  const composite = (valueNorm * 0.50) + (walletNorm * 0.35) + (modifierScore * 0.15);
+  const total = Math.round(composite * 100);
 
-  // 5. Successful Transaction: +5
-  if (!tx.isError) {
-    heuristics.successfulTx = 5;
-  }
+  // Keep breakdown for UI (proportional shares of the 100 points)
+  heuristics.transactionSize = Math.round(valueNorm * 50);
+  heuristics.historicalPattern = Math.round(walletNorm * 35);
+  heuristics.gasPrice = (tx.gasPrice && tx.gasPrice > HIGH_GAS_THRESHOLD) ? Math.round(modifierScore * 6) : 0;
+  heuristics.toExchange = (tx.toExchange && !tx.fromExchange) ? Math.round(modifierScore * 5) : 0;
+  heuristics.fromExchange = (tx.fromExchange && !tx.toExchange) ? Math.round(modifierScore * 5) : 0;
+  heuristics.successfulTx = !tx.isError ? Math.round(modifierScore * 2) : 0;
 
-  // 6. Historical Pattern: +15 for high-impact wallet
-  if (walletPerformance && walletPerformance.impact_score >= WALLET_IMPACT_THRESHOLD) {
-    heuristics.historicalPattern = 15;
-  }
-
-  // Calculate total
-  heuristics.total = 
-    heuristics.transactionSize +
-    heuristics.gasPrice +
-    heuristics.toExchange +
-    heuristics.fromExchange +
-    heuristics.successfulTx +
-    heuristics.historicalPattern;
-
-  // Determine if it qualifies as smart money signal
-  heuristics.isSmartMoney = heuristics.total >= SMART_MONEY_CONFIDENCE_THRESHOLD;
+  heuristics.total = total;
+  heuristics.isSmartMoney = total >= SMART_MONEY_CONFIDENCE_THRESHOLD;
 
   return heuristics;
 }
