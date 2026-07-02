@@ -30,7 +30,14 @@ export interface ExplosiveFeatures {
   macd: number;
   bollingerPosition: number;
   volumeProfile: number;
+
+  // True when on-chain metrics for this feature had to fall back to
+  // simulate*() derived from price/volume. Consumers MUST down-weight
+  // on-chain-derived scores when this flag is true to avoid the
+  // circular "feature derived from price predicts price" leak.
+  isSimulated: boolean;
 }
+
 
 export interface AnomalyScore {
   symbol: string;
