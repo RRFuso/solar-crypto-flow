@@ -54,13 +54,17 @@ export class PredictionEngine {
   };
 
   private horizonWeights: Record<PredictionHorizon, Record<string, number>> = {
-    '1h': { technical: 0.6, volume: 0.3, momentum: 0.1, onChain: 0, social: 0, crossAsset: 0 },
-    '4h': { technical: 0.5, volume: 0.25, momentum: 0.15, onChain: 0.05, social: 0.05, crossAsset: 0 },
+    // Short horizons: real on-chain (whale/exchange flow) tends to precede
+    // price by hours, so give it meaningful weight. Social stays at 0 until
+    // a real social-data source replaces the current mock aggregator.
+    '1h': { technical: 0.45, volume: 0.25, momentum: 0.05, onChain: 0.25, social: 0, crossAsset: 0 },
+    '4h': { technical: 0.4, volume: 0.2, momentum: 0.1, onChain: 0.25, social: 0.05, crossAsset: 0 },
     '1d': { technical: 0.4, volume: 0.2, momentum: 0.2, onChain: 0.1, social: 0.1, crossAsset: 0 },
     '3d': { technical: 0.3, volume: 0.15, momentum: 0.25, onChain: 0.15, social: 0.15, crossAsset: 0 },
     '1w': { technical: 0.25, volume: 0.1, momentum: 0.3, onChain: 0.2, social: 0.15, crossAsset: 0 },
     '1m': { technical: 0.2, volume: 0.1, momentum: 0.3, onChain: 0.25, social: 0.15, crossAsset: 0 }
   };
+
 
   generatePredictions(
     features: AdvancedFeatures[],
