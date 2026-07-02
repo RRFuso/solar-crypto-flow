@@ -134,8 +134,13 @@ export class ExplosiveSignalEngine {
     const activeAddressRatio = feature.activeAddresses / 1000; // normalize
     if (activeAddressRatio > 1.5) score += 0.1;
     
+    // Simulated on-chain is derived from the same price/volume it tries to
+    // predict — heavily discount its contribution to avoid circular signal.
+    if (feature.isSimulated) score *= 0.35;
+
     return Math.min(score, 1);
   }
+
 
   private calculateSocialAnomalyScore(feature: ExplosiveFeatures): number {
     let score = 0;
