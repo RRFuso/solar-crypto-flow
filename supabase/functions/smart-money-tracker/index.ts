@@ -492,128 +492,15 @@ async function processTransactionsToFlows(
   walletPerformance: Map<string, WalletPerformance>,
   impactByAddr?: Map<string, number>
 ): Promise<Map<string, FlowData>> {
-  const flowsBySymbol = new Map<string, FlowData>();
-  const ethPrice = prices['ETH'] || 2000;
-
-  // Update transaction values with USD prices
-  const enrichedTransactions = transactions.map(tx => ({
-    ...tx,
-    valueUSD: tx.value * (prices[tx.tokenSymbol] || 0),
-    toExchange: tx.toExchange || exchangeAddresses.has(tx.to?.toLowerCase()),
-    fromExchange: tx.fromExchange || exchangeAddresses.has(tx.from?.toLowerCase()),
-  }));
-
-  // Filter significant transactions
-  const significantTxs = enrichedTransactions.filter(tx => tx.valueUSD >= SIGNIFICANT_TX_THRESHOLD);
-
-  console.log(`Processing ${significantTxs.length} significant txs out of ${transactions.length} total`);
-
-  // Process each significant transaction
-  for (const tx of significantTxs) {
-    const symbol = tx.tokenSymbol;
-    const walletPerf = walletPerformance.get(tx.walletAddress);
-    const histImpact = impactByAddr?.get(tx.walletAddress);
-
-    // Calculate confidence score (weighted, proportional)
-    const confidence = calculateConfidenceScore(tx, ethPrice, walletPerf, histImpact);
-
-    // Only process if it's a smart money signal
-    if (!confidence.isSmartMoney) continue;
-
-    if (!flowsBySymbol.has(symbol)) {
-      flowsBySymbol.set(symbol, {
-        symbol,
-        netFlowUSD: 0,
-        inflowUSD: 0,
-        outflowUSD: 0,
-        dominantDirection: 'neutral',
-        intensity: 0,
-        emaFlow: 0,
-        confidenceScore: 0,
-        confidenceFactors: {
-          transactionSize: 0,
-          gasPrice: 0,
-          toExchange: 0,
-          fromExchange: 0,
-          successfulTx: 0,
-          historicalPattern: 0,
-        },
-        whaleTxCount: 0,
-        whaleTxValue: 0,
-        avgGasPriceGwei: 0,
-        successfulTxCount: 0,
-      });
-    }
-
-    const flow = flowsBySymbol.get(symbol)!;
-
-    // Track whale transactions
-    if (tx.valueUSD >= WHALE_TX_THRESHOLD) {
-      flow.whaleTxCount++;
-      flow.whaleTxValue += tx.valueUSD;
-    }
-
-    // Track gas prices
-    if (tx.gasPrice) {
-      flow.avgGasPriceGwei = (flow.avgGasPriceGwei + tx.gasPrice) / 2;
-    }
-
-    // Track successful transactions
-    if (!tx.isError) {
-      flow.successfulTxCount++;
-    }
-
-    // Weighted-value accumulation of confidence factors (proportional, not additive-fixed)
-    const w = Math.max(1, tx.valueUSD);
-    flow.confidenceFactors.transactionSize += confidence.transactionSize * w;
-    flow.confidenceFactors.gasPrice += confidence.gasPrice * w;
-    flow.confidenceFactors.toExchange += confidence.toExchange * w;
-    flow.confidenceFactors.fromExchange += confidence.fromExchange * w;
-    flow.confidenceFactors.successfulTx += confidence.successfulTx * w;
-    flow.confidenceFactors.historicalPattern += confidence.historicalPattern * w;
-    // Track value-weighted confidence sum; final score = weighted mean (0-100)
-    flow.confidenceScore += confidence.total * w;
-
-    // Calculate inflow/outflow
-    if (tx.toExchange && !tx.fromExchange) {
-      flow.inflowUSD += tx.valueUSD;
-      flow.netFlowUSD -= tx.valueUSD;
-    } else if (tx.fromExchange && !tx.toExchange) {
-      flow.outflowUSD += tx.valueUSD;
-      flow.netFlowUSD += tx.valueUSD;
-    }
-  }
-
-  // Calculate final metrics for each symbol
-  for (const [symbol, flow] of flowsBySymbol) {
-    const totalFlow = flow.inflowUSD + flow.outflowUSD;
-    const symbolTxs = significantTxs.filter(t => t.tokenSymbol === symbol);
-    const weightSum = symbolTxs.reduce((s, t) => s + Math.max(1, t.valueUSD), 0);
-
-    // Value-weighted mean confidence (0-100)
-    if (weightSum > 0) {
-      flow.confidenceScore = Math.min(100, flow.confidenceScore / weightSum);
-      flow.confidenceFactors.transactionSize = flow.confidenceFactors.transactionSize / weightSum;
-      flow.confidenceFactors.gasPrice = flow.confidenceFactors.gasPrice / weightSum;
-      flow.confidenceFactors.toExchange = flow.confidenceFactors.toExchange / weightSum;
-      flow.confidenceFactors.fromExchange = flow.confidenceFactors.fromExchange / weightSum;
-      flow.confidenceFactors.successfulTx = flow.confidenceFactors.successfulTx / weightSum;
-      flow.confidenceFactors.historicalPattern = flow.confidenceFactors.historicalPattern / weightSum;
-    }
-
-    if (totalFlow > 0) {
-      // Intensity scales with volume and confidence quality
-      flow.intensity = Math.min(100, (totalFlow / 1000000) * 10 * (flow.confidenceScore / 50));
-
-      const ratio = flow.netFlowUSD / totalFlow;
-      if (ratio > 0.2) flow.dominantDirection = 'bullish';
-      else if (ratio < -0.2) flow.dominantDirection = 'bearish';
-      else flow.dominantDirection = 'neutral';
-    }
-  }
-
-  return flowsBySymbol;
+  return _pureProcessTransactionsToFlows(
+    transactions,
+    exchangeAddresses,
+    prices,
+    walletPerformance,
+    impactByAddr,
+  );
 }
+
 
 // Update flow cache in Redis and Supabase
 async function updateFlowCache(
