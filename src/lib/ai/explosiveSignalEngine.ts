@@ -313,10 +313,14 @@ export class ExplosiveSignalEngine {
   }
 
   private calculateOnChainContribution(feature: ExplosiveFeatures): number {
-    return (feature.whaleMovements / 20 + 
-            feature.dormantWakeups / 10 + 
+    const raw = (feature.whaleMovements / 20 +
+            feature.dormantWakeups / 10 +
             Math.max(0, (feature.exchangeOutflow - feature.exchangeInflow) / 100)) / 3;
+    // Down-weight simulated on-chain (derived from price/volume) to prevent
+    // the composite score from being inflated by circular data.
+    return feature.isSimulated ? raw * 0.35 : raw;
   }
+
 
   private classifySignal(confidence: number): '⚡ Alta probabilidade' | '✨ Moderada probabilidade' | '⁉️ Baixa probabilidade' {
     if (confidence >= this.thresholds.high) return '⚡ Alta probabilidade';
