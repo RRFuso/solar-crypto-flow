@@ -116,54 +116,9 @@ function calculateConfidenceScore(
   walletPerformance?: WalletPerformance,
   walletHistoricalImpact?: number
 ): ConfidenceHeuristics {
-  const heuristics: ConfidenceHeuristics = {
-    transactionSize: 0,
-    gasPrice: 0,
-    toExchange: 0,
-    fromExchange: 0,
-    successfulTx: 0,
-    historicalPattern: 0,
-    total: 0,
-    isSmartMoney: false,
-  };
-
-  // --- Weighted, proportional scoring ---
-  // Value component (0-1): log-scale, saturates near $10M
-  // 50k -> ~0, 500k -> ~0.43, 5M -> ~0.86, 10M+ -> 1.0
-  const valueNorm = tx.valueUSD > 0
-    ? Math.min(1, Math.log10(tx.valueUSD / SIGNIFICANT_TX_THRESHOLD + 1) / Math.log10(10000000 / SIGNIFICANT_TX_THRESHOLD + 1))
-    : 0;
-
-  // Wallet history (0-1): prefer live perf, fallback to seeded historical_impact_score
-  const impactScore = walletPerformance?.impact_score ?? walletHistoricalImpact ?? 0;
-  const walletNorm = Math.max(0, Math.min(1, impactScore / 100));
-
-  // Heuristic modifier (0-1): exchange direction + gas + success
-  let modifierNorm = 0;
-  let modifierCount = 0;
-  if (tx.toExchange && !tx.fromExchange) { modifierNorm += 1.0; modifierCount++; }
-  else if (tx.fromExchange && !tx.toExchange) { modifierNorm += 1.0; modifierCount++; }
-  if (tx.gasPrice && tx.gasPrice > HIGH_GAS_THRESHOLD) { modifierNorm += 0.6; modifierCount++; }
-  if (!tx.isError) { modifierNorm += 0.3; modifierCount++; }
-  const modifierScore = modifierCount > 0 ? Math.min(1, modifierNorm / 2.0) : 0;
-
-  // Weighted composite: 50% value, 35% wallet, 15% heuristics (proportional, not additive)
-  const composite = (valueNorm * 0.50) + (walletNorm * 0.35) + (modifierScore * 0.15);
-  const total = Math.round(composite * 100);
-
-  // Keep breakdown for UI (proportional shares of the 100 points)
-  heuristics.transactionSize = Math.round(valueNorm * 50);
-  heuristics.historicalPattern = Math.round(walletNorm * 35);
-  heuristics.gasPrice = (tx.gasPrice && tx.gasPrice > HIGH_GAS_THRESHOLD) ? Math.round(modifierScore * 6) : 0;
-  heuristics.toExchange = (tx.toExchange && !tx.fromExchange) ? Math.round(modifierScore * 5) : 0;
-  heuristics.fromExchange = (tx.fromExchange && !tx.toExchange) ? Math.round(modifierScore * 5) : 0;
-  heuristics.successfulTx = !tx.isError ? Math.round(modifierScore * 2) : 0;
-
-  heuristics.total = total;
-  heuristics.isSmartMoney = total >= SMART_MONEY_CONFIDENCE_THRESHOLD;
-
-  return heuristics;
+  return _pureCalculateConfidenceScore(tx, ethPrice, walletPerformance, walletHistoricalImpact);
 }
+
 
 // ========== DATA FETCHING FUNCTIONS ==========
 
