@@ -15,39 +15,65 @@ export class AdvancedFeatureExtractor {
     for (const crypto of cryptoData) {
       const onChain = onChainData.find(oc => oc.symbol === crypto.symbol);
       const social = socialData.find(s => s.symbol === crypto.symbol);
-      
+
+      // Real on-chain fields — only used when actually present on the payload.
+      // If any of these are missing we fall back to simulate*() derived from
+      // price/volume, which is a circular signal (feature ≈ target) and MUST
+      // be marked as simulated so downstream engines can down-weight it.
+      const realWhale = onChain?.whaleMovements;
+      const realInflow = onChain?.exchangeFlow?.inflow;
+      const realOutflow = onChain?.exchangeFlow?.outflow;
+      const realActive = onChain?.activeAddresses;
+      const realNew = onChain?.newWallets;
+      const realDormant = onChain?.dormantWakeups;
+
+      const hasAnyRealOnChain =
+        realWhale !== undefined ||
+        realInflow !== undefined ||
+        realOutflow !== undefined ||
+        realActive !== undefined ||
+        realNew !== undefined ||
+        realDormant !== undefined;
+
       const feature: ExplosiveFeatures = {
         symbol: crypto.symbol,
         timestamp: Date.now(),
-        
-        // On-chain metrics (simulated for now)
-        activeAddresses: onChain?.activeAddresses || this.simulateActiveAddresses(crypto),
-        newWallets: onChain?.newWallets || this.simulateNewWallets(crypto),
-        whaleMovements: onChain?.whaleMovements || this.simulateWhaleMovements(crypto),
-        dormantWakeups: onChain?.dormantWakeups || this.simulateDormantWakeups(crypto),
-        exchangeInflow: onChain?.exchangeFlow?.inflow || this.simulateExchangeInflow(crypto),
-        exchangeOutflow: onChain?.exchangeFlow?.outflow || this.simulateExchangeOutflow(crypto),
-        
-        // Social sentiment
-        socialScore: social?.sentiment || this.calculateSocialScore(crypto),
-        mentionVolume: social?.mentionVolume || this.simulateMentionVolume(crypto),
+
+        // On-chain metrics — prefer real, fall back to simulate*() explicitly
+        activeAddresses: realActive ?? this.simulateActiveAddresses(crypto),
+        newWallets: realNew ?? this.simulateNewWallets(crypto),
+        whaleMovements: realWhale ?? this.simulateWhaleMovements(crypto),
+        dormantWakeups: realDormant ?? this.simulateDormantWakeups(crypto),
+        exchangeInflow: realInflow ?? this.simulateExchangeInflow(crypto),
+        exchangeOutflow: realOutflow ?? this.simulateExchangeOutflow(crypto),
+
+        // Social sentiment (still simulated — no real source integrated yet)
+        socialScore: social?.sentiment ?? this.calculateSocialScore(crypto),
+        mentionVolume: social?.mentionVolume ?? this.simulateMentionVolume(crypto),
         sentimentCluster: this.determineSentimentCluster(social?.sentiment || 0),
-        
+
         // Market data
         volume24h: this.normalizeVolume(parseFloat(String(crypto.volume || '0'))),
         priceChange24h: parseFloat(String(crypto.priceChangePercent || '0')),
+        // TODO: liquidityDepth and orderBookImbalance have NO real source in
+        // this project — currently estimated from volume/market-cap/price.
+        // Replace with real order-book snapshots when a source is integrated.
         liquidityDepth: this.calculateLiquidityDepth(crypto),
         orderBookImbalance: this.calculateOrderBookImbalance(crypto),
-        
+
         // Technical indicators
         rsi: crypto.rsi4h || this.calculateRSI(crypto),
         macd: this.calculateMACD(crypto),
         bollingerPosition: this.calculateBollingerPosition(crypto),
-        volumeProfile: this.calculateVolumeProfile(crypto)
+        volumeProfile: this.calculateVolumeProfile(crypto),
+
+        // False only when at least one real on-chain metric backed the payload
+        isSimulated: !hasAnyRealOnChain,
       };
-      
+
       features.push(feature);
     }
+
     
     return features;
   }

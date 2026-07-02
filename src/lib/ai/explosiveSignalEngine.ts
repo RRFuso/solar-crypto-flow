@@ -30,7 +30,14 @@ export interface ExplosiveFeatures {
   macd: number;
   bollingerPosition: number;
   volumeProfile: number;
+
+  // True when on-chain metrics for this feature had to fall back to
+  // simulate*() derived from price/volume. Consumers MUST down-weight
+  // on-chain-derived scores when this flag is true to avoid the
+  // circular "feature derived from price predicts price" leak.
+  isSimulated: boolean;
 }
+
 
 export interface AnomalyScore {
   symbol: string;
@@ -127,8 +134,13 @@ export class ExplosiveSignalEngine {
     const activeAddressRatio = feature.activeAddresses / 1000; // normalize
     if (activeAddressRatio > 1.5) score += 0.1;
     
+    // Simulated on-chain is derived from the same price/volume it tries to
+    // predict — heavily discount its contribution to avoid circular signal.
+    if (feature.isSimulated) score *= 0.35;
+
     return Math.min(score, 1);
   }
+
 
   private calculateSocialAnomalyScore(feature: ExplosiveFeatures): number {
     let score = 0;
@@ -301,10 +313,14 @@ export class ExplosiveSignalEngine {
   }
 
   private calculateOnChainContribution(feature: ExplosiveFeatures): number {
-    return (feature.whaleMovements / 20 + 
-            feature.dormantWakeups / 10 + 
+    const raw = (feature.whaleMovements / 20 +
+            feature.dormantWakeups / 10 +
             Math.max(0, (feature.exchangeOutflow - feature.exchangeInflow) / 100)) / 3;
+    // Down-weight simulated on-chain (derived from price/volume) to prevent
+    // the composite score from being inflated by circular data.
+    return feature.isSimulated ? raw * 0.35 : raw;
   }
+
 
   private classifySignal(confidence: number): '⚡ Alta probabilidade' | '✨ Moderada probabilidade' | '⁉️ Baixa probabilidade' {
     if (confidence >= this.thresholds.high) return '⚡ Alta probabilidade';
