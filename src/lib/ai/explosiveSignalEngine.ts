@@ -36,6 +36,14 @@ export interface ExplosiveFeatures {
   // on-chain-derived scores when this flag is true to avoid the
   // circular "feature derived from price predicts price" leak.
   isSimulated: boolean;
+  // Proportion (0..1) of the 6 on-chain fields that came from real sources.
+  // Used to scale down-weighting continuously instead of binarily.
+  onChainRealFieldsRatio: number;
+  // True when social metrics are simulated (no real social source integrated).
+  socialIsSimulated: boolean;
+  // True when market microstructure (order book / liquidity depth) is estimated
+  // from price/volume rather than a real order-book source.
+  marketIsSimulated: boolean;
 }
 
 
@@ -95,13 +103,20 @@ export class ExplosiveSignalEngine {
       const socialAnomaly = this.calculateSocialAnomalyScore(feature);
       const marketAnomaly = this.calculateMarketAnomalyScore(feature);
       
-      const isolationScore = (onChainAnomaly + socialAnomaly + marketAnomaly) / 3;
-      
+      // Weighted average: components with more real data contribute more.
+      const onChainWeight = feature.isSimulated ? 0.15 : 0.5;
+      const socialWeight = feature.socialIsSimulated ? 0.1 : 0.3;
+      const marketWeight = Math.max(0, 1 - onChainWeight - socialWeight);
+      const isolationScore =
+        (onChainAnomaly * onChainWeight) +
+        (socialAnomaly * socialWeight) +
+        (marketAnomaly * marketWeight);
+
       // Curve shifting: look for patterns that preceded explosions
       const curveShiftScore = this.calculateCurveShiftScore(feature);
-      
+
       const compositeScore = (isolationScore * 0.6) + (curveShiftScore * 0.4);
-      
+
       return {
         symbol: feature.symbol,
         timestamp: feature.timestamp,
@@ -134,9 +149,11 @@ export class ExplosiveSignalEngine {
     const activeAddressRatio = feature.activeAddresses / 1000; // normalize
     if (activeAddressRatio > 1.5) score += 0.1;
     
-    // Simulated on-chain is derived from the same price/volume it tries to
-    // predict — heavily discount its contribution to avoid circular signal.
-    if (feature.isSimulated) score *= 0.35;
+    // Continuous down-weight: multiplier grows with the share of real fields.
+    // 0 real fields -> 0.35x; all 6 real -> 1.0x.
+    const ratio = Math.max(0, Math.min(1, feature.onChainRealFieldsRatio ?? 0));
+    const multiplier = 0.35 + 0.65 * ratio;
+    score *= multiplier;
 
     return Math.min(score, 1);
   }
@@ -144,35 +161,41 @@ export class ExplosiveSignalEngine {
 
   private calculateSocialAnomalyScore(feature: ExplosiveFeatures): number {
     let score = 0;
-    
+
     // High positive sentiment
     if (feature.socialScore > 0.7) score += 0.4;
-    
+
     // Mention volume spike
     if (feature.mentionVolume > 1000) score += 0.3;
-    
+
     // Bullish sentiment cluster
     if (feature.sentimentCluster === 'bullish') score += 0.3;
-    
+
+    // Social is 100% simulated today — heavily discount to prevent it from
+    // masquerading as a real independent signal.
+    if (feature.socialIsSimulated) score *= 0.2;
+
     return Math.min(score, 1);
   }
 
   private calculateMarketAnomalyScore(feature: ExplosiveFeatures): number {
     let score = 0;
-    
-    // Volume spike
-    if (feature.volume24h > 2) score += 0.3; // 2x average
-    
-    // Order book imbalance favoring buyers
-    if (feature.orderBookImbalance > 0.6) score += 0.25;
-    
-    // High liquidity depth
-    if (feature.liquidityDepth > 1.5) score += 0.2;
-    
-    // Technical momentum
+
+    // Volume spike (legit technical signal — no discount)
+    if (feature.volume24h > 2) score += 0.3;
+
+    // Order-book / liquidity microstructure — estimated from price/volume,
+    // so it must be discounted when marked as simulated.
+    let microstructureScore = 0;
+    if (feature.orderBookImbalance > 0.6) microstructureScore += 0.25;
+    if (feature.liquidityDepth > 1.5) microstructureScore += 0.2;
+    if (feature.marketIsSimulated) microstructureScore *= 0.35;
+    score += microstructureScore;
+
+    // Technical momentum (RSI/MACD are legit indicators — no discount)
     if (feature.rsi > 50 && feature.rsi < 70) score += 0.15;
     if (feature.macd > 0) score += 0.1;
-    
+
     return Math.min(score, 1);
   }
 
@@ -316,9 +339,10 @@ export class ExplosiveSignalEngine {
     const raw = (feature.whaleMovements / 20 +
             feature.dormantWakeups / 10 +
             Math.max(0, (feature.exchangeOutflow - feature.exchangeInflow) / 100)) / 3;
-    // Down-weight simulated on-chain (derived from price/volume) to prevent
-    // the composite score from being inflated by circular data.
-    return feature.isSimulated ? raw * 0.35 : raw;
+    // Continuous down-weight based on the share of real on-chain fields.
+    const ratio = Math.max(0, Math.min(1, feature.onChainRealFieldsRatio ?? 0));
+    const multiplier = 0.35 + 0.65 * ratio;
+    return raw * multiplier;
   }
 
 
