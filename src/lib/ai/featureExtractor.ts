@@ -27,13 +27,15 @@ export class AdvancedFeatureExtractor {
       const realNew = onChain?.newWallets;
       const realDormant = onChain?.dormantWakeups;
 
-      const hasAnyRealOnChain =
-        realWhale !== undefined ||
-        realInflow !== undefined ||
-        realOutflow !== undefined ||
-        realActive !== undefined ||
-        realNew !== undefined ||
-        realDormant !== undefined;
+      const realFields = [realWhale, realInflow, realOutflow, realActive, realNew, realDormant];
+      const realCount = realFields.filter(v => v !== undefined).length;
+      const onChainRealFieldsRatio = realCount / realFields.length;
+      const hasAnyRealOnChain = realCount > 0;
+
+      // Social is currently always simulated (no real source integrated).
+      const socialIsSimulated = !social;
+      // Market microstructure is always estimated from price/volume today.
+      const marketIsSimulated = true;
 
       const feature: ExplosiveFeatures = {
         symbol: crypto.symbol,
@@ -67,8 +69,11 @@ export class AdvancedFeatureExtractor {
         bollingerPosition: this.calculateBollingerPosition(crypto),
         volumeProfile: this.calculateVolumeProfile(crypto),
 
-        // False only when at least one real on-chain metric backed the payload
+        // Provenance flags
         isSimulated: !hasAnyRealOnChain,
+        onChainRealFieldsRatio,
+        socialIsSimulated,
+        marketIsSimulated,
       };
 
       features.push(feature);
