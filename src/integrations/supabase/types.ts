@@ -721,6 +721,33 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_link_codes: {
+        Row: {
+          code: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       token_contracts: {
         Row: {
           chain: string
@@ -766,6 +793,8 @@ export type Database = {
           id: string
           min_severity: string
           push_notifications: boolean | null
+          telegram_chat_id: string | null
+          telegram_linked_at: string | null
           updated_at: string
           user_id: string
           watchlist_only: boolean | null
@@ -778,6 +807,8 @@ export type Database = {
           id?: string
           min_severity?: string
           push_notifications?: boolean | null
+          telegram_chat_id?: string | null
+          telegram_linked_at?: string | null
           updated_at?: string
           user_id: string
           watchlist_only?: boolean | null
@@ -790,6 +821,8 @@ export type Database = {
           id?: string
           min_severity?: string
           push_notifications?: boolean | null
+          telegram_chat_id?: string | null
+          telegram_linked_at?: string | null
           updated_at?: string
           user_id?: string
           watchlist_only?: boolean | null
