@@ -149,9 +149,11 @@ export class ExplosiveSignalEngine {
     const activeAddressRatio = feature.activeAddresses / 1000; // normalize
     if (activeAddressRatio > 1.5) score += 0.1;
     
-    // Simulated on-chain is derived from the same price/volume it tries to
-    // predict — heavily discount its contribution to avoid circular signal.
-    if (feature.isSimulated) score *= 0.35;
+    // Continuous down-weight: multiplier grows with the share of real fields.
+    // 0 real fields -> 0.35x; all 6 real -> 1.0x.
+    const ratio = Math.max(0, Math.min(1, feature.onChainRealFieldsRatio ?? 0));
+    const multiplier = 0.35 + 0.65 * ratio;
+    score *= multiplier;
 
     return Math.min(score, 1);
   }
@@ -159,35 +161,41 @@ export class ExplosiveSignalEngine {
 
   private calculateSocialAnomalyScore(feature: ExplosiveFeatures): number {
     let score = 0;
-    
+
     // High positive sentiment
     if (feature.socialScore > 0.7) score += 0.4;
-    
+
     // Mention volume spike
     if (feature.mentionVolume > 1000) score += 0.3;
-    
+
     // Bullish sentiment cluster
     if (feature.sentimentCluster === 'bullish') score += 0.3;
-    
+
+    // Social is 100% simulated today — heavily discount to prevent it from
+    // masquerading as a real independent signal.
+    if (feature.socialIsSimulated) score *= 0.2;
+
     return Math.min(score, 1);
   }
 
   private calculateMarketAnomalyScore(feature: ExplosiveFeatures): number {
     let score = 0;
-    
-    // Volume spike
-    if (feature.volume24h > 2) score += 0.3; // 2x average
-    
-    // Order book imbalance favoring buyers
-    if (feature.orderBookImbalance > 0.6) score += 0.25;
-    
-    // High liquidity depth
-    if (feature.liquidityDepth > 1.5) score += 0.2;
-    
-    // Technical momentum
+
+    // Volume spike (legit technical signal — no discount)
+    if (feature.volume24h > 2) score += 0.3;
+
+    // Order-book / liquidity microstructure — estimated from price/volume,
+    // so it must be discounted when marked as simulated.
+    let microstructureScore = 0;
+    if (feature.orderBookImbalance > 0.6) microstructureScore += 0.25;
+    if (feature.liquidityDepth > 1.5) microstructureScore += 0.2;
+    if (feature.marketIsSimulated) microstructureScore *= 0.35;
+    score += microstructureScore;
+
+    // Technical momentum (RSI/MACD are legit indicators — no discount)
     if (feature.rsi > 50 && feature.rsi < 70) score += 0.15;
     if (feature.macd > 0) score += 0.1;
-    
+
     return Math.min(score, 1);
   }
 
