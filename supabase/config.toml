@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.populate-cryptocurrencies]
 verify_jwt = false
+
+[functions.telegram-link]
+verify_jwt = false
