@@ -211,6 +211,42 @@ serve(async (req) => {
 
           if (insertError) throw insertError;
           console.log(`[smart-money-alerts] Created ${newAlerts.length} new alerts`);
+
+          // Fan-out to Telegram for users who have linked their chat
+          const telegramToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
+          if (telegramToken) {
+            const userIds = Array.from(new Set(newAlerts.map(a => a.user_id)));
+            const { data: prefs } = await supabase
+              .from('user_alert_preferences')
+              .select('user_id, telegram_chat_id')
+              .in('user_id', userIds)
+              .not('telegram_chat_id', 'is', null);
+
+            const chatMap = new Map<string, string>();
+            for (const p of prefs ?? []) {
+              if (p.telegram_chat_id) chatMap.set(p.user_id, p.telegram_chat_id);
+            }
+
+            const escapeHtml = (s: string) => s
+              .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            const sends = newAlerts
+              .map(a => {
+                const chatId = chatMap.get(a.user_id);
+                if (!chatId) return null;
+                const text = `<b>${escapeHtml(a.title)}</b>\n\n${escapeHtml(a.message)}`;
+                return fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
+                });
+              })
+              .filter((p): p is Promise<Response> => p !== null);
+
+            const results = await Promise.allSettled(sends);
+            const failed = results.filter(r => r.status === 'rejected').length;
+            console.log(`[smart-money-alerts] Telegram sent: ${results.length - failed}/${results.length}`);
+          }
         }
       }
 
