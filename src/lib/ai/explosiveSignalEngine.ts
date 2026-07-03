@@ -339,9 +339,10 @@ export class ExplosiveSignalEngine {
     const raw = (feature.whaleMovements / 20 +
             feature.dormantWakeups / 10 +
             Math.max(0, (feature.exchangeOutflow - feature.exchangeInflow) / 100)) / 3;
-    // Down-weight simulated on-chain (derived from price/volume) to prevent
-    // the composite score from being inflated by circular data.
-    return feature.isSimulated ? raw * 0.35 : raw;
+    // Continuous down-weight based on the share of real on-chain fields.
+    const ratio = Math.max(0, Math.min(1, feature.onChainRealFieldsRatio ?? 0));
+    const multiplier = 0.35 + 0.65 * ratio;
+    return raw * multiplier;
   }
 
 
