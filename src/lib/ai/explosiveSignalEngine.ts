@@ -36,6 +36,14 @@ export interface ExplosiveFeatures {
   // on-chain-derived scores when this flag is true to avoid the
   // circular "feature derived from price predicts price" leak.
   isSimulated: boolean;
+  // Proportion (0..1) of the 6 on-chain fields that came from real sources.
+  // Used to scale down-weighting continuously instead of binarily.
+  onChainRealFieldsRatio: number;
+  // True when social metrics are simulated (no real social source integrated).
+  socialIsSimulated: boolean;
+  // True when market microstructure (order book / liquidity depth) is estimated
+  // from price/volume rather than a real order-book source.
+  marketIsSimulated: boolean;
 }
 
 
