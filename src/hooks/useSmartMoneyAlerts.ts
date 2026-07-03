@@ -38,6 +38,8 @@ export interface AlertPreferences {
   watchlist_only: boolean;
   email_notifications: boolean;
   push_notifications: boolean;
+  telegram_chat_id?: string | null;
+  telegram_linked_at?: string | null;
   created_at: string;
   updated_at: string;
 }
