@@ -103,13 +103,20 @@ export class ExplosiveSignalEngine {
       const socialAnomaly = this.calculateSocialAnomalyScore(feature);
       const marketAnomaly = this.calculateMarketAnomalyScore(feature);
       
-      const isolationScore = (onChainAnomaly + socialAnomaly + marketAnomaly) / 3;
-      
+      // Weighted average: components with more real data contribute more.
+      const onChainWeight = feature.isSimulated ? 0.15 : 0.5;
+      const socialWeight = feature.socialIsSimulated ? 0.1 : 0.3;
+      const marketWeight = Math.max(0, 1 - onChainWeight - socialWeight);
+      const isolationScore =
+        (onChainAnomaly * onChainWeight) +
+        (socialAnomaly * socialWeight) +
+        (marketAnomaly * marketWeight);
+
       // Curve shifting: look for patterns that preceded explosions
       const curveShiftScore = this.calculateCurveShiftScore(feature);
-      
+
       const compositeScore = (isolationScore * 0.6) + (curveShiftScore * 0.4);
-      
+
       return {
         symbol: feature.symbol,
         timestamp: feature.timestamp,
