@@ -51,6 +51,13 @@ const UserMenu: React.FC<UserMenuProps> = ({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 text-white">
               <DropdownMenuItem
+                onClick={() => setIsProfileDialogOpen(true)}
+                className="hover:bg-gray-700 cursor-pointer"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Perfil & IA
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 onClick={() => setIsAlertPanelOpen(true)}
                 className="hover:bg-gray-700 cursor-pointer"
               >
