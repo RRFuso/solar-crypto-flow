@@ -119,6 +119,12 @@ const UserMenu: React.FC<UserMenuProps> = ({
         open={isProfileDialogOpen} 
         onOpenChange={setIsProfileDialogOpen} 
       />
+
+      <Dialog open={isAlertPanelOpen} onOpenChange={setIsAlertPanelOpen}>
+        <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+          <AlertPreferencesPanel onClose={() => setIsAlertPanelOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
