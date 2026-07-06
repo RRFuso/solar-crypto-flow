@@ -8,10 +8,15 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { User, LogOut, Database, CreditCard, Settings, Activity } from 'lucide-react';
+import { User, LogOut, Database, CreditCard, Settings, Activity, Bell } from 'lucide-react';
 import { CreditDisplay } from '@/components/credits/CreditDisplay';
 import { useUserRole } from '@/hooks/useUserRole';
 import { UserProfileDialog } from '@/components/user-profile/UserProfileDialog';
+import AlertPreferencesPanel from '@/components/alerts/AlertPreferencesPanel';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
 
 interface UserMenuProps {
   openDataPopulationModal: () => void;
@@ -29,6 +34,7 @@ const UserMenu: React.FC<UserMenuProps> = ({
   const { user, signOut, subscriptionPlan } = useAuth();
   const { isAdmin } = useUserRole();
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [isAlertPanelOpen, setIsAlertPanelOpen] = useState(false);
 
   return (
     <>
@@ -50,6 +56,13 @@ const UserMenu: React.FC<UserMenuProps> = ({
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Perfil & IA
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setIsAlertPanelOpen(true)}
+                className="hover:bg-gray-700 cursor-pointer"
+              >
+                <Bell className="h-4 w-4 mr-2" />
+                Alertas & Telegram
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-gray-700" />
               <DropdownMenuItem
@@ -106,6 +119,12 @@ const UserMenu: React.FC<UserMenuProps> = ({
         open={isProfileDialogOpen} 
         onOpenChange={setIsProfileDialogOpen} 
       />
+
+      <Dialog open={isAlertPanelOpen} onOpenChange={setIsAlertPanelOpen}>
+        <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+          <AlertPreferencesPanel onClose={() => setIsAlertPanelOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
