@@ -295,7 +295,7 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
   // Get average confidence across all flows
   const getAverageConfidence = useCallback(() => {
     if (!flows || flows.length === 0) return 0;
-    const total = flows.reduce((sum, f) => sum + (f.confidence_score || 0), 0);
+    const total = flows.reduce((sum, f) => sum + normalizeConfidence(f.confidence_score), 0);
     return total / flows.length;
   }, [flows]);
 
