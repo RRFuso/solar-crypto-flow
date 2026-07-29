@@ -202,10 +202,10 @@ export async function processTransactionsToFlows(
 
   for (const [symbol, flow] of flowsBySymbol) {
     const totalFlow = flow.inflowUSD + flow.outflowUSD;
-    const symbolTxs = significantTxs.filter((t) => t.tokenSymbol === symbol);
-    const weightSum = symbolTxs.reduce((s, t) => s + Math.max(1, t.valueUSD), 0);
+    const weightSum = weightBySymbol.get(symbol) ?? 0;
 
     if (weightSum > 0) {
+
       flow.confidenceScore = Math.min(100, flow.confidenceScore / weightSum);
       flow.confidenceFactors.transactionSize /= weightSum;
       flow.confidenceFactors.gasPrice /= weightSum;
