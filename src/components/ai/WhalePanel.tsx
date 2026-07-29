@@ -26,14 +26,20 @@ const WhalePanel: React.FC<WhalePanelProps> = ({ maxItems = 10 }) => {
   const { data: whaleFlows, isLoading, error } = useQuery({
     queryKey: ['whale-flows'],
     queryFn: async () => {
+      const freshCutoff = new Date(Date.now() - FLOW_MAX_AGE_MS).toISOString();
       const { data, error } = await supabase
         .from('smart_money_flow_cache')
         .select('*')
+        // Stale rows are historical, not a current whale signal.
+        .gt('last_updated', freshCutoff)
         .order('confidence_score', { ascending: false })
         .limit(maxItems);
-      
+
       if (error) throw error;
-      return data as WhaleFlowData[];
+      return (data ?? []).map((row) => ({
+        ...row,
+        confidence_score: normalizeConfidence(row.confidence_score),
+      })) as WhaleFlowData[];
     },
     staleTime: 1000 * 60 * 2, // 2 minutes
     refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
