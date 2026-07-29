@@ -5,6 +5,7 @@ import CryptoLogo from './CryptoLogo';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowUpRight, ArrowDownRight, Fish } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { FLOW_MAX_AGE_MS, normalizeConfidence } from '@/hooks/useSmartMoneyFlows';
 
 interface WhaleFlowData {
   token_symbol: string;
