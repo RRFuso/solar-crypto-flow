@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowUpRight, ArrowDownRight, Fish, RefreshCw, Loader2, Zap } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { FLOW_MAX_AGE_MS, normalizeConfidence } from '@/hooks/useSmartMoneyFlows';
 
 interface WhaleFlowData {
   token_symbol: string;
