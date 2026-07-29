@@ -114,7 +114,12 @@ export async function processTransactionsToFlows(
   impactByAddr?: Map<string, number>,
 ): Promise<Map<string, FlowData>> {
   const flowsBySymbol = new Map<string, FlowData>();
+  // Sum of the weights that actually contributed to confidenceScore.
+  // Must NOT include transactions that were skipped (isSmartMoney === false),
+  // otherwise the weighted mean is diluted toward zero.
+  const weightBySymbol = new Map<string, number>();
   const ethPrice = prices['ETH'] || 2000;
+
 
   const enrichedTransactions = transactions.map((tx) => ({
     ...tx,
