@@ -349,7 +349,9 @@ export function useParticleFlowConfig(flows: SmartMoneyFlow[] | undefined) {
       };
     }
 
-    const confidenceScore = primaryFlow.confidence_score || 0;
+    const confidenceScore = isFlowFresh(primaryFlow.last_updated)
+      ? normalizeConfidence(primaryFlow.confidence_score)
+      : 0;
     const isSmartMoney = confidenceScore >= MEDIUM_CONFIDENCE_THRESHOLD;
     let confidenceLevel: 'high' | 'medium' | 'low' = 'low';
     
