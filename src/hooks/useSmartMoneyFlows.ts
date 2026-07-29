@@ -57,6 +57,31 @@ const BASE_PARTICLE_SPEED = 0.002;
 const HIGH_CONFIDENCE_THRESHOLD = 60;
 const MEDIUM_CONFIDENCE_THRESHOLD = 40;
 
+/**
+ * A flow row is only a *live* smart-money signal while it is fresh.
+ * Beyond this age the row is historical data and must NOT be presented as
+ * a current signal (otherwise the same tokens stay "high confidence" forever).
+ */
+export const FLOW_MAX_AGE_MS = 20 * 60 * 1000; // 20 min
+
+export function isFlowFresh(lastUpdated?: string | null): boolean {
+  if (!lastUpdated) return false;
+  const ts = new Date(lastUpdated).getTime();
+  if (!Number.isFinite(ts)) return false;
+  return Date.now() - ts < FLOW_MAX_AGE_MS;
+}
+
+/**
+ * Legacy rows were written by an additive scoring model that produced
+ * unbounded values (e.g. 1150). Anything outside 0-100 is not a percentage.
+ */
+export function normalizeConfidence(raw: unknown): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(100, n);
+}
+
+
 // ========== HOOK PRINCIPAL ==========
 export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP']) {
   const queryClient = useQueryClient();
@@ -77,7 +102,11 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
         });
 
         if (!error && data?.data?.length > 0) {
-          return data.data as SmartMoneyFlow[];
+          // The edge function already filters by expires_at, but re-check age
+          // client-side so a stalled tracker can never look "live".
+          return (data.data as SmartMoneyFlow[])
+            .filter(f => isFlowFresh(f.last_updated))
+            .map(f => ({ ...f, confidence_score: normalizeConfidence(f.confidence_score) }));
         }
       } catch (e) {
         console.warn('smart-money-tracker edge function failed, falling back to DB:', e);
@@ -90,6 +119,8 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
         .from('smart_money_flow_cache')
         .select('*')
         .in('token_symbol', upperSymbols)
+        // Only rows the tracker still considers valid — never resurrect stale ones.
+        .gt('expires_at', new Date().toISOString())
         .order('last_updated', { ascending: false });
 
       if (dbError || !cacheData) {
@@ -105,23 +136,26 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
         return true;
       });
 
-      return deduped.map(row => ({
-        token_symbol: row.token_symbol,
-        timeframe: row.timeframe,
-        net_flow_usd: Number(row.net_flow_usd),
-        total_inflow_usd: Number(row.total_inflow_usd),
-        total_outflow_usd: Number(row.total_outflow_usd),
-        whale_tx_count: row.whale_tx_count,
-        dominant_direction: row.dominant_direction as 'bullish' | 'bearish' | 'neutral',
-        flow_intensity: Number(row.flow_intensity),
-        ema_flow: Number(row.ema_flow),
-        last_updated: row.last_updated,
-        confidence_score: Number(row.confidence_score),
-        confidence_factors: row.confidence_factors as any,
-        whale_transactions_value: Number(row.whale_transactions_value),
-        avg_gas_price_gwei: Number(row.avg_gas_price_gwei),
-        successful_tx_count: row.successful_tx_count,
-      })) as SmartMoneyFlow[];
+      return deduped
+        .filter(row => isFlowFresh(row.last_updated))
+        .map(row => ({
+          token_symbol: row.token_symbol,
+          timeframe: row.timeframe,
+          net_flow_usd: Number(row.net_flow_usd),
+          total_inflow_usd: Number(row.total_inflow_usd),
+          total_outflow_usd: Number(row.total_outflow_usd),
+          whale_tx_count: row.whale_tx_count,
+          dominant_direction: row.dominant_direction as 'bullish' | 'bearish' | 'neutral',
+          flow_intensity: Number(row.flow_intensity),
+          ema_flow: Number(row.ema_flow),
+          last_updated: row.last_updated,
+          confidence_score: normalizeConfidence(row.confidence_score),
+          confidence_factors: row.confidence_factors as any,
+          whale_transactions_value: Number(row.whale_transactions_value),
+          avg_gas_price_gwei: Number(row.avg_gas_price_gwei),
+          successful_tx_count: row.successful_tx_count,
+        })) as SmartMoneyFlow[];
+
     },
     staleTime: 90 * 1000,          // 90s — flow data is time-sensitive
     refetchInterval: 2 * 60 * 1000, // refresh every 2 min
@@ -150,14 +184,22 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
 
   // Process flows into directions with confidence weighting
   useEffect(() => {
-    if (!flows || flows.length === 0) return;
+    // Empty result is meaningful: it means "no fresh on-chain signal".
+    // Clear previous directions instead of keeping the last known ones forever.
+    if (!flows || flows.length === 0) {
+      setFlowDirections(new Map());
+      return;
+    }
 
     const newDirections = new Map<string, FlowDirection>();
 
     flows.forEach((flow) => {
       let direction: 1 | -1 | 0 = 0;
       let color = FLOW_COLORS.neutral;
-      const confidenceScore = flow.confidence_score || 0;
+      const confidenceScore = isFlowFresh(flow.last_updated)
+        ? normalizeConfidence(flow.confidence_score)
+        : 0;
+
 
       // Determine confidence level
       let confidenceLevel: 'high' | 'medium' | 'low' = 'low';
@@ -253,7 +295,7 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
   // Get average confidence across all flows
   const getAverageConfidence = useCallback(() => {
     if (!flows || flows.length === 0) return 0;
-    const total = flows.reduce((sum, f) => sum + (f.confidence_score || 0), 0);
+    const total = flows.reduce((sum, f) => sum + normalizeConfidence(f.confidence_score), 0);
     return total / flows.length;
   }, [flows]);
 
@@ -307,7 +349,9 @@ export function useParticleFlowConfig(flows: SmartMoneyFlow[] | undefined) {
       };
     }
 
-    const confidenceScore = primaryFlow.confidence_score || 0;
+    const confidenceScore = isFlowFresh(primaryFlow.last_updated)
+      ? normalizeConfidence(primaryFlow.confidence_score)
+      : 0;
     const isSmartMoney = confidenceScore >= MEDIUM_CONFIDENCE_THRESHOLD;
     let confidenceLevel: 'high' | 'medium' | 'low' = 'low';
     

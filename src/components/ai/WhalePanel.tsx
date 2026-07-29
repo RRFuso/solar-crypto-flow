@@ -5,6 +5,7 @@ import CryptoLogo from './CryptoLogo';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowUpRight, ArrowDownRight, Fish } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { FLOW_MAX_AGE_MS, normalizeConfidence } from '@/hooks/useSmartMoneyFlows';
 
 interface WhaleFlowData {
   token_symbol: string;
@@ -25,14 +26,20 @@ const WhalePanel: React.FC<WhalePanelProps> = ({ maxItems = 10 }) => {
   const { data: whaleFlows, isLoading, error } = useQuery({
     queryKey: ['whale-flows'],
     queryFn: async () => {
+      const freshCutoff = new Date(Date.now() - FLOW_MAX_AGE_MS).toISOString();
       const { data, error } = await supabase
         .from('smart_money_flow_cache')
         .select('*')
+        // Stale rows are historical, not a current whale signal.
+        .gt('last_updated', freshCutoff)
         .order('confidence_score', { ascending: false })
         .limit(maxItems);
-      
+
       if (error) throw error;
-      return data as WhaleFlowData[];
+      return (data ?? []).map((row) => ({
+        ...row,
+        confidence_score: normalizeConfidence(row.confidence_score),
+      })) as WhaleFlowData[];
     },
     staleTime: 1000 * 60 * 2, // 2 minutes
     refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
@@ -82,7 +89,7 @@ const WhalePanel: React.FC<WhalePanelProps> = ({ maxItems = 10 }) => {
     );
   }
 
-  if (error || !whaleFlows) {
+  if (error || !whaleFlows || whaleFlows.length === 0) {
     return (
       <div className="bg-black border border-gray-700 rounded-lg h-full flex flex-col w-full p-4">
         <div className="text-center text-gray-400">

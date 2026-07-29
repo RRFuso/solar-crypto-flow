@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowUpRight, ArrowDownRight, Fish, RefreshCw, Loader2, Zap } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { FLOW_MAX_AGE_MS, normalizeConfidence } from '@/hooks/useSmartMoneyFlows';
 
 interface WhaleFlowData {
   token_symbol: string;
@@ -40,30 +41,38 @@ const WhaleGalaxyPanel: React.FC<WhaleGalaxyPanelProps> = ({ maxItems = 15 }) =>
   const { data: whaleFlows, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['whale-galaxy-flows', selectedTimeframe],
     queryFn: async () => {
-      // First try with timeframe filter
+      const freshCutoff = new Date(Date.now() - FLOW_MAX_AGE_MS).toISOString();
+
+      // Only fresh rows — stale cache must not be presented as a live signal.
       let { data, error } = await supabase
         .from('smart_money_flow_cache')
         .select('*')
         .eq('timeframe', selectedTimeframe)
+        .gt('last_updated', freshCutoff)
         .order('net_flow_usd', { ascending: false })
         .limit(maxItems);
-      
+
       if (error) throw error;
-      
-      // If no data with timeframe, get all available data
+
+      // If no data for this timeframe, allow any fresh timeframe
       if (!data || data.length === 0) {
         const { data: allData, error: allError } = await supabase
           .from('smart_money_flow_cache')
           .select('*')
+          .gt('last_updated', freshCutoff)
           .order('net_flow_usd', { ascending: false })
           .limit(maxItems);
-        
+
         if (allError) throw allError;
         data = allData;
       }
-      
-      return data as WhaleFlowData[];
+
+      return (data ?? []).map((row) => ({
+        ...row,
+        confidence_score: normalizeConfidence(row.confidence_score),
+      })) as WhaleFlowData[];
     },
+
     staleTime: 1000 * 60 * 2,
     refetchInterval: 1000 * 60 * 5,
   });

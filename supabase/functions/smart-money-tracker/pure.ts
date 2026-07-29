@@ -114,7 +114,12 @@ export async function processTransactionsToFlows(
   impactByAddr?: Map<string, number>,
 ): Promise<Map<string, FlowData>> {
   const flowsBySymbol = new Map<string, FlowData>();
+  // Sum of the weights that actually contributed to confidenceScore.
+  // Must NOT include transactions that were skipped (isSmartMoney === false),
+  // otherwise the weighted mean is diluted toward zero.
+  const weightBySymbol = new Map<string, number>();
   const ethPrice = prices['ETH'] || 2000;
+
 
   const enrichedTransactions = transactions.map((tx) => ({
     ...tx,
@@ -183,6 +188,8 @@ export async function processTransactionsToFlows(
     flow.confidenceFactors.successfulTx += confidence.successfulTx * w;
     flow.confidenceFactors.historicalPattern += confidence.historicalPattern * w;
     flow.confidenceScore += confidence.total * w;
+    weightBySymbol.set(symbol, (weightBySymbol.get(symbol) ?? 0) + w);
+
 
     if (tx.toExchange && !tx.fromExchange) {
       flow.inflowUSD += tx.valueUSD;
@@ -195,10 +202,10 @@ export async function processTransactionsToFlows(
 
   for (const [symbol, flow] of flowsBySymbol) {
     const totalFlow = flow.inflowUSD + flow.outflowUSD;
-    const symbolTxs = significantTxs.filter((t) => t.tokenSymbol === symbol);
-    const weightSum = symbolTxs.reduce((s, t) => s + Math.max(1, t.valueUSD), 0);
+    const weightSum = weightBySymbol.get(symbol) ?? 0;
 
     if (weightSum > 0) {
+
       flow.confidenceScore = Math.min(100, flow.confidenceScore / weightSum);
       flow.confidenceFactors.transactionSize /= weightSum;
       flow.confidenceFactors.gasPrice /= weightSum;
