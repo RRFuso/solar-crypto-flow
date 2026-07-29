@@ -184,14 +184,22 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
 
   // Process flows into directions with confidence weighting
   useEffect(() => {
-    if (!flows || flows.length === 0) return;
+    // Empty result is meaningful: it means "no fresh on-chain signal".
+    // Clear previous directions instead of keeping the last known ones forever.
+    if (!flows || flows.length === 0) {
+      setFlowDirections(new Map());
+      return;
+    }
 
     const newDirections = new Map<string, FlowDirection>();
 
     flows.forEach((flow) => {
       let direction: 1 | -1 | 0 = 0;
       let color = FLOW_COLORS.neutral;
-      const confidenceScore = flow.confidence_score || 0;
+      const confidenceScore = isFlowFresh(flow.last_updated)
+        ? normalizeConfidence(flow.confidence_score)
+        : 0;
+
 
       // Determine confidence level
       let confidenceLevel: 'high' | 'medium' | 'low' = 'low';
