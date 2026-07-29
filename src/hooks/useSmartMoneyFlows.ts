@@ -57,6 +57,31 @@ const BASE_PARTICLE_SPEED = 0.002;
 const HIGH_CONFIDENCE_THRESHOLD = 60;
 const MEDIUM_CONFIDENCE_THRESHOLD = 40;
 
+/**
+ * A flow row is only a *live* smart-money signal while it is fresh.
+ * Beyond this age the row is historical data and must NOT be presented as
+ * a current signal (otherwise the same tokens stay "high confidence" forever).
+ */
+export const FLOW_MAX_AGE_MS = 20 * 60 * 1000; // 20 min
+
+export function isFlowFresh(lastUpdated?: string | null): boolean {
+  if (!lastUpdated) return false;
+  const ts = new Date(lastUpdated).getTime();
+  if (!Number.isFinite(ts)) return false;
+  return Date.now() - ts < FLOW_MAX_AGE_MS;
+}
+
+/**
+ * Legacy rows were written by an additive scoring model that produced
+ * unbounded values (e.g. 1150). Anything outside 0-100 is not a percentage.
+ */
+export function normalizeConfidence(raw: unknown): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(100, n);
+}
+
+
 // ========== HOOK PRINCIPAL ==========
 export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP']) {
   const queryClient = useQueryClient();
