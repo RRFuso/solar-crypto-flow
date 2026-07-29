@@ -89,7 +89,7 @@ const WhalePanel: React.FC<WhalePanelProps> = ({ maxItems = 10 }) => {
     );
   }
 
-  if (error || !whaleFlows) {
+  if (error || !whaleFlows || whaleFlows.length === 0) {
     return (
       <div className="bg-black border border-gray-700 rounded-lg h-full flex flex-col w-full p-4">
         <div className="text-center text-gray-400">
