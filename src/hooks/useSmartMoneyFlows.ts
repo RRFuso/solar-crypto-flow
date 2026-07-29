@@ -102,7 +102,11 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
         });
 
         if (!error && data?.data?.length > 0) {
-          return data.data as SmartMoneyFlow[];
+          // The edge function already filters by expires_at, but re-check age
+          // client-side so a stalled tracker can never look "live".
+          return (data.data as SmartMoneyFlow[])
+            .filter(f => isFlowFresh(f.last_updated))
+            .map(f => ({ ...f, confidence_score: normalizeConfidence(f.confidence_score) }));
         }
       } catch (e) {
         console.warn('smart-money-tracker edge function failed, falling back to DB:', e);
@@ -115,6 +119,8 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
         .from('smart_money_flow_cache')
         .select('*')
         .in('token_symbol', upperSymbols)
+        // Only rows the tracker still considers valid — never resurrect stale ones.
+        .gt('expires_at', new Date().toISOString())
         .order('last_updated', { ascending: false });
 
       if (dbError || !cacheData) {
@@ -130,23 +136,26 @@ export function useSmartMoneyFlows(symbols: string[] = ['BTC', 'ETH', 'SOL', 'BN
         return true;
       });
 
-      return deduped.map(row => ({
-        token_symbol: row.token_symbol,
-        timeframe: row.timeframe,
-        net_flow_usd: Number(row.net_flow_usd),
-        total_inflow_usd: Number(row.total_inflow_usd),
-        total_outflow_usd: Number(row.total_outflow_usd),
-        whale_tx_count: row.whale_tx_count,
-        dominant_direction: row.dominant_direction as 'bullish' | 'bearish' | 'neutral',
-        flow_intensity: Number(row.flow_intensity),
-        ema_flow: Number(row.ema_flow),
-        last_updated: row.last_updated,
-        confidence_score: Number(row.confidence_score),
-        confidence_factors: row.confidence_factors as any,
-        whale_transactions_value: Number(row.whale_transactions_value),
-        avg_gas_price_gwei: Number(row.avg_gas_price_gwei),
-        successful_tx_count: row.successful_tx_count,
-      })) as SmartMoneyFlow[];
+      return deduped
+        .filter(row => isFlowFresh(row.last_updated))
+        .map(row => ({
+          token_symbol: row.token_symbol,
+          timeframe: row.timeframe,
+          net_flow_usd: Number(row.net_flow_usd),
+          total_inflow_usd: Number(row.total_inflow_usd),
+          total_outflow_usd: Number(row.total_outflow_usd),
+          whale_tx_count: row.whale_tx_count,
+          dominant_direction: row.dominant_direction as 'bullish' | 'bearish' | 'neutral',
+          flow_intensity: Number(row.flow_intensity),
+          ema_flow: Number(row.ema_flow),
+          last_updated: row.last_updated,
+          confidence_score: normalizeConfidence(row.confidence_score),
+          confidence_factors: row.confidence_factors as any,
+          whale_transactions_value: Number(row.whale_transactions_value),
+          avg_gas_price_gwei: Number(row.avg_gas_price_gwei),
+          successful_tx_count: row.successful_tx_count,
+        })) as SmartMoneyFlow[];
+
     },
     staleTime: 90 * 1000,          // 90s — flow data is time-sensitive
     refetchInterval: 2 * 60 * 1000, // refresh every 2 min
