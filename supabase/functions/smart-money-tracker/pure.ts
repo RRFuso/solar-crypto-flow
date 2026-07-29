@@ -188,6 +188,8 @@ export async function processTransactionsToFlows(
     flow.confidenceFactors.successfulTx += confidence.successfulTx * w;
     flow.confidenceFactors.historicalPattern += confidence.historicalPattern * w;
     flow.confidenceScore += confidence.total * w;
+    weightBySymbol.set(symbol, (weightBySymbol.get(symbol) ?? 0) + w);
+
 
     if (tx.toExchange && !tx.fromExchange) {
       flow.inflowUSD += tx.valueUSD;
