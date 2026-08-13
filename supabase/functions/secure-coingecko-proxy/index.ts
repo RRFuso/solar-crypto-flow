@@ -19,15 +19,22 @@ async function findCoingeckoId(ticker: string): Promise<string | null> {
   if (cached) return cached;
 
   try {
-    const searchUrl = `${COINGECKO_API_URL}/search?query=${ticker}`
+    const searchUrl = `${COINGECKO_API_URL}/search?query=${encodeURIComponent(ticker)}`
     const response = await fetch(searchUrl, {
       headers: { 'x-cg-demo-api-key': COINGECKO_API_KEY || '' },
     })
     if (!response.ok) return null
 
     const data = await response.json()
-    const bestMatch = data.coins?.find((c: any) => c.symbol.toUpperCase() === ticker.toUpperCase())
-    const id = bestMatch?.id || data.coins?.[0]?.id || null;
+    const q = ticker.toUpperCase()
+    const coins = data.coins || []
+    // Prefer exact symbol match with best market cap rank, then exact name match. Never guess.
+    const symbolMatches = coins
+      .filter((c: any) => (c.symbol || '').toUpperCase() === q)
+      .sort((a: any, b: any) => (a.market_cap_rank ?? 1e9) - (b.market_cap_rank ?? 1e9))
+    const nameMatch = coins.find((c: any) => (c.name || '').toUpperCase() === q)
+    const id = symbolMatches[0]?.id || nameMatch?.id || null;
+
     
     // Cache the ID for 24 hours (IDs don't change)
     if (id) {
