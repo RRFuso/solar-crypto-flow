@@ -335,24 +335,35 @@ async function fetchAllExternalData(req: Request): Promise<any> {
   }
 }
 
+// Words that look like tickers but are not crypto assets
+const TICKER_STOPWORDS = new Set([
+  'IA','AI','ETF','USD','BRL','EUR','RSI','MACD','ATH','ATL','FOMO','FUD','DEX','CEX','NFT','DAO','APY','APR',
+  'CEO','USA','FED','CPI','PIB','TVL','ROI','OK','SIM','NAO','NÃO','MAS','POR','QUE','COM','SEM','DOS','DAS',
+  'UMA','UM','ESTA','ESSE','ESSA','MAIS','TODO','TODA','JSON','API','HTTP','URL','LLM','GPU','CPU','PNL','P&L',
+]);
+
 // Function to detect potential crypto tickers in a message
 function detectTickers(message: string): string[] {
-  // Matches $WORD or uppercase words of 2-10 letters
-  const regex = /(?:$|(?<=\s))([A-Z]{2,10})(?=\s|$|\?|\.|,)/g;
-  const matches = message.match(regex);
-  if (!matches) return [];
+  const found = new Set<string>();
 
-  // Clean up matches (remove $, duplicates) and format them
-  const formattedTickers = [...new Set(matches.map((m) => m.replace(/,/, '').trim()))].map(ticker => {
-    // If the ticker doesn't contain a '-', assume it's a base currency and append '-USD'
-    if (!ticker.includes('-')) {
-      return `${ticker}-USD`;
-    }
-    return ticker;
-  });
+  // 1) $TICKER notation (highest confidence)
+  for (const m of message.matchAll(/\$([A-Za-z][A-Za-z0-9]{1,14})/g)) {
+    found.add(m[1].toUpperCase());
+  }
 
-  return formattedTickers;
+  // 2) Quoted tickers: "ZEREBRO" or 'zerebro'
+  for (const m of message.matchAll(/["'“”']([A-Za-z][A-Za-z0-9]{1,14})["'“”']/g)) {
+    found.add(m[1].toUpperCase());
+  }
+
+  // 3) Standalone uppercase words
+  for (const m of message.matchAll(/\b([A-Z][A-Z0-9]{1,9})\b/g)) {
+    found.add(m[1].toUpperCase());
+  }
+
+  return [...found].filter(t => !TICKER_STOPWORDS.has(t)).slice(0, 5);
 }
+
 
 // Helper functions to aggregate user interaction data (privacy-safe)
 function aggregateTrendingAssets(interactions: any[]): Record<string, number> {
