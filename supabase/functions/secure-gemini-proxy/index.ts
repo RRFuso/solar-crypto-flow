@@ -187,8 +187,30 @@ Para cada pergunta:
 ## CONTEXTO ATUAL DO MERCADO
 {marketContextData}
 
-## DADOS ESPECÍFICOS SOLICITADOS
+## DOSSIÊ DOS ATIVOS CITADOS (additionalData)
+Para cada símbolo mencionado pelo usuário montamos um dossiê dedicado, que consulta TODAS as fontes
+filtrando por aquele símbolo (não apenas os top-50 do contexto geral):
+- **coverage**: mapa booleano indicando quais fontes têm dado para o ativo
+- **realTimePrice**: preço ao vivo da Binance (par USDT/FDUSD/BTC), quando listado
+- **coingecko**: preço, market cap, ranking, volume, ATH e variações 1h/24h/7d/30d — funciona para
+  tokens de baixa capitalização que NÃO estão na Binance
+- **marketData / technicalSignals / aiPredictions / predictiveSignals / sentiment / smartMoneyFlows /
+  onChainContracts**: registros específicos do ativo no banco
+
+### Regras obrigatórias para ativos citados
+1. Se `coingecko` estiver preenchido, o ativo EXISTE — use esses números. NUNCA diga que o ativo
+   não foi encontrado só porque não está na Binance ou no top-50 do banco.
+2. Ausência na Binance significa apenas "não listado nessa exchange"; relate isso em uma linha, sem
+   transformar em bloco de análise.
+3. Não liste fonte por fonte dizendo "sem dados". Faça a análise com o que existe e resuma as lacunas
+   em uma única frase curta de cobertura ao final.
+4. Se `coverage` mostrar que só há dado de preço/market cap, entregue mesmo assim análise de preço,
+   liquidez (volume/market cap), distância do ATH e momentum multi-janela (1h/24h/7d/30d).
+5. Só declare "ativo não encontrado" quando `coingecko`, `realTimePrice` e `marketData` estiverem
+   todos nulos — e nesse caso sugira verificar o ticker/rede em uma frase.
+
 {additionalData}
+
 
 ## HISTÓRICO DA CONVERSA
 {conversationHistory}
