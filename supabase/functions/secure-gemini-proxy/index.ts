@@ -627,22 +627,33 @@ serve(async (req) => {
     const detectedTickers = detectTickers(userMessage);
     console.log(`--- [secure-gemini-proxy] Detected tickers: ${detectedTickers.join(', ')} ---`);
     
-    const additionalData = await fetchTickerData(detectedTickers);
-    console.log('--- [secure-gemini-proxy] Fetched ticker data ---');
+    const [coingeckoData, dossiers] = await Promise.all([
+      fetchTickerData(detectedTickers),
+      Promise.all(detectedTickers.slice(0, 3).map(t => fetchAssetDossier(t))),
+    ]);
+    console.log('--- [secure-gemini-proxy] Fetched ticker data + dossiers ---');
+
+    const additionalData: Record<string, any> = {};
+    for (const dossier of dossiers) {
+      const cg = coingeckoData?.[dossier.symbol];
+      additionalData[dossier.symbol] = {
+        ...dossier,
+        coingecko: cg && !cg.error ? cg : null,
+        coingeckoAvailable: !!(cg && !cg.error),
+      };
+    }
 
     if (detectedTickers.length > 0) {
         const primaryTicker = detectedTickers[0];
         console.log(`--- [secure-gemini-proxy] Fetching price history for ${primaryTicker} ---`);
         const priceHistory = await fetchPriceHistory(primaryTicker);
-        if (priceHistory.length > 0) {
-            additionalData[primaryTicker] = {
-                ...additionalData[primaryTicker],
-                price_history: priceHistory
-            };
+        if (priceHistory.length > 0 && additionalData[primaryTicker]) {
+            additionalData[primaryTicker].price_history = priceHistory;
         }
         console.log(`--- [secure-gemini-proxy] Price history for ${primaryTicker} fetched ---`);
     }
     console.log('--- [secure-gemini-proxy] Tool use step finished ---');
+
 
     let prompt = AI_CHAT_PROMPT;
     prompt = prompt.replace('{conversationHistory}', conversationHistory);
