@@ -187,8 +187,30 @@ Para cada pergunta:
 ## CONTEXTO ATUAL DO MERCADO
 {marketContextData}
 
-## DADOS ESPECÍFICOS SOLICITADOS
+## DOSSIÊ DOS ATIVOS CITADOS (additionalData)
+Para cada símbolo mencionado pelo usuário montamos um dossiê dedicado, que consulta TODAS as fontes
+filtrando por aquele símbolo (não apenas os top-50 do contexto geral):
+- **coverage**: mapa booleano indicando quais fontes têm dado para o ativo
+- **realTimePrice**: preço ao vivo da Binance (par USDT/FDUSD/BTC), quando listado
+- **coingecko**: preço, market cap, ranking, volume, ATH e variações 1h/24h/7d/30d — funciona para
+  tokens de baixa capitalização que NÃO estão na Binance
+- **marketData / technicalSignals / aiPredictions / predictiveSignals / sentiment / smartMoneyFlows /
+  onChainContracts**: registros específicos do ativo no banco
+
+### Regras obrigatórias para ativos citados
+1. Se "coingecko" estiver preenchido, o ativo EXISTE — use esses números. NUNCA diga que o ativo
+   não foi encontrado só porque não está na Binance ou no top-50 do banco.
+2. Ausência na Binance significa apenas "não listado nessa exchange"; relate isso em uma linha, sem
+   transformar em bloco de análise.
+3. Não liste fonte por fonte dizendo "sem dados". Faça a análise com o que existe e resuma as lacunas
+   em uma única frase curta de cobertura ao final.
+4. Se "coverage" mostrar que só há dado de preço/market cap, entregue mesmo assim análise de preço,
+   liquidez (volume/market cap), distância do ATH e momentum multi-janela (1h/24h/7d/30d).
+5. Só declare "ativo não encontrado" quando "coingecko", "realTimePrice" e "marketData" estiverem
+   todos nulos — e nesse caso sugira verificar o ticker/rede em uma frase.
+
 {additionalData}
+
 
 ## HISTÓRICO DA CONVERSA
 {conversationHistory}
@@ -335,24 +357,35 @@ async function fetchAllExternalData(req: Request): Promise<any> {
   }
 }
 
+// Words that look like tickers but are not crypto assets
+const TICKER_STOPWORDS = new Set([
+  'IA','AI','ETF','USD','BRL','EUR','RSI','MACD','ATH','ATL','FOMO','FUD','DEX','CEX','NFT','DAO','APY','APR',
+  'CEO','USA','FED','CPI','PIB','TVL','ROI','OK','SIM','NAO','NÃO','MAS','POR','QUE','COM','SEM','DOS','DAS',
+  'UMA','UM','ESTA','ESSE','ESSA','MAIS','TODO','TODA','JSON','API','HTTP','URL','LLM','GPU','CPU','PNL','P&L',
+]);
+
 // Function to detect potential crypto tickers in a message
 function detectTickers(message: string): string[] {
-  // Matches $WORD or uppercase words of 2-10 letters
-  const regex = /(?:$|(?<=\s))([A-Z]{2,10})(?=\s|$|\?|\.|,)/g;
-  const matches = message.match(regex);
-  if (!matches) return [];
+  const found = new Set<string>();
 
-  // Clean up matches (remove $, duplicates) and format them
-  const formattedTickers = [...new Set(matches.map((m) => m.replace(/,/, '').trim()))].map(ticker => {
-    // If the ticker doesn't contain a '-', assume it's a base currency and append '-USD'
-    if (!ticker.includes('-')) {
-      return `${ticker}-USD`;
-    }
-    return ticker;
-  });
+  // 1) $TICKER notation (highest confidence)
+  for (const m of message.matchAll(/\$([A-Za-z][A-Za-z0-9]{1,14})/g)) {
+    found.add(m[1].toUpperCase());
+  }
 
-  return formattedTickers;
+  // 2) Quoted tickers: "ZEREBRO" or 'zerebro'
+  for (const m of message.matchAll(/["'“”']([A-Za-z][A-Za-z0-9]{1,14})["'“”']/g)) {
+    found.add(m[1].toUpperCase());
+  }
+
+  // 3) Standalone uppercase words
+  for (const m of message.matchAll(/\b([A-Z][A-Z0-9]{1,9})\b/g)) {
+    found.add(m[1].toUpperCase());
+  }
+
+  return [...found].filter(t => !TICKER_STOPWORDS.has(t)).slice(0, 5);
 }
+
 
 // Helper functions to aggregate user interaction data (privacy-safe)
 function aggregateTrendingAssets(interactions: any[]): Record<string, number> {
@@ -420,6 +453,83 @@ async function fetchTickerData(tickers: string[]): Promise<Record<string, any>> 
     return { error: `Exception while fetching data for ${tickers.join(', ')}.` }
   }
 }
+
+// Direct Binance lookup for a single symbol (covers assets outside the hardcoded list)
+async function fetchBinanceTicker(symbol: string): Promise<any | null> {
+  for (const quote of ['USDT', 'FDUSD', 'BTC']) {
+    try {
+      const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}${quote}`);
+      if (!res.ok) continue;
+      const item = await res.json();
+      if (!item || item.code) continue;
+      return {
+        pair: `${symbol}${quote}`,
+        price: parseFloat(item.lastPrice),
+        priceChangePercent24h: parseFloat(item.priceChangePercent),
+        volume24h: parseFloat(item.volume),
+        quoteVolume24h: parseFloat(item.quoteVolume),
+        high24h: parseFloat(item.highPrice),
+        low24h: parseFloat(item.lowPrice),
+        source: 'Binance API - Live',
+      };
+    } catch (_e) { /* try next quote */ }
+  }
+  return null;
+}
+
+/**
+ * Builds a per-asset dossier: pulls every table row that matches the symbol,
+ * regardless of the global top-N slices used for the general context.
+ */
+async function fetchAssetDossier(symbol: string): Promise<any> {
+  const sym = symbol.toUpperCase();
+  const [
+    binance,
+    marketRow,
+    signals,
+    predictions,
+    predictive,
+    sentiment,
+    smartMoney,
+    watchlist,
+    contracts,
+  ] = await Promise.all([
+    fetchBinanceTicker(sym),
+    supabase.from('cryptocurrencies').select('*').ilike('symbol', sym).limit(1),
+    supabase.from('crypto_price_action_signals').select('*').ilike('symbol', sym).limit(5),
+    supabase.from('ai_predictions').select('*').ilike('symbol', sym).gte('valid_until', new Date().toISOString()).limit(10),
+    supabase.from('predictive_signals').select('*').ilike('symbol', sym).order('created_at', { ascending: false }).limit(10),
+    supabase.from('sentiment_data').select('*').ilike('symbol', sym).order('analyzed_at', { ascending: false }).limit(10),
+    supabase.from('smart_money_flow_cache').select('*').ilike('token_symbol', sym).order('last_updated', { ascending: false }).limit(10),
+    supabase.from('ai_watchlist').select('*').ilike('symbol', sym).limit(5),
+    supabase.from('token_contracts').select('*').ilike('symbol', sym).limit(5),
+  ]);
+
+  const coverage = {
+    binanceListed: !!binance,
+    inMarketDatabase: !!(marketRow.data && marketRow.data.length),
+    hasTechnicalSignals: !!(signals.data && signals.data.length),
+    hasAiPredictions: !!(predictions.data && predictions.data.length),
+    hasSentiment: !!(sentiment.data && sentiment.data.length),
+    hasSmartMoneyFlow: !!(smartMoney.data && smartMoney.data.length),
+    hasOnChainContract: !!(contracts.data && contracts.data.length),
+  };
+
+  return {
+    symbol: sym,
+    coverage,
+    realTimePrice: binance,
+    marketData: marketRow.data?.[0] || null,
+    technicalSignals: signals.data || [],
+    aiPredictions: predictions.data || [],
+    predictiveSignals: predictive.data || [],
+    sentiment: sentiment.data || [],
+    smartMoneyFlows: smartMoney.data || [],
+    aiWatchlist: watchlist.data || [],
+    onChainContracts: contracts.data || [],
+  };
+}
+
 
 serve(async (req) => {
   console.log('--- [secure-gemini-proxy] Function started ---');
@@ -539,22 +649,33 @@ serve(async (req) => {
     const detectedTickers = detectTickers(userMessage);
     console.log(`--- [secure-gemini-proxy] Detected tickers: ${detectedTickers.join(', ')} ---`);
     
-    const additionalData = await fetchTickerData(detectedTickers);
-    console.log('--- [secure-gemini-proxy] Fetched ticker data ---');
+    const [coingeckoData, dossiers] = await Promise.all([
+      fetchTickerData(detectedTickers),
+      Promise.all(detectedTickers.slice(0, 3).map(t => fetchAssetDossier(t))),
+    ]);
+    console.log('--- [secure-gemini-proxy] Fetched ticker data + dossiers ---');
+
+    const additionalData: Record<string, any> = {};
+    for (const dossier of dossiers) {
+      const cg = coingeckoData?.[dossier.symbol];
+      additionalData[dossier.symbol] = {
+        ...dossier,
+        coingecko: cg && !cg.error ? cg : null,
+        coingeckoAvailable: !!(cg && !cg.error),
+      };
+    }
 
     if (detectedTickers.length > 0) {
         const primaryTicker = detectedTickers[0];
         console.log(`--- [secure-gemini-proxy] Fetching price history for ${primaryTicker} ---`);
         const priceHistory = await fetchPriceHistory(primaryTicker);
-        if (priceHistory.length > 0) {
-            additionalData[primaryTicker] = {
-                ...additionalData[primaryTicker],
-                price_history: priceHistory
-            };
+        if (priceHistory.length > 0 && additionalData[primaryTicker]) {
+            additionalData[primaryTicker].price_history = priceHistory;
         }
         console.log(`--- [secure-gemini-proxy] Price history for ${primaryTicker} fetched ---`);
     }
     console.log('--- [secure-gemini-proxy] Tool use step finished ---');
+
 
     let prompt = AI_CHAT_PROMPT;
     prompt = prompt.replace('{conversationHistory}', conversationHistory);

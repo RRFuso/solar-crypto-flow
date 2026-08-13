@@ -19,15 +19,22 @@ async function findCoingeckoId(ticker: string): Promise<string | null> {
   if (cached) return cached;
 
   try {
-    const searchUrl = `${COINGECKO_API_URL}/search?query=${ticker}`
+    const searchUrl = `${COINGECKO_API_URL}/search?query=${encodeURIComponent(ticker)}`
     const response = await fetch(searchUrl, {
       headers: { 'x-cg-demo-api-key': COINGECKO_API_KEY || '' },
     })
     if (!response.ok) return null
 
     const data = await response.json()
-    const bestMatch = data.coins?.find((c: any) => c.symbol.toUpperCase() === ticker.toUpperCase())
-    const id = bestMatch?.id || data.coins?.[0]?.id || null;
+    const q = ticker.toUpperCase()
+    const coins = data.coins || []
+    // Prefer exact symbol match with best market cap rank, then exact name match. Never guess.
+    const symbolMatches = coins
+      .filter((c: any) => (c.symbol || '').toUpperCase() === q)
+      .sort((a: any, b: any) => (a.market_cap_rank ?? 1e9) - (b.market_cap_rank ?? 1e9))
+    const nameMatch = coins.find((c: any) => (c.name || '').toUpperCase() === q)
+    const id = symbolMatches[0]?.id || nameMatch?.id || null;
+
     
     // Cache the ID for 24 hours (IDs don't change)
     if (id) {
@@ -55,8 +62,13 @@ serve(async (req) => {
 
     // Type 1: Request for specific ticker prices (from AI tool)
     if (tickers && Array.isArray(tickers) && tickers.length > 0) {
-      const cacheKey = `coingecko:prices:${tickers.sort().join(',')}`;
-      
+      // Normalize: "ZEREBRO-USD", "$zerebro" -> "ZEREBRO"
+      const normalize = (t: string) =>
+        String(t).trim().replace(/^\$/, '').replace(/[-/](USD|USDT|BRL|EUR)$/i, '').toUpperCase();
+
+      const normalizedTickers = [...new Set(tickers.map(normalize))].filter(Boolean);
+      const cacheKey = `coingecko:markets:${[...normalizedTickers].sort().join(',')}`;
+
       // Try cache first (60 second TTL for prices)
       const cachedPrices = await getCache<Record<string, any>>(cacheKey);
       if (cachedPrices) {
@@ -71,7 +83,7 @@ serve(async (req) => {
       const idsToFetch: string[] = []
       
       // Find the correct ID for each ticker (cached)
-      for (const ticker of tickers) {
+      for (const ticker of normalizedTickers) {
         const foundId = await findCoingeckoId(ticker)
         if (foundId) {
           tickerToIdMap.set(ticker, foundId)
@@ -82,33 +94,63 @@ serve(async (req) => {
       const remappedData: Record<string, any> = {}
       
       if (idsToFetch.length > 0) {
+        // /coins/markets gives full data (price, mcap, rank, volume, ATH, multi-window changes)
         const queryParams = buildQueryString({
+          vs_currency: 'usd',
           ids: idsToFetch.join(','),
-          vs_currencies: 'usd',
-          include_market_cap: 'true',
-          include_24hr_vol: 'true',
-          include_24hr_change: 'true',
+          sparkline: 'false',
+          price_change_percentage: '1h,24h,7d,30d',
         })
-        const priceUrl = `${COINGECKO_API_URL}/simple/price?${queryParams}`
-        const priceResponse = await fetch(priceUrl, {
+        const marketsUrl = `${COINGECKO_API_URL}/coins/markets?${queryParams}`
+        const marketsResponse = await fetch(marketsUrl, {
           headers: { 'x-cg-demo-api-key': COINGECKO_API_KEY },
         })
 
-        if (priceResponse.ok) {
-          const priceData = await priceResponse.json()
+        if (marketsResponse.ok) {
+          const marketsData = await marketsResponse.json()
+          const byId = new Map<string, any>((marketsData || []).map((c: any) => [c.id, c]))
           for (const [ticker, id] of tickerToIdMap.entries()) {
-            if (priceData[id]) {
-              remappedData[ticker] = priceData[id]
+            const coin = byId.get(id)
+            if (coin) {
+              remappedData[ticker] = {
+                coingecko_id: coin.id,
+                name: coin.name,
+                symbol: (coin.symbol || '').toUpperCase(),
+                usd: coin.current_price,
+                usd_market_cap: coin.market_cap,
+                market_cap_rank: coin.market_cap_rank,
+                usd_24h_vol: coin.total_volume,
+                usd_24h_change: coin.price_change_percentage_24h_in_currency ?? coin.price_change_percentage_24h,
+                usd_1h_change: coin.price_change_percentage_1h_in_currency,
+                usd_7d_change: coin.price_change_percentage_7d_in_currency,
+                usd_30d_change: coin.price_change_percentage_30d_in_currency,
+                high_24h: coin.high_24h,
+                low_24h: coin.low_24h,
+                ath: coin.ath,
+                ath_change_percentage: coin.ath_change_percentage,
+                circulating_supply: coin.circulating_supply,
+                total_supply: coin.total_supply,
+                fully_diluted_valuation: coin.fully_diluted_valuation,
+                image: coin.image,
+                last_updated: coin.last_updated,
+                source: 'CoinGecko /coins/markets',
+              }
             }
+          }
+        } else {
+          console.error('CoinGecko markets request failed:', await marketsResponse.text())
+        }
+      }
+
+      for (const ticker of normalizedTickers) {
+        if (!remappedData[ticker]) {
+          remappedData[ticker] = {
+            error: 'Data not found for this ticker.',
+            note: 'Ticker não encontrado na CoinGecko (pode ser token muito novo, de nicho ou com símbolo diferente).',
           }
         }
       }
 
-      for (const ticker of tickers) {
-        if (!remappedData[ticker]) {
-          remappedData[ticker] = { error: 'Data not found for this ticker.' }
-        }
-      }
 
       // Cache for 60 seconds
       await setCache(cacheKey, remappedData, CacheTTL.PRICE_STANDARD);
