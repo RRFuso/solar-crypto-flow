@@ -432,6 +432,83 @@ async function fetchTickerData(tickers: string[]): Promise<Record<string, any>> 
   }
 }
 
+// Direct Binance lookup for a single symbol (covers assets outside the hardcoded list)
+async function fetchBinanceTicker(symbol: string): Promise<any | null> {
+  for (const quote of ['USDT', 'FDUSD', 'BTC']) {
+    try {
+      const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}${quote}`);
+      if (!res.ok) continue;
+      const item = await res.json();
+      if (!item || item.code) continue;
+      return {
+        pair: `${symbol}${quote}`,
+        price: parseFloat(item.lastPrice),
+        priceChangePercent24h: parseFloat(item.priceChangePercent),
+        volume24h: parseFloat(item.volume),
+        quoteVolume24h: parseFloat(item.quoteVolume),
+        high24h: parseFloat(item.highPrice),
+        low24h: parseFloat(item.lowPrice),
+        source: 'Binance API - Live',
+      };
+    } catch (_e) { /* try next quote */ }
+  }
+  return null;
+}
+
+/**
+ * Builds a per-asset dossier: pulls every table row that matches the symbol,
+ * regardless of the global top-N slices used for the general context.
+ */
+async function fetchAssetDossier(symbol: string): Promise<any> {
+  const sym = symbol.toUpperCase();
+  const [
+    binance,
+    marketRow,
+    signals,
+    predictions,
+    predictive,
+    sentiment,
+    smartMoney,
+    watchlist,
+    contracts,
+  ] = await Promise.all([
+    fetchBinanceTicker(sym),
+    supabase.from('cryptocurrencies').select('*').ilike('symbol', sym).limit(1),
+    supabase.from('crypto_price_action_signals').select('*').ilike('symbol', sym).limit(5),
+    supabase.from('ai_predictions').select('*').ilike('symbol', sym).gte('valid_until', new Date().toISOString()).limit(10),
+    supabase.from('predictive_signals').select('*').ilike('symbol', sym).order('created_at', { ascending: false }).limit(10),
+    supabase.from('sentiment_data').select('*').ilike('symbol', sym).order('analyzed_at', { ascending: false }).limit(10),
+    supabase.from('smart_money_flow_cache').select('*').ilike('token_symbol', sym).order('last_updated', { ascending: false }).limit(10),
+    supabase.from('ai_watchlist').select('*').ilike('symbol', sym).limit(5),
+    supabase.from('token_contracts').select('*').ilike('symbol', sym).limit(5),
+  ]);
+
+  const coverage = {
+    binanceListed: !!binance,
+    inMarketDatabase: !!(marketRow.data && marketRow.data.length),
+    hasTechnicalSignals: !!(signals.data && signals.data.length),
+    hasAiPredictions: !!(predictions.data && predictions.data.length),
+    hasSentiment: !!(sentiment.data && sentiment.data.length),
+    hasSmartMoneyFlow: !!(smartMoney.data && smartMoney.data.length),
+    hasOnChainContract: !!(contracts.data && contracts.data.length),
+  };
+
+  return {
+    symbol: sym,
+    coverage,
+    realTimePrice: binance,
+    marketData: marketRow.data?.[0] || null,
+    technicalSignals: signals.data || [],
+    aiPredictions: predictions.data || [],
+    predictiveSignals: predictive.data || [],
+    sentiment: sentiment.data || [],
+    smartMoneyFlows: smartMoney.data || [],
+    aiWatchlist: watchlist.data || [],
+    onChainContracts: contracts.data || [],
+  };
+}
+
+
 serve(async (req) => {
   console.log('--- [secure-gemini-proxy] Function started ---');
 
