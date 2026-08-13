@@ -198,15 +198,15 @@ filtrando por aquele símbolo (não apenas os top-50 do contexto geral):
   onChainContracts**: registros específicos do ativo no banco
 
 ### Regras obrigatórias para ativos citados
-1. Se `coingecko` estiver preenchido, o ativo EXISTE — use esses números. NUNCA diga que o ativo
+1. Se "coingecko" estiver preenchido, o ativo EXISTE — use esses números. NUNCA diga que o ativo
    não foi encontrado só porque não está na Binance ou no top-50 do banco.
 2. Ausência na Binance significa apenas "não listado nessa exchange"; relate isso em uma linha, sem
    transformar em bloco de análise.
 3. Não liste fonte por fonte dizendo "sem dados". Faça a análise com o que existe e resuma as lacunas
    em uma única frase curta de cobertura ao final.
-4. Se `coverage` mostrar que só há dado de preço/market cap, entregue mesmo assim análise de preço,
+4. Se "coverage" mostrar que só há dado de preço/market cap, entregue mesmo assim análise de preço,
    liquidez (volume/market cap), distância do ATH e momentum multi-janela (1h/24h/7d/30d).
-5. Só declare "ativo não encontrado" quando `coingecko`, `realTimePrice` e `marketData` estiverem
+5. Só declare "ativo não encontrado" quando "coingecko", "realTimePrice" e "marketData" estiverem
    todos nulos — e nesse caso sugira verificar o ticker/rede em uma frase.
 
 {additionalData}
