@@ -222,13 +222,42 @@ export async function processTransactionsToFlows(
       flow.confidenceFactors.historicalPattern /= weightSum;
     }
 
+    let conviction = 0;
     if (totalFlow > 0) {
-      flow.intensity = Math.min(100, (totalFlow / 1000000) * 10 * (flow.confidenceScore / 50));
-
       const ratio = flow.netFlowUSD / totalFlow;
+      conviction = Math.min(1, Math.abs(ratio));
       if (ratio > 0.2) flow.dominantDirection = 'bullish';
       else if (ratio < -0.2) flow.dominantDirection = 'bearish';
       else flow.dominantDirection = 'neutral';
+    }
+
+    // ---- Corroboration ----
+    // A single transaction — however large — is one data point, not a trend.
+    // The per-tx weighted mean above tops out around ~70 by construction, so a
+    // signal only reaches the "high confidence" band when several qualifying
+    // whale transactions, from distinct wallets, agree on a direction.
+    const txCount = qualifyingTxBySymbol.get(symbol) ?? 0;
+    const walletCount = walletsBySymbol.get(symbol)?.size ?? 0;
+
+    const txBoost = txCount > 0 ? Math.min(1, Math.log10(txCount + 1) / Math.log10(11)) : 0; // 1.0 at 10 txs
+    const walletBoost = walletCount > 0 ? Math.min(1, (walletCount - 1) / 4) : 0; // 1.0 at 5 wallets
+    // Gate: needs at least 3 qualifying transactions for full corroboration credit.
+    const sampleGate = Math.min(1, txCount / 3);
+
+    const corroboration = sampleGate * (
+      (txBoost * 0.45) + (conviction * 0.35) + (walletBoost * 0.20)
+    );
+
+    const base = flow.confidenceScore;
+    flow.confidenceScore = Math.max(0, Math.min(100, Math.round(base + (100 - base) * corroboration)));
+
+    flow.confidenceFactors = {
+      ...flow.confidenceFactors,
+      corroboration: Math.round(corroboration * 100),
+    };
+
+    if (totalFlow > 0) {
+      flow.intensity = Math.min(100, (totalFlow / 1000000) * 10 * (flow.confidenceScore / 50));
     }
   }
 
