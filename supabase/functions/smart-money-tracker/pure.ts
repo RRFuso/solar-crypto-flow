@@ -193,6 +193,9 @@ export async function processTransactionsToFlows(
     flow.confidenceFactors.historicalPattern += confidence.historicalPattern * w;
     flow.confidenceScore += confidence.total * w;
     weightBySymbol.set(symbol, (weightBySymbol.get(symbol) ?? 0) + w);
+    qualifyingTxBySymbol.set(symbol, (qualifyingTxBySymbol.get(symbol) ?? 0) + 1);
+    if (!walletsBySymbol.has(symbol)) walletsBySymbol.set(symbol, new Set<string>());
+    walletsBySymbol.get(symbol)!.add((tx.walletAddress || '').toLowerCase());
 
 
     if (tx.toExchange && !tx.fromExchange) {
