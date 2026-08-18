@@ -149,24 +149,31 @@ const renderOrUpdateVisualization = (
     return smartMoneyScores.get(nodeId) || smartMoneyScores.get(nodeId.toUpperCase()) || smartMoneyScores.get(nodeId.toLowerCase());
   };
 
-  // Helper: get effective smart money confidence (0-100) from both data sources
+  // Helper: get effective smart money confidence (0-100) from both data sources.
+  // A ring is only meaningful when the signal is *directional* — a neutral flow
+  // (or a neutral oracle sentiment) is not a smart-money signal, no matter how
+  // confident the aggregation was.
   const getEffectiveSmartMoneyConfidence = (nodeId: string): number => {
     const upperId = nodeId.toUpperCase();
-    
-    // Source 1: flowDirections from smart-money-tracker (confidence already 0-100)
+
+    // Source 1: flowDirections from smart-money-tracker (confidence already 0-100,
+    // and already zeroed by the hook when the cache row is stale).
     const flow = flowDirections?.get(upperId);
-    const flowConfidence = flow?.confidenceScore || 0;
-    
+    const flowConfidence = flow && flow.direction !== 0
+      ? Math.min(100, flow.confidenceScore || 0)
+      : 0;
+
     // Source 2: smartMoneyScores from onchain-oracle (confidence 0-1, score -10 to 10)
     const oracleScore = getSmartMoneyScore(nodeId);
+    const oracleDirectional = !!oracleScore && oracleScore.sentiment !== 'Neutral' && Math.abs(oracleScore.score) >= 3;
     // Convert oracle confidence (0-1) to percentage, also factor in absolute score strength
-    const oracleConfidence = oracleScore 
+    const oracleConfidence = oracleDirectional
       ? Math.max(
-          (oracleScore.confidence || 0) * 100,
-          Math.abs(oracleScore.score) >= 5 ? 75 : Math.abs(oracleScore.score) >= 3 ? 60 : 0
+          (oracleScore!.confidence || 0) * 100,
+          Math.abs(oracleScore!.score) >= 5 ? 75 : 60
         )
       : 0;
-    
+
     // Return the highest confidence from either source
     return Math.max(flowConfidence, oracleConfidence);
   };
