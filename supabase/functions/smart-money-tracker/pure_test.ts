@@ -268,3 +268,62 @@ Deno.test("aggregation: whale count and intensity reflect real flows", async () 
   assert(eth.whaleTxValue >= 2_000_000);
   assert(eth.intensity > 0 && eth.intensity <= 100);
 });
+
+// =====================================================================
+// Corroboration — a signal must be backed by several wallets/txs to be "high"
+// =====================================================================
+
+Deno.test("corroboration: single whale tx stays below the 70% high-confidence band", async () => {
+  const flows = await processTransactionsToFlows(
+    [tx({ value: 5000, from: EXCHANGE, fromExchange: true })], // $10M out of an exchange
+    exchangeSet,
+    prices,
+    new Map(),
+  );
+  const eth = flows.get("ETH")!;
+  assert(eth.confidenceScore < 70, `single tx should not reach 70, got ${eth.confidenceScore}`);
+});
+
+Deno.test("corroboration: many aligned whale txs from distinct wallets cross 70%", async () => {
+  const wallets = [WALLET_A, WALLET_B, EXTERN, "0x1111111111111111111111111111111111111111", "0x2222222222222222222222222222222222222222"];
+  const txs: TransactionWithDetails[] = [];
+  for (let i = 0; i < 10; i++) {
+    txs.push(tx({
+      hash: `0xh${i}`,
+      value: 2000, // $4M each
+      from: EXCHANGE,
+      fromExchange: true,
+      walletAddress: wallets[i % wallets.length],
+    }));
+  }
+  const flows = await processTransactionsToFlows(txs, exchangeSet, prices, new Map());
+  const eth = flows.get("ETH")!;
+  assertEquals(eth.dominantDirection, "bullish");
+  assert(eth.confidenceScore > 70, `corroborated flow should exceed 70, got ${eth.confidenceScore}`);
+  assert(eth.confidenceScore <= 100);
+});
+
+Deno.test("corroboration: conflicting flows (neutral) score lower than aligned flows", async () => {
+  const mk = (aligned: boolean) => {
+    const txs: TransactionWithDetails[] = [];
+    for (let i = 0; i < 8; i++) {
+      const outbound = aligned ? true : i % 2 === 0;
+      txs.push(tx({
+        hash: `0xc${i}`,
+        value: 2000,
+        from: outbound ? EXCHANGE : WALLET_A,
+        to: outbound ? WALLET_A : EXCHANGE,
+        fromExchange: outbound,
+        toExchange: !outbound,
+        walletAddress: i % 2 === 0 ? WALLET_A : WALLET_B,
+      }));
+    }
+    return txs;
+  };
+  const alignedFlows = await processTransactionsToFlows(mk(true), exchangeSet, prices, new Map());
+  const mixedFlows = await processTransactionsToFlows(mk(false), exchangeSet, prices, new Map());
+  assert(
+    alignedFlows.get("ETH")!.confidenceScore > mixedFlows.get("ETH")!.confidenceScore,
+    "directional conviction must raise confidence",
+  );
+});
