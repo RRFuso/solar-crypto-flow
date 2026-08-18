@@ -118,6 +118,10 @@ export async function processTransactionsToFlows(
   // Must NOT include transactions that were skipped (isSmartMoney === false),
   // otherwise the weighted mean is diluted toward zero.
   const weightBySymbol = new Map<string, number>();
+  // Corroboration inputs: how many qualifying txs and how many distinct wallets
+  // back the signal for each symbol.
+  const qualifyingTxBySymbol = new Map<string, number>();
+  const walletsBySymbol = new Map<string, Set<string>>();
   const ethPrice = prices['ETH'] || 2000;
 
 
