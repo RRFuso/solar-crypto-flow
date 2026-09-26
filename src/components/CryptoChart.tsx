@@ -47,7 +47,7 @@ const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: Cryp
             symbol={displaySymbol}
             theme="dark"
             autosize
-            interval={timeframe}
+            interval={timeframe as any}
             timezone="Etc/UTC"
             style="1"
             locale="br"
