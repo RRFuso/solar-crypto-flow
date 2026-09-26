@@ -11,7 +11,7 @@ interface CryptoChartProps {
     symbol?: string;
   };
   showBtcDominance?: boolean;
-  timeframe?: "D" | "W" | "240"; // Added timeframe prop
+  timeframe?: string;
 }
 
 const CryptoChart = ({ crypto, showBtcDominance = false, timeframe = "D" }: CryptoChartProps) => {
