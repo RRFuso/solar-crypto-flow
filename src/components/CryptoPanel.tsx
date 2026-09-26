@@ -20,6 +20,8 @@ import CryptoSettings from './crypto/CryptoSettings';
 import { CryptoData } from '@/types/crypto';
 import { useBinanceWebSocket } from '@/hooks/useBinanceWebSocket';
 import { WebSocketIndicator } from '@/components/ui/WebSocketIndicator';
+import OpenInterestPanel from './crypto/OpenInterestPanel';
+import { OI_TIMEFRAMES, OITimeframe } from '@/lib/openInterest/binanceOI';
 
 const CryptoPanel = () => {
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoData>({ id: 'BTC', name: 'Bitcoin', performance: 0 });
@@ -32,6 +34,7 @@ const CryptoPanel = () => {
     rsiNeutralMax: 60,
     timeframe: '4h'
   });
+  const [chartTf, setChartTf] = useState<OITimeframe>('1d');
   const [dataSource, setDataSource] = useState<'coingecko' | 'binance'>('coingecko'); // New state for data source
 
   const { data: cryptos = [], isLoading, error } = useCryptoData({
@@ -60,24 +63,8 @@ const CryptoPanel = () => {
     setSelectedCrypto(crypto);
   }, []);
 
-  const getTimeframe = useCallback(() => {
-    switch (activeFilter) {
-      case 'outperforming':
-        return 'W';
-      case 'bullish':
-        return 'W';
-      case 'oversold':
-        return '240';
-      case 'overbought':
-        return '240';
-      case 'bearish':
-        return 'D';
-      case 'explosive':
-        return 'D'; // Or a more appropriate timeframe for explosive
-      default:
-        return 'D';
-    }
-  }, [activeFilter]);
+  const getTimeframe = useCallback(() => OI_TIMEFRAMES.find(t => t.value === chartTf)!.tv, [chartTf]);
+  const chartSymbol = (selectedCrypto.symbol || selectedCrypto.id || 'BTC').toUpperCase();
 
   const renderActiveTab = () => {
     const commonProps = {
@@ -164,12 +151,28 @@ const CryptoPanel = () => {
 
       {/* Right panel - Chart */}
       <div className="w-3/5 relative">
-        <div className="h-full border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden">
-          <CryptoChart 
-            crypto={selectedCrypto} 
-            timeframe={getTimeframe()}
-            key={`${selectedCrypto.id}-${getTimeframe()}-${dataSource}`}
-          />
+        <div className="h-full border border-gray-800 rounded-lg bg-gray-900/50 backdrop-blur-xl overflow-hidden flex flex-col">
+          <div className="flex items-center gap-1 px-4 pt-3">
+            {OI_TIMEFRAMES.map(t => (
+              <Button
+                key={t.value}
+                size="sm"
+                variant={chartTf === t.value ? 'default' : 'ghost'}
+                className="h-7 px-2 text-xs"
+                onClick={() => setChartTf(t.value)}
+              >
+                {t.label}
+              </Button>
+            ))}
+          </div>
+          <div className="flex-1 min-h-0">
+            <CryptoChart 
+              crypto={selectedCrypto} 
+              timeframe={getTimeframe()}
+              key={`${selectedCrypto.id}-${getTimeframe()}-${dataSource}`}
+            />
+          </div>
+          <OpenInterestPanel symbol={chartSymbol} timeframe={chartTf} />
         </div>
         <div className="absolute top-4 right-4">
           <Button

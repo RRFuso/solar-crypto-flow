@@ -16,6 +16,22 @@ import {
   type WebLLMProgress,
 } from '@/lib/ai/webLlmEngine';
 import WebLLMStatusIndicator from './WebLLMStatusIndicator';
+import { fetchOpenInterestData } from '@/lib/openInterest/binanceOI';
+import { analyzeOpenInterest, oiAnalysisToContext } from '@/lib/openInterest/indicators';
+import { getOISelection } from '@/lib/openInterest/oiSelectionStore';
+
+/** Build OI context for the asset mentioned (or the chart's asset) using the chart's timeframe. */
+async function buildOIContext(text: string): Promise<string> {
+  const sel = getOISelection();
+  const m = text.match(/\$([A-Za-z0-9]{2,12})\b/) || text.match(/\b([A-Z0-9]{2,10})\b/);
+  const symbol = (m?.[1] || sel.symbol).toUpperCase();
+  try {
+    const a = analyzeOpenInterest(await fetchOpenInterestData(symbol, sel.timeframe));
+    return a ? oiAnalysisToContext(a) : `OPEN INTEREST ${symbol} (${sel.timeframe}): histórico insuficiente — informe que os dados estão incompletos.`;
+  } catch {
+    return `OPEN INTEREST ${symbol} (${sel.timeframe}): indisponível (sem contrato perpétuo ou falha na fonte). Informe ao usuário que o dado não está disponível; não invente valores.`;
+  }
+}
 
 interface HeliusOracleChatProps {
   className?: string;
@@ -146,10 +162,12 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
     setUserInput('');
     setIsLoading(true);
 
+    const oiContext = await buildOIContext(newUserMessage.text);
     const marketContext = JSON.stringify({
       activeCategory: selectedCategory,
+      timeframe: getOISelection().timeframe,
       timestamp: new Date().toISOString(),
-    });
+    }) + '\n\n' + oiContext;
 
     let aiResponse: string | null = null;
 
@@ -176,7 +194,10 @@ const HeliusOracleChat: React.FC<HeliusOracleChatProps> = ({ className }) => {
     // Fallback to edge function
     if (!aiResponse) {
       try {
-        aiResponse = await getAIChatResponse(updatedMessages);
+        aiResponse = await getAIChatResponse([
+          ...messages,
+          { ...newUserMessage, text: `${newUserMessage.text}\n\n[Contexto técnico — timeframe ${getOISelection().timeframe}; use como referência, trate sinais como possibilidades, não previsões]\n${oiContext}` },
+        ]);
       } catch (error) {
         setMessages([
           ...updatedMessages,
