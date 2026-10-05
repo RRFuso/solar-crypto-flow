@@ -1,0 +1,1 @@
+- Never fill market/on-chain/social fields with Math.random() or synthetic values; return null/empty and let engines exclude the feature — fabricated inputs corrupt signals.
