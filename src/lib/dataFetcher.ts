@@ -245,7 +245,7 @@ function rsiOf(closes: number[], period = 14): number {
   return 100 - 100 / (1 + gain / loss);
 }
 
-async function fetchKlines(symbol: string, interval: string): Promise<{ close: number; volume: number }[]> {
+async function fetchSpotKlines(symbol: string, interval: string): Promise<{ close: number; volume: number }[]> {
   const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(symbol.toUpperCase())}USDT&interval=${interval}&limit=120`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Binance klines ${res.status}`);
@@ -279,7 +279,7 @@ export async function fetchTechnicalIndicators(
   };
   try {
     const interval = BINANCE_INTERVALS[timeframe] ?? '4h';
-    const k = await fetchKlines(symbol, interval);
+    const k = await fetchSpotKlines(symbol, interval);
     if (k.length < 30) return empty;
     const closes = k.map(x => x.close);
     const e12 = emaSeries(closes, 12);
@@ -295,7 +295,7 @@ export async function fetchTechnicalIndicators(
     const rsi = rsiOf(closes);
     let rsi4h = rsi;
     if (interval !== '4h') {
-      try { rsi4h = rsiOf((await fetchKlines(symbol, '4h')).map(x => x.close)); } catch { rsi4h = NaN; }
+      try { rsi4h = rsiOf((await fetchSpotKlines(symbol, '4h')).map(x => x.close)); } catch { rsi4h = NaN; }
     }
     return {
       rsi, rsi4h,

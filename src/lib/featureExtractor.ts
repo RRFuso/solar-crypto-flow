@@ -19,8 +19,8 @@ interface NormalizedFeature {
   netFlowPercentage: number;
   incomingFlows: number;
   outgoingFlows: number;
-  exchangeInflow: number;
-  exchangeOutflow: number;
+  exchangeInflow: number | null;
+  exchangeOutflow: number | null;
   divergenceBullish: boolean;
   divergenceBearish: boolean;
 }
