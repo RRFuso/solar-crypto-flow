@@ -217,12 +217,49 @@ export async function fetchCapitalFlows(
     .slice(0, maxFlows);
 }
 
+const BINANCE_INTERVALS: Record<string, string> = {
+  '5m': '5m', '15m': '15m', '30m': '30m', '1h': '1h', '4h': '4h', '24h': '1d', '1d': '1d', '7d': '1w',
+};
+
+function emaSeries(values: number[], period: number): number[] {
+  const k = 2 / (period + 1);
+  const out: number[] = [];
+  values.forEach((v, i) => out.push(i === 0 ? v : v * k + out[i - 1] * (1 - k)));
+  return out;
+}
+
+function rsiOf(closes: number[], period = 14): number {
+  if (closes.length <= period) return NaN;
+  let gain = 0, loss = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = closes[i] - closes[i - 1];
+    if (d >= 0) gain += d; else loss -= d;
+  }
+  gain /= period; loss /= period;
+  for (let i = period + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i - 1];
+    gain = (gain * (period - 1) + Math.max(0, d)) / period;
+    loss = (loss * (period - 1) + Math.max(0, -d)) / period;
+  }
+  if (loss === 0) return 100;
+  return 100 - 100 / (1 + gain / loss);
+}
+
+async function fetchKlines(symbol: string, interval: string): Promise<{ close: number; volume: number }[]> {
+  const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(symbol.toUpperCase())}USDT&interval=${interval}&limit=120`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Binance klines ${res.status}`);
+  const rows = (await res.json()) as unknown[][];
+  return rows.map(r => ({ close: Number(r[4]), volume: Number(r[5]) }));
+}
+
 /**
- * Fetches technical indicators (RSI, MACD, etc.) for a cryptocurrency
- * Using a simulation for demo purposes
+ * Technical indicators computed from real Binance spot klines (SYMBOLUSDT).
+ * When data is unavailable, values are NaN and `available` is false —
+ * callers must treat that as "sem dados", never as neutral.
  */
 export async function fetchTechnicalIndicators(
-  symbol: string, 
+  symbol: string,
   timeframe: string = '4h'
 ): Promise<{
   rsi: number;
@@ -231,93 +268,72 @@ export async function fetchTechnicalIndicators(
   ema12: number;
   ema26: number;
   obv: number;
+  available: boolean;
+  source: string;
+  fetchedAt: string;
 }> {
-  const timeframeMultiplier = getTimeframeMultiplier(timeframe);
-  return {
-    rsi: simulateRSI(timeframeMultiplier),
-    rsi4h: simulateRSI(0.9),
-    macd: {
-      value: simulateMACD(0.5 * timeframeMultiplier),
-      signal: simulateMACD(0.4 * timeframeMultiplier),
-      histogram: simulateMACD(0.1 * timeframeMultiplier),
-    },
-    ema12: simulateEMA() * timeframeMultiplier,
-    ema26: simulateEMA() * (timeframeMultiplier * 0.9),
-    obv: Math.random() * 1000000 - 500000,
+  const fetchedAt = new Date().toISOString();
+  const empty = {
+    rsi: NaN, rsi4h: NaN, macd: { value: NaN, signal: NaN, histogram: NaN },
+    ema12: NaN, ema26: NaN, obv: NaN, available: false, source: 'binance-spot', fetchedAt,
   };
-}
-
-function getTimeframeMultiplier(timeframe: string): number {
-  switch (timeframe) {
-    case '5m': return 1.5;
-    case '15m': return 1.3;
-    case '30m': return 1.2;
-    case '1h': return 1.1;
-    case '4h': return 1.0;
-    case '24h': return 0.9;
-    case '7d': return 0.7;
-    default: return 1.0;
+  try {
+    const interval = BINANCE_INTERVALS[timeframe] ?? '4h';
+    const k = await fetchKlines(symbol, interval);
+    if (k.length < 30) return empty;
+    const closes = k.map(x => x.close);
+    const e12 = emaSeries(closes, 12);
+    const e26 = emaSeries(closes, 26);
+    const macdLine = closes.map((_, i) => e12[i] - e26[i]);
+    const signal = emaSeries(macdLine, 9);
+    let obv = 0;
+    for (let i = 1; i < k.length; i++) {
+      if (closes[i] > closes[i - 1]) obv += k[i].volume;
+      else if (closes[i] < closes[i - 1]) obv -= k[i].volume;
+    }
+    const last = closes.length - 1;
+    const rsi = rsiOf(closes);
+    let rsi4h = rsi;
+    if (interval !== '4h') {
+      try { rsi4h = rsiOf((await fetchKlines(symbol, '4h')).map(x => x.close)); } catch { rsi4h = NaN; }
+    }
+    return {
+      rsi, rsi4h,
+      macd: { value: macdLine[last], signal: signal[last], histogram: macdLine[last] - signal[last] },
+      ema12: e12[last], ema26: e26[last], obv, available: true, source: 'binance-spot', fetchedAt,
+    };
+  } catch (err) {
+    console.warn(`[indicators] sem dados para ${symbol}:`, err);
+    return empty;
   }
 }
 
-function simulateRSI(volatilityFactor: number = 1): number {
-  const base = Math.random();
-  if (base < 0.1) return (10 + Math.random() * 20) * volatilityFactor;
-  else if (base > 0.9) return (70 + Math.random() * 20) * Math.min(1, volatilityFactor);
-  else return (30 + Math.random() * 40);
-}
-
-function simulateMACD(bias: number = 0): number {
-  return (Math.random() - 0.5 + bias) * 2;
-}
-
-function simulateEMA(): number {
-  return Math.random() * 100 + 50;
-}
-
 /**
- * Fetches on-chain data using Etherscan API.
- * Note: Etherscan primarily provides raw transaction data. Metrics like
- * exchangeInflow, exchangeOutflow, fundingRate, and netFlow often require
- * complex calculations or data from other sources (e.g., exchanges).
- * For now, these will be simulated or set to 0.
+ * On-chain exchange flows are NOT available from this path (Etherscan balance
+ * only). Flow fields are null — never simulated. Use the smart-money oracle
+ * for observed flows.
  */
 export async function fetchOnChainData(contractInfo: { address: string; chain: string }): Promise<{
-  exchangeInflow: number;
-  exchangeOutflow: number;
-  fundingRate: number;
-  netFlow: number;
-  balance: string;
+  exchangeInflow: number | null;
+  exchangeOutflow: number | null;
+  fundingRate: number | null;
+  netFlow: number | null;
+  balance: string | null;
+  available: boolean;
 }> {
   try {
-    // Using the secure Etherscan proxy
     const { fetchEtherscanData } = await import('@/services/etherscan');
     const balanceWei = await fetchEtherscanData({
-      module: 'account',
-      action: 'balance',
-      address: contractInfo.address,
-      tag: 'latest',
-    }, 1); // Default to Ethereum mainnet for now
-
-    const balanceEth = balanceWei ? (parseInt(balanceWei) / 1e18).toFixed(4) : '0';
-
-    // Simulated metrics for now - can be enhanced with real calculations
+      module: 'account', action: 'balance', address: contractInfo.address, tag: 'latest',
+    }, 1);
     return {
-      exchangeInflow: Math.random() * 100000,
-      exchangeOutflow: Math.random() * 100000,
-      fundingRate: (Math.random() * 0.2 - 0.1),
-      netFlow: Math.random() * 50000 - 25000,
-      balance: balanceEth,
+      exchangeInflow: null, exchangeOutflow: null, fundingRate: null, netFlow: null,
+      balance: balanceWei ? (parseInt(balanceWei) / 1e18).toFixed(4) : null,
+      available: false,
     };
   } catch (error) {
     console.error(`Error fetching on-chain data for ${contractInfo.address}:`, error);
-    return {
-      exchangeInflow: 0,
-      exchangeOutflow: 0,
-      fundingRate: 0,
-      netFlow: 0,
-      balance: '0',
-    };
+    return { exchangeInflow: null, exchangeOutflow: null, fundingRate: null, netFlow: null, balance: null, available: false };
   }
 }
 

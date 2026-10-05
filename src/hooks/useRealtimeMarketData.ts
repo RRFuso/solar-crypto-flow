@@ -51,16 +51,16 @@ export const useRealtimeMarketData = (): UseRealtimeMarketDataReturn => {
           coin.current_price &&
           coin.market_cap &&
           coin.volume_24h) {
-        const relativeFlow = coin.price_change_percentage_24h - btc.price_change_percentage_24h;
-        const flowMagnitude = (coin.market_cap * Math.abs(relativeFlow)) / btc.market_cap / 10;
+        const relativeStrength = coin.price_change_percentage_24h - btc.price_change_percentage_24h;
+        const flowMagnitude = (coin.market_cap * Math.abs(relativeStrength)) / btc.market_cap / 10;
         
-        if (Math.abs(relativeFlow) > 0.1) {
+        if (Math.abs(relativeStrength) > 0.1) {
           flows.push({
             id: `btc-${coin.symbol.toLowerCase()}`,
-            from: relativeFlow > 0 ? 'BTC' : coin.symbol.toUpperCase(),
-            to: relativeFlow > 0 ? coin.symbol.toUpperCase() : 'BTC',
+            from: relativeStrength > 0 ? 'BTC' : coin.symbol.toUpperCase(),
+            to: relativeStrength > 0 ? coin.symbol.toUpperCase() : 'BTC',
             value: flowMagnitude,
-            percentage: relativeFlow,
+            percentage: relativeStrength,
             marketCap: coin.market_cap,
             volume: coin.volume_24h,
             name: coin.name,

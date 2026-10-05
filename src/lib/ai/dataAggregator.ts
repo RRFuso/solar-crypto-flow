@@ -191,52 +191,14 @@ export class DataAggregator {
     console.log(`Generated fallback data for ${symbol}`);
   }
 
-  async generateOnChainMetrics(symbols: string[]): Promise<Map<string, OnChainMetrics[]>> {
-    // Placeholder for on-chain data integration
-    // In production, this would connect to APIs like Glassnode, IntoTheBlock, etc.
-    const results = new Map<string, OnChainMetrics[]>();
-    
-    for (const symbol of symbols) {
-      const mockMetrics: OnChainMetrics[] = [{
-        symbol,
-        timestamp: Date.now(),
-        activeAddresses: Math.floor(Math.random() * 100000) + 50000,
-        transactionVolume: Math.floor(Math.random() * 1000000) + 500000,
-        networkGrowth: (Math.random() - 0.5) * 10, // -5% to +5%
-        concentrationByLargeHolders: Math.random() * 100,
-        exchangeInflowOutflowRatio: Math.random() * 2,
-        averageCoinAge: Math.floor(Math.random() * 365) + 30
-      }];
-      
-      results.set(symbol, mockMetrics);
-      this.onChainCache.set(symbol, mockMetrics);
-    }
-
-    return results;
+  /** No on-chain provider is integrated here: returns an empty map (sem dados). */
+  async generateOnChainMetrics(_symbols: string[]): Promise<Map<string, OnChainMetrics[]>> {
+    return new Map();
   }
 
-  async generateSocialMetrics(symbols: string[]): Promise<Map<string, SocialMetrics[]>> {
-    // Placeholder for social data integration
-    // In production, this would connect to APIs like Google Trends, Twitter API, Reddit API, etc.
-    const results = new Map<string, SocialMetrics[]>();
-    
-    for (const symbol of symbols) {
-      const mockMetrics: SocialMetrics[] = [{
-        symbol,
-        timestamp: Date.now(),
-        googleTrendsScore: Math.floor(Math.random() * 100),
-        twitterMentions: Math.floor(Math.random() * 10000),
-        redditMentions: Math.floor(Math.random() * 1000),
-        sentimentScore: (Math.random() - 0.5) * 2, // -1 to 1
-        influencerScore: Math.random() * 100,
-        fearGreedIndex: Math.floor(Math.random() * 100)
-      }];
-      
-      results.set(symbol, mockMetrics);
-      this.socialCache.set(symbol, mockMetrics);
-    }
-
-    return results;
+  /** No social provider is integrated: returns an empty map (sem dados). */
+  async generateSocialMetrics(_symbols: string[]): Promise<Map<string, SocialMetrics[]>> {
+    return new Map();
   }
 
   getMarketDataHistory(symbol: string): MarketDataPoint[] {

@@ -102,10 +102,14 @@ export const useAdvancedAI = (
         const onChainInfo  = onChainDataRef.current.get(symbolUp);
         const smInfo       = smartMoneyRef.current.get(symbolUp);
 
-        const onChainMetrics: OnChainMetrics[] = [{
+        // Only OBSERVED on-chain data enters the score. No simulated fields:
+        // when the oracle has nothing for this symbol, the on-chain feature set
+        // is empty and the engine treats it as neutral/excluded.
+        const hasRealOnChain = !!(onChainInfo?.exchangeFlow || smInfo);
+        const onChainMetrics: OnChainMetrics[] = hasRealOnChain ? [{
           symbol:                      symbolUp,
           timestamp:                   Date.now(),
-          activeAddresses:             50000 + Math.floor(Math.random() * 100000),
+          activeAddresses:             0, // não integrado — não usado no score
           transactionVolume:           onChainInfo?.exchangeFlow?.netFlow || 0,
           networkGrowth:               smInfo ? smInfo.score * 10 : 0,
           concentrationByLargeHolders: onChainInfo?.metrics?.whaleVolumeUSD
@@ -115,19 +119,12 @@ export const useAdvancedAI = (
                                          ? Math.abs(onChainInfo.exchangeFlow.inflow /
                                              Math.max(1, onChainInfo.exchangeFlow.outflow))
                                          : 1,
-          averageCoinAge:              30 + Math.floor(Math.random() * 335),
-        }];
+          averageCoinAge:              0, // não integrado — não usado no score
+        }] : [];
 
-        const socialMetrics: SocialMetrics[] = [{
-          symbol,
-          timestamp:         Date.now(),
-          googleTrendsScore: Math.floor(Math.random() * 100),
-          twitterMentions:   Math.floor(Math.random() * 10000),
-          redditMentions:    Math.floor(Math.random() * 1000),
-          sentimentScore:    (fearGreed - 50) / 50,
-          influencerScore:   Math.random() * 100,
-          fearGreedIndex:    fearGreed,
-        }];
+        // No real social source is integrated (Twitter/Reddit/Trends). Social
+        // features are excluded rather than filled with random numbers.
+        const socialMetrics: SocialMetrics[] = [];
 
         const features = featureEngine.generateAdvancedFeatures(
           marketData, onChainMetrics, socialMetrics, btcData

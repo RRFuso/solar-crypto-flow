@@ -43,12 +43,13 @@ export async function extractFeatures(
       
       // Get on-chain data
       const contractInfo = safeContractAddresses.get(crypto.symbol.toUpperCase());
-      let onChainData = {
-        exchangeInflow: 0,
-        exchangeOutflow: 0,
-        fundingRate: 0,
-        netFlow: 0,
-        balance: '0',
+      let onChainData: Awaited<ReturnType<typeof fetchOnChainData>> = {
+        exchangeInflow: null,
+        exchangeOutflow: null,
+        fundingRate: null,
+        netFlow: null,
+        balance: null,
+        available: false,
       };
 
       if (contractInfo) {

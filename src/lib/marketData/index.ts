@@ -68,29 +68,7 @@ export const fetchMarketData = async (timeframe: string): Promise<FlowData[]> =>
     // Get synthetic BTC flows for later use if needed
     const syntheticBtcFlows = generateSyntheticBtcFlows(data, flows);
     
-    // Ensure we have at least some BTC flows
-    const existingBtcFlows = flows.filter(flow => flow.from === 'BTC' || flow.to === 'BTC');
-    if (existingBtcFlows.length < MIN_BTC_FLOWS && data.length > 5) {
-      const topCoins = data.slice(1, 8);
-      topCoins.forEach((coin, index) => {
-        if (flows.some(f => 
-          (f.from === 'BTC' && f.to === coin.symbol.toUpperCase()) || 
-          (f.to === 'BTC' && f.from === coin.symbol.toUpperCase())
-        )) {
-          return;
-        }
-        const isInflow = index % 2 === 0;
-        const value = (coin.market_cap / btcData.market_cap) * 20 * (0.5 + Math.random() * 0.5);
-        const percentage = isInflow ? -(2 + Math.random() * 4) : (2 + Math.random() * 4);
-        flows.push({
-          id: `btc-${coin.symbol}-synthetic-${Date.now()}-${index}`,
-          from: isInflow ? coin.symbol.toUpperCase() : 'BTC',
-          to: isInflow ? 'BTC' : coin.symbol.toUpperCase(),
-          value,
-          percentage
-        });
-      });
-    }
+    // Synthetic random BTC flows removed: only relative-strength flows derived from real market data are shown.
 
     // Extract additional flows
     const ethDefiFlows = extractEthDefiFlows(data);

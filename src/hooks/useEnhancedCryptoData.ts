@@ -40,8 +40,8 @@ export const useEnhancedCryptoData = () => {
               volatility,
               supportLevel: supportResistance.support,
               resistanceLevel: supportResistance.resistance,
-              rsi: indicators.rsi,
-              rsi4h: indicators.rsi4h
+              rsi: indicators.available && Number.isFinite(indicators.rsi) ? indicators.rsi : undefined,
+              rsi4h: indicators.available && Number.isFinite(indicators.rsi4h) ? indicators.rsi4h : undefined
             };
           })
         );
@@ -56,8 +56,8 @@ export const useEnhancedCryptoData = () => {
           volatility: 0.5, // Volatilidade padrão
           supportLevel: crypto.price ? crypto.price * 0.95 : undefined,
           resistanceLevel: crypto.price ? crypto.price * 1.05 : undefined,
-          rsi: 50,
-          rsi4h: 50
+          rsi: undefined,
+          rsi4h: undefined
         }));
         setEnhancedData(fallbackData);
       } finally {

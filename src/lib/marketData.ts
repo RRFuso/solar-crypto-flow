@@ -65,17 +65,17 @@ export const fetchMarketDataOptimized = async (timeframe: string): Promise<FlowD
     // BTC vs other major coins flows - using all 250 coins
     data.forEach((coin) => {
       if (coin.symbol !== 'btc' && coin.market_cap_change_percentage_24h) {
-        const relativeFlow = coin.market_cap_change_percentage_24h - btcData.market_cap_change_percentage_24h;
-        const flowMagnitude = (coin.market_cap * Math.abs(relativeFlow)) / btcData.market_cap / 10;
+        const relativeStrength = coin.market_cap_change_percentage_24h - btcData.market_cap_change_percentage_24h;
+        const flowMagnitude = (coin.market_cap * Math.abs(relativeStrength)) / btcData.market_cap / 10;
         
         // Lower threshold to ensure we get more BTC flows
-        if (Math.abs(relativeFlow) > 0.1) {
+        if (Math.abs(relativeStrength) > 0.1) {
           flows.push({
             id: `btc-${coin.symbol}`,
-            from: relativeFlow > 0 ? 'BTC' : coin.symbol.toUpperCase(),
-            to: relativeFlow > 0 ? coin.symbol.toUpperCase() : 'BTC',
+            from: relativeStrength > 0 ? 'BTC' : coin.symbol.toUpperCase(),
+            to: relativeStrength > 0 ? coin.symbol.toUpperCase() : 'BTC',
             value: flowMagnitude,
-            percentage: relativeFlow,
+            percentage: relativeStrength,
             marketCap: coin.market_cap,
             volume: coin.total_volume,
             name: coin.name,  // Add name for display
@@ -114,20 +114,20 @@ export const fetchMarketDataOptimized = async (timeframe: string): Promise<FlowD
       const coinB = data[i + 1];
       
       if (coinA && coinB && coinA.market_cap_change_percentage_24h && coinB.market_cap_change_percentage_24h) {
-        const relativeFlow = coinA.market_cap_change_percentage_24h - coinB.market_cap_change_percentage_24h;
-        const flowMagnitude = (Math.min(coinA.market_cap, coinB.market_cap) * Math.abs(relativeFlow)) / btcData.market_cap / 20;
+        const relativeStrength = coinA.market_cap_change_percentage_24h - coinB.market_cap_change_percentage_24h;
+        const flowMagnitude = (Math.min(coinA.market_cap, coinB.market_cap) * Math.abs(relativeStrength)) / btcData.market_cap / 20;
         
-        if (Math.abs(relativeFlow) > 0.5) {
+        if (Math.abs(relativeStrength) > 0.5) {
           flows.push({
             id: `${coinA.symbol}-${coinB.symbol}`,
-            from: relativeFlow > 0 ? coinB.symbol.toUpperCase() : coinA.symbol.toUpperCase(),
-            to: relativeFlow > 0 ? coinA.symbol.toUpperCase() : coinB.symbol.toUpperCase(),
+            from: relativeStrength > 0 ? coinB.symbol.toUpperCase() : coinA.symbol.toUpperCase(),
+            to: relativeStrength > 0 ? coinA.symbol.toUpperCase() : coinB.symbol.toUpperCase(),
             value: flowMagnitude,
-            percentage: relativeFlow,
+            percentage: relativeStrength,
             marketCap: Math.min(coinA.market_cap, coinB.market_cap),
             volume: Math.min(coinA.total_volume, coinB.total_volume),
-            name: relativeFlow > 0 ? coinA.name : coinB.name,  // Add name for display
-            change: relativeFlow > 0 ? coinA.price_change_percentage_24h : coinB.price_change_percentage_24h  // Add price change percentage
+            name: relativeStrength > 0 ? coinA.name : coinB.name,  // Add name for display
+            change: relativeStrength > 0 ? coinA.price_change_percentage_24h : coinB.price_change_percentage_24h  // Add price change percentage
           });
         }
       }

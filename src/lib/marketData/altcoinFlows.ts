@@ -14,16 +14,16 @@ export const extractEthDefiFlows = (data: MarketData[]): FlowData[] => {
   
   defiCoins.forEach(coin => {
     if (coin.market_cap_change_percentage_24h) {
-      const relativeFlow = coin.market_cap_change_percentage_24h - ethData.market_cap_change_percentage_24h;
-      const flowMagnitude = (coin.market_cap * Math.abs(relativeFlow)) / ethData.market_cap / 10;
+      const relativeStrength = coin.market_cap_change_percentage_24h - ethData.market_cap_change_percentage_24h;
+      const flowMagnitude = (coin.market_cap * Math.abs(relativeStrength)) / ethData.market_cap / 10;
       
-      if (Math.abs(relativeFlow) > 1.5) {
+      if (Math.abs(relativeStrength) > 1.5) {
         flows.push({
           id: `eth-${coin.symbol}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Add unique ID
-          from: relativeFlow > 0 ? 'ETH' : coin.symbol.toUpperCase(),
-          to: relativeFlow > 0 ? coin.symbol.toUpperCase() : 'ETH',
+          from: relativeStrength > 0 ? 'ETH' : coin.symbol.toUpperCase(),
+          to: relativeStrength > 0 ? coin.symbol.toUpperCase() : 'ETH',
           value: flowMagnitude,
-          percentage: relativeFlow
+          percentage: relativeStrength
         });
       }
     }
@@ -45,17 +45,17 @@ export const extractPlatformFlows = (data: MarketData[]): FlowData[] => {
       const coinB = platforms[j];
       
       if (coinA.market_cap_change_percentage_24h && coinB.market_cap_change_percentage_24h) {
-        const relativeFlow = coinA.market_cap_change_percentage_24h - coinB.market_cap_change_percentage_24h;
+        const relativeStrength = coinA.market_cap_change_percentage_24h - coinB.market_cap_change_percentage_24h;
         
-        if (Math.abs(relativeFlow) > 2) {
-          const flowMagnitude = Math.min(coinA.market_cap, coinB.market_cap) * Math.abs(relativeFlow) / 100 / 10;
+        if (Math.abs(relativeStrength) > 2) {
+          const flowMagnitude = Math.min(coinA.market_cap, coinB.market_cap) * Math.abs(relativeStrength) / 100 / 10;
           
           flows.push({
             id: `${coinA.symbol}-${coinB.symbol}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Add unique ID
-            from: relativeFlow > 0 ? coinB.symbol.toUpperCase() : coinA.symbol.toUpperCase(),
-            to: relativeFlow > 0 ? coinA.symbol.toUpperCase() : coinB.symbol.toUpperCase(),
+            from: relativeStrength > 0 ? coinB.symbol.toUpperCase() : coinA.symbol.toUpperCase(),
+            to: relativeStrength > 0 ? coinA.symbol.toUpperCase() : coinB.symbol.toUpperCase(),
             value: flowMagnitude,
-            percentage: relativeFlow
+            percentage: relativeStrength
           });
         }
       }
