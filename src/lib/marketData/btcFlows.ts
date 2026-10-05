@@ -10,17 +10,17 @@ export const extractBtcFlows = (data: MarketData[], btcData: MarketData): FlowDa
   // BTC vs other major coins flows (expanded range)
   data.slice(0, 100).forEach((coin) => {
     if (coin.symbol !== 'btc' && coin.market_cap_change_percentage_24h) {
-      const relativeFlow = coin.market_cap_change_percentage_24h - btcData.market_cap_change_percentage_24h;
-      const flowMagnitude = (coin.market_cap * Math.abs(relativeFlow)) / btcData.market_cap / 10;
+      const relativeStrength = coin.market_cap_change_percentage_24h - btcData.market_cap_change_percentage_24h;
+      const flowMagnitude = (coin.market_cap * Math.abs(relativeStrength)) / btcData.market_cap / 10;
       
       // IMPORTANT: Lower threshold to ensure we get BTC flows
-      if (Math.abs(relativeFlow) > BTC_FLOW_THRESHOLD) {
+      if (Math.abs(relativeStrength) > BTC_FLOW_THRESHOLD) {
         flows.push({
           id: `btc-${coin.symbol}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Add unique ID
-          from: relativeFlow > 0 ? 'BTC' : coin.symbol.toUpperCase(),
-          to: relativeFlow > 0 ? coin.symbol.toUpperCase() : 'BTC',
+          from: relativeStrength > 0 ? 'BTC' : coin.symbol.toUpperCase(),
+          to: relativeStrength > 0 ? coin.symbol.toUpperCase() : 'BTC',
           value: flowMagnitude,
-          percentage: relativeFlow
+          percentage: relativeStrength
         });
       }
     }

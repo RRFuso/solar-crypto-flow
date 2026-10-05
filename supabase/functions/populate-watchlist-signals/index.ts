@@ -39,10 +39,10 @@ Deno.serve(async (req) => {
         let reason = ''
 
         if (signal.explosive_potential === 'High') {
-          upsidePotential = Math.random() * 50 + 20 // 20-70% potential
+          upsidePotential = 0
           reason = `High explosive potential detected. Strong volume and price action indicators suggest significant upside momentum.`
         } else if (signal.explosive_potential === 'Medium') {
-          upsidePotential = Math.random() * 30 + 10 // 10-40% potential  
+          upsidePotential = 0
           reason = `Medium explosive potential with positive price action signals. Moderate upside potential identified.`
         }
 
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
         watchlistEntries.push({
           symbol: signal.symbol,
           reason: reason.trim(),
-          upside_potential: Math.round(upsidePotential * 100) / 100, // Round to 2 decimal places
+          upside_potential: null, // não validado: sem modelo de potencial com avaliação fora da amostra
           created_at: new Date().toISOString()
         })
 
