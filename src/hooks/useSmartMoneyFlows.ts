@@ -71,6 +71,26 @@ export function isFlowFresh(lastUpdated?: string | null): boolean {
   return Date.now() - ts < FLOW_MAX_AGE_MS;
 }
 
+/** Shared data-quality contract for smart-money rows. */
+export type FlowDataStatus = 'valid' | 'stale' | 'no_data';
+export interface FlowProvenance {
+  status: FlowDataStatus;
+  source: 'smart-money-tracker';
+  observedAt: string | null;
+  ageMs: number | null;
+  /** Exchange outflow is only an indication, never proof of buying. */
+  caveat: string;
+}
+
+export function getFlowProvenance(lastUpdated?: string | null): FlowProvenance {
+  const caveat = 'Saída/entrada de exchange é indício, não prova de compra/venda. Valor USD usa preço atual, não histórico.';
+  if (!lastUpdated) return { status: 'no_data', source: 'smart-money-tracker', observedAt: null, ageMs: null, caveat };
+  const ts = new Date(lastUpdated).getTime();
+  if (!Number.isFinite(ts)) return { status: 'no_data', source: 'smart-money-tracker', observedAt: null, ageMs: null, caveat };
+  const ageMs = Date.now() - ts;
+  return { status: ageMs < FLOW_MAX_AGE_MS ? 'valid' : 'stale', source: 'smart-money-tracker', observedAt: lastUpdated, ageMs, caveat };
+}
+
 /**
  * Legacy rows were written by an additive scoring model that produced
  * unbounded values (e.g. 1150). Anything outside 0-100 is not a percentage.
