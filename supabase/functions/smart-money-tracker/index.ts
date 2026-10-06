@@ -579,16 +579,16 @@ async function updateWalletPerformance(
     stats.totalTx++;
     stats.totalVolume += tx.valueUSD;
 
-    // Simple heuristic: successful tx from exchange = potentially profitable
-    if (!tx.isError && tx.fromExchange) {
-      stats.profitableTx++;
-    }
+    // PnL is NOT computable from transfers alone (no entry/exit prices or
+    // positions). We no longer label any transaction as "profitable".
   }
 
   // Update database
   for (const [addr, stats] of walletStats) {
-    const profitRatio = stats.totalTx > 0 ? stats.profitableTx / stats.totalTx : 0;
-    const impactScore = Math.min(100, profitRatio * 50 + (Math.log10(stats.totalVolume + 1) * 10));
+    // profit_ratio kept for schema compatibility but always 0: real PnL unknown.
+    // impact_score is a heuristic ACTIVITY/size score (volume-based), not profit history.
+    const profitRatio = 0;
+    const impactScore = Math.min(100, Math.log10(stats.totalVolume + 1) * 10);
 
     await supabase
       .from('smart_money_wallet_performance')

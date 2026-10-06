@@ -531,19 +531,10 @@ export class PredictionEngine {
     return Math.max(0, Math.min(100, confidence));
   }
 
-  private calculateHistoricalAccuracy(horizon: PredictionHorizon): number {
-    // Placeholder for historical accuracy tracking
-    // In production, this would be calculated from backtesting results
-    const baseAccuracy = {
-      '1h': 65,
-      '4h': 68,
-      '1d': 70,
-      '3d': 67,
-      '1w': 63,
-      '1m': 58
-    };
-
-    return baseAccuracy[horizon];
+  private calculateHistoricalAccuracy(_horizon: PredictionHorizon): number {
+    // NÃO VALIDADO: não existe avaliação fora da amostra. Retornamos NaN para
+    // que a UI exiba "não validado" em vez de uma taxa de acerto inventada.
+    return NaN;
   }
 
   detectPatterns(features: AdvancedFeatures[]): PatternDetection[] {
