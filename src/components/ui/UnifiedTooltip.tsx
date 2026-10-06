@@ -7,6 +7,7 @@ import { useOnChainData } from '@/contexts/OnChainDataContext';
 import { BTCTooltip } from './BTCTooltip';
 import { FlowBar, NetFlowBar } from './FlowBar';
 import { AIInsight } from '@/hooks/useAdvancedAI';
+import { SmartMoneyProvenance } from './SmartMoneyProvenance';
 
 interface TooltipData {
   id: string;
@@ -291,6 +292,7 @@ export const UnifiedTooltip: React.FC<UnifiedTooltipProps> = ({ data, position }
 
           {/* On-Chain Analysis Section */}
           <OnChainTooltipContent symbol={data.id} />
+          <SmartMoneyProvenance symbol={data.id} />
 
           {data.trendReasons && data.trendReasons.length > 0 && (
             <div className="border-t border-slate-700 pt-2 mt-2">

@@ -14,6 +14,10 @@ export interface TransactionWithDetails {
   walletAddress: string;
   toExchange: boolean;
   fromExchange: boolean;
+  /** Event time (ms epoch) from the provider, when available. */
+  timestamp?: number;
+  /** USD price at `timestamp` (hourly candle close), resolved before scoring. */
+  historicalPriceUSD?: number;
 }
 
 export interface WalletPerformance {
@@ -121,13 +125,16 @@ export async function processTransactionsToFlows(
   // Corroboration inputs: how many qualifying txs and how many distinct wallets
   // back the signal for each symbol.
   const qualifyingTxBySymbol = new Map<string, number>();
+  const historicalPricedBySymbol = new Map<string, number>();
   const walletsBySymbol = new Map<string, Set<string>>();
   const ethPrice = prices['ETH'] || 2000;
 
 
   const enrichedTransactions = transactions.map((tx) => ({
     ...tx,
-    valueUSD: tx.value * (prices[tx.tokenSymbol] || 0),
+    // Prefer the price at the event time; fall back to the current price only
+    // when no historical price could be resolved (counted in priceCoverage).
+    valueUSD: tx.value * (tx.historicalPriceUSD ?? prices[tx.tokenSymbol] ?? 0),
     toExchange: tx.toExchange || exchangeAddresses.has(tx.to?.toLowerCase()),
     fromExchange: tx.fromExchange || exchangeAddresses.has(tx.from?.toLowerCase()),
   }));
@@ -194,6 +201,9 @@ export async function processTransactionsToFlows(
     flow.confidenceScore += confidence.total * w;
     weightBySymbol.set(symbol, (weightBySymbol.get(symbol) ?? 0) + w);
     qualifyingTxBySymbol.set(symbol, (qualifyingTxBySymbol.get(symbol) ?? 0) + 1);
+    if (tx.historicalPriceUSD !== undefined) {
+      historicalPricedBySymbol.set(symbol, (historicalPricedBySymbol.get(symbol) ?? 0) + 1);
+    }
     if (!walletsBySymbol.has(symbol)) walletsBySymbol.set(symbol, new Set<string>());
     walletsBySymbol.get(symbol)!.add((tx.walletAddress || '').toLowerCase());
 
@@ -254,6 +264,10 @@ export async function processTransactionsToFlows(
     flow.confidenceFactors = {
       ...flow.confidenceFactors,
       corroboration: Math.round(corroboration * 100),
+      // % of qualifying txs valued with the price at event time (0-100).
+      historicalPriceCoverage: txCount > 0
+        ? Math.round(((historicalPricedBySymbol.get(symbol) ?? 0) / txCount) * 100)
+        : 0,
     };
 
     if (totalFlow > 0) {
