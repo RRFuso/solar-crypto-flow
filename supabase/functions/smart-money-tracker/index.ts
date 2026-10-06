@@ -267,6 +267,7 @@ async function fetchWalletTransactionsBatch(
               gasUsed: undefined,
               isError: false, // Alchemy only returns successful transfers
               walletAddress: address.toLowerCase(),
+              timestamp: tx.metadata?.blockTimestamp ? Date.parse(tx.metadata.blockTimestamp) : undefined,
               toExchange: KNOWN_EXCHANGE_ADDRESSES.has(toAddr),
               fromExchange: KNOWN_EXCHANGE_ADDRESSES.has(fromAddr),
             });
@@ -340,6 +341,7 @@ async function fetchBscWalletTransactionsBatch(
           gasUsed: tx.gasUsed ? Number(tx.gasUsed) : undefined,
           isError: tx.isError === '1',
           walletAddress: address.toLowerCase(),
+          timestamp: tx.timeStamp ? Number(tx.timeStamp) * 1000 : undefined,
           toExchange: KNOWN_EXCHANGE_ADDRESSES.has(toAddr),
           fromExchange: KNOWN_EXCHANGE_ADDRESSES.has(fromAddr),
         });
@@ -393,6 +395,7 @@ async function fetchSolanaWalletTransactionsBatch(
           gasUsed: undefined,
           isError: false,
           walletAddress: address.toLowerCase(),
+          timestamp: (t.blockTime ?? t.block_time) ? Number(t.blockTime ?? t.block_time) * 1000 : undefined,
           toExchange: KNOWN_EXCHANGE_ADDRESSES.has(toAddr),
           fromExchange: KNOWN_EXCHANGE_ADDRESSES.has(fromAddr),
         });
@@ -484,6 +487,53 @@ async function getCurrentPrices(symbols: string[]): Promise<Record<string, numbe
   }
 }
 
+// ========== HISTORICAL PRICING ==========
+// Values each transfer with the Binance 1h candle close covering its timestamp
+// (GET /api/v3/klines). Stablecoins = 1. If no candle is found, the tx keeps
+// no historicalPriceUSD and pure.ts falls back to the current price, which is
+// reported via confidence_factors.historicalPriceCoverage.
+const HOUR_MS = 60 * 60 * 1000;
+async function attachHistoricalPrices(
+  txs: TransactionWithDetails[],
+  currentPrices: Record<string, number>,
+): Promise<TransactionWithDetails[]> {
+  const memo = new Map<string, Promise<number | undefined>>();
+  const lookup = (symbol: string, ts: number): Promise<number | undefined> => {
+    const base = SYMBOL_MAP[symbol] ?? symbol;
+    if (STABLECOIN_SYMBOLS.has(base)) return Promise.resolve(1);
+    const hour = Math.floor(ts / HOUR_MS) * HOUR_MS;
+    const key = `${base}:${hour}`;
+    if (!memo.has(key)) {
+      memo.set(key, (async () => {
+        try {
+          const url = `https://api.binance.com/api/v3/klines?symbol=${base}USDT&interval=1h&startTime=${hour}&limit=1`;
+          const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+          if (!r.ok) return undefined;
+          const rows = await r.json();
+          const close = Array.isArray(rows) && rows[0] ? Number(rows[0][4]) : NaN;
+          return Number.isFinite(close) && close > 0 ? close : undefined;
+        } catch { return undefined; }
+      })());
+    }
+    return memo.get(key)!;
+  };
+
+  // Only price txs that could plausibly pass the significance threshold at the
+  // current price (avoids thousands of kline calls for dust transfers).
+  const candidates = txs.filter(tx =>
+    tx.timestamp && tx.value * (currentPrices[tx.tokenSymbol] || 0) >= SIGNIFICANT_TX_THRESHOLD * 0.5
+  ).slice(0, 300);
+
+  const CONCURRENCY = 8;
+  for (let i = 0; i < candidates.length; i += CONCURRENCY) {
+    await Promise.all(candidates.slice(i, i + CONCURRENCY).map(async tx => {
+      const p = await lookup(tx.tokenSymbol, tx.timestamp!);
+      if (p !== undefined) tx.historicalPriceUSD = p;
+    }));
+  }
+  return txs;
+}
+
 // ========== MAIN PROCESSING FUNCTION ==========
 async function processTransactionsToFlows(
   transactions: TransactionWithDetails[],
@@ -492,8 +542,9 @@ async function processTransactionsToFlows(
   walletPerformance: Map<string, WalletPerformance>,
   impactByAddr?: Map<string, number>
 ): Promise<Map<string, FlowData>> {
+  const priced = await attachHistoricalPrices(transactions, prices);
   return _pureProcessTransactionsToFlows(
-    transactions,
+    priced,
     exchangeAddresses,
     prices,
     walletPerformance,
