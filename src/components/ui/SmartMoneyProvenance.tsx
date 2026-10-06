@@ -68,7 +68,7 @@ export const SmartMoneyProvenance: React.FC<{ symbol: string }> = ({ symbol }) =
           {prov.status === 'valid' && (
             <div className="flex justify-between">
               <span className="text-slate-400">Confiança (heurística):</span>
-              <span className="font-mono">{normalizeConfidence(data?.confidence_score)}%</span>
+              <span className="font-mono">{Math.round(normalizeConfidence(data?.confidence_score))}%</span>
             </div>
           )}
           <div className="flex justify-between">
