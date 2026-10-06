@@ -45,6 +45,8 @@ interface TransactionWithDetails {
   walletAddress: string;
   toExchange: boolean;
   fromExchange: boolean;
+  timestamp?: number;
+  historicalPriceUSD?: number;
 }
 
 interface ConfidenceHeuristics {

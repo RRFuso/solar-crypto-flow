@@ -327,3 +327,23 @@ Deno.test("corroboration: conflicting flows (neutral) score lower than aligned f
     "directional conviction must raise confidence",
   );
 });
+
+Deno.test("historical price: event-time price overrides current price and is reported", async () => {
+  const base = {
+    from: "0xexchange", to: "0xw", value: 100, valueUSD: 0, tokenSymbol: "ETH",
+    isError: false, walletAddress: "0xw", toExchange: false, fromExchange: true,
+  };
+  const txs = [
+    { ...base, hash: "a", historicalPriceUSD: 1000, timestamp: 1 }, // $100k at event time
+    { ...base, hash: "b" }, // no historical price -> current price
+  ];
+  const flows = await processTransactionsToFlows(
+    txs as any, new Set(["0xexchange"]), { ETH: 5000 }, new Map(), new Map([["0xw", 80]]),
+  );
+  const eth = flows.get("ETH")!;
+  // 100*1000 + 100*5000
+  if (Math.round(eth.outflowUSD) !== 600000) throw new Error(`outflow ${eth.outflowUSD}`);
+  if (eth.confidenceFactors.historicalPriceCoverage !== 50) {
+    throw new Error(`coverage ${eth.confidenceFactors.historicalPriceCoverage}`);
+  }
+});
