@@ -1,1 +1,2 @@
 - Never fill market/on-chain/social fields with Math.random() or synthetic values; return null/empty and let engines exclude the feature — fabricated inputs corrupt signals.
+- Privileged edge-function actions (writes, cron, admin) must authorize via supabase/functions/_shared/auth.ts (service key, vault cron secret, or admin JWT); never trust ids/roles in request bodies — prevents privilege escalation.
