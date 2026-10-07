@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8'
+import { resolveCaller, isInternalOrAdmin, deny } from "../_shared/auth.ts";
 import { corsHeaders } from '../_shared/cors.ts'
 
 interface CoinGeckoMarketData {
@@ -32,6 +33,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    { const caller = await resolveCaller(req); if (!isInternalOrAdmin(caller)) return deny(caller, corsHeaders); }
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const coingeckoApiKey = Deno.env.get('COINGECKO_API_KEY')!;

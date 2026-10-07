@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { resolveCaller, isInternalOrAdmin, deny } from "../_shared/auth.ts";
 import { corsHeaders } from '../_shared/cors.ts'
 
 Deno.serve(async (req) => {
@@ -7,6 +8,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    { const caller = await resolveCaller(req); if (!isInternalOrAdmin(caller)) return deny(caller, corsHeaders); }
     console.log('[BATCH-CACHE-LOGOS] Starting batch logo caching job...')
 
     const supabase = createClient(

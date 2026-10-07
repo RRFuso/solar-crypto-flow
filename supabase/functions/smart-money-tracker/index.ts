@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
+import { resolveCaller, isInternalOrAdmin, deny } from "../_shared/auth.ts";
 import { getCache, setCache, getOrFetch, CacheKeys, CacheTTL, mgetCache } from '../_shared/redis.ts';
 import {
   calculateConfidenceScore as _pureCalculateConfidenceScore,
@@ -666,7 +667,16 @@ serve(async (req) => {
   }
 
   try {
-    const { action, symbols, timeframe = '1h' } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const action = typeof body?.action === 'string' ? body.action : '';
+    const timeframe = body?.timeframe === '24h' ? '24h' : '1h';
+    const symbols = Array.isArray(body?.symbols)
+      ? body.symbols.filter((x: unknown) => typeof x === 'string' && /^[A-Za-z0-9]{1,20}$/.test(x)).slice(0, 100)
+      : undefined;
+    if (action === 'update_flows' || action === 'seed_wallets') {
+      const caller = await resolveCaller(req);
+      if (!isInternalOrAdmin(caller)) return deny(caller, corsHeaders);
+    }
 
     // ===== GET_FLOWS =====
     if (action === 'get_flows') {

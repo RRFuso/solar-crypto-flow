@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveCaller, isInternalOrAdmin, deny } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +14,7 @@ serve(async (req) => {
   }
 
   try {
+    { const caller = await resolveCaller(req); if (!isInternalOrAdmin(caller)) return deny(caller, corsHeaders); }
     console.log('[CRON] Starting smart money flow update...');
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

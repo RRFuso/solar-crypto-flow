@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveCaller, isInternal, deny } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -68,7 +69,13 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { action, data } = await req.json();
+    const caller = await resolveCaller(req);
+    const body = await req.json().catch(() => ({}));
+    const action = typeof body?.action === 'string' ? body.action : '';
+    const data = (body?.data && typeof body.data === 'object') ? body.data : {};
+    if ((action === 'check_and_create_alerts' || action === 'cleanup_old_alerts') && !isInternal(caller)) {
+      return deny(caller, corsHeaders);
+    }
     console.log(`[smart-money-alerts] Action: ${action}`);
 
     if (action === 'check_and_create_alerts') {
@@ -261,7 +268,11 @@ serve(async (req) => {
     }
 
     if (action === 'get_user_alerts') {
-      const { user_id, limit = 50, unread_only = false } = data;
+      if (caller.kind !== 'user') return deny(caller, corsHeaders);
+      // Always scope to the authenticated user; ignore any user_id in the body.
+      const user_id = caller.userId;
+      const limit = Math.min(Math.max(Number(data.limit) || 50, 1), 100);
+      const unread_only = data.unread_only === true;
 
       let query = supabase
         .from('smart_money_alerts')
