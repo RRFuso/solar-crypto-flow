@@ -175,9 +175,9 @@ export class Backtester {
     this.openPositions = this.openPositions.filter((p) => p.id !== trade.id);
   }
 
-  private closeAllPositions(data: HistoricalData) {
+  private closeAllPositions(data: HistoricalData, price: number = data.close) {
     for (const position of [...this.openPositions]) {
-      position.exitPrice = data.close;
+      position.exitPrice = price;
       position.exitTime = data.timestamp;
       position.reason = position.reason ?? 'End of backtest';
       this.closePosition(position);
