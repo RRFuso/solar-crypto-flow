@@ -166,7 +166,7 @@ export const GapMonitorPanel: React.FC<GapMonitorPanelProps> = ({ currentBTCPric
                   {highestProbabilityGap.fillProbability}%
                 </Badge>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Probabilidade de Preenchimento
+                  Score heurístico (não validado)
                 </p>
               </div>
             </div>
