@@ -57,10 +57,10 @@ export const GapMonitorPanel: React.FC<GapMonitorPanelProps> = ({ currentBTCPric
             </div>
             <div>
               <CardTitle className="text-lg font-bold bg-gradient-to-r from-orange-400 to-yellow-400 bg-clip-text text-transparent">
-                CME GAP Monitor
+                Weekend GAP Monitor (proxy)
               </CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Bitcoin Futures (CME)
+                Estimativa via BTC/USDT spot Binance — não são dados oficiais da CME
               </p>
             </div>
           </div>
@@ -74,11 +74,11 @@ export const GapMonitorPanel: React.FC<GapMonitorPanelProps> = ({ currentBTCPric
                 </TooltipTrigger>
                 <TooltipContent side="left" className="max-w-xs bg-crypto-dark border-white/10">
                   <p className="text-sm">
-                    <strong>O que são GAPs da CME?</strong><br />
-                    Os mercados futuros da CME fecham nos fins de semana. Quando há movimento 
-                    significativo no preço do BTC durante esse período, forma-se um "gap" 
-                    (lacuna) no gráfico. Historicamente, ~77% dos gaps são preenchidos, 
-                    tornando-os níveis importantes de suporte/resistência.
+                    <strong>Aviso de fonte</strong><br />
+                    Não há fonte gratuita de futuros CME integrada. Os gaps aqui são
+                    aproximados pelo fechamento de sexta e abertura de domingo do BTC/USDT
+                    spot (Binance) e podem diferir dos gaps reais da CME. Nenhuma taxa
+                    histórica de preenchimento é afirmada. Conteúdo educacional.
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -166,7 +166,7 @@ export const GapMonitorPanel: React.FC<GapMonitorPanelProps> = ({ currentBTCPric
                   {highestProbabilityGap.fillProbability}%
                 </Badge>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Probabilidade de Preenchimento
+                  Score heurístico (não validado)
                 </p>
               </div>
             </div>
