@@ -87,14 +87,18 @@ export class Backtester {
     this.equity = [config.initialCapital];
   }
 
+  /**
+   * Sem look-ahead: no candle i a estratégia vê apenas candles fechados [0..i-1];
+   * a ordem é executada na abertura do candle i, e stops usam a mínima/máxima de i.
+   */
   async run(data: HistoricalData[], strategy: TradingStrategy): Promise<BacktestResults> {
     for (let i = 50; i < data.length; i++) {
       const current = data[i];
-      const history = data.slice(0, i);
+      const history = data.slice(0, i); // só candles já fechados
 
-      this.updateOpenPositions(current);
       const signal = await strategy.generateSignal(history);
       if (signal) this.executeSignal(signal, current);
+      this.updateOpenPositions(current);
 
       this.equity.push(this.calculateEquity(current));
       this.equityDates.push(current.timestamp);
@@ -106,39 +110,40 @@ export class Backtester {
   private updateOpenPositions(data: HistoricalData) {
     const toClose: Trade[] = [];
     for (const position of this.openPositions) {
-      const currentPrice = data.close;
-      if (position.side === 'buy') {
-        const profitPercent = ((currentPrice - position.entryPrice) / position.entryPrice) * 100;
-        if (profitPercent <= -this.config.stopLoss) {
-          position.exitPrice = currentPrice;
-          position.exitTime = data.timestamp;
-          position.reason = 'Stop Loss';
-          toClose.push(position);
-        } else if (profitPercent >= this.config.takeProfit) {
-          position.exitPrice = currentPrice;
-          position.exitTime = data.timestamp;
-          position.reason = 'Take Profit';
-          toClose.push(position);
-        }
+      if (position.side !== 'buy') continue;
+      const stopPrice = position.entryPrice * (1 - this.config.stopLoss / 100);
+      const tpPrice = position.entryPrice * (1 + this.config.takeProfit / 100);
+      // Conservador: se ambos tocados no mesmo candle, assume stop primeiro.
+      if (data.low <= stopPrice) {
+        position.exitPrice = Math.min(stopPrice, data.open);
+        position.exitTime = data.timestamp;
+        position.reason = 'Stop Loss';
+        toClose.push(position);
+      } else if (data.high >= tpPrice) {
+        position.exitPrice = Math.max(tpPrice, data.open);
+        position.exitTime = data.timestamp;
+        position.reason = 'Take Profit';
+        toClose.push(position);
       }
     }
     toClose.forEach((p) => this.closePosition(p));
   }
 
   private executeSignal(signal: Signal, data: HistoricalData) {
-    if (this.openPositions.length >= this.config.maxPositions) return;
     if (signal.action === 'buy' && signal.confidence > 0.7) {
+      if (this.openPositions.length >= this.config.maxPositions) return;
       this.openPosition('buy', data);
     } else if (signal.action === 'sell' && this.openPositions.length > 0) {
-      this.closeAllPositions(data);
+      this.closeAllPositions(data, data.open);
     }
   }
 
   private openPosition(side: 'buy' | 'sell', data: HistoricalData) {
     const positionValue = this.capital * (this.config.positionSize / 100);
-    const quantity = positionValue / data.close;
-    const slippageAmount = data.close * (this.config.slippage / 100);
-    const entryPrice = data.close + (side === 'buy' ? slippageAmount : -slippageAmount);
+    const fill = data.open;
+    const quantity = positionValue / fill;
+    const slippageAmount = fill * (this.config.slippage / 100);
+    const entryPrice = fill + (side === 'buy' ? slippageAmount : -slippageAmount);
     const commission = positionValue * (this.config.commission / 100);
     this.capital -= commission;
 
@@ -170,9 +175,9 @@ export class Backtester {
     this.openPositions = this.openPositions.filter((p) => p.id !== trade.id);
   }
 
-  private closeAllPositions(data: HistoricalData) {
+  private closeAllPositions(data: HistoricalData, price: number = data.close) {
     for (const position of [...this.openPositions]) {
-      position.exitPrice = data.close;
+      position.exitPrice = price;
       position.exitTime = data.timestamp;
       position.reason = position.reason ?? 'End of backtest';
       this.closePosition(position);
