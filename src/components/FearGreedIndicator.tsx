@@ -1,3 +1,4 @@
+import { sharedFetchJson, BTC_SIMPLE_PRICE_URL } from '@/lib/cache/sharedFetch';
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
