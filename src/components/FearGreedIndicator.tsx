@@ -47,10 +47,9 @@ const FearGreedIndicator = () => {
     queryKey: ['btc-dominance'],
     queryFn: async () => {
       try {
-        const response = await fetch('https://api.coingecko.com/api/v3/global');
-        const data = await response.json();
+        const data = await sharedFetchJson<any>('https://api.coingecko.com/api/v3/global', 5 * 60_000);
         
-        const dominanceValue = data.data?.market_cap_percentage?.btc || 59.02;
+        const dominanceValue = data.data?.market_cap_percentage?.btc ?? NaN;
         
         console.log('BTC Dominance fetched:', dominanceValue);
         
@@ -103,8 +102,7 @@ const FearGreedIndicator = () => {
     queryKey: ['btc-price'],
     queryFn: async () => {
       try {
-        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true');
-        const data = await response.json();
+        const data = await sharedFetchJson<any>(BTC_SIMPLE_PRICE_URL, 60_000);
         return {
           price: data.bitcoin.usd.toLocaleString(),
           change24h: parseFloat(data.bitcoin.usd_24h_change.toFixed(2))

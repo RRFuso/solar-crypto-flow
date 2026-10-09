@@ -28,14 +28,11 @@ export const GapMonitorPanel: React.FC<GapMonitorPanelProps> = ({ currentBTCPric
 
     const fetchPrice = async () => {
       try {
-        const response = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'
-        );
-        const data = await response.json();
-        setBtcPrice(data.bitcoin.usd);
+        const data = await sharedFetchJson<any>(BTC_SIMPLE_PRICE_URL, 60_000);
+        setBtcPrice(data?.bitcoin?.usd ?? null);
       } catch (error) {
         console.error('Error fetching BTC price:', error);
-        setBtcPrice(104000); // Fallback price
+        setBtcPrice(null); // sem preço inventado
       }
     };
 
