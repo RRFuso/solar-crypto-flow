@@ -51,8 +51,7 @@ const FearGreedIndicator = () => {
         
         const dominanceValue = data.data?.market_cap_percentage?.btc ?? NaN;
         
-        console.log('BTC Dominance fetched:', dominanceValue);
-        
+                
         if (isNaN(dominanceValue)) {
           throw new Error('Invalid BTC dominance value');
         }
@@ -64,7 +63,7 @@ const FearGreedIndicator = () => {
         console.error('Error fetching BTC dominance:', error);
         toast.error('Erro ao carregar dominância do Bitcoin');
         return {
-          value: "59.02"
+          value: "—"
         };
       }
     },
@@ -79,16 +78,16 @@ const FearGreedIndicator = () => {
     queryFn: async () => {
       try {
         return {
-          dxy: "104.23",
-          spx: "5,254.42",
-          nasdaq: "16,742.39",
+          dxy: "—", // sem fonte gratuita integrada
+          spx: "—",
+          nasdaq: "—",
         };
       } catch (error) {
         console.error('Error fetching economic indicators:', error);
         return {
-          dxy: "104.23",
-          spx: "5,254.42",
-          nasdaq: "16,742.39",
+          dxy: "—", // sem fonte gratuita integrada
+          spx: "—",
+          nasdaq: "—",
         };
       }
     },
@@ -110,8 +109,8 @@ const FearGreedIndicator = () => {
       } catch (error) {
         console.error('Error fetching BTC price:', error);
         return {
-          price: "30,142.82",
-          change24h: -1.42
+          price: "—",
+          change24h: null as number | null
         };
       }
     },
