@@ -1,3 +1,4 @@
+import { sharedFetchJson, BTC_SIMPLE_PRICE_URL } from '@/lib/cache/sharedFetch';
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -47,13 +48,11 @@ const FearGreedIndicator = () => {
     queryKey: ['btc-dominance'],
     queryFn: async () => {
       try {
-        const response = await fetch('https://api.coingecko.com/api/v3/global');
-        const data = await response.json();
+        const data = await sharedFetchJson<any>('https://api.coingecko.com/api/v3/global', 5 * 60_000);
         
-        const dominanceValue = data.data?.market_cap_percentage?.btc || 59.02;
+        const dominanceValue = data.data?.market_cap_percentage?.btc ?? NaN;
         
-        console.log('BTC Dominance fetched:', dominanceValue);
-        
+                
         if (isNaN(dominanceValue)) {
           throw new Error('Invalid BTC dominance value');
         }
@@ -65,7 +64,7 @@ const FearGreedIndicator = () => {
         console.error('Error fetching BTC dominance:', error);
         toast.error('Erro ao carregar dominância do Bitcoin');
         return {
-          value: "59.02"
+          value: "—"
         };
       }
     },
@@ -80,16 +79,16 @@ const FearGreedIndicator = () => {
     queryFn: async () => {
       try {
         return {
-          dxy: "104.23",
-          spx: "5,254.42",
-          nasdaq: "16,742.39",
+          dxy: "—", // sem fonte gratuita integrada
+          spx: "—",
+          nasdaq: "—",
         };
       } catch (error) {
         console.error('Error fetching economic indicators:', error);
         return {
-          dxy: "104.23",
-          spx: "5,254.42",
-          nasdaq: "16,742.39",
+          dxy: "—", // sem fonte gratuita integrada
+          spx: "—",
+          nasdaq: "—",
         };
       }
     },
@@ -103,8 +102,7 @@ const FearGreedIndicator = () => {
     queryKey: ['btc-price'],
     queryFn: async () => {
       try {
-        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true');
-        const data = await response.json();
+        const data = await sharedFetchJson<any>(BTC_SIMPLE_PRICE_URL, 60_000);
         return {
           price: data.bitcoin.usd.toLocaleString(),
           change24h: parseFloat(data.bitcoin.usd_24h_change.toFixed(2))
@@ -112,8 +110,8 @@ const FearGreedIndicator = () => {
       } catch (error) {
         console.error('Error fetching BTC price:', error);
         return {
-          price: "30,142.82",
-          change24h: -1.42
+          price: "—",
+          change24h: null as number | null
         };
       }
     },
