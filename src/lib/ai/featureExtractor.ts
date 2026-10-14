@@ -41,32 +41,34 @@ export class AdvancedFeatureExtractor {
         symbol: crypto.symbol,
         timestamp: Date.now(),
 
-        // On-chain metrics — prefer real, fall back to simulate*() explicitly
-        activeAddresses: realActive ?? this.simulateActiveAddresses(crypto),
-        newWallets: realNew ?? this.simulateNewWallets(crypto),
-        whaleMovements: realWhale ?? this.simulateWhaleMovements(crypto),
-        dormantWakeups: realDormant ?? this.simulateDormantWakeups(crypto),
-        exchangeInflow: realInflow ?? this.simulateExchangeInflow(crypto),
-        exchangeOutflow: realOutflow ?? this.simulateExchangeOutflow(crypto),
+        // On-chain metrics — only real values. NaN = sem dados: every
+        // comparison with NaN is false, so the engines exclude the factor.
+        activeAddresses: realActive ?? NaN,
+        newWallets: realNew ?? NaN,
+        whaleMovements: realWhale ?? NaN,
+        dormantWakeups: realDormant ?? NaN,
+        exchangeInflow: realInflow ?? NaN,
+        exchangeOutflow: realOutflow ?? NaN,
 
-        // Social sentiment (still simulated — no real source integrated yet)
-        socialScore: social?.sentiment ?? this.calculateSocialScore(crypto),
-        mentionVolume: social?.mentionVolume ?? this.simulateMentionVolume(crypto),
-        sentimentCluster: this.determineSentimentCluster(social?.sentiment || 0),
+        // Social sentiment — no real source integrated: sem dados.
+        socialScore: social?.sentiment ?? NaN,
+        mentionVolume: social?.mentionVolume ?? NaN,
+        sentimentCluster: social ? this.determineSentimentCluster(social.sentiment) : 'neutral',
 
         // Market data
         volume24h: this.normalizeVolume(parseFloat(String(crypto.volume || '0'))),
         priceChange24h: parseFloat(String(crypto.priceChangePercent || '0')),
-        // TODO: liquidityDepth and orderBookImbalance have NO real source in
-        // this project — currently estimated from volume/market-cap/price.
-        // Replace with real order-book snapshots when a source is integrated.
-        liquidityDepth: this.calculateLiquidityDepth(crypto),
-        orderBookImbalance: this.calculateOrderBookImbalance(crypto),
+        // No order-book source is integrated. 24h volume / market cap is NOT
+        // order-book depth, so these stay "sem dados" until real snapshots exist.
+        liquidityDepth: NaN,
+        orderBookImbalance: NaN,
 
-        // Technical indicators
-        rsi: crypto.rsi4h || this.calculateRSI(crypto),
-        macd: this.calculateMACD(crypto),
-        bollingerPosition: this.calculateBollingerPosition(crypto),
+        // Technical indicators — only real candle-derived RSI; MACD/Bollinger
+        // need price history that this payload does not carry.
+        rsi: typeof crypto.rsi4h === 'number' && Number.isFinite(crypto.rsi4h) ? crypto.rsi4h : NaN,
+        macd: NaN,
+        bollingerPosition: NaN,
+        // 24h volume relative to 1% of market cap (turnover ratio).
         volumeProfile: this.calculateVolumeProfile(crypto),
 
         // Provenance flags
