@@ -9,3 +9,10 @@ Restrição: só planos gratuitos de API, sem custos novos.
 - [x] Fase 6: backtest sem look-ahead
 - [x] Fase 7: deduplicação de chamadas/cache
 - [x] Fase 8: prompt do Oracle (fato/interpretação/incerteza)
+
+## Pipeline de IA (prompt 14/10/2026)
+- [x] Fase 0: mapa + remover histórico inventado (dataAggregator) e simulações (featureExtractor)
+- [ ] Fase 1–2: tabelas de candles/OI/funding + coleta em lote no servidor
+- [ ] Fase 3: indicadores com testes, multi-timeframe
+- [ ] Fase 4: sinal estruturado + IA só interpreta (renomear "LSTM/GRU" simulados no explosiveSignalEngine)
+- [ ] Fase 5+: histórico concatenado e validação
