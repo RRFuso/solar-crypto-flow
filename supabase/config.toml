@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.telegram-link]
 verify_jwt = false
+
+[functions.market-history-collector]
+verify_jwt = false

@@ -389,6 +389,78 @@ export type Database = {
         }
         Relationships: []
       }
+      market_candles: {
+        Row: {
+          close: number
+          fetched_at: string
+          high: number
+          low: number
+          open: number
+          open_time: string
+          quote_volume: number
+          source: string
+          symbol: string
+          timeframe: string
+        }
+        Insert: {
+          close: number
+          fetched_at?: string
+          high: number
+          low: number
+          open: number
+          open_time: string
+          quote_volume: number
+          source?: string
+          symbol: string
+          timeframe: string
+        }
+        Update: {
+          close?: number
+          fetched_at?: string
+          high?: number
+          low?: number
+          open?: number
+          open_time?: string
+          quote_volume?: number
+          source?: string
+          symbol?: string
+          timeframe?: string
+        }
+        Relationships: []
+      }
+      market_derivatives: {
+        Row: {
+          fetched_at: string
+          funding_rate: number | null
+          open_interest: number | null
+          open_interest_usd: number | null
+          source: string
+          symbol: string
+          timeframe: string
+          ts: string
+        }
+        Insert: {
+          fetched_at?: string
+          funding_rate?: number | null
+          open_interest?: number | null
+          open_interest_usd?: number | null
+          source?: string
+          symbol: string
+          timeframe: string
+          ts: string
+        }
+        Update: {
+          fetched_at?: string
+          funding_rate?: number | null
+          open_interest?: number | null
+          open_interest_usd?: number | null
+          source?: string
+          symbol?: string
+          timeframe?: string
+          ts?: string
+        }
+        Relationships: []
+      }
       predictive_signals: {
         Row: {
           confidence: number | null
