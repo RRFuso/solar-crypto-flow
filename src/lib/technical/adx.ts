@@ -16,30 +16,35 @@ export const calculateADX = (high: number[], low: number[], close: number[], per
     const upMove = high[i] - high[i - 1];
     const downMove = low[i - 1] - low[i];
 
-    if (upMove > downMove && upMove > 0) {
-      plusDM.push(upMove);
-    } else {
-      plusDM.push(0);
-    }
-
-    if (downMove > upMove && downMove > 0) {
-      minusDM.push(downMove);
-    } else {
-      minusDM.push(0);
-    }
+    plusDM.push(upMove > downMove && upMove > 0 ? upMove : 0);
+    minusDM.push(downMove > upMove && downMove > 0 ? downMove : 0);
   }
 
-  const smoothedTR = trueRanges.slice(0, period).reduce((a, b) => a + b, 0) / period;
-  const smoothedPlusDM = plusDM.slice(0, period).reduce((a, b) => a + b, 0) / period;
-  const smoothedMinusDM = minusDM.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  // Wilder smoothing (sums; the period factor cancels in the ratios)
+  let atr = trueRanges.slice(0, period).reduce((a, b) => a + b, 0);
+  let smoothedPlusDM = plusDM.slice(0, period).reduce((a, b) => a + b, 0);
+  let smoothedMinusDM = minusDM.slice(0, period).reduce((a, b) => a + b, 0);
 
-  if (smoothedTR === 0) return 0;
+  const dxValues: number[] = [];
+  for (let i = period; i < trueRanges.length; i++) {
+    atr = atr - atr / period + trueRanges[i];
+    smoothedPlusDM = smoothedPlusDM - smoothedPlusDM / period + plusDM[i];
+    smoothedMinusDM = smoothedMinusDM - smoothedMinusDM / period + minusDM[i];
 
-  const plusDI = (smoothedPlusDM / smoothedTR) * 100;
-  const minusDI = (smoothedMinusDM / smoothedTR) * 100;
+    if (atr === 0) continue;
+    const plusDI = 100 * (smoothedPlusDM / atr);
+    const minusDI = 100 * (smoothedMinusDM / atr);
+    if (plusDI + minusDI === 0) continue;
+    dxValues.push(100 * Math.abs(plusDI - minusDI) / (plusDI + minusDI));
+  }
 
-  if (plusDI + minusDI === 0) return 0;
+  if (dxValues.length === 0) return 0;
+  // Not enough DX values for a full ADX: fall back to the latest DX
+  if (dxValues.length < period) return dxValues[dxValues.length - 1];
 
-  const dx = Math.abs((plusDI - minusDI) / (plusDI + minusDI)) * 100;
-  return dx;
+  let adx = dxValues.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < dxValues.length; i++) {
+    adx = (adx * (period - 1) + dxValues[i]) / period;
+  }
+  return adx;
 };

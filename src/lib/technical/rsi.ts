@@ -16,13 +16,16 @@ export const calculateRSI = (prices: number[], period: number = 14): number[] =>
   let avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
   let avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
 
-  for (let i = period; i <= prices.length; i++) {
-    avgGain = ((avgGain * (period - 1)) + (gains[i - 1] || 0)) / period;
-    avgLoss = ((avgLoss * (period - 1)) + (losses[i - 1] || 0)) / period;
+  // First RSI value at price index `period` uses the seed averages
+  rsiValues.push(100 - (100 / (1 + avgGain / (avgLoss || 1))));
+
+  // Wilder smoothing over the remaining price changes (no phantom candles)
+  for (let i = period; i < gains.length; i++) {
+    avgGain = ((avgGain * (period - 1)) + gains[i]) / period;
+    avgLoss = ((avgLoss * (period - 1)) + losses[i]) / period;
 
     const rs = avgGain / (avgLoss || 1);
-    const rsi = 100 - (100 / (1 + rs));
-    rsiValues.push(rsi);
+    rsiValues.push(100 - (100 / (1 + rs)));
   }
 
   return rsiValues;
