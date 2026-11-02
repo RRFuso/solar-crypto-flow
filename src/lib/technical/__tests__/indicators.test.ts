@@ -10,8 +10,8 @@ const BTC_4H_CLOSES = BTC_4H_OHLC.map(([, , c]) => c);
 const BTC_4H_HIGHS = BTC_4H_OHLC.map(([h]) => h);
 const BTC_4H_LOWS = BTC_4H_OHLC.map(([, l]) => l);
 
-const closeTo = (expected: number, precision = 6) =>
-  expect.closeTo(expected, precision);
+const closeTo = (expected: number, precision = 6) => (actual: number) =>
+  expect(actual).toBeCloseTo(expected, precision);
 
 describe('indicators on real BTC candles (1h)', () => {
   it('RSI(14) matches the Wilder reference value and length', () => {
