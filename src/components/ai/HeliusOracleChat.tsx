@@ -19,17 +19,38 @@ import WebLLMStatusIndicator from './WebLLMStatusIndicator';
 import { fetchOpenInterestData } from '@/lib/openInterest/binanceOI';
 import { analyzeOpenInterest, oiAnalysisToContext } from '@/lib/openInterest/indicators';
 import { getOISelection } from '@/lib/openInterest/oiSelectionStore';
+import { supabase } from '@/integrations/supabase/client';
+import { buildStructuredSignal, signalToOracleContext, type Candle } from '@/lib/signals/structuredSignal';
+
+/** Structured signals from stored closed candles (1h & 4h). The AI only interprets these. */
+async function buildSignalContext(symbol: string): Promise<string> {
+  const out: string[] = [];
+  for (const tf of ['1h', '4h']) {
+    const { data, error } = await supabase
+      .from('market_candles')
+      .select('open_time, open, high, low, close, quote_volume')
+      .eq('symbol', symbol).eq('timeframe', tf)
+      .order('open_time', { ascending: false }).limit(120);
+    if (error || !data) { out.push(`[SINAL ${symbol} ${tf}] indisponível.`); continue; }
+    const candles: Candle[] = data.reverse().map(r => ({
+      openTime: new Date(r.open_time).getTime(), open: r.open, high: r.high, low: r.low, close: r.close, volume: r.quote_volume,
+    }));
+    out.push(signalToOracleContext(buildStructuredSignal(symbol, tf, candles)));
+  }
+  return `SINAIS ESTRUTURADOS (calculados pelo app; apenas interprete, não recalcule nem altere score/viés):\n${out.join('\n')}`;
+}
 
 /** Build OI context for the asset mentioned (or the chart's asset) using the chart's timeframe. */
 async function buildOIContext(text: string): Promise<string> {
   const sel = getOISelection();
   const m = text.match(/\$([A-Za-z0-9]{2,12})\b/) || text.match(/\b([A-Z0-9]{2,10})\b/);
   const symbol = (m?.[1] || sel.symbol).toUpperCase();
+  const signals = await buildSignalContext(symbol).catch(() => `[SINAL ${symbol}] indisponível.`);
   try {
     const a = analyzeOpenInterest(await fetchOpenInterestData(symbol, sel.timeframe));
-    return a ? oiAnalysisToContext(a) : `OPEN INTEREST ${symbol} (${sel.timeframe}): histórico insuficiente — informe que os dados estão incompletos.`;
+    return (a ? oiAnalysisToContext(a) : `OPEN INTEREST ${symbol} (${sel.timeframe}): histórico insuficiente — informe que os dados estão incompletos.`) + `\n${signals}`;
   } catch {
-    return `OPEN INTEREST ${symbol} (${sel.timeframe}): indisponível (sem contrato perpétuo ou falha na fonte). Informe ao usuário que o dado não está disponível; não invente valores.`;
+    return `OPEN INTEREST ${symbol} (${sel.timeframe}): indisponível (sem contrato perpétuo ou falha na fonte). Informe ao usuário que o dado não está disponível; não invente valores.\n${signals}`;
   }
 }
 
