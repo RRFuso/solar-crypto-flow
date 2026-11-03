@@ -7,7 +7,7 @@ const fromOHLC = (rows: [number, number, number][]): Candle[] =>
 
 const trend = (n: number, step: number): Candle[] =>
   Array.from({ length: n }, (_, i) => {
-    const c = 100 + i * step + (i % 2 ? 0.3 : -0.3);
+    const c = 1000 + i * step + (i % 2 ? 0.3 : -0.3);
     return { openTime: i * 3600e3, open: c, high: c + 1, low: c - 1, close: c, volume: 100 };
   });
 
