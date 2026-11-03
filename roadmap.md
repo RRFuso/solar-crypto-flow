@@ -14,5 +14,5 @@ Restrição: só planos gratuitos de API, sem custos novos.
 - [x] Fase 0: mapa + remover histórico inventado (dataAggregator) e simulações (featureExtractor)
 - [x] Fase 1–2: tabelas de candles/OI/funding + coleta em lote no servidor
 - [x] Fase 3: indicadores com testes, multi-timeframe (RSI/MACD/ADX corrigidos; 13 testes com candles reais de BTC 1h/4h)
-- [ ] Fase 4: sinal estruturado + IA só interpreta (renomear "LSTM/GRU" simulados no explosiveSignalEngine)
+- [x] Fase 4: sinal estruturado (fatores, viés, invalidação, horizonte) a partir de market_candles; Oracle só interpreta; regras "LSTM/GRU" renomeadas como heurísticas; bug do RSI sem quedas corrigido
 - [ ] Fase 5+: histórico concatenado e validação
