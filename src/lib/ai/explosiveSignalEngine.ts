@@ -218,19 +218,19 @@ export class ExplosiveSignalEngine {
     return Math.min(score, 1);
   }
 
-  // Multi-model prediction ensemble
+  // Weighted combination of heuristic rules (labelled honestly; not ML)
   private generateModelPredictions(features: ExplosiveFeatures[]): Map<string, number> {
     const predictions = new Map<string, number>();
     
     features.forEach(feature => {
-      // Simulate LSTM prediction
-      const lstmScore = this.simulateLSTMPrediction(feature);
+      // Heuristic rule (not a trained model): volume/RSI/MACD
+      const lstmScore = this.heuristicSequentialRule(feature);
       
-      // Simulate GRU prediction
-      const gruScore = this.simulateGRUPrediction(feature);
+      // Heuristic rule (not a trained model): whale/exchange flow
+      const gruScore = this.heuristicFlowRule(feature);
       
-      // Simulate ConvLSTM prediction
-      const convLstmScore = this.simulateConvLSTMPrediction(feature);
+      // Heuristic rule (not a trained model): Bollinger/volume structure
+      const convLstmScore = this.heuristicStructureRule(feature);
       
       // Ensemble average with weights
       const ensembleScore = (lstmScore * 0.4) + (gruScore * 0.3) + (convLstmScore * 0.3);
@@ -241,8 +241,8 @@ export class ExplosiveSignalEngine {
     return predictions;
   }
 
-  private simulateLSTMPrediction(feature: ExplosiveFeatures): number {
-    // Simulate LSTM focusing on sequential patterns
+  private heuristicSequentialRule(feature: ExplosiveFeatures): number {
+    // Fixed-threshold rule; no neural network involved
     let score = 0;
     
     if (feature.volume24h > 1.5) score += 0.3;
@@ -253,8 +253,8 @@ export class ExplosiveSignalEngine {
     return Math.min(score, 1);
   }
 
-  private simulateGRUPrediction(feature: ExplosiveFeatures): number {
-    // Simulate GRU focusing on recent momentum
+  private heuristicFlowRule(feature: ExplosiveFeatures): number {
+    // Fixed-threshold rule; no neural network involved
     let score = 0;
     
     if (feature.whaleMovements > 5) score += 0.4;
@@ -264,8 +264,8 @@ export class ExplosiveSignalEngine {
     return Math.min(score, 1);
   }
 
-  private simulateConvLSTMPrediction(feature: ExplosiveFeatures): number {
-    // Simulate ConvLSTM focusing on pattern recognition
+  private heuristicStructureRule(feature: ExplosiveFeatures): number {
+    // Fixed-threshold rule; no neural network involved
     let score = 0;
     
     if (feature.bollingerPosition > 0.7) score += 0.3;
