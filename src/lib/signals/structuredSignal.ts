@@ -59,7 +59,10 @@ export function buildStructuredSignal(symbol: string, timeframe: string, candles
   };
 
   add('RSI(14)', rsi, rsi > 55 ? 20 : rsi < 45 ? -20 : 0, rsi > 70 ? 'sobrecomprado' : rsi < 30 ? 'sobrevendido' : 'faixa média');
-  add('MACD hist', hist, hist > 0 ? 25 : hist < 0 ? -25 : 0, hist > 0 ? 'momento positivo' : 'momento negativo');
+  // Deadband: histogram below 0.02% of price is treated as flat noise
+  const macdEps = price * 0.0002;
+  add('MACD hist', hist, hist > macdEps ? 25 : hist < -macdEps ? -25 : 0,
+    hist > macdEps ? 'momento positivo' : hist < -macdEps ? 'momento negativo' : 'momento neutro');
   add('Preço vs EMA50', (price / ema50 - 1) * 100, price > ema50 ? 25 : -25, price > ema50 ? 'acima da média' : 'abaixo da média');
 
   let raw = factors.reduce((s, f) => s + f.contribution, 0);
