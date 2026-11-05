@@ -18,14 +18,14 @@ if (!URL || !KEY) { console.error('Faltam VITE_SUPABASE_URL / VITE_SUPABASE_PUBL
 
 async function fetchCandles(symbol: string, timeframe: string): Promise<Candle[]> {
   const p = new URLSearchParams({
-    select: 'open_time,open,high,low,close,volume',
+    select: 'open_time,open,high,low,close,quote_volume',
     symbol: `eq.${symbol}`, timeframe: `eq.${timeframe}`,
     order: 'open_time.asc', limit: '1000',
   });
   const r = await fetch(`${URL}/rest/v1/market_candles?${p}`, { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } });
   if (!r.ok) throw new Error(`${symbol} ${timeframe}: HTTP ${r.status}`);
-  const rows = (await r.json()) as { open_time: string; open: number; high: number; low: number; close: number; volume: number }[];
-  return rows.map((x) => ({ openTime: new Date(x.open_time).getTime(), open: +x.open, high: +x.high, low: +x.low, close: +x.close, volume: +x.volume }));
+  const rows = (await r.json()) as { open_time: string; open: number; high: number; low: number; close: number; quote_volume: number }[];
+  return rows.map((x) => ({ openTime: new Date(x.open_time).getTime(), open: +x.open, high: +x.high, low: +x.low, close: +x.close, volume: +x.quote_volume }));
 }
 
 const pct = (x: number | null) => (x === null ? '—' : `${(x * 100).toFixed(1)}%`);
