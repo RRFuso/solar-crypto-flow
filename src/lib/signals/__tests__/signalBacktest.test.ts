@@ -31,7 +31,9 @@ describe('backtestStructuredSignal', () => {
   });
 
   it('numa queda forte e contínua, sinais de baixa avaliados devem acertar', () => {
-    const closes = Array.from({ length: 130 }, (_, i) => 100 * Math.pow(0.992, i));
+    // Queda linear: o MACD histograma permanece negativo (numa queda exponencial
+    // ele legitimentamente vira positivo, pois a queda absoluta desacelera)
+    const closes = Array.from({ length: 130 }, (_, i) => 100 - 0.45 * i);
     const res = backtestStructuredSignal('BTC', '1h', mkCandles(closes), null, { horizonBars: 6, step: 1, minSample: 1 });
     expect(res.rows.length).toBeGreaterThan(20);
     expect(res.rows.every((r) => r.bias === 'baixa')).toBe(true);
