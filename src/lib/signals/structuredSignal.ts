@@ -30,9 +30,27 @@ export interface StructuredSignal {
 export const MIN_CANDLES = 60;
 const DISCLAIMER = 'Sinal de Tendência heurístico, não validado. Conteúdo educacional, não é recomendação.';
 
+/** Parâmetros calibráveis das regras. DEFAULT_PARAMS = comportamento vigente. */
+export interface SignalParams {
+  rsiUp: number;        // RSI acima disso contribui positivo
+  rsiDown: number;      // RSI abaixo disso contribui negativo
+  wRsi: number;         // peso do RSI
+  wMacd: number;        // peso do histograma MACD
+  wEma: number;         // peso preço vs EMA50
+  adxWeak: number;      // ADX abaixo disso atenua (×0.5)
+  adxStrong: number;    // ADX acima disso reforça (×1.2)
+  adxGate: number;      // só emite sinal se ADX >= adxGate (0 = desligado)
+  scoreCut: number;     // |score| mínimo para viés direcional
+}
+
+export const DEFAULT_PARAMS: SignalParams = {
+  rsiUp: 55, rsiDown: 45, wRsi: 20, wMacd: 25, wEma: 25,
+  adxWeak: 20, adxStrong: 30, adxGate: 0, scoreCut: 30,
+};
+
 const last = (a: number[]) => a[a.length - 1];
 
-export function buildStructuredSignal(symbol: string, timeframe: string, candles: Candle[], horizonBars = 6): StructuredSignal {
+export function buildStructuredSignal(symbol: string, timeframe: string, candles: Candle[], horizonBars = 6, params: SignalParams = DEFAULT_PARAMS): StructuredSignal {
   const base: StructuredSignal = {
     symbol, timeframe, asOf: candles.length ? last(candles.map(c => c.openTime)) : null,
     status: 'sem_dados', bias: 'neutro', score: 0, factors: [], invalidation: null, horizonBars, disclaimer: DISCLAIMER,
@@ -58,18 +76,18 @@ export function buildStructuredSignal(symbol: string, timeframe: string, candles
     if (Number.isFinite(value)) factors.push({ name, value, contribution, note });
   };
 
-  add('RSI(14)', rsi, rsi > 55 ? 20 : rsi < 45 ? -20 : 0, rsi > 70 ? 'sobrecomprado' : rsi < 30 ? 'sobrevendido' : 'faixa média');
+  add('RSI(14)', rsi, rsi > params.rsiUp ? params.wRsi : rsi < params.rsiDown ? -params.wRsi : 0, rsi > 70 ? 'sobrecomprado' : rsi < 30 ? 'sobrevendido' : 'faixa média');
   // Deadband: histogram below 0.02% of price is treated as flat noise
   const macdEps = price * 0.0002;
-  add('MACD hist', hist, hist > macdEps ? 25 : hist < -macdEps ? -25 : 0,
+  add('MACD hist', hist, hist > macdEps ? params.wMacd : hist < -macdEps ? -params.wMacd : 0,
     hist > macdEps ? 'momento positivo' : hist < -macdEps ? 'momento negativo' : 'momento neutro');
-  add('Preço vs EMA50', (price / ema50 - 1) * 100, price > ema50 ? 25 : -25, price > ema50 ? 'acima da média' : 'abaixo da média');
+  add('Preço vs EMA50', (price / ema50 - 1) * 100, price > ema50 ? params.wEma : -params.wEma, price > ema50 ? 'acima da média' : 'abaixo da média');
 
   let raw = factors.reduce((s, f) => s + f.contribution, 0);
   // ADX scales conviction: weak trend dampens the score
   if (Number.isFinite(adx)) {
-    const k = adx < 20 ? 0.5 : adx > 30 ? 1.2 : 1;
-    factors.push({ name: 'ADX(14)', value: adx, contribution: 0, note: adx < 20 ? 'tendência fraca (atenua)' : adx > 30 ? 'tendência forte (reforça)' : 'tendência moderada' });
+    const k = adx < params.adxWeak ? 0.5 : adx > params.adxStrong ? 1.2 : 1;
+    factors.push({ name: 'ADX(14)', value: adx, contribution: 0, note: adx < params.adxWeak ? 'tendência fraca (atenua)' : adx > params.adxStrong ? 'tendência forte (reforça)' : 'tendência moderada' });
     raw *= k;
   }
   if (Number.isFinite(relVol)) {
@@ -78,7 +96,9 @@ export function buildStructuredSignal(symbol: string, timeframe: string, candles
   }
 
   const score = Math.max(-100, Math.min(100, Math.round(raw)));
-  const bias: SignalBias = score >= 30 ? 'alta' : score <= -30 ? 'baixa' : 'neutro';
+  // Gate de tendência: sem ADX mínimo, não há direção confiável a emitir
+  const gated = params.adxGate > 0 && Number.isFinite(adx) && adx < params.adxGate;
+  const bias: SignalBias = gated ? 'neutro' : score >= params.scoreCut ? 'alta' : score <= -params.scoreCut ? 'baixa' : 'neutro';
   const recent = candles.slice(-20);
   const invalidation = bias === 'alta' ? Math.min(...recent.map(c => c.low))
     : bias === 'baixa' ? Math.max(...recent.map(c => c.high)) : null;
