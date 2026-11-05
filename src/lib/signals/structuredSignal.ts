@@ -76,18 +76,18 @@ export function buildStructuredSignal(symbol: string, timeframe: string, candles
     if (Number.isFinite(value)) factors.push({ name, value, contribution, note });
   };
 
-  add('RSI(14)', rsi, rsi > 55 ? 20 : rsi < 45 ? -20 : 0, rsi > 70 ? 'sobrecomprado' : rsi < 30 ? 'sobrevendido' : 'faixa média');
+  add('RSI(14)', rsi, rsi > params.rsiUp ? params.wRsi : rsi < params.rsiDown ? -params.wRsi : 0, rsi > 70 ? 'sobrecomprado' : rsi < 30 ? 'sobrevendido' : 'faixa média');
   // Deadband: histogram below 0.02% of price is treated as flat noise
   const macdEps = price * 0.0002;
-  add('MACD hist', hist, hist > macdEps ? 25 : hist < -macdEps ? -25 : 0,
+  add('MACD hist', hist, hist > macdEps ? params.wMacd : hist < -macdEps ? -params.wMacd : 0,
     hist > macdEps ? 'momento positivo' : hist < -macdEps ? 'momento negativo' : 'momento neutro');
-  add('Preço vs EMA50', (price / ema50 - 1) * 100, price > ema50 ? 25 : -25, price > ema50 ? 'acima da média' : 'abaixo da média');
+  add('Preço vs EMA50', (price / ema50 - 1) * 100, price > ema50 ? params.wEma : -params.wEma, price > ema50 ? 'acima da média' : 'abaixo da média');
 
   let raw = factors.reduce((s, f) => s + f.contribution, 0);
   // ADX scales conviction: weak trend dampens the score
   if (Number.isFinite(adx)) {
-    const k = adx < 20 ? 0.5 : adx > 30 ? 1.2 : 1;
-    factors.push({ name: 'ADX(14)', value: adx, contribution: 0, note: adx < 20 ? 'tendência fraca (atenua)' : adx > 30 ? 'tendência forte (reforça)' : 'tendência moderada' });
+    const k = adx < params.adxWeak ? 0.5 : adx > params.adxStrong ? 1.2 : 1;
+    factors.push({ name: 'ADX(14)', value: adx, contribution: 0, note: adx < params.adxWeak ? 'tendência fraca (atenua)' : adx > params.adxStrong ? 'tendência forte (reforça)' : 'tendência moderada' });
     raw *= k;
   }
   if (Number.isFinite(relVol)) {
@@ -96,7 +96,9 @@ export function buildStructuredSignal(symbol: string, timeframe: string, candles
   }
 
   const score = Math.max(-100, Math.min(100, Math.round(raw)));
-  const bias: SignalBias = score >= 30 ? 'alta' : score <= -30 ? 'baixa' : 'neutro';
+  // Gate de tendência: sem ADX mínimo, não há direção confiável a emitir
+  const gated = params.adxGate > 0 && Number.isFinite(adx) && adx < params.adxGate;
+  const bias: SignalBias = gated ? 'neutro' : score >= params.scoreCut ? 'alta' : score <= -params.scoreCut ? 'baixa' : 'neutro';
   const recent = candles.slice(-20);
   const invalidation = bias === 'alta' ? Math.min(...recent.map(c => c.low))
     : bias === 'baixa' ? Math.max(...recent.map(c => c.high)) : null;
