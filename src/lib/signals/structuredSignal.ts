@@ -30,9 +30,27 @@ export interface StructuredSignal {
 export const MIN_CANDLES = 60;
 const DISCLAIMER = 'Sinal de Tendência heurístico, não validado. Conteúdo educacional, não é recomendação.';
 
+/** Parâmetros calibráveis das regras. DEFAULT_PARAMS = comportamento vigente. */
+export interface SignalParams {
+  rsiUp: number;        // RSI acima disso contribui positivo
+  rsiDown: number;      // RSI abaixo disso contribui negativo
+  wRsi: number;         // peso do RSI
+  wMacd: number;        // peso do histograma MACD
+  wEma: number;         // peso preço vs EMA50
+  adxWeak: number;      // ADX abaixo disso atenua (×0.5)
+  adxStrong: number;    // ADX acima disso reforça (×1.2)
+  adxGate: number;      // só emite sinal se ADX >= adxGate (0 = desligado)
+  scoreCut: number;     // |score| mínimo para viés direcional
+}
+
+export const DEFAULT_PARAMS: SignalParams = {
+  rsiUp: 55, rsiDown: 45, wRsi: 20, wMacd: 25, wEma: 25,
+  adxWeak: 20, adxStrong: 30, adxGate: 0, scoreCut: 30,
+};
+
 const last = (a: number[]) => a[a.length - 1];
 
-export function buildStructuredSignal(symbol: string, timeframe: string, candles: Candle[], horizonBars = 6): StructuredSignal {
+export function buildStructuredSignal(symbol: string, timeframe: string, candles: Candle[], horizonBars = 6, params: SignalParams = DEFAULT_PARAMS): StructuredSignal {
   const base: StructuredSignal = {
     symbol, timeframe, asOf: candles.length ? last(candles.map(c => c.openTime)) : null,
     status: 'sem_dados', bias: 'neutro', score: 0, factors: [], invalidation: null, horizonBars, disclaimer: DISCLAIMER,
