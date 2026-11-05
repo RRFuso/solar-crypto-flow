@@ -31,17 +31,17 @@ async function fetchCandles(symbol: string, timeframe: string): Promise<Candle[]
 const pct = (x: number | null) => (x === null ? '—' : `${(x * 100).toFixed(1)}%`);
 
 async function main() {
-  const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'AVAXUSDT', 'LINKUSDT', 'DOTUSDT'];
+  const symbols = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'AVAX', 'LINK', 'DOT'];
   const timeframes = ['1h', '4h'] as const;
   for (const tf of timeframes) {
     const horizon = tf === '1h' ? 6 : 3; // ~6h e ~12h à frente
-    const btc = await fetchCandles('BTCUSDT', tf);
+    const btc = await fetchCandles('BTC', tf);
     console.log(`\n=== ${tf} | horizonte ${horizon} candles | baseline BTC ===`);
     console.log('symbol      n   hitRate  avgExcess   alta(n/hit)      baixa(n/hit)');
     for (const sym of symbols) {
       const candles = await fetchCandles(sym, tf);
       if (candles.length < 80) { console.log(`${sym.padEnd(11)} dados insuficientes (${candles.length})`); continue; }
-      const res = backtestStructuredSignal(sym, tf, candles, sym === 'BTCUSDT' ? null : btc, { horizonBars: horizon, step: tf === '1h' ? 2 : 1 });
+      const res = backtestStructuredSignal(sym, tf, candles, sym === 'BTC' ? null : btc, { horizonBars: horizon, step: tf === '1h' ? 2 : 1 });
       const t = res.total;
       console.log(
         `${sym.padEnd(11)} ${String(t.evaluated).padEnd(4)}${pct(t.hitRate).padStart(7)}  ${pct(t.avgExcessReturn).padStart(9)}   ` +
