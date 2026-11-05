@@ -3,7 +3,7 @@
  * Em cada passo, o sinal usa APENAS candles até aquele instante (sem look-ahead)
  * e é avaliado com horizonte fixo contra um baseline opcional (ex.: BTC).
  */
-import { buildStructuredSignal, MIN_CANDLES, type Candle, type SignalBias } from './structuredSignal';
+import { buildStructuredSignal, MIN_CANDLES, type Candle, type SignalBias, type SignalParams } from './structuredSignal';
 import { evaluateSignal, summarizeOutcomes, type EvalCandle, type SignalOutcome, type SignalStats } from './signalEvaluation';
 
 export interface BacktestRow {
@@ -32,7 +32,7 @@ export function backtestStructuredSignal(
   timeframe: string,
   candles: Candle[],
   baseline: Candle[] | null,
-  opts: { horizonBars?: number; step?: number; minSample?: number } = {},
+  opts: { horizonBars?: number; step?: number; minSample?: number; params?: SignalParams } = {},
 ): BacktestSummary {
   const horizon = opts.horizonBars ?? 6;
   const step = Math.max(1, opts.step ?? 1);
@@ -44,7 +44,7 @@ export function backtestStructuredSignal(
   const lastEmittable = candles.length - 1 - horizon;
   for (let i = MIN_CANDLES; i <= lastEmittable; i += step) {
     const window = candles.slice(0, i + 1);
-    const signal = buildStructuredSignal(symbol, timeframe, window, horizon);
+    const signal = buildStructuredSignal(symbol, timeframe, window, horizon, opts.params);
     if (signal.status !== 'ativo' || signal.bias === 'neutro' || signal.asOf === null) continue;
     const outcome = evaluateSignal(
       { emittedAt: signal.asOf, direction: signal.bias === 'alta' ? 'up' : 'down', horizonBars: horizon },
