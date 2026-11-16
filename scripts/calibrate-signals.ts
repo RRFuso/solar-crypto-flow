@@ -18,15 +18,20 @@ const URL = env.VITE_SUPABASE_URL;
 const KEY = env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 async function fetchCandles(symbol: string, timeframe: string): Promise<Candle[]> {
-  const p = new URLSearchParams({
-    select: 'open_time,open,high,low,close,quote_volume',
-    symbol: `eq.${symbol}`, timeframe: `eq.${timeframe}`,
-    order: 'open_time.asc', limit: '1000',
-  });
-  const r = await fetch(`${URL}/rest/v1/market_candles?${p}`, { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } });
-  if (!r.ok) throw new Error(`${symbol} ${timeframe}: HTTP ${r.status}`);
-  const rows = (await r.json()) as { open_time: string; open: number; high: number; low: number; close: number; quote_volume: number }[];
-  return rows.map((x) => ({ openTime: new Date(x.open_time).getTime(), open: +x.open, high: +x.high, low: +x.low, close: +x.close, volume: +x.quote_volume }));
+  const out: Candle[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    const p = new URLSearchParams({
+      select: 'open_time,open,high,low,close,quote_volume',
+      symbol: `eq.${symbol}`, timeframe: `eq.${timeframe}`,
+      order: 'open_time.asc', limit: '1000', offset: String(offset),
+    });
+    const r = await fetch(`${URL}/rest/v1/market_candles?${p}`, { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } });
+    if (!r.ok) throw new Error(`${symbol} ${timeframe}: HTTP ${r.status}`);
+    const rows = (await r.json()) as { open_time: string; open: number; high: number; low: number; close: number; quote_volume: number }[];
+    for (const x of rows) out.push({ openTime: new Date(x.open_time).getTime(), open: +x.open, high: +x.high, low: +x.low, close: +x.close, volume: +x.quote_volume });
+    if (rows.length < 1000) break;
+  }
+  return out;
 }
 
 const SYMBOLS = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'AVAX', 'LINK', 'DOT'];
