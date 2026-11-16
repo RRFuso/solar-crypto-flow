@@ -8,7 +8,9 @@ const SYMBOLS = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE', 'AVAX', 'LINK
   'TRX', 'LTC', 'UNI', 'ATOM', 'NEAR', 'APT', 'ARB', 'OP', 'SUI', 'INJ'];
 const TIMEFRAMES = ['1h', '4h'];
 const LIMIT = 200;
-const RETENTION_DAYS = 60;
+const CANDLE_RETENTION_DAYS = 400; // long history for signal backtests
+const DERIV_RETENTION_DAYS = 60;   // Binance only serves ~30d of OI history anyway
+const MAX_BACKFILL_DAYS = 365;
 
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -27,6 +29,39 @@ Deno.serve(async (req) => {
 
   const db = serviceClient();
   const now = Date.now();
+
+  // Backfill mode: page older closed spot candles (1000/request) for a few symbols per call.
+  let body: any = {};
+  try { body = await req.json(); } catch { /* cron sends no body */ }
+  if (body?.backfill === true) {
+    const days = Math.min(Math.max(Number(body.days) || 365, 1), MAX_BACKFILL_DAYS);
+    const req_syms: string[] = Array.isArray(body.symbols) ? body.symbols.filter((x: unknown) => typeof x === 'string' && SYMBOLS.includes(x as string)).slice(0, 5) : [];
+    if (!req_syms.length) return json({ error: 'symbols required (max 5, from tracked list)' }, 400);
+    const start = now - days * 86_400_000;
+    let total = 0; const miss: string[] = [];
+    for (const base of req_syms) {
+      for (const tf of TIMEFRAMES) {
+        let from = start;
+        while (from < now) {
+          const kl = await getJson(`https://api.binance.com/api/v3/klines?symbol=${base}USDT&interval=${tf}&startTime=${from}&limit=1000`);
+          if (!Array.isArray(kl) || !kl.length) { if (!Array.isArray(kl)) miss.push(`${base}:${tf}`); break; }
+          const rows = kl.filter((k: any[]) => Number(k[6]) < now).map((k: any[]) => ({
+            symbol: base, timeframe: tf, open_time: new Date(Number(k[0])).toISOString(),
+            open: +k[1], high: +k[2], low: +k[3], close: +k[4], quote_volume: +k[7],
+            source: 'binance_spot', fetched_at: new Date(now).toISOString(),
+          }));
+          if (rows.length) {
+            const { error } = await db.from('market_candles').upsert(rows, { onConflict: 'symbol,timeframe,open_time' });
+            if (!error) total += rows.length; else console.error(base, tf, error.message);
+          }
+          from = Number(kl[kl.length - 1][0]) + 1;
+          if (kl.length < 1000) break;
+        }
+      }
+    }
+    return json({ success: true, backfill: true, days, symbols: req_syms, candles: total, missing: miss });
+  }
+
   let candles = 0, derivs = 0;
   const missing: string[] = [];
 
@@ -69,9 +104,8 @@ Deno.serve(async (req) => {
     }
   }
 
-  const cutoff = new Date(now - RETENTION_DAYS * 86_400_000).toISOString();
-  await db.from('market_candles').delete().lt('open_time', cutoff);
-  await db.from('market_derivatives').delete().lt('ts', cutoff);
+  await db.from('market_candles').delete().lt('open_time', new Date(now - CANDLE_RETENTION_DAYS * 86_400_000).toISOString());
+  await db.from('market_derivatives').delete().lt('ts', new Date(now - DERIV_RETENTION_DAYS * 86_400_000).toISOString());
 
   return json({ success: true, candles, derivatives: derivs, missing });
 });
