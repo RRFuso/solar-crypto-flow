@@ -18,15 +18,20 @@ const URL = env.VITE_SUPABASE_URL;
 const KEY = env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 async function fetchCandles(symbol: string, timeframe: string): Promise<Candle[]> {
-  const p = new URLSearchParams({
-    select: 'open_time,open,high,low,close,quote_volume',
-    symbol: `eq.${symbol}`, timeframe: `eq.${timeframe}`,
-    order: 'open_time.asc', limit: '1000',
-  });
-  const r = await fetch(`${URL}/rest/v1/market_candles?${p}`, { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } });
-  if (!r.ok) throw new Error(`${symbol} ${timeframe}: HTTP ${r.status}`);
-  const rows = (await r.json()) as { open_time: string; open: number; high: number; low: number; close: number; quote_volume: number }[];
-  return rows.map((x) => ({ openTime: new Date(x.open_time).getTime(), open: +x.open, high: +x.high, low: +x.low, close: +x.close, volume: +x.quote_volume }));
+  const out: Candle[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    const p = new URLSearchParams({
+      select: 'open_time,open,high,low,close,quote_volume',
+      symbol: `eq.${symbol}`, timeframe: `eq.${timeframe}`,
+      order: 'open_time.asc', limit: '1000', offset: String(offset),
+    });
+    const r = await fetch(`${URL}/rest/v1/market_candles?${p}`, { headers: { apikey: KEY, Authorization: `Bearer ${KEY}` } });
+    if (!r.ok) throw new Error(`${symbol} ${timeframe}: HTTP ${r.status}`);
+    const rows = (await r.json()) as { open_time: string; open: number; high: number; low: number; close: number; quote_volume: number }[];
+    for (const x of rows) out.push({ openTime: new Date(x.open_time).getTime(), open: +x.open, high: +x.high, low: +x.low, close: +x.close, volume: +x.quote_volume });
+    if (rows.length < 1000) break;
+  }
+  return out;
 }
 
 const SYMBOLS = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'AVAX', 'LINK', 'DOT'];
@@ -48,7 +53,7 @@ function runSet(params: SignalParams, data: Map<string, Candle[]>, btc: Candle[]
   for (const sym of SYMBOLS) {
     const candles = data.get(`${sym}:${tf}`);
     if (!candles || candles.length < 90) continue;
-    const res = backtestStructuredSignal(sym, tf, candles, sym === 'BTC' ? null : btc, { horizonBars: horizon, step: tf === '1h' ? 2 : 1, params, minSample: 1 });
+    const res = backtestStructuredSignal(sym, tf, candles, sym === 'BTC' ? null : btc, { horizonBars: horizon, step: tf === '1h' ? 8 : 3, params, minSample: 1 });
     for (const row of res.rows) {
       if (row.outcome.status !== 'evaluated') continue;
       n++; if (row.outcome.hit) hit++;
@@ -81,7 +86,7 @@ async function main() {
           const candles = which === 'train' ? s.train : s.val;
           if (candles.length < 90) continue;
           const btc = which === 'train' ? btcFull.slice(0, cut) : btcFull.slice(Math.max(0, cut - 70));
-          const res = backtestStructuredSignal(sym, tf, candles, sym === 'BTC' ? null : btc, { horizonBars: horizon, step: tf === '1h' ? 2 : 1, params, minSample: 1 });
+          const res = backtestStructuredSignal(sym, tf, candles, sym === 'BTC' ? null : btc, { horizonBars: horizon, step: tf === '1h' ? 8 : 3, params, minSample: 1 });
           for (const row of res.rows) {
             if (row.outcome.status !== 'evaluated') continue;
             n++; if (row.outcome.hit) h++;
